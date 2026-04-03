@@ -22,17 +22,17 @@ No backend — runs entirely in the browser.
 
 ## Tech stack
 
-| Layer | Library |
-|---|---|
-| UI | React 19 + TypeScript |
-| Styling | Tailwind CSS v4 |
-| Build | Vite 8 |
-| PWA | vite-plugin-pwa |
-| Presentation | Reveal.js |
-| Storage | Dexie.js (IndexedDB) |
-| Multiplayer A | PeerJS (WebRTC) |
-| Multiplayer B | Gun.js + SEA encryption |
-| Routing | React Router v7 (HashRouter) |
+| Layer         | Library                      |
+| ------------- | ---------------------------- |
+| UI            | React 19 + TypeScript        |
+| Styling       | Tailwind CSS v4              |
+| Build         | Vite 8                       |
+| PWA           | vite-plugin-pwa              |
+| Presentation  | Reveal.js                    |
+| Storage       | Dexie.js (IndexedDB)         |
+| Multiplayer A | PeerJS (WebRTC)              |
+| Multiplayer B | Gun.js + SEA encryption      |
+| Routing       | React Router v7 (HashRouter) |
 
 ---
 
@@ -50,13 +50,13 @@ npm run dev
 
 ### Available scripts
 
-| Script | What it does |
-|---|---|
-| `npm run dev` | Start dev server at `localhost:5173` |
-| `npm run build` | Type-check + production build → `dist/` |
-| `npm run lint` | ESLint across all `*.ts` / `*.tsx` files |
+| Script              | What it does                                  |
+| ------------------- | --------------------------------------------- |
+| `npm run dev`       | Start dev server at `localhost:5173`          |
+| `npm run build`     | Type-check + production build → `dist/`       |
+| `npm run lint`      | ESLint across all `*.ts` / `*.tsx` files      |
 | `npm run typecheck` | `tsc` without emitting — fast type-only check |
-| `npm run preview` | Serve the production build locally |
+| `npm run preview`   | Serve the production build locally            |
 
 ---
 
@@ -94,11 +94,11 @@ public/
 
 No backend server. Two transport options, selectable per game:
 
-| Mode | Mechanism | Internet required |
-|---|---|---|
-| **PeerJS** | WebRTC via PeerJS signaling | Initial handshake only |
-| **Gun.js** | Decentralised relay + SEA encryption | Initial handshake only |
-| **Auto** | Tries PeerJS (8s timeout) → falls back to Gun.js | Initial handshake only |
+| Mode       | Mechanism                                        | Internet required      |
+| ---------- | ------------------------------------------------ | ---------------------- |
+| **PeerJS** | WebRTC via PeerJS signaling                      | Initial handshake only |
+| **Gun.js** | Decentralised relay + SEA encryption             | Initial handshake only |
+| **Auto**   | Tries PeerJS (8s timeout) → falls back to Gun.js | Initial handshake only |
 
 The host generates a **Room ID** and (for Gun.js) a **4-word passphrase**. Both are embedded
 in the QR code that players scan. After the initial connection, all game state flows
@@ -130,14 +130,14 @@ restore or share your question bank.
 
 ### Workflows
 
-| Workflow | Trigger | Purpose |
-|---|---|---|
-| `ci.yml` | push + PR to `master` | Type-check, lint, build |
-| `deploy.yml` | push to `master` | Build + deploy to GitHub Pages (gates on CI) |
-| `release.yml` | push to `master` | [release-please](https://github.com/googleapis/release-please): bumps version, generates changelog, creates GitHub Release |
-| `pr-title.yml` | PR events | Enforces conventional commit format on PR titles |
-| `deps.yml` | Mondays | Patch/minor dep updates → opens PR if anything changed |
-| `stale.yml` | Mondays | Marks stale issues (30d) and PRs (14d), closes after 7d |
+| Workflow       | Trigger                   | Purpose                                                                                                                    |
+| -------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `ci.yml`       | PRs to `master`           | Type-check, lint, build — fast feedback before merge                                                                       |
+| `deploy.yml`   | push to `master` + manual | Type-check, lint, build, deploy to GitHub Pages                                                                            |
+| `release.yml`  | push to `master`          | [release-please](https://github.com/googleapis/release-please): bumps version, generates changelog, creates GitHub Release |
+| `pr-title.yml` | PR events                 | Enforces conventional commit format on PR titles                                                                           |
+| `deps.yml`     | Mondays                   | Patch/minor dep updates → opens PR if anything changed                                                                     |
+| `stale.yml`    | Mondays                   | Marks stale issues (30d) and PRs (14d), closes after 7d                                                                    |
 
 All workflows set `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` to opt into the Node 24
 runner ahead of the June 2026 forced migration.
@@ -146,10 +146,10 @@ runner ahead of the June 2026 forced migration.
 
 [Conventional commits](https://www.conventionalcommits.org/) drive automatic versioning:
 
-| Commit prefix | Version bump |
-|---|---|
-| `feat:` | minor (`0.x.0`) |
-| `fix:`, `perf:` | patch (`0.0.x`) |
+| Commit prefix                 | Version bump    |
+| ----------------------------- | --------------- |
+| `feat:`                       | minor (`0.x.0`) |
+| `fix:`, `perf:`               | patch (`0.0.x`) |
 | `feat!:` / `BREAKING CHANGE:` | major (`x.0.0`) |
 
 release-please accumulates commits into a release PR. Merging it tags the release,
