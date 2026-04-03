@@ -14,7 +14,10 @@ concurrency:
   group: pages
   cancel-in-progress: true
 
-jobs:
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+
   # Run CI checks before deploying
   ci:
     uses: ./.github/workflows/ci.yml

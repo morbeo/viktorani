@@ -2,9 +2,20 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>viktorani</title>
+    <title>Viktorani</title>
+    <meta name="description" content="Bar trivia PWA with WebRTC multiplayer and Reveal.js slides" />
+
+    <!--
+      Favicon strategy for GitHub Pages (base = /viktorani/):
+      - favicon.svg goes in public/ → served at /viktorani/favicon.svg
+      - Use a root-relative path with the Vite base injected at build time via %BASE_URL%
+      - icon-192.png and icon-512.png also live in public/ and are referenced by the PWA manifest
+      - To generate PNG icons from the SVG: https://squoosh.app or `npx sharp-cli`
+    -->
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="%BASE_URL%icon-192.png" />
+    <link rel="apple-touch-icon" href="%BASE_URL%icon-192.png" />
   </head>
   <body>
     <div id="root"></div>
