@@ -5,6 +5,7 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
+  workflow_call:   # allows deploy.yml to call this as a reusable workflow
 
 jobs:
   ci:

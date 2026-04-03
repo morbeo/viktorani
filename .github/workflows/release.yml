@@ -11,34 +11,27 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
-    # Only run if CI passed — releases are only cut from green builds
-    needs: []
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0        # full history needed for changelog generation
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+          fetch-depth: 0
+          # RELEASE_PAT is a fine-grained PAT with contents:write and pull-requests:write.
+          # Using GITHUB_TOKEN here is blocked by GitHub's "Actions cannot approve PRs" policy.
+          # Setup: GitHub → Settings → Developer settings → Personal access tokens → Fine-grained
+          # Permissions needed: Contents (read+write), Pull requests (read+write)
+          # Then: repo Settings → Secrets → Actions → New secret named RELEASE_PAT
+          token: ${{ secrets.RELEASE_PAT }}
 
       - name: Release
         uses: googleapis/release-please-action@v4
         id: release
         with:
-          release-type: node   # reads version from package.json, updates it on release
-          token: ${{ secrets.GITHUB_TOKEN }}
+          release-type: node
+          token: ${{ secrets.RELEASE_PAT }}
 
-      # Deploy is triggered separately by the deploy workflow on push to master.
-      # This step just surfaces the release URL for traceability.
       - name: Summarise
         if: ${{ steps.release.outputs.release_created }}
         run: |
-          echo "### 🎉 Released v${{ steps.release.outputs.major }}.${{ steps.release.outputs.minor }}.${{ steps.release.outputs.patch }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Released v${{ steps.release.outputs.major }}.${{ steps.release.outputs.minor }}.${{ steps.release.outputs.patch }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "[${{ steps.release.outputs.tag_name }}](${{ steps.release.outputs.html_url }})" >> $GITHUB_STEP_SUMMARY
