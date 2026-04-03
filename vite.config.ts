@@ -1,0 +1,36 @@
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+import { VitePWA } from 'vite-plugin-pwa'
+
+export default defineConfig({
+  base: '/viktorani/',
+  plugins: [
+    react(),
+    tailwindcss(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.ico', 'icon-192.png', 'icon-512.png'],
+      manifest: {
+        name: 'Viktorani',
+        short_name: 'Viktorani',
+        description: 'Bar trivia PWA with WebRTC multiplayer, Reveal.js slides, and buzzer gameplay.',
+        theme_color: '#f5f0e8',
+        background_color: '#f5f0e8',
+        display: 'standalone',
+        scope: '/viktorani/',
+        start_url: '/viktorani/',
+        icons: [
+          { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+        ],
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+      },
+    }),
+  ],
+  resolve: {
+    alias: { '@': '/src' },
+  },
+})
