@@ -1,0 +1,54 @@
+name: Dependency updates
+
+on:
+  schedule:
+    - cron: '0 8 * * 1'   # every Monday at 08:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install current deps
+        run: npm ci --legacy-peer-deps
+
+      - name: Audit for vulnerabilities
+        run: npm audit --audit-level=moderate || true
+
+      - name: Update non-breaking deps (patch + minor)
+        run: npx npm-check-updates --upgrade --target minor
+
+      - name: Install updated deps
+        run: npm install --legacy-peer-deps
+
+      - name: Build to verify updates don't break anything
+        run: npm run build
+
+      - name: Open PR if anything changed
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore(deps): weekly dependency updates'
+          title: 'chore(deps): weekly dependency updates'
+          body: |
+            Automated weekly dependency update (patch + minor only).
+
+            - Run `npm audit` output is in the workflow log
+            - Build was verified before opening this PR
+            - Review and merge when ready
+          branch: chore/deps-update
+          delete-branch: true
+          labels: dependencies

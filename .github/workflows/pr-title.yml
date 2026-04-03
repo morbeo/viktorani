@@ -1,0 +1,41 @@
+name: PR title
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  lint-title:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Conventional commit types used in this project
+          types: |
+            feat
+            fix
+            chore
+            docs
+            refactor
+            perf
+            test
+            ci
+            build
+            revert
+          # Scopes map to the main areas of the codebase
+          scopes: |
+            admin
+            player
+            transport
+            db
+            ui
+            pwa
+            deps
+            release
+          requireScope: false
+          subjectPattern: ^(?![A-Z]).+$
+          subjectPatternError: |
+            The subject must start with a lowercase letter.
+            Example: "feat(admin): add question form"
