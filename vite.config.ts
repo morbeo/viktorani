@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -14,7 +14,8 @@ export default defineConfig({
       manifest: {
         name: 'Viktorani',
         short_name: 'Viktorani',
-        description: 'Bar trivia PWA with WebRTC multiplayer, Reveal.js slides, and buzzer gameplay.',
+        description:
+          'Bar trivia PWA with WebRTC multiplayer, Reveal.js slides, and buzzer gameplay.',
         theme_color: '#f5f0e8',
         background_color: '#f5f0e8',
         display: 'standalone',
@@ -32,5 +33,24 @@ export default defineConfig({
   ],
   resolve: {
     alias: { '@': '/src' },
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./src/test/setup.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov'],
+      exclude: [
+        'node_modules/',
+        'dist/',
+        'src/main.tsx',
+        'src/pages/**', // page-level integration — tested via e2e
+        'src/components/AdminLayout.tsx',
+        '**/*.d.ts',
+        'vite.config.ts',
+        'commitlint.config.js',
+      ],
+    },
   },
 })
