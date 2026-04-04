@@ -50,13 +50,16 @@ npm run dev
 
 ### Available scripts
 
-| Script              | What it does                                  |
-| ------------------- | --------------------------------------------- |
-| `npm run dev`       | Start dev server at `localhost:5173`          |
-| `npm run build`     | Type-check + production build → `dist/`       |
-| `npm run lint`      | ESLint across all `*.ts` / `*.tsx` files      |
-| `npm run typecheck` | `tsc` without emitting — fast type-only check |
-| `npm run preview`   | Serve the production build locally            |
+| Script                  | What it does                                   |
+| ----------------------- | ---------------------------------------------- |
+| `npm run dev`           | Start dev server at `localhost:5173`           |
+| `npm run build`         | Type-check + production build → `dist/`        |
+| `npm run lint`          | ESLint across all `*.ts` / `*.tsx` files       |
+| `npm run typecheck`     | Type-check app and test files (both tsconfigs) |
+| `npm run test`          | Run unit tests once via Vitest                 |
+| `npm run test:watch`    | Run tests in watch mode                        |
+| `npm run test:coverage` | Run tests with V8 coverage report              |
+| `npm run preview`       | Serve the production build locally             |
 
 ---
 
@@ -80,6 +83,12 @@ src/
 ├── pages/
 │   ├── admin/            # Dashboard, Questions, Games, GameMaster, Layouts, Notes, Settings
 │   └── player/           # Join, Play
+├── test/
+│   ├── setup.ts          # jsdom polyfills (fake-indexeddb, URL mocks)
+│   ├── transport.test.ts
+│   ├── db.test.ts
+│   ├── ui.test.tsx
+│   └── routing.test.tsx
 └── App.tsx               # HashRouter + all routes
 
 public/
@@ -130,11 +139,13 @@ restore or share your question bank.
 
 ### Workflows
 
-| Workflow     | Trigger                   | Purpose                                         |
-| ------------ | ------------------------- | ----------------------------------------------- |
-| `deploy.yml` | push to `master` + manual | Type-check, lint, build, deploy to GitHub Pages |
+| Workflow     | Trigger                   | Purpose                                                       |
+| ------------ | ------------------------- | ------------------------------------------------------------- |
+| `deploy.yml` | push to `master` + manual | Type-check → lint → **test** → build → deploy to GitHub Pages |
 
 Sets `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` to opt into the Node 24 runner ahead of the June 2026 forced migration.
+
+A push to `master` only deploys if all four gates pass. A failing test or lint error blocks the deploy.
 
 ### Versioning
 
@@ -182,11 +193,37 @@ on GitHub Pages and at `/` in dev.
 
 ---
 
+## Testing
+
+**90 unit tests** across four suites, run with [Vitest](https://vitest.dev) + jsdom + Testing Library.
+
+| Suite         | File                | What it covers                                                                                      |
+| ------------- | ------------------- | --------------------------------------------------------------------------------------------------- |
+| Transport     | `transport.test.ts` | `generatePassphrase`, `generateRoomId`, `TransportManager` (all modes, fallback, events, listeners) |
+| Database      | `db.test.ts`        | `seedDefaults` (idempotency, guard, seed values), schema CRUD, indexes, snapshot import/export      |
+| UI components | `ui.test.tsx`       | Button, Badge, Card, Input, Textarea, Select, Modal, Empty, TransportPill                           |
+| Routing       | `routing.test.tsx`  | All routes render the correct page, unknown routes redirect to `/admin`                             |
+
+Tests run on every commit locally (pre-commit hook) and on every push to `master` (deploy workflow gate).
+
+```bash
+npm run test            # run once
+npm run test:watch      # watch mode during development
+npm run test:coverage   # coverage report → coverage/lcov.info
+```
+
+Two tsconfigs keep app and test types separate:
+
+- `tsconfig.app.json` — excludes `src/test/`, no vitest globals
+- `tsconfig.test.json` — includes only `src/test/`, adds `vitest/globals` and `@testing-library/jest-dom`
+
+---
+
 ## Contributing
 
 1. Fork → branch off `master`
 2. Follow conventional commits (`feat(scope): description`)
-3. Pre-commit hooks (husky) run ESLint + Prettier on staged files automatically
+3. Pre-commit hooks (husky) run lint-staged (ESLint + Prettier on staged files), typecheck, and the full test suite automatically
 4. PR title must pass conventional commit lint (checked by `pr-title.yml`)
 5. Open PR against `master`
 
