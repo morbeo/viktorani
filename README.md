@@ -130,17 +130,11 @@ restore or share your question bank.
 
 ### Workflows
 
-| Workflow       | Trigger                   | Purpose                                                                                                                    |
-| -------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `ci.yml`       | PRs to `master`           | Type-check, lint, build — fast feedback before merge                                                                       |
-| `deploy.yml`   | push to `master` + manual | Type-check, lint, build, deploy to GitHub Pages                                                                            |
-| `release.yml`  | push to `master`          | [release-please](https://github.com/googleapis/release-please): bumps version, generates changelog, creates GitHub Release |
-| `pr-title.yml` | PR events                 | Enforces conventional commit format on PR titles                                                                           |
-| `deps.yml`     | Mondays                   | Patch/minor dep updates → opens PR if anything changed                                                                     |
-| `stale.yml`    | Mondays                   | Marks stale issues (30d) and PRs (14d), closes after 7d                                                                    |
+| Workflow     | Trigger                   | Purpose                                         |
+| ------------ | ------------------------- | ----------------------------------------------- |
+| `deploy.yml` | push to `master` + manual | Type-check, lint, build, deploy to GitHub Pages |
 
-All workflows set `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` to opt into the Node 24
-runner ahead of the June 2026 forced migration.
+Sets `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` to opt into the Node 24 runner ahead of the June 2026 forced migration.
 
 ### Versioning
 
