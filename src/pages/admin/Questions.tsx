@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import AdminLayout from '@/components/AdminLayout'
-import { Button, Badge, Card, Input, Select, Modal, Textarea, Empty } from '@/components/ui'
+import { Button, Badge, Input, Select, Modal, Textarea, Empty } from '@/components/ui'
 import { db } from '@/db'
 import type { Question, QuestionType, Category, DifficultyLevel, Tag, Round } from '@/db'
 
@@ -8,27 +8,34 @@ import type { Question, QuestionType, Category, DifficultyLevel, Tag, Round } fr
 
 function newQuestion(): Omit<Question, 'id' | 'createdAt' | 'updatedAt'> {
   return {
-    title: '', type: 'multiple_choice', options: ['', '', '', ''],
-    answer: '', description: '', categoryId: null,
-    difficulty: null, tags: [], media: null, mediaType: null,
+    title: '',
+    type: 'multiple_choice',
+    options: ['', '', '', ''],
+    answer: '',
+    description: '',
+    categoryId: null,
+    difficulty: null,
+    tags: [],
+    media: null,
+    mediaType: null,
   }
 }
 
 const TYPE_LABELS: Record<QuestionType, string> = {
   multiple_choice: 'Multiple choice',
-  true_false:      'True / False',
-  open_ended:      'Open ended',
+  true_false: 'True / False',
+  open_ended: 'Open ended',
 }
 
 // ── Question Form Modal ───────────────────────────────────────────────────────
 
 interface FormProps {
-  question:    Partial<Question> | null
-  categories:  Category[]
-  difficulties:DifficultyLevel[]
-  tags:        Tag[]
-  onSave:      (q: Omit<Question, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => void
-  onClose:     () => void
+  question: Partial<Question> | null
+  categories: Category[]
+  difficulties: DifficultyLevel[]
+  tags: Tag[]
+  onSave: (q: Omit<Question, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => void
+  onClose: () => void
 }
 
 function QuestionForm({ question, categories, difficulties, tags, onSave, onClose }: FormProps) {
@@ -66,8 +73,14 @@ function QuestionForm({ question, categories, difficulties, tags, onSave, onClos
   }
 
   const typeOpts = Object.entries(TYPE_LABELS).map(([v, l]) => ({ value: v, label: l }))
-  const catOpts  = [{ value: '', label: 'No category' }, ...categories.map(c => ({ value: c.id, label: c.name }))]
-  const diffOpts = [{ value: '', label: 'No difficulty' }, ...difficulties.map(d => ({ value: d.id, label: d.name }))]
+  const catOpts = [
+    { value: '', label: 'No category' },
+    ...categories.map(c => ({ value: c.id, label: c.name })),
+  ]
+  const diffOpts = [
+    { value: '', label: 'No difficulty' },
+    ...difficulties.map(d => ({ value: d.id, label: d.name })),
+  ]
 
   return (
     <Modal open title={isNew ? 'New question' : 'Edit question'} onClose={onClose} maxWidth="600px">
@@ -89,15 +102,24 @@ function QuestionForm({ question, categories, difficulties, tags, onSave, onClos
         {/* Options */}
         {form.type === 'multiple_choice' && (
           <div className="flex flex-col gap-2">
-            <span className="text-xs font-medium" style={{ color: 'var(--color-muted)' }}>Answer options</span>
+            <span className="text-xs font-medium" style={{ color: 'var(--color-muted)' }}>
+              Answer options
+            </span>
             {form.options.map((opt, i) => (
               <div key={i} className="flex items-center gap-2">
-                <span className="mono text-xs w-5 text-center" style={{ color: 'var(--color-muted)' }}>
+                <span
+                  className="mono text-xs w-5 text-center"
+                  style={{ color: 'var(--color-muted)' }}
+                >
                   {String.fromCharCode(65 + i)}
                 </span>
                 <input
                   className="flex-1 px-3 py-2 rounded border text-sm outline-none"
-                  style={{ borderColor: form.answer === opt && opt ? 'var(--color-green)' : 'var(--color-border)', background: 'var(--color-cream)' }}
+                  style={{
+                    borderColor:
+                      form.answer === opt && opt ? 'var(--color-green)' : 'var(--color-border)',
+                    background: 'var(--color-cream)',
+                  }}
                   value={opt}
                   onChange={e => setOption(i, e.target.value)}
                   placeholder={`Option ${String.fromCharCode(65 + i)}`}
@@ -107,11 +129,14 @@ function QuestionForm({ question, categories, difficulties, tags, onSave, onClos
                   onClick={() => set('answer', opt)}
                   className="px-2 py-1 rounded text-xs border transition-all"
                   style={{
-                    borderColor: form.answer === opt && opt ? 'var(--color-green)' : 'var(--color-border)',
-                    background:  form.answer === opt && opt ? 'var(--color-green)' : 'transparent',
-                    color:       form.answer === opt && opt ? '#fff' : 'var(--color-muted)',
+                    borderColor:
+                      form.answer === opt && opt ? 'var(--color-green)' : 'var(--color-border)',
+                    background: form.answer === opt && opt ? 'var(--color-green)' : 'transparent',
+                    color: form.answer === opt && opt ? '#fff' : 'var(--color-muted)',
                   }}
-                >✓</button>
+                >
+                  ✓
+                </button>
               </div>
             ))}
           </div>
@@ -126,10 +151,12 @@ function QuestionForm({ question, categories, difficulties, tags, onSave, onClos
                 className="flex-1 py-2 rounded border text-sm font-medium transition-all"
                 style={{
                   borderColor: form.answer === v ? 'var(--color-green)' : 'var(--color-border)',
-                  background:  form.answer === v ? 'var(--color-green)' : 'transparent',
-                  color:       form.answer === v ? '#fff' : 'var(--color-ink)',
+                  background: form.answer === v ? 'var(--color-green)' : 'transparent',
+                  color: form.answer === v ? '#fff' : 'var(--color-ink)',
                 }}
-              >{v}</button>
+              >
+                {v}
+              </button>
             ))}
           </div>
         )}
@@ -152,15 +179,28 @@ function QuestionForm({ question, categories, difficulties, tags, onSave, onClos
         />
 
         <div className="grid grid-cols-2 gap-3">
-          <Select label="Category" value={form.categoryId ?? ''} options={catOpts}
-            onChange={e => set('categoryId', e.target.value || null)} />
-          <Select label="Difficulty" value={form.difficulty ?? ''} options={diffOpts}
-            onChange={e => set('difficulty', e.target.value || null)} />
+          <Select
+            label="Category"
+            value={form.categoryId ?? ''}
+            options={catOpts}
+            onChange={e => set('categoryId', e.target.value || null)}
+          />
+          <Select
+            label="Difficulty"
+            value={form.difficulty ?? ''}
+            options={diffOpts}
+            onChange={e => set('difficulty', e.target.value || null)}
+          />
         </div>
 
         {tags.length > 0 && (
           <div>
-            <span className="text-xs font-medium block mb-2" style={{ color: 'var(--color-muted)' }}>Tags</span>
+            <span
+              className="text-xs font-medium block mb-2"
+              style={{ color: 'var(--color-muted)' }}
+            >
+              Tags
+            </span>
             <div className="flex flex-wrap gap-2">
               {tags.map(tag => (
                 <button
@@ -169,17 +209,24 @@ function QuestionForm({ question, categories, difficulties, tags, onSave, onClos
                   className="px-2.5 py-1 rounded-full text-xs border transition-all"
                   style={{
                     borderColor: form.tags.includes(tag.id) ? tag.color : 'var(--color-border)',
-                    background:  form.tags.includes(tag.id) ? tag.color : 'transparent',
-                    color:       form.tags.includes(tag.id) ? '#fff' : 'var(--color-ink)',
+                    background: form.tags.includes(tag.id) ? tag.color : 'transparent',
+                    color: form.tags.includes(tag.id) ? '#fff' : 'var(--color-ink)',
                   }}
-                >{tag.name}</button>
+                >
+                  {tag.name}
+                </button>
               ))}
             </div>
           </div>
         )}
 
-        <div className="flex justify-end gap-2 pt-2 border-t" style={{ borderColor: 'var(--color-border)' }}>
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+        <div
+          className="flex justify-end gap-2 pt-2 border-t"
+          style={{ borderColor: 'var(--color-border)' }}
+        >
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
           <Button variant="primary" onClick={handleSubmit} disabled={!form.title.trim()}>
             {isNew ? 'Add question' : 'Save changes'}
           </Button>
@@ -192,20 +239,44 @@ function QuestionForm({ question, categories, difficulties, tags, onSave, onClos
 // ── Round sidebar ─────────────────────────────────────────────────────────────
 
 interface RoundSidebarProps {
-  rounds:      Round[]
-  selected:    string | null
-  onSelect:    (id: string | null) => void
-  onNewRound:  () => void
-  selectedQIds:string[]
-  onAddToRound:(roundId: string) => void
+  rounds: Round[]
+  selected: string | null
+  onSelect: (id: string | null) => void
+  onNewRound: () => void
+  selectedQIds: string[]
+  onAddToRound: (roundId: string) => void
 }
 
-function RoundSidebar({ rounds, selected, onSelect, onNewRound, selectedQIds, onAddToRound }: RoundSidebarProps) {
+function RoundSidebar({
+  rounds,
+  selected,
+  onSelect,
+  onNewRound,
+  selectedQIds,
+  onAddToRound,
+}: RoundSidebarProps) {
   return (
-    <aside className="w-52 shrink-0 border-r flex flex-col" style={{ borderColor: 'var(--color-border)' }}>
-      <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: 'var(--color-border)' }}>
-        <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-muted)' }}>Rounds</span>
-        <button onClick={onNewRound} className="text-lg leading-none hover:opacity-60 transition-opacity" title="New round">+</button>
+    <aside
+      className="w-52 shrink-0 border-r flex flex-col"
+      style={{ borderColor: 'var(--color-border)' }}
+    >
+      <div
+        className="px-4 py-3 border-b flex items-center justify-between"
+        style={{ borderColor: 'var(--color-border)' }}
+      >
+        <span
+          className="text-xs font-semibold uppercase tracking-wider"
+          style={{ color: 'var(--color-muted)' }}
+        >
+          Rounds
+        </span>
+        <button
+          onClick={onNewRound}
+          className="text-lg leading-none hover:opacity-60 transition-opacity"
+          title="New round"
+        >
+          +
+        </button>
       </div>
       <div className="flex-1 overflow-y-auto py-2">
         <button
@@ -213,10 +284,12 @@ function RoundSidebar({ rounds, selected, onSelect, onNewRound, selectedQIds, on
           className="w-full text-left px-4 py-2 text-sm transition-all"
           style={{
             background: selected === null ? 'var(--color-gold-light)' : 'transparent',
-            color:      selected === null ? 'var(--color-ink)' : 'var(--color-muted)',
+            color: selected === null ? 'var(--color-ink)' : 'var(--color-muted)',
             fontWeight: selected === null ? 600 : 400,
           }}
-        >All questions</button>
+        >
+          All questions
+        </button>
         {rounds.map(r => (
           <div key={r.id} className="group flex items-center">
             <button
@@ -224,7 +297,7 @@ function RoundSidebar({ rounds, selected, onSelect, onNewRound, selectedQIds, on
               className="flex-1 text-left px-4 py-2 text-sm transition-all"
               style={{
                 background: selected === r.id ? 'var(--color-gold-light)' : 'transparent',
-                color:      selected === r.id ? 'var(--color-ink)' : 'var(--color-muted)',
+                color: selected === r.id ? 'var(--color-ink)' : 'var(--color-muted)',
                 fontWeight: selected === r.id ? 600 : 400,
               }}
             >
@@ -237,7 +310,9 @@ function RoundSidebar({ rounds, selected, onSelect, onNewRound, selectedQIds, on
                 className="pr-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
                 style={{ color: 'var(--color-gold)' }}
                 title="Add selected to this round"
-              >+add</button>
+              >
+                +add
+              </button>
             )}
           </div>
         ))}
@@ -249,23 +324,23 @@ function RoundSidebar({ rounds, selected, onSelect, onNewRound, selectedQIds, on
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function Questions() {
-  const [questions,    setQuestions]    = useState<Question[]>([])
-  const [rounds,       setRounds]       = useState<Round[]>([])
-  const [categories,   setCategories]   = useState<Category[]>([])
+  const [questions, setQuestions] = useState<Question[]>([])
+  const [rounds, setRounds] = useState<Round[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [difficulties, setDifficulties] = useState<DifficultyLevel[]>([])
-  const [tags,         setTags]         = useState<Tag[]>([])
+  const [tags, setTags] = useState<Tag[]>([])
 
-  const [search,       setSearch]       = useState('')
-  const [filterCat,    setFilterCat]    = useState('')
-  const [filterDiff,   setFilterDiff]   = useState('')
-  const [filterType,   setFilterType]   = useState('')
-  const [selectedRound,setSelectedRound]= useState<string | null>(null)
-  const [selected,     setSelected]     = useState<Set<string>>(new Set())
-  const [editing,      setEditing]      = useState<Partial<Question> | null | false>(false)
+  const [search, setSearch] = useState('')
+  const [filterCat, setFilterCat] = useState('')
+  const [filterDiff, setFilterDiff] = useState('')
+  const [filterType, setFilterType] = useState('')
+  const [selectedRound, setSelectedRound] = useState<string | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [editing, setEditing] = useState<Partial<Question> | null | false>(false)
   const [newRoundName, setNewRoundName] = useState('')
-  const [roundModal,   setRoundModal]   = useState(false)
+  const [roundModal, setRoundModal] = useState(false)
 
-  const load = useCallback(async () => {
+  async function load() {
     const [qs, rs, cats, diffs, ts] = await Promise.all([
       db.questions.orderBy('createdAt').reverse().toArray(),
       db.rounds.toArray(),
@@ -273,11 +348,16 @@ export default function Questions() {
       db.difficulties.orderBy('order').toArray(),
       db.tags.toArray(),
     ])
-    setQuestions(qs); setRounds(rs); setCategories(cats)
-    setDifficulties(diffs); setTags(ts)
-  }, [])
+    setQuestions(qs)
+    setRounds(rs)
+    setCategories(cats)
+    setDifficulties(diffs)
+    setTags(ts)
+  }
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    void load() // eslint-disable-line react-hooks/set-state-in-effect
+  }, [])
 
   // Filter
   const displayed = questions.filter(q => {
@@ -285,13 +365,12 @@ export default function Questions() {
       const round = rounds.find(r => r.id === selectedRound)
       if (!round?.questionIds.includes(q.id)) return false
     }
-    if (filterCat  && q.categoryId !== filterCat)   return false
-    if (filterDiff && q.difficulty  !== filterDiff)  return false
-    if (filterType && q.type        !== filterType)  return false
+    if (filterCat && q.categoryId !== filterCat) return false
+    if (filterDiff && q.difficulty !== filterDiff) return false
+    if (filterType && q.type !== filterType) return false
     if (search) {
       const s = search.toLowerCase()
-      return q.title.toLowerCase().includes(s) ||
-        (q.description || '').toLowerCase().includes(s)
+      return q.title.toLowerCase().includes(s) || (q.description || '').toLowerCase().includes(s)
     }
     return true
   })
@@ -301,17 +380,25 @@ export default function Questions() {
     ? (() => {
         const round = rounds.find(r => r.id === selectedRound)
         if (!round) return displayed
-        return [...displayed].sort((a, b) =>
-          round.questionIds.indexOf(a.id) - round.questionIds.indexOf(b.id))
+        return [...displayed].sort(
+          (a, b) => round.questionIds.indexOf(a.id) - round.questionIds.indexOf(b.id)
+        )
       })()
     : displayed
 
-  async function handleSave(data: Omit<Question, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) {
+  async function handleSave(
+    data: Omit<Question, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }
+  ) {
     const now = Date.now()
     if (data.id) {
       await db.questions.update(data.id, { ...data, updatedAt: now })
     } else {
-      await db.questions.add({ ...data, id: crypto.randomUUID(), createdAt: now, updatedAt: now } as Question)
+      await db.questions.add({
+        ...data,
+        id: crypto.randomUUID(),
+        createdAt: now,
+        updatedAt: now,
+      } as Question)
     }
     setEditing(false)
     load()
@@ -333,11 +420,17 @@ export default function Questions() {
   async function handleNewRound() {
     if (!newRoundName.trim()) return
     const round: Round = {
-      id: crypto.randomUUID(), name: newRoundName.trim(),
-      description: '', questionIds: [...selected], createdAt: Date.now(),
+      id: crypto.randomUUID(),
+      name: newRoundName.trim(),
+      description: '',
+      questionIds: [...selected],
+      createdAt: Date.now(),
     }
     await db.rounds.add(round)
-    setNewRoundName(''); setRoundModal(false); setSelected(new Set()); load()
+    setNewRoundName('')
+    setRoundModal(false)
+    setSelected(new Set())
+    load()
   }
 
   async function handleAddToRound(roundId: string) {
@@ -345,7 +438,8 @@ export default function Questions() {
     if (!round) return
     const newIds = [...new Set([...round.questionIds, ...selected])]
     await db.rounds.update(roundId, { questionIds: newIds })
-    setSelected(new Set()); load()
+    setSelected(new Set())
+    load()
   }
 
   async function moveInRound(qId: string, dir: -1 | 1) {
@@ -353,48 +447,83 @@ export default function Questions() {
     const round = rounds.find(r => r.id === selectedRound)
     if (!round) return
     const ids = [...round.questionIds]
-    const i   = ids.indexOf(qId)
+    const i = ids.indexOf(qId)
     if (i + dir < 0 || i + dir >= ids.length) return
-    ;[ids[i], ids[i + dir]] = [ids[i + dir], ids[i]]
+    const tmp = ids[i]
+    ids[i] = ids[i + dir]
+    ids[i + dir] = tmp
     await db.rounds.update(selectedRound, { questionIds: ids })
     load()
   }
 
   function toggleSelect(id: string) {
-    setSelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
+    setSelected(s => {
+      const n = new Set(s)
+      if (n.has(id)) {
+        n.delete(id)
+      } else {
+        n.add(id)
+      }
+      return n
+    })
   }
 
-  const catOpts  = [{ value: '', label: 'All categories' },  ...categories.map(c => ({ value: c.id, label: c.name }))]
-  const diffOpts = [{ value: '', label: 'All difficulties' }, ...difficulties.map(d => ({ value: d.id, label: d.name }))]
+  const catOpts = [
+    { value: '', label: 'All categories' },
+    ...categories.map(c => ({ value: c.id, label: c.name })),
+  ]
+  const diffOpts = [
+    { value: '', label: 'All difficulties' },
+    ...difficulties.map(d => ({ value: d.id, label: d.name })),
+  ]
   const typeOpts = [
     { value: '', label: 'All types' },
     { value: 'multiple_choice', label: 'Multiple choice' },
-    { value: 'true_false',      label: 'True / False' },
-    { value: 'open_ended',      label: 'Open ended' },
+    { value: 'true_false', label: 'True / False' },
+    { value: 'open_ended', label: 'Open ended' },
   ]
 
   return (
     <AdminLayout>
       <div className="flex h-full -mx-8 -my-6" style={{ height: 'calc(100vh - 64px)' }}>
         <RoundSidebar
-          rounds={rounds} selected={selectedRound} onSelect={setSelectedRound}
+          rounds={rounds}
+          selected={selectedRound}
+          onSelect={setSelectedRound}
           onNewRound={() => setRoundModal(true)}
-          selectedQIds={[...selected]} onAddToRound={handleAddToRound}
+          selectedQIds={[...selected]}
+          onAddToRound={handleAddToRound}
         />
 
         {/* Main content */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Toolbar */}
-          <div className="px-6 py-4 border-b flex flex-wrap items-center gap-3" style={{ borderColor: 'var(--color-border)' }}>
+          <div
+            className="px-6 py-4 border-b flex flex-wrap items-center gap-3"
+            style={{ borderColor: 'var(--color-border)' }}
+          >
             <input
               className="px-3 py-1.5 rounded border text-sm outline-none flex-1 min-w-40"
               style={{ borderColor: 'var(--color-border)', background: 'var(--color-cream)' }}
               placeholder="Search questions…"
-              value={search} onChange={e => setSearch(e.target.value)}
+              value={search}
+              onChange={e => setSearch(e.target.value)}
             />
-            <Select options={catOpts}  value={filterCat}  onChange={e => setFilterCat(e.target.value)} />
-            <Select options={diffOpts} value={filterDiff} onChange={e => setFilterDiff(e.target.value)} />
-            <Select options={typeOpts} value={filterType} onChange={e => setFilterType(e.target.value)} />
+            <Select
+              options={catOpts}
+              value={filterCat}
+              onChange={e => setFilterCat(e.target.value)}
+            />
+            <Select
+              options={diffOpts}
+              value={filterDiff}
+              onChange={e => setFilterDiff(e.target.value)}
+            />
+            <Select
+              options={typeOpts}
+              value={filterType}
+              onChange={e => setFilterType(e.target.value)}
+            />
 
             {selected.size > 0 && (
               <>
@@ -413,7 +542,10 @@ export default function Questions() {
           </div>
 
           {/* Count */}
-          <div className="px-6 py-2 text-xs border-b" style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted)' }}>
+          <div
+            className="px-6 py-2 text-xs border-b"
+            style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted)' }}
+          >
             {sorted.length} question{sorted.length !== 1 ? 's' : ''}
             {selected.size > 0 && ` · ${selected.size} selected`}
           </div>
@@ -424,8 +556,8 @@ export default function Questions() {
               <Empty icon="?" message="No questions yet. Add your first one." />
             ) : (
               <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
-                {sorted.map((q, idx) => {
-                  const cat  = categories.find(c => c.id === q.categoryId)
+                {sorted.map(q => {
+                  const cat = categories.find(c => c.id === q.categoryId)
                   const diff = difficulties.find(d => d.id === q.difficulty)
                   const isSelected = selected.has(q.id)
                   return (
@@ -435,7 +567,8 @@ export default function Questions() {
                       style={{ background: isSelected ? 'var(--color-gold-light)' : undefined }}
                     >
                       <input
-                        type="checkbox" checked={isSelected}
+                        type="checkbox"
+                        checked={isSelected}
                         onChange={() => toggleSelect(q.id)}
                         className="mt-1 cursor-pointer"
                       />
@@ -443,8 +576,18 @@ export default function Questions() {
                       {/* Round reorder arrows */}
                       {selectedRound && (
                         <div className="flex flex-col gap-0.5 mt-0.5">
-                          <button onClick={() => moveInRound(q.id, -1)} className="text-xs opacity-30 hover:opacity-80 leading-none">▲</button>
-                          <button onClick={() => moveInRound(q.id,  1)} className="text-xs opacity-30 hover:opacity-80 leading-none">▼</button>
+                          <button
+                            onClick={() => moveInRound(q.id, -1)}
+                            className="text-xs opacity-30 hover:opacity-80 leading-none"
+                          >
+                            ▲
+                          </button>
+                          <button
+                            onClick={() => moveInRound(q.id, 1)}
+                            className="text-xs opacity-30 hover:opacity-80 leading-none"
+                          >
+                            ▼
+                          </button>
                         </div>
                       )}
 
@@ -452,7 +595,7 @@ export default function Questions() {
                         <div className="flex items-start justify-between gap-4">
                           <p className="text-sm font-medium leading-snug">{q.title}</p>
                           <div className="flex items-center gap-2 shrink-0">
-                            {cat  && <Badge color={cat.color + '33'}>{cat.name}</Badge>}
+                            {cat && <Badge color={cat.color + '33'}>{cat.name}</Badge>}
                             {diff && <Badge color={diff.color + '33'}>{diff.name}</Badge>}
                             <Badge>{TYPE_LABELS[q.type]}</Badge>
                           </div>
@@ -466,16 +609,32 @@ export default function Questions() {
                           <div className="flex gap-1 mt-1.5 flex-wrap">
                             {q.tags.map(tid => {
                               const tag = tags.find(t => t.id === tid)
-                              return tag ? <span key={tid} className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: tag.color + '33', color: tag.color }}>{tag.name}</span> : null
+                              return tag ? (
+                                <span
+                                  key={tid}
+                                  className="text-xs px-1.5 py-0.5 rounded-full"
+                                  style={{ background: tag.color + '33', color: tag.color }}
+                                >
+                                  {tag.name}
+                                </span>
+                              ) : null
                             })}
                           </div>
                         )}
                       </div>
 
                       <div className="flex gap-1 shrink-0">
-                        <Button variant="ghost" size="sm" onClick={() => setEditing(q)}>Edit</Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDelete([q.id])}
-                          style={{ color: 'var(--color-red)' }}>Del</Button>
+                        <Button variant="ghost" size="sm" onClick={() => setEditing(q)}>
+                          Edit
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete([q.id])}
+                          style={{ color: 'var(--color-red)' }}
+                        >
+                          Del
+                        </Button>
                       </div>
                     </div>
                   )
@@ -490,8 +649,11 @@ export default function Questions() {
       {editing !== false && (
         <QuestionForm
           question={editing}
-          categories={categories} difficulties={difficulties} tags={tags}
-          onSave={handleSave} onClose={() => setEditing(false)}
+          categories={categories}
+          difficulties={difficulties}
+          tags={tags}
+          onSave={handleSave}
+          onClose={() => setEditing(false)}
         />
       )}
 
@@ -506,11 +668,14 @@ export default function Questions() {
           />
           {selected.size > 0 && (
             <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
-              {selected.size} selected question{selected.size > 1 ? 's' : ''} will be added to this round.
+              {selected.size} selected question{selected.size > 1 ? 's' : ''} will be added to this
+              round.
             </p>
           )}
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setRoundModal(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setRoundModal(false)}>
+              Cancel
+            </Button>
             <Button variant="primary" onClick={handleNewRound} disabled={!newRoundName.trim()}>
               Create round
             </Button>

@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AdminLayout from '@/components/AdminLayout'
-import { Button, Badge, Card, Input, Select, Modal, Empty } from '@/components/ui'
+import { Button, Badge, Input, Select, Modal, Empty } from '@/components/ui'
 import { db } from '@/db'
 import type { Game, Round, TransportMode } from '@/db'
 import { generateRoomId, generatePassphrase } from '@/transport'
@@ -12,29 +12,37 @@ import { generateRoomId, generatePassphrase } from '@/transport'
 
 interface WizardState {
   // Step 1
-  name:           string
-  transportMode:  TransportMode
+  name: string
+  transportMode: TransportMode
   scoringEnabled: boolean
-  showQuestion:   boolean
-  showAnswers:    boolean
-  showMedia:      boolean
-  maxTeams:       number
-  maxPerTeam:     number
-  allowIndividual:boolean
-  passphrase:     string
+  showQuestion: boolean
+  showAnswers: boolean
+  showMedia: boolean
+  maxTeams: number
+  maxPerTeam: number
+  allowIndividual: boolean
+  passphrase: string
   // Step 2
-  roundMode:      'existing' | 'custom'
+  roundMode: 'existing' | 'custom'
   selectedRoundIds: string[]
-  customRounds:   { name: string; questionIds: string[] }[]
+  customRounds: { name: string; questionIds: string[] }[]
 }
 
 function defaultWizard(): WizardState {
   return {
-    name: '', transportMode: 'auto',
-    scoringEnabled: true, showQuestion: true, showAnswers: false, showMedia: true,
-    maxTeams: 0, maxPerTeam: 0, allowIndividual: true,
+    name: '',
+    transportMode: 'auto',
+    scoringEnabled: true,
+    showQuestion: true,
+    showAnswers: false,
+    showMedia: true,
+    maxTeams: 0,
+    maxPerTeam: 0,
+    allowIndividual: true,
     passphrase: generatePassphrase(),
-    roundMode: 'existing', selectedRoundIds: [], customRounds: [],
+    roundMode: 'existing',
+    selectedRoundIds: [],
+    customRounds: [],
   }
 }
 
@@ -53,10 +61,18 @@ function Steps({ current }: { current: number }) {
               className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all"
               style={{
                 background: i <= current ? 'var(--color-ink)' : 'var(--color-border)',
-                color:      i <= current ? 'var(--color-cream)' : 'var(--color-muted)',
+                color: i <= current ? 'var(--color-cream)' : 'var(--color-muted)',
               }}
-            >{i + 1}</div>
-            <span className="text-sm" style={{ color: i === current ? 'var(--color-ink)' : 'var(--color-muted)', fontWeight: i === current ? 600 : 400 }}>
+            >
+              {i + 1}
+            </div>
+            <span
+              className="text-sm"
+              style={{
+                color: i === current ? 'var(--color-ink)' : 'var(--color-muted)',
+                fontWeight: i === current ? 600 : 400,
+              }}
+            >
               {label}
             </span>
           </div>
@@ -73,11 +89,17 @@ function Steps({ current }: { current: number }) {
 // Step 1 – Basic settings
 // ─────────────────────────────────────────────────────────────────────────────
 
-function Step1({ state, set }: { state: WizardState; set: (k: keyof WizardState, v: unknown) => void }) {
+function Step1({
+  state,
+  set,
+}: {
+  state: WizardState
+  set: (k: keyof WizardState, v: unknown) => void
+}) {
   const transportOpts = [
     { value: 'auto', label: 'Auto (PeerJS → Gun.js fallback)' },
     { value: 'peer', label: 'PeerJS only (WebRTC)' },
-    { value: 'gun',  label: 'Gun.js only (encrypted relay)' },
+    { value: 'gun', label: 'Gun.js only (encrypted relay)' },
   ]
 
   return (
@@ -108,43 +130,112 @@ function Step1({ state, set }: { state: WizardState; set: (k: keyof WizardState,
               value={state.passphrase}
               onChange={e => set('passphrase', e.target.value)}
             />
-            <Button variant="secondary" size="sm" onClick={() => set('passphrase', generatePassphrase())}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => set('passphrase', generatePassphrase())}
+            >
               ↺ Generate
             </Button>
           </div>
         </div>
       )}
 
-      <div className="border rounded-lg p-4 flex flex-col gap-3" style={{ borderColor: 'var(--color-border)' }}>
-        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-muted)' }}>Scoring</p>
-        <Toggle label="Enable scoring" checked={state.scoringEnabled} onChange={v => set('scoringEnabled', v)} />
+      <div
+        className="border rounded-lg p-4 flex flex-col gap-3"
+        style={{ borderColor: 'var(--color-border)' }}
+      >
+        <p
+          className="text-xs font-semibold uppercase tracking-wider"
+          style={{ color: 'var(--color-muted)' }}
+        >
+          Scoring
+        </p>
+        <Toggle
+          label="Enable scoring"
+          checked={state.scoringEnabled}
+          onChange={v => set('scoringEnabled', v)}
+        />
       </div>
 
-      <div className="border rounded-lg p-4 flex flex-col gap-3" style={{ borderColor: 'var(--color-border)' }}>
-        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-muted)' }}>Player visibility</p>
-        <Toggle label="Show question to players"         checked={state.showQuestion} onChange={v => set('showQuestion', v)} />
-        <Toggle label="Show answers to players"          checked={state.showAnswers}  onChange={v => set('showAnswers',  v)} />
-        <Toggle label="Show media (images/video/audio)"  checked={state.showMedia}    onChange={v => set('showMedia',    v)} />
+      <div
+        className="border rounded-lg p-4 flex flex-col gap-3"
+        style={{ borderColor: 'var(--color-border)' }}
+      >
+        <p
+          className="text-xs font-semibold uppercase tracking-wider"
+          style={{ color: 'var(--color-muted)' }}
+        >
+          Player visibility
+        </p>
+        <Toggle
+          label="Show question to players"
+          checked={state.showQuestion}
+          onChange={v => set('showQuestion', v)}
+        />
+        <Toggle
+          label="Show answers to players"
+          checked={state.showAnswers}
+          onChange={v => set('showAnswers', v)}
+        />
+        <Toggle
+          label="Show media (images/video/audio)"
+          checked={state.showMedia}
+          onChange={v => set('showMedia', v)}
+        />
       </div>
 
-      <div className="border rounded-lg p-4 flex flex-col gap-3" style={{ borderColor: 'var(--color-border)' }}>
-        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-muted)' }}>Teams & players</p>
-        <Toggle label="Allow individual play (no team required)" checked={state.allowIndividual} onChange={v => set('allowIndividual', v)} />
+      <div
+        className="border rounded-lg p-4 flex flex-col gap-3"
+        style={{ borderColor: 'var(--color-border)' }}
+      >
+        <p
+          className="text-xs font-semibold uppercase tracking-wider"
+          style={{ color: 'var(--color-muted)' }}
+        >
+          Teams & players
+        </p>
+        <Toggle
+          label="Allow individual play (no team required)"
+          checked={state.allowIndividual}
+          onChange={v => set('allowIndividual', v)}
+        />
         <div className="grid grid-cols-2 gap-3">
-          <Input label="Max teams (0 = unlimited)"      type="number" min={0} value={state.maxTeams}   onChange={e => set('maxTeams',   +e.target.value)} />
-          <Input label="Max players per team (0 = ∞)"  type="number" min={0} value={state.maxPerTeam} onChange={e => set('maxPerTeam', +e.target.value)} />
+          <Input
+            label="Max teams (0 = unlimited)"
+            type="number"
+            min={0}
+            value={state.maxTeams}
+            onChange={e => set('maxTeams', +e.target.value)}
+          />
+          <Input
+            label="Max players per team (0 = ∞)"
+            type="number"
+            min={0}
+            value={state.maxPerTeam}
+            onChange={e => set('maxPerTeam', +e.target.value)}
+          />
         </div>
       </div>
     </div>
   )
 }
 
-function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+function Toggle({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string
+  checked: boolean
+  onChange: (v: boolean) => void
+}) {
   return (
     <label className="flex items-center justify-between cursor-pointer gap-4">
       <span className="text-sm">{label}</span>
       <button
-        role="switch" aria-checked={checked}
+        role="switch"
+        aria-checked={checked}
         onClick={() => onChange(!checked)}
         className="w-10 h-5 rounded-full transition-all relative shrink-0"
         style={{ background: checked ? 'var(--color-ink)' : 'var(--color-border)' }}
@@ -162,7 +253,15 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
 // Step 2 – Select rounds
 // ─────────────────────────────────────────────────────────────────────────────
 
-function Step2({ state, set, rounds }: { state: WizardState; set: (k: keyof WizardState, v: unknown) => void; rounds: Round[] }) {
+function Step2({
+  state,
+  set,
+  rounds,
+}: {
+  state: WizardState
+  set: (k: keyof WizardState, v: unknown) => void
+  rounds: Round[]
+}) {
   function toggleRound(id: string) {
     const ids = state.selectedRoundIds
     set('selectedRoundIds', ids.includes(id) ? ids.filter(r => r !== id) : [...ids, id])
@@ -172,7 +271,9 @@ function Step2({ state, set, rounds }: { state: WizardState; set: (k: keyof Wiza
     const ids = [...state.selectedRoundIds]
     const i = ids.indexOf(id)
     if (i + dir < 0 || i + dir >= ids.length) return
-    ;[ids[i], ids[i + dir]] = [ids[i + dir], ids[i]]
+    const tmp = ids[i]
+    ids[i] = ids[i + dir]
+    ids[i + dir] = tmp
     set('selectedRoundIds', ids)
   }
 
@@ -184,7 +285,10 @@ function Step2({ state, set, rounds }: { state: WizardState; set: (k: keyof Wiza
   return (
     <div className="flex flex-col gap-4">
       {/* Mode tabs */}
-      <div className="flex rounded-lg border overflow-hidden" style={{ borderColor: 'var(--color-border)' }}>
+      <div
+        className="flex rounded-lg border overflow-hidden"
+        style={{ borderColor: 'var(--color-border)' }}
+      >
         {(['existing', 'custom'] as const).map(m => (
           <button
             key={m}
@@ -192,7 +296,7 @@ function Step2({ state, set, rounds }: { state: WizardState; set: (k: keyof Wiza
             className="flex-1 py-2 text-sm font-medium transition-all"
             style={{
               background: state.roundMode === m ? 'var(--color-ink)' : 'transparent',
-              color:      state.roundMode === m ? 'var(--color-cream)' : 'var(--color-muted)',
+              color: state.roundMode === m ? 'var(--color-cream)' : 'var(--color-muted)',
             }}
           >
             {m === 'existing' ? 'Use existing rounds' : 'Create new rounds'}
@@ -219,7 +323,7 @@ function Step2({ state, set, rounds }: { state: WizardState; set: (k: keyof Wiza
                       className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all"
                       style={{
                         borderColor: selected ? 'var(--color-gold)' : 'var(--color-border)',
-                        background:  selected ? 'var(--color-gold-light)' : 'var(--color-surface)',
+                        background: selected ? 'var(--color-gold-light)' : 'var(--color-surface)',
                       }}
                       onClick={() => toggleRound(r.id)}
                     >
@@ -227,10 +331,12 @@ function Step2({ state, set, rounds }: { state: WizardState; set: (k: keyof Wiza
                         className="w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 text-xs font-bold"
                         style={{
                           borderColor: selected ? 'var(--color-gold)' : 'var(--color-border)',
-                          background:  selected ? 'var(--color-gold)' : 'transparent',
-                          color:       '#fff',
+                          background: selected ? 'var(--color-gold)' : 'transparent',
+                          color: '#fff',
                         }}
-                      >{selected ? pos + 1 : ''}</div>
+                      >
+                        {selected ? pos + 1 : ''}
+                      </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium">{r.name}</p>
                         <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
@@ -240,8 +346,18 @@ function Step2({ state, set, rounds }: { state: WizardState; set: (k: keyof Wiza
                       </div>
                       {selected && (
                         <div className="flex gap-1" onClick={e => e.stopPropagation()}>
-                          <button onClick={() => moveRound(r.id, -1)} className="text-xs px-1 hover:opacity-60">▲</button>
-                          <button onClick={() => moveRound(r.id,  1)} className="text-xs px-1 hover:opacity-60">▼</button>
+                          <button
+                            onClick={() => moveRound(r.id, -1)}
+                            className="text-xs px-1 hover:opacity-60"
+                          >
+                            ▲
+                          </button>
+                          <button
+                            onClick={() => moveRound(r.id, 1)}
+                            className="text-xs px-1 hover:opacity-60"
+                          >
+                            ▼
+                          </button>
                         </div>
                       )}
                     </div>
@@ -250,7 +366,8 @@ function Step2({ state, set, rounds }: { state: WizardState; set: (k: keyof Wiza
               </div>
               {state.selectedRoundIds.length > 0 && (
                 <p className="text-sm font-medium" style={{ color: 'var(--color-green)' }}>
-                  ✓ {state.selectedRoundIds.length} round{state.selectedRoundIds.length > 1 ? 's' : ''} · {totalQuestions} questions total
+                  ✓ {state.selectedRoundIds.length} round
+                  {state.selectedRoundIds.length > 1 ? 's' : ''} · {totalQuestions} questions total
                 </p>
               )}
             </>
@@ -259,8 +376,12 @@ function Step2({ state, set, rounds }: { state: WizardState; set: (k: keyof Wiza
       )}
 
       {state.roundMode === 'custom' && (
-        <div className="rounded-lg border p-4 text-sm" style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted)' }}>
-          Custom round builder coming in a future update. For now, create rounds in the Questions page and select them here.
+        <div
+          className="rounded-lg border p-4 text-sm"
+          style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted)' }}
+        >
+          Custom round builder coming in a future update. For now, create rounds in the Questions
+          page and select them here.
         </div>
       )}
     </div>
@@ -272,21 +393,30 @@ function Step2({ state, set, rounds }: { state: WizardState; set: (k: keyof Wiza
 // ─────────────────────────────────────────────────────────────────────────────
 
 function Step3({ state, rounds }: { state: WizardState; rounds: Round[] }) {
-  const selectedRounds = state.selectedRoundIds.map(id => rounds.find(r => r.id === id)).filter(Boolean) as Round[]
+  const selectedRounds = state.selectedRoundIds
+    .map(id => rounds.find(r => r.id === id))
+    .filter(Boolean) as Round[]
   const totalQ = selectedRounds.reduce((s, r) => s + r.questionIds.length, 0)
 
   const rows = [
-    ['Game name',        state.name],
-    ['Transport',        state.transportMode === 'auto' ? 'Auto (PeerJS → Gun.js)' : state.transportMode === 'peer' ? 'PeerJS' : 'Gun.js'],
-    ['Scoring',          state.scoringEnabled ? 'Enabled' : 'Disabled'],
-    ['Show question',    state.showQuestion   ? 'Yes' : 'No'],
-    ['Show answers',     state.showAnswers    ? 'Yes' : 'No'],
-    ['Show media',       state.showMedia      ? 'Yes' : 'No'],
-    ['Individual play',  state.allowIndividual ? 'Allowed' : 'Teams only'],
-    ['Max teams',        state.maxTeams   === 0 ? 'Unlimited' : String(state.maxTeams)],
-    ['Max per team',     state.maxPerTeam === 0 ? 'Unlimited' : String(state.maxPerTeam)],
-    ['Rounds',           `${selectedRounds.length} round${selectedRounds.length !== 1 ? 's' : ''}`],
-    ['Questions',        `${totalQ} total`],
+    ['Game name', state.name],
+    [
+      'Transport',
+      state.transportMode === 'auto'
+        ? 'Auto (PeerJS → Gun.js)'
+        : state.transportMode === 'peer'
+          ? 'PeerJS'
+          : 'Gun.js',
+    ],
+    ['Scoring', state.scoringEnabled ? 'Enabled' : 'Disabled'],
+    ['Show question', state.showQuestion ? 'Yes' : 'No'],
+    ['Show answers', state.showAnswers ? 'Yes' : 'No'],
+    ['Show media', state.showMedia ? 'Yes' : 'No'],
+    ['Individual play', state.allowIndividual ? 'Allowed' : 'Teams only'],
+    ['Max teams', state.maxTeams === 0 ? 'Unlimited' : String(state.maxTeams)],
+    ['Max per team', state.maxPerTeam === 0 ? 'Unlimited' : String(state.maxPerTeam)],
+    ['Rounds', `${selectedRounds.length} round${selectedRounds.length !== 1 ? 's' : ''}`],
+    ['Questions', `${totalQ} total`],
   ]
 
   if (state.transportMode !== 'peer') {
@@ -295,7 +425,10 @@ function Step3({ state, rounds }: { state: WizardState; rounds: Round[] }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="rounded-lg border overflow-hidden" style={{ borderColor: 'var(--color-border)' }}>
+      <div
+        className="rounded-lg border overflow-hidden"
+        style={{ borderColor: 'var(--color-border)' }}
+      >
         {rows.map(([label, value], i) => (
           <div
             key={label}
@@ -310,11 +443,21 @@ function Step3({ state, rounds }: { state: WizardState; rounds: Round[] }) {
 
       {selectedRounds.length > 0 && (
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--color-muted)' }}>Round order</p>
+          <p
+            className="text-xs font-semibold uppercase tracking-wider mb-2"
+            style={{ color: 'var(--color-muted)' }}
+          >
+            Round order
+          </p>
           <div className="flex flex-col gap-1.5">
             {selectedRounds.map((r, i) => (
               <div key={r.id} className="flex items-center gap-3 text-sm">
-                <span className="mono text-xs w-5 text-center" style={{ color: 'var(--color-muted)' }}>{i + 1}</span>
+                <span
+                  className="mono text-xs w-5 text-center"
+                  style={{ color: 'var(--color-muted)' }}
+                >
+                  {i + 1}
+                </span>
                 <span className="font-medium">{r.name}</span>
                 <span style={{ color: 'var(--color-muted)' }}>· {r.questionIds.length}q</span>
               </div>
@@ -330,7 +473,15 @@ function Step3({ state, rounds }: { state: WizardState; rounds: Round[] }) {
 // Wizard modal
 // ─────────────────────────────────────────────────────────────────────────────
 
-function GameWizard({ onClose, onCreated, rounds }: { onClose: () => void; onCreated: (id: string) => void; rounds: Round[] }) {
+function GameWizard({
+  onClose,
+  onCreated,
+  rounds,
+}: {
+  onClose: () => void
+  onCreated: (id: string) => void
+  rounds: Round[]
+}) {
   const [step, setStep] = useState(0)
   const [state, setState] = useState<WizardState>(defaultWizard)
   const [saving, setSaving] = useState(false)
@@ -339,36 +490,39 @@ function GameWizard({ onClose, onCreated, rounds }: { onClose: () => void; onCre
     setState(s => ({ ...s, [key]: value }))
   }
 
-  const canNext = step === 0
-    ? state.name.trim().length > 0
-    : step === 1
-    ? state.roundMode === 'existing' ? state.selectedRoundIds.length > 0 : true
-    : true
+  const canNext =
+    step === 0
+      ? state.name.trim().length > 0
+      : step === 1
+        ? state.roundMode === 'existing'
+          ? state.selectedRoundIds.length > 0
+          : true
+        : true
 
   async function handleCreate() {
     setSaving(true)
     try {
-      const now  = Date.now()
+      const now = Date.now()
       const game: Game = {
-        id:              crypto.randomUUID(),
-        name:            state.name.trim(),
-        status:          'waiting',
-        transportMode:   state.transportMode,
-        roomId:          generateRoomId(),
-        passphrase:      state.transportMode !== 'peer' ? state.passphrase : null,
-        scoringEnabled:  state.scoringEnabled,
-        showQuestion:    state.showQuestion,
-        showAnswers:     state.showAnswers,
-        showMedia:       state.showMedia,
-        maxTeams:        state.maxTeams,
-        maxPerTeam:      state.maxPerTeam,
+        id: crypto.randomUUID(),
+        name: state.name.trim(),
+        status: 'waiting',
+        transportMode: state.transportMode,
+        roomId: generateRoomId(),
+        passphrase: state.transportMode !== 'peer' ? state.passphrase : null,
+        scoringEnabled: state.scoringEnabled,
+        showQuestion: state.showQuestion,
+        showAnswers: state.showAnswers,
+        showMedia: state.showMedia,
+        maxTeams: state.maxTeams,
+        maxPerTeam: state.maxPerTeam,
         allowIndividual: state.allowIndividual,
-        roundIds:        state.selectedRoundIds,
+        roundIds: state.selectedRoundIds,
         currentRoundIdx: 0,
         currentQuestionIdx: 0,
-        buzzerLocked:    true,
-        createdAt:       now,
-        updatedAt:       now,
+        buzzerLocked: true,
+        createdAt: now,
+        updatedAt: now,
       }
       await db.games.add(game)
 
@@ -379,8 +533,12 @@ function GameWizard({ onClose, onCreated, rounds }: { onClose: () => void; onCre
         if (!round) continue
         for (const qId of round.questionIds) {
           await db.gameQuestions.add({
-            id: crypto.randomUUID(), gameId: game.id,
-            questionId: qId, roundId, order: order++, status: 'pending',
+            id: crypto.randomUUID(),
+            gameId: game.id,
+            questionId: qId,
+            roundId,
+            order: order++,
+            status: 'pending',
           })
         }
       }
@@ -401,7 +559,10 @@ function GameWizard({ onClose, onCreated, rounds }: { onClose: () => void; onCre
         {step === 2 && <Step3 state={state} rounds={rounds} />}
       </div>
 
-      <div className="flex justify-between gap-2 pt-5 mt-5 border-t" style={{ borderColor: 'var(--color-border)' }}>
+      <div
+        className="flex justify-between gap-2 pt-5 mt-5 border-t"
+        style={{ borderColor: 'var(--color-border)' }}
+      >
         <Button variant="ghost" onClick={step === 0 ? onClose : () => setStep(s => s - 1)}>
           {step === 0 ? 'Cancel' : '← Back'}
         </Button>
@@ -424,18 +585,18 @@ function GameWizard({ onClose, onCreated, rounds }: { onClose: () => void; onCre
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function cloneGame(game: Game): Promise<string> {
-  const now   = Date.now()
+  const now = Date.now()
   const newId = crypto.randomUUID()
   const clone: Game = {
     ...game,
-    id:        newId,
-    name:      `${game.name} (copy)`,
-    status:    'waiting',
-    roomId:    generateRoomId(),
-    passphrase:game.transportMode !== 'peer' ? generatePassphrase() : null,
-    currentRoundIdx:     0,
-    currentQuestionIdx:  0,
-    buzzerLocked:        true,
+    id: newId,
+    name: `${game.name} (copy)`,
+    status: 'waiting',
+    roomId: generateRoomId(),
+    passphrase: game.transportMode !== 'peer' ? generatePassphrase() : null,
+    currentRoundIdx: 0,
+    currentQuestionIdx: 0,
+    buzzerLocked: true,
     createdAt: now,
     updatedAt: now,
   }
@@ -454,10 +615,10 @@ async function cloneGame(game: Game): Promise<string> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const STATUS_COLOR: Record<string, string> = {
-  waiting:  'var(--color-muted)',
-  active:   'var(--color-green)',
-  paused:   'var(--color-gold)',
-  ended:    'var(--color-red)',
+  waiting: 'var(--color-muted)',
+  active: 'var(--color-green)',
+  paused: 'var(--color-gold)',
+  ended: 'var(--color-red)',
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -474,20 +635,23 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function Games() {
   const navigate = useNavigate()
-  const [games,   setGames]   = useState<Game[]>([])
-  const [rounds,  setRounds]  = useState<Round[]>([])
-  const [wizard,  setWizard]  = useState(false)
-  const [deleting,setDeleting]= useState<Game | null>(null)
+  const [games, setGames] = useState<Game[]>([])
+  const [rounds, setRounds] = useState<Round[]>([])
+  const [wizard, setWizard] = useState(false)
+  const [deleting, setDeleting] = useState<Game | null>(null)
 
-  const load = useCallback(async () => {
+  async function load() {
     const [gs, rs] = await Promise.all([
       db.games.orderBy('createdAt').reverse().toArray(),
       db.rounds.toArray(),
     ])
-    setGames(gs); setRounds(rs)
-  }, [])
+    setGames(gs)
+    setRounds(rs)
+  }
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    void load() // eslint-disable-line react-hooks/set-state-in-effect
+  }, [])
 
   async function handleDelete(game: Game) {
     await db.games.delete(game.id)
@@ -506,9 +670,9 @@ export default function Games() {
   }
 
   const grouped = {
-    active:  games.filter(g => g.status === 'active' || g.status === 'paused'),
+    active: games.filter(g => g.status === 'active' || g.status === 'paused'),
     waiting: games.filter(g => g.status === 'waiting'),
-    ended:   games.filter(g => g.status === 'ended'),
+    ended: games.filter(g => g.status === 'ended'),
   }
 
   return (
@@ -517,57 +681,92 @@ export default function Games() {
         <p style={{ color: 'var(--color-muted)' }}>
           {games.length} game{games.length !== 1 ? 's' : ''}
         </p>
-        <Button variant="primary" onClick={() => setWizard(true)}>+ New game</Button>
+        <Button variant="primary" onClick={() => setWizard(true)}>
+          + New game
+        </Button>
       </div>
 
       {games.length === 0 ? (
         <Empty icon="▶" message="No games yet. Create your first one." />
       ) : (
         <div className="flex flex-col gap-8">
-          {Object.entries(grouped).map(([group, gs]) => gs.length === 0 ? null : (
-            <div key={group}>
-              <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--color-muted)' }}>
-                {group === 'active' ? 'Active / Paused' : group === 'waiting' ? 'Waiting to start' : 'Ended'}
-              </p>
-              <div className="flex flex-col gap-3">
-                {gs.map(game => {
-                  const qCount = 0 // loaded on demand
-                  return (
-                    <div
-                      key={game.id}
-                      className="flex items-center gap-4 p-4 rounded-lg border transition-all hover:shadow-sm"
-                      style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold truncate">{game.name}</span>
-                          <StatusBadge status={game.status} />
+          {Object.entries(grouped).map(([group, gs]) =>
+            gs.length === 0 ? null : (
+              <div key={group}>
+                <p
+                  className="text-xs font-semibold uppercase tracking-wider mb-3"
+                  style={{ color: 'var(--color-muted)' }}
+                >
+                  {group === 'active'
+                    ? 'Active / Paused'
+                    : group === 'waiting'
+                      ? 'Waiting to start'
+                      : 'Ended'}
+                </p>
+                <div className="flex flex-col gap-3">
+                  {gs.map(game => {
+                    return (
+                      <div
+                        key={game.id}
+                        className="flex items-center gap-4 p-4 rounded-lg border transition-all hover:shadow-sm"
+                        style={{
+                          borderColor: 'var(--color-border)',
+                          background: 'var(--color-surface)',
+                        }}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold truncate">{game.name}</span>
+                            <StatusBadge status={game.status} />
+                          </div>
+                          <div
+                            className="flex items-center gap-3 text-xs"
+                            style={{ color: 'var(--color-muted)' }}
+                          >
+                            <span className="mono">{game.roomId}</span>
+                            <span>·</span>
+                            <span>
+                              {game.roundIds.length} round{game.roundIds.length !== 1 ? 's' : ''}
+                            </span>
+                            <span>·</span>
+                            <span>
+                              {game.transportMode === 'auto'
+                                ? 'Auto'
+                                : game.transportMode === 'peer'
+                                  ? 'PeerJS'
+                                  : 'Gun.js'}
+                            </span>
+                            <span>·</span>
+                            <span>{new Date(game.createdAt).toLocaleDateString()}</span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--color-muted)' }}>
-                          <span className="mono">{game.roomId}</span>
-                          <span>·</span>
-                          <span>{game.roundIds.length} round{game.roundIds.length !== 1 ? 's' : ''}</span>
-                          <span>·</span>
-                          <span>{game.transportMode === 'auto' ? 'Auto' : game.transportMode === 'peer' ? 'PeerJS' : 'Gun.js'}</span>
-                          <span>·</span>
-                          <span>{new Date(game.createdAt).toLocaleDateString()}</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => navigate(`/admin/game/${game.id}`)}
+                          >
+                            {game.status === 'waiting' ? 'Open' : 'Manage'}
+                          </Button>
+                          <Button variant="secondary" size="sm" onClick={() => handleClone(game)}>
+                            Clone
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            style={{ color: 'var(--color-red)' }}
+                            onClick={() => setDeleting(game)}
+                          >
+                            Delete
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Button variant="primary" size="sm" onClick={() => navigate(`/admin/game/${game.id}`)}>
-                          {game.status === 'waiting' ? 'Open' : 'Manage'}
-                        </Button>
-                        <Button variant="secondary" size="sm" onClick={() => handleClone(game)}>Clone</Button>
-                        <Button variant="ghost"     size="sm"
-                          style={{ color: 'var(--color-red)' }}
-                          onClick={() => setDeleting(game)}>Delete</Button>
-                      </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          )}
         </div>
       )}
 
@@ -575,18 +774,26 @@ export default function Games() {
         <GameWizard
           rounds={rounds}
           onClose={() => setWizard(false)}
-          onCreated={id => { setWizard(false); navigate(`/admin/game/${id}`) }}
+          onCreated={id => {
+            setWizard(false)
+            navigate(`/admin/game/${id}`)
+          }}
         />
       )}
 
       {/* Delete confirm */}
       <Modal open={!!deleting} title="Delete game" onClose={() => setDeleting(null)}>
         <p className="text-sm mb-5" style={{ color: 'var(--color-muted)' }}>
-          Delete <strong>{deleting?.name}</strong>? This will permanently remove all players, buzz events, and scores. This cannot be undone.
+          Delete <strong>{deleting?.name}</strong>? This will permanently remove all players, buzz
+          events, and scores. This cannot be undone.
         </p>
         <div className="flex justify-end gap-2">
-          <Button variant="ghost"  onClick={() => setDeleting(null)}>Cancel</Button>
-          <Button variant="danger" onClick={() => deleting && handleDelete(deleting)}>Delete game</Button>
+          <Button variant="ghost" onClick={() => setDeleting(null)}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={() => deleting && handleDelete(deleting)}>
+            Delete game
+          </Button>
         </div>
       </Modal>
     </AdminLayout>
