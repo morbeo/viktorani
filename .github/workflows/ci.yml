@@ -1,28 +1,15 @@
-name: Deploy to GitHub Pages
+name: CI
 
 on:
-  push:
+  pull_request:
     branches: [master]
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  pages:    write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  deploy:
+  ci:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -45,12 +32,3 @@ jobs:
 
       - name: Build
         run: npm run build
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: dist
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5
