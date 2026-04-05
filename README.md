@@ -88,7 +88,8 @@ src/
 │   ├── transport.test.ts
 │   ├── db.test.ts
 │   ├── ui.test.tsx
-│   └── routing.test.tsx
+│   ├── routing.test.tsx
+│   └── questions-search.test.ts
 └── App.tsx               # HashRouter + all routes
 
 public/
@@ -198,12 +199,13 @@ on GitHub Pages and at `/` in dev.
 
 **90 unit tests** across four suites, run with [Vitest](https://vitest.dev) + jsdom + Testing Library.
 
-| Suite         | File                | What it covers                                                                                      |
-| ------------- | ------------------- | --------------------------------------------------------------------------------------------------- |
-| Transport     | `transport.test.ts` | `generatePassphrase`, `generateRoomId`, `TransportManager` (all modes, fallback, events, listeners) |
-| Database      | `db.test.ts`        | `seedDefaults` (idempotency, guard, seed values), schema CRUD, indexes, snapshot import/export      |
-| UI components | `ui.test.tsx`       | Button, Badge, Card, Input, Textarea, Select, Modal, Empty, TransportPill                           |
-| Routing       | `routing.test.tsx`  | All routes render the correct page, unknown routes redirect to `/admin`                             |
+| Suite            | File                       | What it covers                                                                                                                           |
+| ---------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Transport        | `transport.test.ts`        | `generatePassphrase`, `generateRoomId`, `TransportManager` (all modes, fallback, events, listeners)                                      |
+| Database         | `db.test.ts`               | `seedDefaults` (idempotency, guard, seed values), schema CRUD, indexes, snapshot import/export, question bulk import/export              |
+| UI components    | `ui.test.tsx`              | Button, Badge, Card, Input, Textarea, Select, Modal, Empty, TransportPill                                                                |
+| Routing          | `routing.test.tsx`         | All routes render the correct page, unknown routes redirect to `/admin`                                                                  |
+| Questions search | `questions-search.test.ts` | Fuzzy search across all fields (title, answer, options, category, difficulty, tags, description), hard filters, select-all matched logic |
 
 Tests run on every commit locally (pre-commit hook) and on every push to `master` (deploy workflow gate).
 

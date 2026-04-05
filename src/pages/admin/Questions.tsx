@@ -1,4 +1,5 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react'
+import Fuse from 'fuse.js'
 import AdminLayout from '@/components/AdminLayout'
 import { Button, Badge, Input, Select, Modal, Textarea, Empty } from '@/components/ui'
 import { db } from '@/db'
@@ -364,32 +365,72 @@ export default function Questions() {
     void load()
   }, [])
 
+  // Build enriched search documents (resolved names for category/difficulty/tags)
+  const searchDocs = useMemo(
+    () =>
+      questions.map(q => ({
+        ...q,
+        _categoryName: categories.find(c => c.id === q.categoryId)?.name ?? '',
+        _difficultyName: difficulties.find(d => d.id === q.difficulty)?.name ?? '',
+        _tagNames: q.tags.map(tid => tags.find(t => t.id === tid)?.name ?? '').join(' '),
+        _options: q.options.join(' '),
+      })),
+    [questions, categories, difficulties, tags]
+  )
+
+  const fuse = useMemo(
+    () =>
+      new Fuse(searchDocs, {
+        keys: [
+          { name: 'title', weight: 3 },
+          { name: 'answer', weight: 2 },
+          { name: '_options', weight: 2 },
+          { name: '_categoryName', weight: 1.5 },
+          { name: '_difficultyName', weight: 1 },
+          { name: '_tagNames', weight: 1 },
+          { name: 'description', weight: 0.5 },
+        ],
+        threshold: 0.35,
+        includeScore: true,
+        ignoreLocation: true,
+        minMatchCharLength: 2,
+      }),
+    [searchDocs]
+  )
+
   // Filter
-  const displayed = questions.filter(q => {
-    if (selectedRound) {
-      const round = rounds.find(r => r.id === selectedRound)
-      if (!round?.questionIds.includes(q.id)) return false
-    }
-    if (filterCat && q.categoryId !== filterCat) return false
-    if (filterDiff && q.difficulty !== filterDiff) return false
-    if (filterType && q.type !== filterType) return false
-    if (search) {
-      const s = search.toLowerCase()
-      return q.title.toLowerCase().includes(s) || (q.description || '').toLowerCase().includes(s)
-    }
-    return true
-  })
+  const displayed = useMemo(() => {
+    // First apply hard filters (round, category, difficulty, type)
+    const hardFiltered = questions.filter(q => {
+      if (selectedRound) {
+        const round = rounds.find(r => r.id === selectedRound)
+        if (!round?.questionIds.includes(q.id)) return false
+      }
+      if (filterCat && q.categoryId !== filterCat) return false
+      if (filterDiff && q.difficulty !== filterDiff) return false
+      if (filterType && q.type !== filterType) return false
+      return true
+    })
+
+    if (!search.trim()) return hardFiltered
+
+    // Fuzzy search over the hard-filtered subset
+    const filteredIds = new Set(hardFiltered.map(q => q.id))
+    return fuse
+      .search(search.trim())
+      .filter(r => filteredIds.has(r.item.id))
+      .map(r => r.item)
+  }, [questions, rounds, search, filterCat, filterDiff, filterType, selectedRound, fuse])
 
   // Sort round questions by round order
-  const sorted = selectedRound
-    ? (() => {
-        const round = rounds.find(r => r.id === selectedRound)
-        if (!round) return displayed
-        return [...displayed].sort(
-          (a, b) => round.questionIds.indexOf(a.id) - round.questionIds.indexOf(b.id)
-        )
-      })()
-    : displayed
+  const sorted = useMemo(() => {
+    if (!selectedRound) return displayed
+    const round = rounds.find(r => r.id === selectedRound)
+    if (!round) return displayed
+    return [...displayed].sort(
+      (a, b) => round.questionIds.indexOf(a.id) - round.questionIds.indexOf(b.id)
+    )
+  }, [displayed, selectedRound, rounds])
 
   async function handleSave(
     data: Omit<Question, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }
@@ -477,7 +518,7 @@ export default function Questions() {
     load()
   }
 
-  function toggleSelect(id: string) {
+  const toggleSelect = useCallback((id: string) => {
     setSelected(s => {
       const n = new Set(s)
       if (n.has(id)) {
@@ -487,6 +528,27 @@ export default function Questions() {
       }
       return n
     })
+  }, [])
+
+  const allMatchedSelected = sorted.length > 0 && sorted.every(q => selected.has(q.id))
+  const someSelected = selected.size > 0 && !allMatchedSelected
+
+  function toggleSelectAll() {
+    if (allMatchedSelected) {
+      // Deselect all matched
+      setSelected(s => {
+        const n = new Set(s)
+        sorted.forEach(q => n.delete(q.id))
+        return n
+      })
+    } else {
+      // Select all matched (add to any existing selection)
+      setSelected(s => {
+        const n = new Set(s)
+        sorted.forEach(q => n.add(q.id))
+        return n
+      })
+    }
   }
 
   const catOpts = [
@@ -595,13 +657,40 @@ export default function Questions() {
             </Button>
           </div>
 
-          {/* Count */}
+          {/* Count / select-all bar */}
           <div
-            className="px-6 py-2 text-xs border-b"
-            style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted)' }}
+            className="px-6 py-2 border-b flex items-center gap-3"
+            style={{ borderColor: 'var(--color-border)' }}
           >
-            {sorted.length} question{sorted.length !== 1 ? 's' : ''}
-            {selected.size > 0 && ` · ${selected.size} selected`}
+            <input
+              type="checkbox"
+              title={allMatchedSelected ? 'Deselect all' : 'Select all matched'}
+              checked={allMatchedSelected}
+              ref={el => {
+                if (el) el.indeterminate = someSelected
+              }}
+              onChange={toggleSelectAll}
+              className="cursor-pointer"
+              disabled={sorted.length === 0}
+            />
+            <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
+              {selected.size > 0 ? (
+                <>
+                  {selected.size} of {sorted.length} selected ·{' '}
+                  <button
+                    className="underline hover:no-underline"
+                    onClick={() => setSelected(new Set())}
+                  >
+                    Clear
+                  </button>
+                </>
+              ) : (
+                <>
+                  {sorted.length} question{sorted.length !== 1 ? 's' : ''}
+                  {search.trim() ? ' matched' : ''}
+                </>
+              )}
+            </span>
           </div>
 
           {/* List */}
