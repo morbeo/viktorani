@@ -340,3 +340,146 @@ describe('exportDatabase', () => {
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url')
   })
 })
+
+// ── snapshot branch coverage ──────────────────────────────────────────────────
+
+describe('importDatabase branch coverage', () => {
+  beforeEach(clearAll)
+
+  async function makeFile(snapshot: object) {
+    return new File([JSON.stringify(snapshot)], 'b.json', { type: 'application/json' })
+  }
+
+  it('skips bulkPut when collection arrays are empty', async () => {
+    const { importDatabase } = await import('@/db/snapshot')
+    // All arrays empty — no bulkPut should throw or write anything
+    await importDatabase(
+      await makeFile({
+        version: 1,
+        exportedAt: Date.now(),
+        categories: [],
+        difficulties: [],
+        tags: [],
+        questions: [],
+        rounds: [],
+        games: [],
+        notes: [],
+      })
+    )
+    expect(await db.categories.count()).toBe(0)
+    expect(await db.difficulties.count()).toBe(0)
+  })
+
+  it('imports difficulties', async () => {
+    const { importDatabase } = await import('@/db/snapshot')
+    await importDatabase(
+      await makeFile({
+        version: 1,
+        exportedAt: Date.now(),
+        categories: [],
+        difficulties: [{ id: 'd1', name: 'Hard', score: 15, color: '#c00', order: 0 }],
+        tags: [],
+        questions: [],
+        rounds: [],
+        games: [],
+        notes: [],
+      })
+    )
+    expect(await db.difficulties.get('d1')).toBeDefined()
+  })
+
+  it('imports rounds', async () => {
+    const { importDatabase } = await import('@/db/snapshot')
+    const now = Date.now()
+    await importDatabase(
+      await makeFile({
+        version: 1,
+        exportedAt: now,
+        categories: [],
+        difficulties: [],
+        tags: [],
+        questions: [],
+        rounds: [{ id: 'r1', name: 'R1', description: '', questionIds: [], createdAt: now }],
+        games: [],
+        notes: [],
+      })
+    )
+    expect(await db.rounds.get('r1')).toBeDefined()
+  })
+
+  it('imports games', async () => {
+    const { importDatabase } = await import('@/db/snapshot')
+    const now = Date.now()
+    const game = {
+      id: 'g1',
+      name: 'G',
+      status: 'waiting',
+      transportMode: 'auto',
+      roomId: 'X',
+      passphrase: null,
+      scoringEnabled: true,
+      showQuestion: true,
+      showAnswers: false,
+      showMedia: true,
+      maxTeams: 0,
+      maxPerTeam: 0,
+      allowIndividual: true,
+      roundIds: [],
+      currentRoundIdx: 0,
+      currentQuestionIdx: 0,
+      buzzerLocked: true,
+      createdAt: now,
+      updatedAt: now,
+    }
+    await importDatabase(
+      await makeFile({
+        version: 1,
+        exportedAt: now,
+        categories: [],
+        difficulties: [],
+        tags: [],
+        questions: [],
+        rounds: [],
+        games: [game],
+        notes: [],
+      })
+    )
+    expect(await db.games.get('g1')).toBeDefined()
+  })
+
+  it('imports tags and questions', async () => {
+    const { importDatabase } = await import('@/db/snapshot')
+    const now = Date.now()
+    await importDatabase(
+      await makeFile({
+        version: 1,
+        exportedAt: now,
+        categories: [],
+        difficulties: [],
+        tags: [{ id: 't1', name: 'Music', color: '#00f' }],
+        questions: [
+          {
+            id: 'q1',
+            title: 'Q?',
+            type: 'open_ended',
+            options: [],
+            answer: 'A',
+            description: '',
+            categoryId: null,
+            difficulty: null,
+            tags: [],
+            media: null,
+            mediaType: null,
+            createdAt: now,
+            updatedAt: now,
+          },
+        ],
+        rounds: [],
+        games: [],
+        notes: [],
+      })
+    )
+    expect(await db.tags.get('t1')).toBeDefined()
+    expect(await db.questions.get('q1')).toBeDefined()
+  })
+})
