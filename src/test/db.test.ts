@@ -483,3 +483,528 @@ describe('importDatabase branch coverage', () => {
     expect(await db.questions.get('q1')).toBeDefined()
   })
 })
+
+// ── importQuestions ───────────────────────────────────────────────────────────
+
+describe('importQuestions', () => {
+  beforeEach(clearAll)
+
+  async function makeQFile(rows: object[]) {
+    return new File([JSON.stringify(rows)], 'questions.json', { type: 'application/json' })
+  }
+
+  it('imports a multiple_choice question', async () => {
+    const { importQuestions } = await import('@/db/snapshot')
+    const result = await importQuestions(
+      await makeQFile([
+        {
+          title: 'What is the capital of France?',
+          type: 'multiple_choice',
+          options: ['Berlin', 'Madrid', 'Paris', 'Rome'],
+          answer: 'Paris',
+        },
+      ])
+    )
+
+    expect(result.imported).toBe(1)
+    expect(result.skipped).toBe(0)
+    expect(result.errors).toHaveLength(0)
+
+    const q = (await db.questions.toArray())[0]
+    expect(q.type).toBe('multiple_choice')
+    expect(q.options).toEqual(['Berlin', 'Madrid', 'Paris', 'Rome'])
+    expect(q.answer).toBe('Paris')
+  })
+
+  it('imports a true_false question', async () => {
+    const { importQuestions } = await import('@/db/snapshot')
+    await importQuestions(
+      await makeQFile([
+        {
+          title: 'The Great Wall is visible from space.',
+          type: 'true_false',
+          options: ['True', 'False'],
+          answer: 'False',
+        },
+      ])
+    )
+
+    const q = (await db.questions.toArray())[0]
+    expect(q.type).toBe('true_false')
+    expect(q.options).toEqual(['True', 'False'])
+    expect(q.answer).toBe('False')
+  })
+
+  it('imports an open_ended question', async () => {
+    const { importQuestions } = await import('@/db/snapshot')
+    await importQuestions(
+      await makeQFile([
+        {
+          title: 'What element has the chemical symbol Au?',
+          type: 'open_ended',
+          options: [],
+          answer: 'Gold',
+        },
+      ])
+    )
+
+    const q = (await db.questions.toArray())[0]
+    expect(q.type).toBe('open_ended')
+    expect(q.options).toEqual([])
+    expect(q.answer).toBe('Gold')
+  })
+
+  it('resolves category by name (case-insensitive)', async () => {
+    const { importQuestions } = await import('@/db/snapshot')
+    await db.categories.add({ id: 'cat-geo', name: 'Geography', color: '#f00' })
+
+    await importQuestions(
+      await makeQFile([
+        {
+          title: 'Q',
+          type: 'open_ended',
+          options: [],
+          answer: 'A',
+          category: 'geography', // lowercase — should still match
+        },
+      ])
+    )
+
+    const q = (await db.questions.toArray())[0]
+    expect(q.categoryId).toBe('cat-geo')
+  })
+
+  it('leaves categoryId null when category name is not found', async () => {
+    const { importQuestions } = await import('@/db/snapshot')
+    await importQuestions(
+      await makeQFile([
+        {
+          title: 'Q',
+          type: 'open_ended',
+          options: [],
+          answer: 'A',
+          category: 'NonExistent',
+        },
+      ])
+    )
+
+    const q = (await db.questions.toArray())[0]
+    expect(q.categoryId).toBeNull()
+  })
+
+  it('resolves difficulty by name', async () => {
+    const { importQuestions } = await import('@/db/snapshot')
+    await db.difficulties.add({ id: 'diff-easy', name: 'Easy', score: 5, color: '#0f0', order: 0 })
+
+    await importQuestions(
+      await makeQFile([
+        {
+          title: 'Q',
+          type: 'open_ended',
+          options: [],
+          answer: 'A',
+          difficulty: 'Easy',
+        },
+      ])
+    )
+
+    const q = (await db.questions.toArray())[0]
+    expect(q.difficulty).toBe('diff-easy')
+  })
+
+  it('resolves multiple tags by name', async () => {
+    const { importQuestions } = await import('@/db/snapshot')
+    await db.tags.bulkAdd([
+      { id: 'tag-sci', name: 'Science', color: '#00f' },
+      { id: 'tag-hist', name: 'History', color: '#f90' },
+    ])
+
+    await importQuestions(
+      await makeQFile([
+        {
+          title: 'Q',
+          type: 'open_ended',
+          options: [],
+          answer: 'A',
+          tags: ['Science', 'History'],
+        },
+      ])
+    )
+
+    const q = (await db.questions.toArray())[0]
+    expect(q.tags).toContain('tag-sci')
+    expect(q.tags).toContain('tag-hist')
+  })
+
+  it('silently drops tags that do not exist', async () => {
+    const { importQuestions } = await import('@/db/snapshot')
+    await importQuestions(
+      await makeQFile([
+        {
+          title: 'Q',
+          type: 'open_ended',
+          options: [],
+          answer: 'A',
+          tags: ['NonExistentTag'],
+        },
+      ])
+    )
+
+    const q = (await db.questions.toArray())[0]
+    expect(q.tags).toHaveLength(0)
+  })
+
+  it('upserts — updates existing question when id matches', async () => {
+    const { importQuestions } = await import('@/db/snapshot')
+    await db.questions.add({
+      id: 'q-existing',
+      title: 'Old title',
+      type: 'open_ended',
+      options: [],
+      answer: 'Old',
+      description: '',
+      categoryId: null,
+      difficulty: null,
+      tags: [],
+      media: null,
+      mediaType: null,
+      createdAt: 0,
+      updatedAt: 0,
+    })
+
+    await importQuestions(
+      await makeQFile([
+        {
+          id: 'q-existing',
+          title: 'Updated title',
+          type: 'open_ended',
+          options: [],
+          answer: 'New',
+        },
+      ])
+    )
+
+    expect(await db.questions.count()).toBe(1)
+    const q = await db.questions.get('q-existing')
+    expect(q?.title).toBe('Updated title')
+    expect(q?.answer).toBe('New')
+  })
+
+  it('imports multiple questions in one file', async () => {
+    const { importQuestions } = await import('@/db/snapshot')
+    const result = await importQuestions(
+      await makeQFile([
+        { title: 'Q1', type: 'open_ended', options: [], answer: 'A1' },
+        { title: 'Q2', type: 'true_false', options: ['True', 'False'], answer: 'True' },
+        { title: 'Q3', type: 'multiple_choice', options: ['A', 'B', 'C', 'D'], answer: 'B' },
+      ])
+    )
+
+    expect(result.imported).toBe(3)
+    expect(await db.questions.count()).toBe(3)
+  })
+
+  it('skips rows with missing title and records an error', async () => {
+    const { importQuestions } = await import('@/db/snapshot')
+    const result = await importQuestions(
+      await makeQFile([
+        { title: '', type: 'open_ended', options: [], answer: 'A' },
+        { title: 'Q2', type: 'open_ended', options: [], answer: 'B' },
+      ])
+    )
+
+    expect(result.imported).toBe(1)
+    expect(result.skipped).toBe(1)
+    expect(result.errors[0]).toContain('Row 1')
+    expect(result.errors[0]).toContain('missing title')
+  })
+
+  it('skips rows with invalid type and records an error', async () => {
+    const { importQuestions } = await import('@/db/snapshot')
+    const result = await importQuestions(
+      await makeQFile([{ title: 'Q', type: 'essay', options: [], answer: 'A' }])
+    )
+
+    expect(result.imported).toBe(0)
+    expect(result.skipped).toBe(1)
+    expect(result.errors[0]).toContain('invalid type')
+  })
+
+  it('throws when file is not a JSON array', async () => {
+    const { importQuestions } = await import('@/db/snapshot')
+    const file = new File(['{"not": "an array"}'], 'q.json', { type: 'application/json' })
+    await expect(importQuestions(file)).rejects.toThrow('Expected a JSON array')
+  })
+
+  it('handles whitespace-only titles as missing', async () => {
+    const { importQuestions } = await import('@/db/snapshot')
+    const result = await importQuestions(
+      await makeQFile([{ title: '   ', type: 'open_ended', options: [], answer: 'A' }])
+    )
+    expect(result.skipped).toBe(1)
+    expect(result.errors[0]).toContain('missing title')
+  })
+
+  it('trims whitespace from titles on import', async () => {
+    const { importQuestions } = await import('@/db/snapshot')
+    await importQuestions(
+      await makeQFile([{ title: '  What is 2+2?  ', type: 'open_ended', options: [], answer: '4' }])
+    )
+    const q = (await db.questions.toArray())[0]
+    expect(q.title).toBe('What is 2+2?')
+  })
+
+  it('assigns a new uuid when id is omitted', async () => {
+    const { importQuestions } = await import('@/db/snapshot')
+    await importQuestions(
+      await makeQFile([{ title: 'Q', type: 'open_ended', options: [], answer: 'A' }])
+    )
+    const q = (await db.questions.toArray())[0]
+    expect(q.id).toBeTruthy()
+    expect(typeof q.id).toBe('string')
+  })
+
+  it('continues importing valid rows after a skipped row', async () => {
+    const { importQuestions } = await import('@/db/snapshot')
+    const result = await importQuestions(
+      await makeQFile([
+        { title: '', type: 'open_ended', options: [], answer: 'A' }, // bad
+        { title: 'Q2', type: 'open_ended', options: [], answer: 'B' }, // good
+        { title: '', type: 'open_ended', options: [], answer: 'C' }, // bad
+        { title: 'Q4', type: 'open_ended', options: [], answer: 'D' }, // good
+      ])
+    )
+
+    expect(result.imported).toBe(2)
+    expect(result.skipped).toBe(2)
+    expect(result.errors).toHaveLength(2)
+  })
+})
+
+// ── exportQuestions ───────────────────────────────────────────────────────────
+
+describe('exportQuestions', () => {
+  beforeEach(clearAll)
+
+  async function captureExport(): Promise<string> {
+    let capturedBlob: Blob | null = null
+    const realCreateObjectURL = URL.createObjectURL as ReturnType<typeof vi.fn>
+
+    realCreateObjectURL.mockImplementationOnce((blob: Blob) => {
+      capturedBlob = blob
+      return 'blob:captured'
+    })
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+    const { exportQuestions } = await import('@/db/snapshot')
+    await exportQuestions()
+
+    return capturedBlob ? await (capturedBlob as Blob).text() : '[]'
+  }
+
+  it('exports all questions when no ids provided', async () => {
+    const base = {
+      type: 'open_ended' as const,
+      options: [],
+      description: '',
+      categoryId: null,
+      difficulty: null,
+      tags: [],
+      media: null,
+      mediaType: null,
+      createdAt: 0,
+      updatedAt: 0,
+    }
+    await db.questions.bulkAdd([
+      { ...base, id: 'q1', answer: 'A1', title: 'Q1' },
+      { ...base, id: 'q2', answer: 'A2', title: 'Q2' },
+    ])
+
+    const json = await captureExport()
+    const rows = JSON.parse(json)
+    expect(rows).toHaveLength(2)
+  })
+
+  it('exports only selected ids when provided', async () => {
+    const { exportQuestions } = await import('@/db/snapshot')
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+    const base = {
+      type: 'open_ended' as const,
+      options: [],
+      description: '',
+      categoryId: null,
+      difficulty: null,
+      tags: [],
+      media: null,
+      mediaType: null,
+      createdAt: 0,
+      updatedAt: 0,
+    }
+    await db.questions.bulkAdd([
+      { ...base, id: 'q1', answer: 'A', title: 'Keep' },
+      { ...base, id: 'q2', answer: 'B', title: 'Skip' },
+    ])
+
+    let capturedBlob: Blob | null = null
+    ;(URL.createObjectURL as ReturnType<typeof vi.fn>).mockImplementationOnce((blob: Blob) => {
+      capturedBlob = blob
+      return 'blob:x'
+    })
+
+    await exportQuestions(['q1'])
+    const rows = JSON.parse(await (capturedBlob as unknown as Blob).text())
+    expect(rows).toHaveLength(1)
+    expect(rows[0].title).toBe('Keep')
+  })
+
+  it('resolves category id to name in export', async () => {
+    await db.categories.add({ id: 'cat1', name: 'Science', color: '#00f' })
+    await db.questions.add({
+      id: 'q1',
+      title: 'Q',
+      type: 'open_ended',
+      options: [],
+      answer: 'A',
+      description: '',
+      categoryId: 'cat1',
+      difficulty: null,
+      tags: [],
+      media: null,
+      mediaType: null,
+      createdAt: 0,
+      updatedAt: 0,
+    })
+
+    const json = await captureExport()
+    const rows = JSON.parse(json)
+    expect(rows[0].category).toBe('Science')
+  })
+
+  it('resolves difficulty id to name in export', async () => {
+    await db.difficulties.add({ id: 'diff1', name: 'Hard', score: 15, color: '#f00', order: 2 })
+    await db.questions.add({
+      id: 'q1',
+      title: 'Q',
+      type: 'open_ended',
+      options: [],
+      answer: 'A',
+      description: '',
+      categoryId: null,
+      difficulty: 'diff1',
+      tags: [],
+      media: null,
+      mediaType: null,
+      createdAt: 0,
+      updatedAt: 0,
+    })
+
+    const json = await captureExport()
+    const rows = JSON.parse(json)
+    expect(rows[0].difficulty).toBe('Hard')
+  })
+
+  it('resolves tag ids to names in export', async () => {
+    await db.tags.bulkAdd([
+      { id: 'tag1', name: 'Music', color: '#f00' },
+      { id: 'tag2', name: 'History', color: '#0f0' },
+    ])
+    await db.questions.add({
+      id: 'q1',
+      title: 'Q',
+      type: 'open_ended',
+      options: [],
+      answer: 'A',
+      description: '',
+      categoryId: null,
+      difficulty: null,
+      tags: ['tag1', 'tag2'],
+      media: null,
+      mediaType: null,
+      createdAt: 0,
+      updatedAt: 0,
+    })
+
+    const json = await captureExport()
+    const rows = JSON.parse(json)
+    expect(rows[0].tags).toEqual(expect.arrayContaining(['Music', 'History']))
+  })
+
+  it('exports an empty array when no questions exist', async () => {
+    const json = await captureExport()
+    expect(JSON.parse(json)).toEqual([])
+  })
+
+  it('round-trips: export then import preserves all fields', async () => {
+    const { importQuestions, exportQuestions } = await import('@/db/snapshot')
+
+    await db.categories.add({ id: 'cat1', name: 'Science', color: '#00f' })
+    await db.difficulties.add({ id: 'diff1', name: 'Medium', score: 10, color: '#f90', order: 1 })
+    await db.tags.add({ id: 'tag1', name: 'Physics', color: '#00f' })
+
+    const original = {
+      id: 'q-rt',
+      title: 'Round-trip question',
+      type: 'multiple_choice' as const,
+      options: ['A', 'B', 'C', 'D'],
+      answer: 'C',
+      description: 'Test desc',
+      categoryId: 'cat1',
+      difficulty: 'diff1',
+      tags: ['tag1'],
+      media: null,
+      mediaType: null,
+      createdAt: 0,
+      updatedAt: 0,
+    }
+    await db.questions.add(original)
+
+    // Capture exported JSON
+    let capturedBlob: Blob | null = null
+    ;(URL.createObjectURL as ReturnType<typeof vi.fn>).mockImplementationOnce((blob: Blob) => {
+      capturedBlob = blob
+      return 'blob:rt'
+    })
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    await exportQuestions()
+
+    // Clear and re-import
+    await db.questions.clear()
+    const file = new File([await (capturedBlob as unknown as Blob).text()], 'export.json', {
+      type: 'application/json',
+    })
+    const result = await importQuestions(file)
+
+    expect(result.imported).toBe(1)
+
+    const restored = await db.questions.get('q-rt')
+    expect(restored?.title).toBe('Round-trip question')
+    expect(restored?.type).toBe('multiple_choice')
+    expect(restored?.options).toEqual(['A', 'B', 'C', 'D'])
+    expect(restored?.answer).toBe('C')
+    expect(restored?.categoryId).toBe('cat1')
+    expect(restored?.difficulty).toBe('diff1')
+    expect(restored?.tags).toContain('tag1')
+  })
+})
+
+// ── downloadExampleQuestions ──────────────────────────────────────────────────
+
+describe('downloadExampleQuestions', () => {
+  it('triggers a download and covers all three question types', async () => {
+    const { downloadExampleQuestions, QUESTION_EXAMPLES } = await import('@/db/snapshot')
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+    downloadExampleQuestions()
+
+    expect(URL.createObjectURL).toHaveBeenCalled()
+    expect(clickSpy).toHaveBeenCalled()
+
+    const types = QUESTION_EXAMPLES.map(q => q.type)
+    expect(types).toContain('multiple_choice')
+    expect(types).toContain('true_false')
+    expect(types).toContain('open_ended')
+
+    clickSpy.mockRestore()
+  })
+})
