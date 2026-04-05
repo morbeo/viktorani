@@ -139,13 +139,14 @@ restore or share your question bank.
 
 ### Workflows
 
-| Workflow     | Trigger                   | Purpose                                                       |
-| ------------ | ------------------------- | ------------------------------------------------------------- |
-| `deploy.yml` | push to `master` + manual | Type-check → lint → **test** → build → deploy to GitHub Pages |
+| Workflow     | Trigger                   | Purpose                                                        |
+| ------------ | ------------------------- | -------------------------------------------------------------- |
+| `ci.yml`     | PRs to `master`           | Type-check, lint, test, build — blocks merge if any step fails |
+| `deploy.yml` | push to `master` + manual | Type-check → lint → **test** → build → deploy to GitHub Pages  |
 
-Sets `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` to opt into the Node 24 runner ahead of the June 2026 forced migration.
+Both workflows set `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` to opt into the Node 24 runner ahead of the June 2026 forced migration.
 
-A push to `master` only deploys if all four gates pass. A failing test or lint error blocks the deploy.
+A push to `master` only deploys if all four gates pass. Dependabot PRs run through `ci.yml` automatically before merge.
 
 ### Versioning
 
