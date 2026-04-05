@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "dexie": "^4.4.2",
+    "fuse.js": "^7.3.0",
     "gun": "^0.2020.1241",
     "peerjs": "^1.5.5",
     "qrcode.react": "^4.2.0",
