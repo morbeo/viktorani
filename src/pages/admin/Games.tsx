@@ -53,7 +53,7 @@ function defaultWizard(): WizardState {
 function Steps({ current }: { current: number }) {
   const steps = ['Basic settings', 'Select rounds', 'Review & create']
   return (
-    <div className="flex items-center gap-0 mb-8">
+    <div className="flex items-center gap-0 mb-5">
       {steps.map((label, i) => (
         <div key={i} className="flex items-center">
           <div className="flex items-center gap-2">
@@ -96,14 +96,16 @@ function Step1({
   state: WizardState
   set: (k: keyof WizardState, v: unknown) => void
 }) {
+  const [showAdvanced, setShowAdvanced] = useState(false)
   const transportOpts = [
-    { value: 'auto', label: 'Auto (PeerJS → Gun.js fallback)' },
-    { value: 'peer', label: 'PeerJS only (WebRTC)' },
-    { value: 'gun', label: 'Gun.js only (encrypted relay)' },
+    { value: 'auto', label: 'Auto (PeerJS → Gun.js)' },
+    { value: 'peer', label: 'PeerJS (WebRTC)' },
+    { value: 'gun', label: 'Gun.js (encrypted relay)' },
   ]
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
+      {/* Game name — primary field, full width */}
       <Input
         label="Game name *"
         value={state.name}
@@ -111,17 +113,28 @@ function Step1({
         placeholder="e.g. Friday Night Trivia"
       />
 
-      <Select
-        label="Multiplayer transport"
-        value={state.transportMode}
-        options={transportOpts}
-        onChange={e => set('transportMode', e.target.value as TransportMode)}
-      />
+      {/* Two-column row: transport + scoring */}
+      <div className="grid grid-cols-2 gap-3">
+        <Select
+          label="Transport"
+          value={state.transportMode}
+          options={transportOpts}
+          onChange={e => set('transportMode', e.target.value as TransportMode)}
+        />
+        <div className="flex flex-col gap-1 justify-end">
+          <Toggle
+            label="Scoring"
+            checked={state.scoringEnabled}
+            onChange={v => set('scoringEnabled', v)}
+          />
+        </div>
+      </div>
 
+      {/* Passphrase — only shown when relevant */}
       {(state.transportMode === 'gun' || state.transportMode === 'auto') && (
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium" style={{ color: 'var(--color-muted)' }}>
-            Gun.js passphrase (shared with players via QR)
+            Gun.js passphrase
           </label>
           <div className="flex gap-2">
             <input
@@ -135,88 +148,89 @@ function Step1({
               size="sm"
               onClick={() => set('passphrase', generatePassphrase())}
             >
-              ↺ Generate
+              ↺
             </Button>
           </div>
         </div>
       )}
 
+      {/* Visibility toggles — inline, no card wrapper */}
       <div
-        className="border rounded-lg p-4 flex flex-col gap-3"
+        className="flex flex-col gap-0 rounded-lg border overflow-hidden"
         style={{ borderColor: 'var(--color-border)' }}
       >
-        <p
-          className="text-xs font-semibold uppercase tracking-wider"
-          style={{ color: 'var(--color-muted)' }}
+        <div
+          className="px-3 py-1.5 border-b"
+          style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
         >
-          Scoring
-        </p>
-        <Toggle
-          label="Enable scoring"
-          checked={state.scoringEnabled}
-          onChange={v => set('scoringEnabled', v)}
-        />
-      </div>
-
-      <div
-        className="border rounded-lg p-4 flex flex-col gap-3"
-        style={{ borderColor: 'var(--color-border)' }}
-      >
-        <p
-          className="text-xs font-semibold uppercase tracking-wider"
-          style={{ color: 'var(--color-muted)' }}
-        >
-          Player visibility
-        </p>
-        <Toggle
-          label="Show question to players"
-          checked={state.showQuestion}
-          onChange={v => set('showQuestion', v)}
-        />
-        <Toggle
-          label="Show answers to players"
-          checked={state.showAnswers}
-          onChange={v => set('showAnswers', v)}
-        />
-        <Toggle
-          label="Show media (images/video/audio)"
-          checked={state.showMedia}
-          onChange={v => set('showMedia', v)}
-        />
-      </div>
-
-      <div
-        className="border rounded-lg p-4 flex flex-col gap-3"
-        style={{ borderColor: 'var(--color-border)' }}
-      >
-        <p
-          className="text-xs font-semibold uppercase tracking-wider"
-          style={{ color: 'var(--color-muted)' }}
-        >
-          Teams & players
-        </p>
-        <Toggle
-          label="Allow individual play (no team required)"
-          checked={state.allowIndividual}
-          onChange={v => set('allowIndividual', v)}
-        />
-        <div className="grid grid-cols-2 gap-3">
-          <Input
-            label="Max teams (0 = unlimited)"
-            type="number"
-            min={0}
-            value={state.maxTeams}
-            onChange={e => set('maxTeams', +e.target.value)}
+          <p
+            className="text-xs font-semibold uppercase tracking-wider"
+            style={{ color: 'var(--color-muted)' }}
+          >
+            Players see
+          </p>
+        </div>
+        <div className="px-3 py-2 flex flex-col gap-2">
+          <Toggle
+            label="Question text"
+            checked={state.showQuestion}
+            onChange={v => set('showQuestion', v)}
           />
-          <Input
-            label="Max players per team (0 = ∞)"
-            type="number"
-            min={0}
-            value={state.maxPerTeam}
-            onChange={e => set('maxPerTeam', +e.target.value)}
+          <Toggle
+            label="Answers"
+            checked={state.showAnswers}
+            onChange={v => set('showAnswers', v)}
           />
+          <Toggle label="Media" checked={state.showMedia} onChange={v => set('showMedia', v)} />
         </div>
       </div>
+
+      {/* Advanced — collapsed by default */}
+      <button
+        className="flex items-center gap-2 text-xs text-left transition-opacity hover:opacity-70"
+        style={{ color: 'var(--color-muted)' }}
+        onClick={() => setShowAdvanced(s => !s)}
+      >
+        <span
+          style={{
+            transform: showAdvanced ? 'rotate(90deg)' : 'none',
+            display: 'inline-block',
+            transition: 'transform 0.15s',
+          }}
+        >
+          ▶
+        </span>
+        Teams & player limits
+      </button>
+
+      {showAdvanced && (
+        <div
+          className="flex flex-col gap-3 rounded-lg border p-3"
+          style={{ borderColor: 'var(--color-border)' }}
+        >
+          <Toggle
+            label="Allow individual play (no team)"
+            checked={state.allowIndividual}
+            onChange={v => set('allowIndividual', v)}
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Max teams (0 = ∞)"
+              type="number"
+              min={0}
+              value={state.maxTeams}
+              onChange={e => set('maxTeams', +e.target.value)}
+            />
+            <Input
+              label="Max per team (0 = ∞)"
+              type="number"
+              min={0}
+              value={state.maxPerTeam}
+              onChange={e => set('maxPerTeam', +e.target.value)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -550,33 +564,71 @@ function GameWizard({
   }
 
   return (
-    <Modal open title="New game" onClose={onClose} maxWidth="560px">
-      <Steps current={step} />
-
-      <div style={{ minHeight: 320 }}>
-        {step === 0 && <Step1 state={state} set={set} />}
-        {step === 1 && <Step2 state={state} set={set} rounds={rounds} />}
-        {step === 2 && <Step3 state={state} rounds={rounds} />}
-      </div>
-
+    // Custom dialog — fixed viewport-aware height so footer buttons are always visible
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(26,22,16,0.6)', backdropFilter: 'blur(2px)' }}
+      onClick={onClose}
+    >
       <div
-        className="flex justify-between gap-2 pt-5 mt-5 border-t"
-        style={{ borderColor: 'var(--color-border)' }}
+        className="w-full rounded-xl border shadow-2xl flex flex-col"
+        style={{
+          maxWidth: 560,
+          maxHeight: 'calc(100vh - 80px)',
+          background: 'var(--color-cream)',
+          borderColor: 'var(--color-border)',
+        }}
+        onClick={e => e.stopPropagation()}
       >
-        <Button variant="ghost" onClick={step === 0 ? onClose : () => setStep(s => s - 1)}>
-          {step === 0 ? 'Cancel' : '← Back'}
-        </Button>
-        {step < 2 ? (
-          <Button variant="primary" disabled={!canNext} onClick={() => setStep(s => s + 1)}>
-            Next →
+        {/* Header */}
+        <div
+          className="flex items-center justify-between px-6 pt-4 pb-3 shrink-0 border-b"
+          style={{ borderColor: 'var(--color-border)' }}
+        >
+          <h3 className="text-lg font-bold" style={{ fontFamily: 'Playfair Display, serif' }}>
+            New game
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-xl leading-none hover:opacity-60 transition-opacity"
+            style={{ color: 'var(--color-muted)' }}
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Step indicators */}
+        <div className="px-6 pt-3 pb-1 shrink-0">
+          <Steps current={step} />
+        </div>
+
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-6 py-3">
+          {step === 0 && <Step1 state={state} set={set} />}
+          {step === 1 && <Step2 state={state} set={set} rounds={rounds} />}
+          {step === 2 && <Step3 state={state} rounds={rounds} />}
+        </div>
+
+        {/* Pinned footer — always visible */}
+        <div
+          className="flex justify-between gap-2 px-6 py-3 shrink-0 border-t"
+          style={{ borderColor: 'var(--color-border)' }}
+        >
+          <Button variant="ghost" onClick={step === 0 ? onClose : () => setStep(s => s - 1)}>
+            {step === 0 ? 'Cancel' : '← Back'}
           </Button>
-        ) : (
-          <Button variant="primary" disabled={saving} onClick={handleCreate}>
-            {saving ? 'Creating…' : 'Create game'}
-          </Button>
-        )}
+          {step < 2 ? (
+            <Button variant="primary" disabled={!canNext} onClick={() => setStep(s => s + 1)}>
+              Next →
+            </Button>
+          ) : (
+            <Button variant="primary" disabled={saving} onClick={handleCreate}>
+              {saving ? 'Creating…' : 'Create game'}
+            </Button>
+          )}
+        </div>
       </div>
-    </Modal>
+    </div>
   )
 }
 
