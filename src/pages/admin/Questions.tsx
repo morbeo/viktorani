@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import AdminLayout from '@/components/AdminLayout'
 import { Button, Badge, Input, Select, Modal, Textarea, Empty } from '@/components/ui'
 import { db } from '@/db'
+import { exportQuestions, importQuestions, downloadExampleQuestions } from '@/db/snapshot'
+import type { ImportResult } from '@/db/snapshot'
 import type { Question, QuestionType, Category, DifficultyLevel, Tag, Round } from '@/db'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -339,6 +341,9 @@ export default function Questions() {
   const [editing, setEditing] = useState<Partial<Question> | null | false>(false)
   const [newRoundName, setNewRoundName] = useState('')
   const [roundModal, setRoundModal] = useState(false)
+  const [importResult, setImportResult] = useState<ImportResult | null>(null)
+  const [importing, setImporting] = useState(false)
+  const importRef = useRef<HTMLInputElement>(null)
 
   async function load() {
     const [qs, rs, cats, diffs, ts] = await Promise.all([
@@ -356,7 +361,7 @@ export default function Questions() {
   }
 
   useEffect(() => {
-    void load() // eslint-disable-line react-hooks/set-state-in-effect
+    void load()
   }, [])
 
   // Filter
@@ -440,6 +445,22 @@ export default function Questions() {
     await db.rounds.update(roundId, { questionIds: newIds })
     setSelected(new Set())
     load()
+  }
+
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImporting(true)
+    try {
+      const result = await importQuestions(file)
+      setImportResult(result)
+      load()
+    } catch (err) {
+      setImportResult({ imported: 0, skipped: 0, errors: [(err as Error).message] })
+    } finally {
+      setImporting(false)
+      if (importRef.current) importRef.current.value = ''
+    }
   }
 
   async function moveInRound(qId: string, dir: -1 | 1) {
@@ -530,10 +551,43 @@ export default function Questions() {
                 <Button variant="ghost" size="sm" onClick={() => setRoundModal(true)}>
                   + Round from {selected.size} selected
                 </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => exportQuestions([...selected])}
+                >
+                  ↓ Export {selected.size}
+                </Button>
                 <Button variant="danger" size="sm" onClick={() => handleDelete([...selected])}>
                   Delete {selected.size}
                 </Button>
               </>
+            )}
+
+            {/* Import */}
+            <label>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={importing}
+                onClick={() => importRef.current?.click()}
+              >
+                {importing ? 'Importing…' : '↑ Import'}
+              </Button>
+              <input
+                ref={importRef}
+                type="file"
+                accept=".json"
+                className="sr-only"
+                onChange={handleImport}
+              />
+            </label>
+
+            {/* Export all */}
+            {selected.size === 0 && (
+              <Button variant="secondary" size="sm" onClick={() => exportQuestions()}>
+                ↓ Export all
+              </Button>
             )}
 
             <Button variant="primary" size="sm" onClick={() => setEditing({})}>
@@ -655,6 +709,76 @@ export default function Questions() {
           onSave={handleSave}
           onClose={() => setEditing(false)}
         />
+      )}
+
+      {/* Import result modal */}
+      {importResult && (
+        <Modal open title="Import complete" onClose={() => setImportResult(null)}>
+          <div className="flex flex-col gap-4">
+            <div className="flex gap-4">
+              <div
+                className="flex-1 rounded-lg border p-3 text-center"
+                style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
+              >
+                <p
+                  className="text-2xl font-bold"
+                  style={{ fontFamily: 'Playfair Display, serif', color: 'var(--color-green)' }}
+                >
+                  {importResult.imported}
+                </p>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-muted)' }}>
+                  imported
+                </p>
+              </div>
+              <div
+                className="flex-1 rounded-lg border p-3 text-center"
+                style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
+              >
+                <p
+                  className="text-2xl font-bold"
+                  style={{ fontFamily: 'Playfair Display, serif', color: 'var(--color-muted)' }}
+                >
+                  {importResult.skipped}
+                </p>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-muted)' }}>
+                  skipped
+                </p>
+              </div>
+            </div>
+
+            {importResult.errors.length > 0 && (
+              <div
+                className="rounded-lg border p-3 flex flex-col gap-1"
+                style={{ borderColor: 'var(--color-red)', background: '#c0392b11' }}
+              >
+                <p className="text-xs font-semibold mb-1" style={{ color: 'var(--color-red)' }}>
+                  Errors
+                </p>
+                {importResult.errors.map((e, i) => (
+                  <p key={i} className="text-xs mono" style={{ color: 'var(--color-red)' }}>
+                    {e}
+                  </p>
+                ))}
+              </div>
+            )}
+
+            <div
+              className="flex items-center justify-between pt-2 border-t"
+              style={{ borderColor: 'var(--color-border)' }}
+            >
+              <button
+                className="text-xs hover:opacity-70 transition-opacity"
+                style={{ color: 'var(--color-muted)' }}
+                onClick={downloadExampleQuestions}
+              >
+                ↓ Download example file
+              </button>
+              <Button variant="primary" onClick={() => setImportResult(null)}>
+                Done
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
 
       {/* New round modal */}
