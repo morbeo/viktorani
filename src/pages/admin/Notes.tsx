@@ -64,21 +64,21 @@ function NoteForm({ note, onSave, onClose }: NoteFormProps) {
 
           {preview ? (
             <div
-              className="rounded border px-4 py-3 prose prose-sm overflow-y-auto"
+              className="rounded border px-4 py-3 overflow-y-auto"
               style={{
                 borderColor: 'var(--color-border)',
                 background: 'var(--color-cream)',
                 minHeight: 200,
                 maxHeight: 320,
-                fontFamily: 'Lora, Georgia, serif',
-                color: 'var(--color-ink)',
               }}
             >
-              {content.trim() ? (
-                <ReactMarkdown>{content}</ReactMarkdown>
-              ) : (
-                <p style={{ color: 'var(--color-muted)' }}>Nothing to preview.</p>
-              )}
+              <div className="note-prose">
+                {content.trim() ? (
+                  <ReactMarkdown>{content}</ReactMarkdown>
+                ) : (
+                  <p style={{ color: 'var(--color-muted)' }}>Nothing to preview.</p>
+                )}
+              </div>
             </div>
           ) : (
             <Textarea
@@ -184,12 +184,9 @@ function NoteViewer({
         </div>
       </div>
 
-      <div
-        className="flex-1 overflow-y-auto px-8 py-6"
-        style={{ fontFamily: 'Lora, Georgia, serif', color: 'var(--color-ink)' }}
-      >
+      <div className="flex-1 overflow-y-auto px-8 py-6">
         {note.content.trim() ? (
-          <div className="prose prose-sm max-w-none">
+          <div className="note-prose">
             <ReactMarkdown>{note.content}</ReactMarkdown>
           </div>
         ) : (
