@@ -1,0 +1,24 @@
+{
+  "$schema": "https://unpkg.com/release-it/schema/release-it.json",
+  "git": {
+    "commitMessage": "chore(release): v${version}",
+    "tagName": "v${version}",
+    "requireCleanWorkingDir": true,
+    "requireUpstream": true
+  },
+  "github": {
+    "release": true,
+    "releaseName": "v${version}",
+    "assets": ["dist/viktorani-v${version}.tar.gz"]
+  },
+  "hooks": {
+    "before:init": ["npm run lint", "npm run test"],
+    "after:bump": "bash scripts/pack.sh -o dist --name viktorani-v${version}"
+  },
+  "plugins": {
+    "@release-it/conventional-changelog": {
+      "preset": "conventionalcommits",
+      "infile": "CHANGELOG.md"
+    }
+  }
+}
