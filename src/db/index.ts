@@ -186,7 +186,7 @@ class ViktoraniDB extends Dexie {
 
   constructor() {
     super('viktorani')
-    this.version(1).stores({
+    this.version(2).stores({
       categories: 'id, name',
       difficulties: 'id, name, order',
       tags: 'id, name',
@@ -198,7 +198,7 @@ class ViktoraniDB extends Dexie {
       buzzEvents: 'id, gameId, playerId, questionId, timestamp',
       layouts: 'id, gameId, target',
       widgets: 'id, layoutId, order',
-      notes: 'id, name, createdAt',
+      notes: 'id, name, createdAt, updatedAt',
       timers: 'id, gameId',
       gameQuestions: 'id, gameId, roundId, order',
     })
