@@ -246,6 +246,8 @@ interface RoundSidebarProps {
   selected: string | null
   onSelect: (id: string | null) => void
   onNewRound: () => void
+  onEditRound: (round: Round) => void
+  onDeleteRound: (round: Round) => void
   selectedQIds: string[]
   onAddToRound: (roundId: string) => void
 }
@@ -255,6 +257,8 @@ function RoundSidebar({
   selected,
   onSelect,
   onNewRound,
+  onEditRound,
+  onDeleteRound,
   selectedQIds,
   onAddToRound,
 }: RoundSidebarProps) {
@@ -307,16 +311,40 @@ function RoundSidebar({
               <span className="block truncate">{r.name}</span>
               <span className="text-xs opacity-60">{r.questionIds.length} questions</span>
             </button>
-            {selectedQIds.length > 0 && (
+            <div className="flex items-center pr-2 gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              {selectedQIds.length > 0 && (
+                <button
+                  onClick={() => onAddToRound(r.id)}
+                  className="text-xs px-1.5 py-0.5 rounded transition-all"
+                  style={{ color: 'var(--color-gold)', background: 'var(--color-gold-light)' }}
+                  title="Add selected questions to this round"
+                >
+                  +add
+                </button>
+              )}
               <button
-                onClick={() => onAddToRound(r.id)}
-                className="pr-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                style={{ color: 'var(--color-gold)' }}
-                title="Add selected to this round"
+                onClick={e => {
+                  e.stopPropagation()
+                  onEditRound(r)
+                }}
+                className="text-xs px-1 py-0.5 rounded transition-all hover:bg-black/5"
+                style={{ color: 'var(--color-muted)' }}
+                title="Rename round"
               >
-                +add
+                ✎
               </button>
-            )}
+              <button
+                onClick={e => {
+                  e.stopPropagation()
+                  onDeleteRound(r)
+                }}
+                className="text-xs px-1 py-0.5 rounded transition-all hover:bg-black/5"
+                style={{ color: 'var(--color-red)' }}
+                title="Delete round"
+              >
+                ×
+              </button>
+            </div>
           </div>
         ))}
       </div>
@@ -342,6 +370,9 @@ export default function Questions() {
   const [editing, setEditing] = useState<Partial<Question> | null | false>(false)
   const [newRoundName, setNewRoundName] = useState('')
   const [roundModal, setRoundModal] = useState(false)
+  const [editingRound, setEditingRound] = useState<Round | null>(null)
+  const [editRoundName, setEditRoundName] = useState('')
+  const [deletingRound, setDeletingRound] = useState<Round | null>(null)
   const [importResult, setImportResult] = useState<ImportResult | null>(null)
   const [importing, setImporting] = useState(false)
   const importRef = useRef<HTMLInputElement>(null)
@@ -488,6 +519,22 @@ export default function Questions() {
     load()
   }
 
+  async function handleSaveRound() {
+    if (!editingRound || !editRoundName.trim()) return
+    await db.rounds.update(editingRound.id, { name: editRoundName.trim() })
+    setEditingRound(null)
+    setEditRoundName('')
+    load()
+  }
+
+  async function handleDeleteRound() {
+    if (!deletingRound) return
+    await db.rounds.delete(deletingRound.id)
+    if (selectedRound === deletingRound.id) setSelectedRound(null)
+    setDeletingRound(null)
+    load()
+  }
+
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -574,6 +621,11 @@ export default function Questions() {
           selected={selectedRound}
           onSelect={setSelectedRound}
           onNewRound={() => setRoundModal(true)}
+          onEditRound={r => {
+            setEditingRound(r)
+            setEditRoundName(r.name)
+          }}
+          onDeleteRound={r => setDeletingRound(r)}
           selectedQIds={[...selected]}
           onAddToRound={handleAddToRound}
         />
@@ -891,6 +943,43 @@ export default function Questions() {
             </Button>
             <Button variant="primary" onClick={handleNewRound} disabled={!newRoundName.trim()}>
               Create round
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Edit round modal */}
+      <Modal open={!!editingRound} title="Rename round" onClose={() => setEditingRound(null)}>
+        <div className="flex flex-col gap-4">
+          <Input
+            label="Round name"
+            value={editRoundName}
+            onChange={e => setEditRoundName(e.target.value)}
+            placeholder="e.g. Round 1 – Pop Culture"
+          />
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setEditingRound(null)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleSaveRound} disabled={!editRoundName.trim()}>
+              Save
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete round confirm modal */}
+      <Modal open={!!deletingRound} title="Delete round" onClose={() => setDeletingRound(null)}>
+        <div className="flex flex-col gap-4">
+          <p className="text-sm" style={{ color: 'var(--color-ink)' }}>
+            Delete <strong>{deletingRound?.name}</strong>? The questions inside will not be deleted.
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setDeletingRound(null)}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleDeleteRound}>
+              Delete round
             </Button>
           </div>
         </div>
