@@ -87,24 +87,43 @@ function QuestionForm({ question, categories, difficulties, tags, onSave, onClos
 
   return (
     <Modal open title={isNew ? 'New question' : 'Edit question'} onClose={onClose} maxWidth="600px">
-      <div className="flex flex-col gap-4">
-        <Input
-          label="Question title *"
-          value={form.title}
-          onChange={e => set('title', e.target.value)}
-          placeholder="Enter the question…"
-        />
+      {/* Scrollable body */}
+      <div
+        className="overflow-y-auto flex flex-col gap-3"
+        style={{ maxHeight: 'calc(100vh - 160px)' }}
+      >
+        <div className="grid grid-cols-2 gap-3">
+          <div className="col-span-2">
+            <Input
+              label="Question title *"
+              value={form.title}
+              onChange={e => set('title', e.target.value)}
+              placeholder="Enter the question…"
+            />
+          </div>
 
-        <Select
-          label="Type"
-          value={form.type}
-          options={typeOpts}
-          onChange={e => handleTypeChange(e.target.value as QuestionType)}
-        />
+          <Select
+            label="Type"
+            value={form.type}
+            options={typeOpts}
+            onChange={e => handleTypeChange(e.target.value as QuestionType)}
+          />
+
+          {form.type === 'open_ended' ? (
+            <Input
+              label="Expected answer"
+              value={form.answer}
+              onChange={e => set('answer', e.target.value)}
+              placeholder="The correct answer…"
+            />
+          ) : (
+            <div /> /* spacer when answer is inline below */
+          )}
+        </div>
 
         {/* Options */}
         {form.type === 'multiple_choice' && (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1.5">
             <span className="text-xs font-medium" style={{ color: 'var(--color-muted)' }}>
               Answer options
             </span>
@@ -117,11 +136,12 @@ function QuestionForm({ question, categories, difficulties, tags, onSave, onClos
                   {String.fromCharCode(65 + i)}
                 </span>
                 <input
-                  className="flex-1 px-3 py-2 rounded border text-sm outline-none"
+                  className="flex-1 px-3 py-1.5 rounded border text-sm outline-none"
                   style={{
                     borderColor:
                       form.answer === opt && opt ? 'var(--color-green)' : 'var(--color-border)',
                     background: 'var(--color-cream)',
+                    color: 'var(--color-ink)',
                   }}
                   value={opt}
                   onChange={e => setOption(i, e.target.value)}
@@ -164,23 +184,6 @@ function QuestionForm({ question, categories, difficulties, tags, onSave, onClos
           </div>
         )}
 
-        {form.type === 'open_ended' && (
-          <Input
-            label="Expected answer"
-            value={form.answer}
-            onChange={e => set('answer', e.target.value)}
-            placeholder="The correct answer…"
-          />
-        )}
-
-        <Textarea
-          label="Description (markdown)"
-          value={form.description}
-          onChange={e => set('description', e.target.value)}
-          placeholder="Optional notes, hints, context…"
-          style={{ minHeight: 80 }}
-        />
-
         <div className="grid grid-cols-2 gap-3">
           <Select
             label="Category"
@@ -199,17 +202,17 @@ function QuestionForm({ question, categories, difficulties, tags, onSave, onClos
         {tags.length > 0 && (
           <div>
             <span
-              className="text-xs font-medium block mb-2"
+              className="text-xs font-medium block mb-1.5"
               style={{ color: 'var(--color-muted)' }}
             >
               Tags
             </span>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5">
               {tags.map(tag => (
                 <button
                   key={tag.id}
                   onClick={() => toggleTag(tag.id)}
-                  className="px-2.5 py-1 rounded-full text-xs border transition-all"
+                  className="px-2.5 py-0.5 rounded-full text-xs border transition-all"
                   style={{
                     borderColor: form.tags.includes(tag.id) ? tag.color : 'var(--color-border)',
                     background: form.tags.includes(tag.id) ? tag.color : 'transparent',
@@ -223,17 +226,25 @@ function QuestionForm({ question, categories, difficulties, tags, onSave, onClos
           </div>
         )}
 
-        <div
-          className="flex justify-end gap-2 pt-2 border-t"
-          style={{ borderColor: 'var(--color-border)' }}
-        >
-          <Button variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={handleSubmit} disabled={!form.title.trim()}>
-            {isNew ? 'Add question' : 'Save changes'}
-          </Button>
-        </div>
+        <Textarea
+          label="Description (markdown)"
+          value={form.description}
+          onChange={e => set('description', e.target.value)}
+          placeholder="Optional notes, hints, context…"
+          style={{ minHeight: 64 }}
+        />
+      </div>
+
+      <div
+        className="flex justify-end gap-2 pt-3 mt-3 border-t"
+        style={{ borderColor: 'var(--color-border)' }}
+      >
+        <Button variant="ghost" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button variant="primary" onClick={handleSubmit} disabled={!form.title.trim()}>
+          {isNew ? 'Add question' : 'Save changes'}
+        </Button>
       </div>
     </Modal>
   )
