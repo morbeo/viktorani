@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.0.3](https://github.com/morbeo/viktorani/compare/v0.0.2...v0.0.3) (2026-04-07)
+
+### Features
+
+- **settings:** theme switcher; fix sidebar collapse persistence ([273d7df](https://github.com/morbeo/viktorani/commit/273d7df5704cc767ce9698fa21f51a568e9f2b7e))
+- **ui:** collapsible admin sidebar, styled note markdown ([1bfac18](https://github.com/morbeo/viktorani/commit/1bfac184ae6fbe21f4d3c20d5f78afa7c3f15fc0))
+
+### Bug Fixes
+
+- **ci:** bump action versions to v6 and pre-create dist dir ([979d92d](https://github.com/morbeo/viktorani/commit/979d92d2770b9233495ca02c684e855bef316e2b))
+
 ## [0.0.2](https://github.com/morbeo/viktorani/compare/v0.0.1...v0.0.2) (2026-04-07)
 
 ### Features
