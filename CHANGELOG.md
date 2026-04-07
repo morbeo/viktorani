@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.2](https://github.com/morbeo/viktorani/compare/v0.0.1...v0.0.2) (2026-04-07)
+
+### Features
+
+- **notes:** implement Notes page with markdown viewer and editor ([3aec72d](https://github.com/morbeo/viktorani/commit/3aec72dc33d1fa3d583ddf732d26dec58c21d890))
+
 ## 0.0.1 (2026-04-07)
 
 ### Features
