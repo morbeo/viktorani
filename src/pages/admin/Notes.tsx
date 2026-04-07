@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import AdminLayout from '@/components/AdminLayout'
 import { Button, Input, Textarea, Modal, Empty } from '@/components/ui'
 import { db } from '@/db'
@@ -74,7 +75,7 @@ function NoteForm({ note, onSave, onClose }: NoteFormProps) {
             >
               <div className="note-prose">
                 {content.trim() ? (
-                  <ReactMarkdown>{content}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
                 ) : (
                   <p style={{ color: 'var(--color-muted)' }}>Nothing to preview.</p>
                 )}
@@ -187,7 +188,7 @@ function NoteViewer({
       <div className="flex-1 overflow-y-auto px-8 py-6">
         {note.content.trim() ? (
           <div className="note-prose">
-            <ReactMarkdown>{note.content}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{note.content}</ReactMarkdown>
           </div>
         ) : (
           <p style={{ color: 'var(--color-muted)', fontStyle: 'italic' }}>This note is empty.</p>
