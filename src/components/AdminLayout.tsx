@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
-import { useState } from 'react'
 import type { ReactNode } from 'react'
+import { useLocalStorage } from '@/hooks/useLocalStorage'
 
 interface Props {
   children: ReactNode
@@ -16,7 +16,7 @@ const nav = [
 ]
 
 export default function AdminLayout({ children, title }: Props) {
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useLocalStorage('sidebar-collapsed', false)
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--color-cream)' }}>
@@ -70,7 +70,7 @@ export default function AdminLayout({ children, title }: Props) {
 
         {/* Nav */}
         <nav
-          className="flex-1 py-3 flex flex-col gap-0.5"
+          className="flex-1 flex flex-col gap-0.5"
           style={{ padding: collapsed ? '12px 6px' : '12px 8px' }}
         >
           {nav.map(({ to, label, icon }) => (
@@ -100,7 +100,9 @@ export default function AdminLayout({ children, title }: Props) {
           <a
             href="#/join"
             title={collapsed ? 'Player view' : undefined}
-            className={`flex items-center rounded text-sm border transition-all ${collapsed ? 'justify-center px-0 py-2' : 'gap-3 px-3 py-2'}`}
+            className={`flex items-center rounded text-sm border transition-all ${
+              collapsed ? 'justify-center px-0 py-2' : 'gap-3 px-3 py-2'
+            }`}
             style={{ color: 'var(--color-muted)', borderColor: 'var(--color-border)' }}
           >
             <span className="text-base w-5 text-center shrink-0">⊕</span>
