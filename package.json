@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "pack": "bash scripts/pack.sh",
     "lint": "eslint .",
     "preview": "vite preview",
     "prepare": "husky",
