@@ -1,3 +1,4 @@
+// @vitest-pool vmForks
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { db, seedDefaults, purgeDatabase } from '@/db'
 import type { Question } from '@/db'
