@@ -67,6 +67,7 @@
   },
   "overrides": {
     "serialize-javascript": "^7.0.3",
+    "undici": ">=6.24.0",
     "vite-plugin-pwa": {
       "vite": "$vite"
     }
