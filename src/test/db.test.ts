@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { db, seedDefaults } from '@/db'
+import { db, seedDefaults, purgeDatabase } from '@/db'
 import type { Question } from '@/db'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -56,9 +56,20 @@ describe('seedDefaults', () => {
 
   it('is idempotent — running twice does not duplicate data', async () => {
     await seedDefaults()
-    const countAfterFirst = await db.difficulties.count()
+    const diffCount = await db.difficulties.count()
+    const tagCount = await db.tags.count()
     await seedDefaults()
-    expect(await db.difficulties.count()).toBe(countAfterFirst)
+    expect(await db.difficulties.count()).toBe(diffCount)
+    expect(await db.tags.count()).toBe(tagCount)
+  })
+
+  it('concurrent calls do not duplicate data', async () => {
+    await Promise.all([seedDefaults(), seedDefaults()])
+    expect(await db.difficulties.count()).toBeGreaterThan(0)
+    // Should not have duplicated — count stays at seeded amount
+    const names = (await db.difficulties.toArray()).map(d => d.name)
+    const easyCount = names.filter(n => n === 'Easy').length
+    expect(easyCount).toBe(1)
   })
 
   it('seeds correct score values in ascending order', async () => {
@@ -78,7 +89,7 @@ describe('seedDefaults', () => {
     expect(names).toContain('Music')
   })
 
-  it('skips seeding when difficulties already exist', async () => {
+  it('skips seeding difficulties when they already exist', async () => {
     await db.difficulties.add({ id: 'existing', name: 'Custom', score: 1, color: '#000', order: 0 })
     await seedDefaults()
     expect(await db.difficulties.count()).toBe(1)
@@ -87,9 +98,51 @@ describe('seedDefaults', () => {
   it('skips seeding tags when they already exist', async () => {
     await db.tags.add({ id: 'existing-tag', name: 'Custom Tag', color: '#000' })
     await seedDefaults()
-    // Only tags skipped; difficulties still seeded
-    const tagCount = await db.tags.count()
-    expect(tagCount).toBe(1)
+    expect(await db.tags.count()).toBe(1)
+  })
+
+  it('seeds both independently — tags skipped does not block difficulties', async () => {
+    await db.tags.add({ id: 'existing-tag', name: 'Custom', color: '#000' })
+    await seedDefaults()
+    expect(await db.difficulties.count()).toBeGreaterThanOrEqual(3)
+    expect(await db.tags.count()).toBe(1) // not overwritten
+  })
+})
+
+// ── purgeDatabase ─────────────────────────────────────────────────────────────
+
+describe('purgeDatabase', () => {
+  beforeEach(clearAll)
+
+  it('clears all tables', async () => {
+    await db.questions.add({ ...BASE_QUESTION, id: 'q1', title: 'Q' })
+    await db.rounds.add({ id: 'r1', name: 'R', description: '', questionIds: [], createdAt: 0 })
+    await db.tags.add({ id: 't1', name: 'Music', color: '#f00' })
+    await db.difficulties.add({ id: 'd1', name: 'Easy', score: 5, color: '#0f0', order: 0 })
+    await db.notes.add({ id: 'n1', name: 'N', content: '', createdAt: 0, updatedAt: 0 })
+
+    await purgeDatabase()
+
+    expect(await db.questions.count()).toBe(0)
+    expect(await db.rounds.count()).toBe(0)
+    expect(await db.tags.count()).toBe(0)
+    expect(await db.difficulties.count()).toBe(0)
+    expect(await db.notes.count()).toBe(0)
+  })
+
+  it('is safe to call on an already-empty database', async () => {
+    await expect(purgeDatabase()).resolves.toBeUndefined()
+    expect(await db.questions.count()).toBe(0)
+  })
+
+  it('re-seeding after purge restores defaults', async () => {
+    await db.questions.add({ ...BASE_QUESTION, id: 'q1', title: 'Q' })
+    await purgeDatabase()
+    await seedDefaults()
+
+    expect(await db.questions.count()).toBe(0) // questions not re-seeded
+    expect(await db.difficulties.count()).toBeGreaterThanOrEqual(3)
+    expect(await db.tags.count()).toBeGreaterThanOrEqual(8)
   })
 })
 

@@ -2,12 +2,16 @@ import AdminLayout from '@/components/AdminLayout'
 import ManageTags from '@/components/settings/ManageTags'
 import ManageDifficulties from '@/components/settings/ManageDifficulties'
 import { exportDatabase, importDatabase } from '@/db/snapshot'
+import { purgeDatabase, seedDefaults } from '@/db'
 import { useState } from 'react'
-import { Button } from '@/components/ui'
+import { Button, Modal, Input } from '@/components/ui'
 
 export default function Settings() {
   const [importing, setImporting] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
+  const [purgeOpen, setPurgeOpen] = useState(false)
+  const [purgeConfirm, setPurgeConfirm] = useState('')
+  const [purging, setPurging] = useState(false)
 
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -24,6 +28,30 @@ export default function Settings() {
       e.target.value = ''
     }
   }
+
+  async function handlePurge() {
+    if (purgeConfirm.trim().toLowerCase() !== 'purge') return
+    setPurging(true)
+    try {
+      await purgeDatabase()
+      await seedDefaults()
+      setPurgeOpen(false)
+      setPurgeConfirm('')
+      setMsg('Database purged and reset to defaults')
+      setTimeout(() => setMsg(null), 4000)
+    } catch (err) {
+      setMsg(`Purge failed: ${(err as Error).message}`)
+    } finally {
+      setPurging(false)
+    }
+  }
+
+  function closePurgeModal() {
+    setPurgeOpen(false)
+    setPurgeConfirm('')
+  }
+
+  const canPurge = purgeConfirm.trim().toLowerCase() === 'purge'
 
   return (
     <AdminLayout title="Settings">
@@ -49,10 +77,14 @@ export default function Settings() {
             <p
               className="text-xs mb-3 px-3 py-2 rounded"
               style={{
-                color: msg.startsWith('Import failed') ? 'var(--color-red)' : 'var(--color-green)',
-                background: msg.startsWith('Import failed')
-                  ? 'var(--color-red)1a'
-                  : 'var(--color-green)1a',
+                color:
+                  msg.startsWith('Import failed') || msg.startsWith('Purge failed')
+                    ? 'var(--color-red)'
+                    : 'var(--color-green)',
+                background:
+                  msg.startsWith('Import failed') || msg.startsWith('Purge failed')
+                    ? 'var(--color-red)1a'
+                    : 'var(--color-green)1a',
               }}
             >
               {msg}
@@ -85,7 +117,71 @@ export default function Settings() {
             </label>
           </div>
         </section>
+
+        {/* ── Danger zone ──────────────────────────────────────── */}
+        <section>
+          <div className="mb-3">
+            <h2 className="font-semibold text-base" style={{ color: 'var(--color-red)' }}>
+              Danger zone
+            </h2>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
+              Irreversible actions — export first if you want to keep your data
+            </p>
+          </div>
+
+          <div
+            className="rounded-lg border p-4 flex items-center justify-between gap-4"
+            style={{ borderColor: 'var(--color-red)55' }}
+          >
+            <div>
+              <p className="text-sm font-medium" style={{ color: 'var(--color-ink)' }}>
+                Purge all data
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
+                Deletes every question, round, game, note, tag and difficulty. Default tags and
+                difficulties will be re-seeded.
+              </p>
+            </div>
+            <Button variant="danger" size="sm" onClick={() => setPurgeOpen(true)}>
+              Purge
+            </Button>
+          </div>
+        </section>
       </div>
+
+      {/* ── Purge confirm modal ───────────────────────────────── */}
+      <Modal open={purgeOpen} title="Purge all data" onClose={closePurgeModal}>
+        <div className="flex flex-col gap-4">
+          <div
+            className="rounded-lg px-4 py-3 text-sm"
+            style={{ background: 'var(--color-red)11', color: 'var(--color-ink)' }}
+          >
+            This will permanently delete <strong>all</strong> questions, rounds, games, notes, tags,
+            and difficulty levels. This cannot be undone. Default tags and difficulties will be
+            restored afterwards.
+          </div>
+
+          <Input
+            label='Type "purge" to confirm'
+            value={purgeConfirm}
+            onChange={e => setPurgeConfirm(e.target.value)}
+            placeholder="purge"
+            onKeyDown={e => {
+              if (e.key === 'Enter' && canPurge) handlePurge()
+            }}
+            autoFocus
+          />
+
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="ghost" onClick={closePurgeModal} disabled={purging}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handlePurge} disabled={!canPurge || purging}>
+              {purging ? 'Purging…' : 'Purge all data'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </AdminLayout>
   )
 }
