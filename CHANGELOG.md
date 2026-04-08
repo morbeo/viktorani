@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.0.4](https://github.com/morbeo/viktorani/compare/v0.0.3...v0.0.4) (2026-04-08)
+
+### Features
+
+- **gamemaster:** lobby — connection, QR code, player list, start ([edd0e18](https://github.com/morbeo/viktorani/commit/edd0e1890966e3b643b45fa11ca434508ad7fa8a)), closes [#1](https://github.com/morbeo/viktorani/issues/1)
+- **questions:** add round rename and delete ([f951197](https://github.com/morbeo/viktorani/commit/f951197f09744c58e9d00299097bc00c6c8f2c21))
+- **settings:** add manage categories and difficulties ([bc4a1fd](https://github.com/morbeo/viktorani/commit/bc4a1fd36f2c1926694b4b39a70ea03a9d03a3a7))
+- **settings:** purge database action; fix double-seed guard ([017891f](https://github.com/morbeo/viktorani/commit/017891f21810afbba8bf7b02c7f149f97e0d9bed))
+
+### Bug Fixes
+
+- **deps:** pin undici to >=6.24.0 to fix CVEs ([4626756](https://github.com/morbeo/viktorani/commit/46267560ba0e207232209161ce679a2452a48175))
+- **notes:** enable GFM for table and strikethrough support ([26ff23f](https://github.com/morbeo/viktorani/commit/26ff23fee9d738ff3aa201fa03a116f35c4deffa))
+- **questions:** constrain question form modal height, tighten layout ([98ea649](https://github.com/morbeo/viktorani/commit/98ea649cfb783a9f439864e401278ff30f80993e))
+
 ## [0.0.3](https://github.com/morbeo/viktorani/compare/v0.0.2...v0.0.3) (2026-04-07)
 
 ### Features
