@@ -1,3 +1,4 @@
+// @vitest-pool vmForks
 import { describe, it, expect } from 'vitest'
 import Fuse from 'fuse.js'
 import type { Question, DifficultyLevel, Tag } from '@/db'
