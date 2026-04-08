@@ -46,7 +46,8 @@ npm run dev
 ```
 
 > **Note:** `--legacy-peer-deps` is a temporary workaround while `vite-plugin-pwa` updates
-> its peer dependency range for Vite 8. Remove the flag once resolved.
+> its peer dependency range for Vite 8. The `overrides` block in `package.json` pins Vite 8
+> without downgrading. Remove the flag once `vite-plugin-pwa` officially supports Vite 8.
 
 ### Available scripts
 
@@ -54,12 +55,17 @@ npm run dev
 | ----------------------- | ---------------------------------------------- |
 | `npm run dev`           | Start dev server at `localhost:5173`           |
 | `npm run build`         | Type-check + production build → `dist/`        |
+| `npm run preview`       | Serve the production build locally             |
 | `npm run lint`          | ESLint across all `*.ts` / `*.tsx` files       |
 | `npm run typecheck`     | Type-check app and test files (both tsconfigs) |
 | `npm run test`          | Run unit tests once via Vitest                 |
 | `npm run test:watch`    | Run tests in watch mode                        |
 | `npm run test:coverage` | Run tests with V8 coverage report              |
-| `npm run preview`       | Serve the production build locally             |
+| `npm run pack`          | Build a release tarball into `dist/`           |
+| `npm run release`       | Cut a release interactively via `release-it`   |
+| `npm run release:dry`   | Preview the release without making any changes |
+| `npm run release:patch` | Cut a patch release non-interactively (CI)     |
+| `npm run release:minor` | Cut a minor release non-interactively (CI)     |
 
 ---
 
@@ -140,18 +146,19 @@ restore or share your question bank.
 
 ### Workflows
 
-| Workflow     | Trigger                   | Purpose                                                        |
-| ------------ | ------------------------- | -------------------------------------------------------------- |
-| `ci.yml`     | PRs to `master`           | Type-check, lint, test, build — blocks merge if any step fails |
-| `deploy.yml` | push to `master` + manual | Type-check → lint → **test** → build → deploy to GitHub Pages  |
+| Workflow      | Trigger                   | Purpose                                                        |
+| ------------- | ------------------------- | -------------------------------------------------------------- |
+| `ci.yml`      | PRs to `master`           | Type-check, lint, test, build — blocks merge if any step fails |
+| `deploy.yml`  | push to `master` + manual | Type-check → lint → test → build → deploy to GitHub Pages      |
+| `release.yml` | push of `v*` tags         | Build tarball → publish GitHub Release with changelog          |
 
-Both workflows set `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` to opt into the Node 24 runner ahead of the June 2026 forced migration.
+All workflows set `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` to opt into the Node 24 runner ahead of the June 2026 forced migration.
 
-A push to `master` only deploys if all four gates pass. Dependabot PRs run through `ci.yml` automatically before merge.
+`deploy.yml` only triggers on pushes that touch `src/`, `public/`, `index.html`, `vite.config.ts`, or `package*.json` — unrelated changes (docs, scripts) skip the deploy.
 
-### Versioning
+### Versioning & releasing
 
-[Conventional commits](https://www.conventionalcommits.org/) drive automatic versioning:
+[Conventional commits](https://www.conventionalcommits.org/) drive automatic versioning via `release-it` + `git-cliff`:
 
 | Commit prefix                 | Version bump    |
 | ----------------------------- | --------------- |
@@ -159,18 +166,24 @@ A push to `master` only deploys if all four gates pass. Dependabot PRs run throu
 | `fix:`, `perf:`               | patch (`0.0.x`) |
 | `feat!:` / `BREAKING CHANGE:` | major (`x.0.0`) |
 
-release-please accumulates commits into a release PR. Merging it tags the release,
-publishes a GitHub Release with the changelog, and triggers a deploy.
+**To cut a release locally:**
 
-### One-time setup: `RELEASE_PAT`
+```bash
+npm run release:dry     # preview — no changes made
+npm run release         # interactive: choose version, tag, push, publish
+npm run release:patch   # non-interactive patch bump
+npm run release:minor   # non-interactive minor bump
+```
 
-release-please needs a fine-grained PAT to create PRs (GitHub blocks `GITHUB_TOKEN` from
-doing this by policy):
+`release-it` will:
 
-1. GitHub → **Settings → Developer settings → Personal access tokens → Fine-grained**
-2. Scope to the `viktorani` repository
-3. Permissions: **Contents** (read + write), **Pull requests** (read + write)
-4. Copy the token → repo **Settings → Secrets → Actions → New secret: `RELEASE_PAT`**
+1. Run lint + tests
+2. Bump the version in `package.json`
+3. Build the release tarball via `scripts/pack.sh`
+4. Commit, tag, and push
+5. Create a GitHub Release with the tarball attached
+
+Pushing the tag triggers `release.yml`, which builds a fresh tarball and publishes the GitHub Release. `GITHUB_TOKEN` is sufficient — no extra PAT required.
 
 ---
 
@@ -197,7 +210,7 @@ on GitHub Pages and at `/` in dev.
 
 ## Testing
 
-**90 unit tests** across four suites, run with [Vitest](https://vitest.dev) + jsdom + Testing Library.
+**202 unit tests** across five suites, run with [Vitest](https://vitest.dev) + jsdom + Testing Library.
 
 | Suite            | File                       | What it covers                                                                                                                           |
 | ---------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
