@@ -229,27 +229,76 @@ export const db = new ViktoraniDB()
 
 // ── Seed defaults ─────────────────────────────────────────────────────────────
 
-export async function seedDefaults() {
-  const diffCount = await db.difficulties.count()
-  if (diffCount === 0) {
-    await db.difficulties.bulkAdd([
-      { id: crypto.randomUUID(), name: 'Easy', score: 5, color: '#27ae60', order: 0 },
-      { id: crypto.randomUUID(), name: 'Medium', score: 10, color: '#e67e22', order: 1 },
-      { id: crypto.randomUUID(), name: 'Hard', score: 15, color: '#c0392b', order: 2 },
-    ])
-  }
+let _seeding = false
 
-  const tagCount = await db.tags.count()
-  if (tagCount === 0) {
-    await db.tags.bulkAdd([
-      { id: crypto.randomUUID(), name: 'Pop Culture', color: '#9b59b6' },
-      { id: crypto.randomUUID(), name: 'History', color: '#e67e22' },
-      { id: crypto.randomUUID(), name: 'Sports', color: '#27ae60' },
-      { id: crypto.randomUUID(), name: 'Science', color: '#2980b9' },
-      { id: crypto.randomUUID(), name: 'Geography', color: '#16a085' },
-      { id: crypto.randomUUID(), name: 'Music', color: '#8e44ad' },
-      { id: crypto.randomUUID(), name: 'Movies', color: '#c0392b' },
-      { id: crypto.randomUUID(), name: 'Literature', color: '#c9a84c' },
-    ])
+export async function seedDefaults() {
+  // Guard against concurrent calls (e.g. StrictMode double-invoke)
+  if (_seeding) return
+  _seeding = true
+  try {
+    const [diffCount, tagCount] = await Promise.all([db.difficulties.count(), db.tags.count()])
+
+    await db.transaction('rw', [db.difficulties, db.tags], async () => {
+      if (diffCount === 0) {
+        await db.difficulties.bulkAdd([
+          { id: crypto.randomUUID(), name: 'Easy', score: 5, color: '#27ae60', order: 0 },
+          { id: crypto.randomUUID(), name: 'Medium', score: 10, color: '#e67e22', order: 1 },
+          { id: crypto.randomUUID(), name: 'Hard', score: 15, color: '#c0392b', order: 2 },
+        ])
+      }
+
+      if (tagCount === 0) {
+        await db.tags.bulkAdd([
+          { id: crypto.randomUUID(), name: 'Pop Culture', color: '#9b59b6' },
+          { id: crypto.randomUUID(), name: 'History', color: '#e67e22' },
+          { id: crypto.randomUUID(), name: 'Sports', color: '#27ae60' },
+          { id: crypto.randomUUID(), name: 'Science', color: '#2980b9' },
+          { id: crypto.randomUUID(), name: 'Geography', color: '#16a085' },
+          { id: crypto.randomUUID(), name: 'Music', color: '#8e44ad' },
+          { id: crypto.randomUUID(), name: 'Movies', color: '#c0392b' },
+          { id: crypto.randomUUID(), name: 'Literature', color: '#c9a84c' },
+        ])
+      }
+    })
+  } finally {
+    _seeding = false
   }
+}
+
+export async function purgeDatabase(): Promise<void> {
+  await db.transaction(
+    'rw',
+    [
+      db.difficulties,
+      db.tags,
+      db.questions,
+      db.rounds,
+      db.games,
+      db.teams,
+      db.players,
+      db.buzzEvents,
+      db.layouts,
+      db.widgets,
+      db.notes,
+      db.timers,
+      db.gameQuestions,
+    ],
+    async () => {
+      await Promise.all([
+        db.difficulties.clear(),
+        db.tags.clear(),
+        db.questions.clear(),
+        db.rounds.clear(),
+        db.games.clear(),
+        db.teams.clear(),
+        db.players.clear(),
+        db.buzzEvents.clear(),
+        db.layouts.clear(),
+        db.widgets.clear(),
+        db.notes.clear(),
+        db.timers.clear(),
+        db.gameQuestions.clear(),
+      ])
+    }
+  )
 }
