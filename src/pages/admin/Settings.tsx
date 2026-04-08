@@ -1,64 +1,90 @@
-import { useEffect } from 'react'
 import AdminLayout from '@/components/AdminLayout'
-import { Card } from '@/components/ui'
-import { useLocalStorage } from '@/hooks/useLocalStorage'
-
-type Theme = 'system' | 'light' | 'dark'
-
-const THEMES: { value: Theme; label: string; icon: string; desc: string }[] = [
-  { value: 'system', label: 'System', icon: '◑', desc: 'Follows your OS preference' },
-  { value: 'light', label: 'Light', icon: '○', desc: 'Always light' },
-  { value: 'dark', label: 'Dark', icon: '●', desc: 'Always dark' },
-]
+import ManageCategories from '@/components/settings/ManageCategories'
+import ManageDifficulties from '@/components/settings/ManageDifficulties'
+import { exportDatabase, importDatabase } from '@/db/snapshot'
+import { useState } from 'react'
+import { Button } from '@/components/ui'
 
 export default function Settings() {
-  const [theme, setTheme] = useLocalStorage<Theme>('app-theme', 'system')
+  const [importing, setImporting] = useState(false)
+  const [msg, setMsg] = useState<string | null>(null)
 
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-  }, [theme])
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImporting(true)
+    try {
+      await importDatabase(file)
+      setMsg('Import successful')
+      setTimeout(() => setMsg(null), 3000)
+    } catch (err) {
+      setMsg(`Import failed: ${(err as Error).message}`)
+    } finally {
+      setImporting(false)
+      e.target.value = ''
+    }
+  }
 
   return (
     <AdminLayout title="Settings">
-      <div className="max-w-lg flex flex-col gap-6">
-        {/* Theme */}
-        <Card>
-          <h3
-            className="text-base font-bold mb-1"
-            style={{ fontFamily: 'Playfair Display, serif' }}
-          >
-            Appearance
-          </h3>
-          <p className="text-xs mb-4" style={{ color: 'var(--color-muted)' }}>
-            Choose how Viktorani looks. System follows your device setting.
-          </p>
+      <div className="max-w-2xl mx-auto flex flex-col gap-10 py-6 px-4">
+        {/* ── Categories ───────────────────────────────────────── */}
+        <ManageCategories />
 
-          <div className="flex gap-3">
-            {THEMES.map(t => {
-              const active = theme === t.value
-              return (
-                <button
-                  key={t.value}
-                  onClick={() => setTheme(t.value)}
-                  className="flex-1 flex flex-col items-center gap-2 py-4 px-3 rounded-lg border transition-all"
-                  style={{
-                    borderColor: active ? 'var(--color-gold)' : 'var(--color-border)',
-                    background: active ? 'var(--color-gold-light)' : 'transparent',
-                    color: active ? 'var(--color-ink)' : 'var(--color-muted)',
-                  }}
-                >
-                  <span style={{ fontSize: 22 }}>{t.icon}</span>
-                  <span className="text-sm font-medium" style={{ color: 'var(--color-ink)' }}>
-                    {t.label}
-                  </span>
-                  <span className="text-xs text-center" style={{ color: 'var(--color-muted)' }}>
-                    {t.desc}
-                  </span>
-                </button>
-              )
-            })}
+        {/* ── Difficulty levels ────────────────────────────────── */}
+        <ManageDifficulties />
+
+        {/* ── Data ─────────────────────────────────────────────── */}
+        <section>
+          <div className="mb-3">
+            <h2 className="font-semibold text-base" style={{ color: 'var(--color-ink)' }}>
+              Data
+            </h2>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
+              Export and import your full database as JSON
+            </p>
           </div>
-        </Card>
+
+          {msg && (
+            <p
+              className="text-xs mb-3 px-3 py-2 rounded"
+              style={{
+                color: msg.startsWith('Import failed') ? 'var(--color-red)' : 'var(--color-green)',
+                background: msg.startsWith('Import failed')
+                  ? 'var(--color-red)1a'
+                  : 'var(--color-green)1a',
+              }}
+            >
+              {msg}
+            </p>
+          )}
+
+          <div className="flex flex-wrap gap-3">
+            <Button variant="secondary" onClick={exportDatabase}>
+              Export JSON
+            </Button>
+
+            <label>
+              <span
+                className="inline-flex items-center justify-center gap-2 font-medium rounded transition-all cursor-pointer px-4 py-2 text-sm border"
+                style={{
+                  borderColor: 'var(--color-border)',
+                  color: 'var(--color-ink)',
+                  background: 'transparent',
+                }}
+              >
+                {importing ? 'Importing…' : 'Import JSON'}
+              </span>
+              <input
+                type="file"
+                accept=".json"
+                className="sr-only"
+                onChange={handleImport}
+                disabled={importing}
+              />
+            </label>
+          </div>
+        </section>
       </div>
     </AdminLayout>
   )
