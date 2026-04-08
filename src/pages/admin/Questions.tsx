@@ -5,7 +5,7 @@ import { Button, Badge, Input, Select, Modal, Textarea, Empty } from '@/componen
 import { db } from '@/db'
 import { exportQuestions, importQuestions, downloadExampleQuestions } from '@/db/snapshot'
 import type { ImportResult } from '@/db/snapshot'
-import type { Question, QuestionType, Category, DifficultyLevel, Tag, Round } from '@/db'
+import type { Question, QuestionType, DifficultyLevel, Tag, Round } from '@/db'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -16,7 +16,6 @@ function newQuestion(): Omit<Question, 'id' | 'createdAt' | 'updatedAt'> {
     options: ['', '', '', ''],
     answer: '',
     description: '',
-    categoryId: null,
     difficulty: null,
     tags: [],
     media: null,
@@ -30,18 +29,71 @@ const TYPE_LABELS: Record<QuestionType, string> = {
   open_ended: 'Open ended',
 }
 
+// ── Tri-state tag filter ──────────────────────────────────────────────────────
+
+export type TagFilterState = 'none' | 'include' | 'exclude'
+
+const TAG_FILTER_NEXT: Record<TagFilterState, TagFilterState> = {
+  none: 'include',
+  include: 'exclude',
+  exclude: 'none',
+}
+
+const TAG_FILTER_ICON: Record<TagFilterState, string> = {
+  none: '',
+  include: '✓',
+  exclude: '✕',
+}
+
+interface TagFilterPillProps {
+  tag: Tag
+  state: TagFilterState
+  onChange: (id: string, next: TagFilterState) => void
+}
+
+function TagFilterPill({ tag, state, onChange }: TagFilterPillProps) {
+  const isActive = state !== 'none'
+  const isExclude = state === 'exclude'
+
+  return (
+    <button
+      onClick={() => onChange(tag.id, TAG_FILTER_NEXT[state])}
+      title={
+        state === 'none'
+          ? `Include "${tag.name}"`
+          : state === 'include'
+            ? `Exclude "${tag.name}"`
+            : `Clear "${tag.name}"`
+      }
+      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border transition-all"
+      style={{
+        borderColor: isActive ? tag.color : 'var(--color-border)',
+        background: isActive ? (isExclude ? tag.color + '22' : tag.color) : 'transparent',
+        color: isActive ? (isExclude ? tag.color : '#fff') : 'var(--color-muted)',
+        textDecoration: isExclude ? 'line-through' : 'none',
+      }}
+    >
+      {isActive && (
+        <span style={{ fontStyle: 'normal', textDecoration: 'none', display: 'inline-block' }}>
+          {TAG_FILTER_ICON[state]}
+        </span>
+      )}
+      {tag.name}
+    </button>
+  )
+}
+
 // ── Question Form Modal ───────────────────────────────────────────────────────
 
 interface FormProps {
   question: Partial<Question> | null
-  categories: Category[]
   difficulties: DifficultyLevel[]
   tags: Tag[]
   onSave: (q: Omit<Question, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => void
   onClose: () => void
 }
 
-function QuestionForm({ question, categories, difficulties, tags, onSave, onClose }: FormProps) {
+function QuestionForm({ question, difficulties, tags, onSave, onClose }: FormProps) {
   const isNew = !question?.id
   const [form, setForm] = useState(() => ({
     ...newQuestion(),
@@ -76,10 +128,6 @@ function QuestionForm({ question, categories, difficulties, tags, onSave, onClos
   }
 
   const typeOpts = Object.entries(TYPE_LABELS).map(([v, l]) => ({ value: v, label: l }))
-  const catOpts = [
-    { value: '', label: 'No category' },
-    ...categories.map(c => ({ value: c.id, label: c.name })),
-  ]
   const diffOpts = [
     { value: '', label: 'No difficulty' },
     ...difficulties.map(d => ({ value: d.id, label: d.name })),
@@ -87,7 +135,6 @@ function QuestionForm({ question, categories, difficulties, tags, onSave, onClos
 
   return (
     <Modal open title={isNew ? 'New question' : 'Edit question'} onClose={onClose} maxWidth="600px">
-      {/* Scrollable body */}
       <div
         className="overflow-y-auto flex flex-col gap-3"
         style={{ maxHeight: 'calc(100vh - 160px)' }}
@@ -117,7 +164,7 @@ function QuestionForm({ question, categories, difficulties, tags, onSave, onClos
               placeholder="The correct answer…"
             />
           ) : (
-            <div /> /* spacer when answer is inline below */
+            <div />
           )}
         </div>
 
@@ -184,20 +231,12 @@ function QuestionForm({ question, categories, difficulties, tags, onSave, onClos
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-3">
-          <Select
-            label="Category"
-            value={form.categoryId ?? ''}
-            options={catOpts}
-            onChange={e => set('categoryId', e.target.value || null)}
-          />
-          <Select
-            label="Difficulty"
-            value={form.difficulty ?? ''}
-            options={diffOpts}
-            onChange={e => set('difficulty', e.target.value || null)}
-          />
-        </div>
+        <Select
+          label="Difficulty"
+          value={form.difficulty ?? ''}
+          options={diffOpts}
+          onChange={e => set('difficulty', e.target.value || null)}
+        />
 
         {tags.length > 0 && (
           <div>
@@ -363,19 +402,60 @@ function RoundSidebar({
   )
 }
 
+// ── Tag filter bar ────────────────────────────────────────────────────────────
+
+interface TagFilterBarProps {
+  tags: Tag[]
+  tagFilters: Record<string, TagFilterState>
+  onChange: (id: string, next: TagFilterState) => void
+  onClear: () => void
+}
+
+function TagFilterBar({ tags, tagFilters, onChange, onClear }: TagFilterBarProps) {
+  if (tags.length === 0) return null
+  const hasActive = Object.values(tagFilters).some(s => s !== 'none')
+
+  return (
+    <div
+      className="px-6 py-2 border-b flex items-center gap-2 flex-wrap"
+      style={{ borderColor: 'var(--color-border)' }}
+    >
+      <span className="text-xs shrink-0" style={{ color: 'var(--color-muted)' }}>
+        Tags
+      </span>
+      {tags.map(tag => (
+        <TagFilterPill
+          key={tag.id}
+          tag={tag}
+          state={tagFilters[tag.id] ?? 'none'}
+          onChange={onChange}
+        />
+      ))}
+      {hasActive && (
+        <button
+          onClick={onClear}
+          className="text-xs hover:opacity-70 transition-opacity ml-1"
+          style={{ color: 'var(--color-muted)' }}
+        >
+          Clear
+        </button>
+      )}
+    </div>
+  )
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function Questions() {
   const [questions, setQuestions] = useState<Question[]>([])
   const [rounds, setRounds] = useState<Round[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
   const [difficulties, setDifficulties] = useState<DifficultyLevel[]>([])
   const [tags, setTags] = useState<Tag[]>([])
 
   const [search, setSearch] = useState('')
-  const [filterCat, setFilterCat] = useState('')
   const [filterDiff, setFilterDiff] = useState('')
   const [filterType, setFilterType] = useState('')
+  const [tagFilters, setTagFilters] = useState<Record<string, TagFilterState>>({})
   const [selectedRound, setSelectedRound] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [editing, setEditing] = useState<Partial<Question> | null | false>(false)
@@ -389,16 +469,14 @@ export default function Questions() {
   const importRef = useRef<HTMLInputElement>(null)
 
   async function load() {
-    const [qs, rs, cats, diffs, ts] = await Promise.all([
+    const [qs, rs, diffs, ts] = await Promise.all([
       db.questions.orderBy('createdAt').reverse().toArray(),
       db.rounds.toArray(),
-      db.categories.toArray(),
       db.difficulties.orderBy('order').toArray(),
       db.tags.toArray(),
     ])
     setQuestions(qs)
     setRounds(rs)
-    setCategories(cats)
     setDifficulties(diffs)
     setTags(ts)
   }
@@ -407,17 +485,16 @@ export default function Questions() {
     void load()
   }, [])
 
-  // Build enriched search documents (resolved names for category/difficulty/tags)
+  // Build enriched search documents
   const searchDocs = useMemo(
     () =>
       questions.map(q => ({
         ...q,
-        _categoryName: categories.find(c => c.id === q.categoryId)?.name ?? '',
         _difficultyName: difficulties.find(d => d.id === q.difficulty)?.name ?? '',
         _tagNames: q.tags.map(tid => tags.find(t => t.id === tid)?.name ?? '').join(' '),
         _options: q.options.join(' '),
       })),
-    [questions, categories, difficulties, tags]
+    [questions, difficulties, tags]
   )
 
   const fuse = useMemo(
@@ -427,7 +504,6 @@ export default function Questions() {
           { name: 'title', weight: 3 },
           { name: 'answer', weight: 2 },
           { name: '_options', weight: 2 },
-          { name: '_categoryName', weight: 1.5 },
           { name: '_difficultyName', weight: 1 },
           { name: '_tagNames', weight: 1 },
           { name: 'description', weight: 0.5 },
@@ -440,29 +516,55 @@ export default function Questions() {
     [searchDocs]
   )
 
+  // Compute active tag filter lists
+  const includedTags = useMemo(
+    () =>
+      Object.entries(tagFilters)
+        .filter(([, s]) => s === 'include')
+        .map(([id]) => id),
+    [tagFilters]
+  )
+  const excludedTags = useMemo(
+    () =>
+      Object.entries(tagFilters)
+        .filter(([, s]) => s === 'exclude')
+        .map(([id]) => id),
+    [tagFilters]
+  )
+
   // Filter
   const displayed = useMemo(() => {
-    // First apply hard filters (round, category, difficulty, type)
     const hardFiltered = questions.filter(q => {
       if (selectedRound) {
         const round = rounds.find(r => r.id === selectedRound)
         if (!round?.questionIds.includes(q.id)) return false
       }
-      if (filterCat && q.categoryId !== filterCat) return false
       if (filterDiff && q.difficulty !== filterDiff) return false
       if (filterType && q.type !== filterType) return false
+      // Tri-state tag filters: must have ALL included, must have NONE of excluded
+      if (includedTags.length > 0 && !includedTags.every(tid => q.tags.includes(tid))) return false
+      if (excludedTags.length > 0 && excludedTags.some(tid => q.tags.includes(tid))) return false
       return true
     })
 
     if (!search.trim()) return hardFiltered
 
-    // Fuzzy search over the hard-filtered subset
     const filteredIds = new Set(hardFiltered.map(q => q.id))
     return fuse
       .search(search.trim())
       .filter(r => filteredIds.has(r.item.id))
       .map(r => r.item)
-  }, [questions, rounds, search, filterCat, filterDiff, filterType, selectedRound, fuse])
+  }, [
+    questions,
+    rounds,
+    search,
+    filterDiff,
+    filterType,
+    selectedRound,
+    fuse,
+    includedTags,
+    excludedTags,
+  ])
 
   // Sort round questions by round order
   const sorted = useMemo(() => {
@@ -473,6 +575,14 @@ export default function Questions() {
       (a, b) => round.questionIds.indexOf(a.id) - round.questionIds.indexOf(b.id)
     )
   }, [displayed, selectedRound, rounds])
+
+  function handleTagFilterChange(id: string, next: TagFilterState) {
+    setTagFilters(prev => ({ ...prev, [id]: next }))
+  }
+
+  function clearTagFilters() {
+    setTagFilters({})
+  }
 
   async function handleSave(
     data: Omit<Question, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }
@@ -495,7 +605,6 @@ export default function Questions() {
   async function handleDelete(ids: string[]) {
     await db.questions.bulkDelete(ids)
     setSelected(new Set())
-    // Remove from rounds
     const rs = await db.rounds.toArray()
     for (const r of rs) {
       if (ids.some(id => r.questionIds.includes(id))) {
@@ -579,11 +688,8 @@ export default function Questions() {
   const toggleSelect = useCallback((id: string) => {
     setSelected(s => {
       const n = new Set(s)
-      if (n.has(id)) {
-        n.delete(id)
-      } else {
-        n.add(id)
-      }
+      if (n.has(id)) n.delete(id)
+      else n.add(id)
       return n
     })
   }, [])
@@ -593,14 +699,12 @@ export default function Questions() {
 
   function toggleSelectAll() {
     if (allMatchedSelected) {
-      // Deselect all matched
       setSelected(s => {
         const n = new Set(s)
         sorted.forEach(q => n.delete(q.id))
         return n
       })
     } else {
-      // Select all matched (add to any existing selection)
       setSelected(s => {
         const n = new Set(s)
         sorted.forEach(q => n.add(q.id))
@@ -609,10 +713,6 @@ export default function Questions() {
     }
   }
 
-  const catOpts = [
-    { value: '', label: 'All categories' },
-    ...categories.map(c => ({ value: c.id, label: c.name })),
-  ]
   const diffOpts = [
     { value: '', label: 'All difficulties' },
     ...difficulties.map(d => ({ value: d.id, label: d.name })),
@@ -654,11 +754,6 @@ export default function Questions() {
               placeholder="Search questions…"
               value={search}
               onChange={e => setSearch(e.target.value)}
-            />
-            <Select
-              options={catOpts}
-              value={filterCat}
-              onChange={e => setFilterCat(e.target.value)}
             />
             <Select
               options={diffOpts}
@@ -708,7 +803,6 @@ export default function Questions() {
               />
             </label>
 
-            {/* Export all */}
             {selected.size === 0 && (
               <Button variant="secondary" size="sm" onClick={() => exportQuestions()}>
                 ↓ Export all
@@ -719,6 +813,14 @@ export default function Questions() {
               + New question
             </Button>
           </div>
+
+          {/* Tag filter bar */}
+          <TagFilterBar
+            tags={tags}
+            tagFilters={tagFilters}
+            onChange={handleTagFilterChange}
+            onClear={clearTagFilters}
+          />
 
           {/* Count / select-all bar */}
           <div
@@ -763,7 +865,6 @@ export default function Questions() {
             ) : (
               <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
                 {sorted.map(q => {
-                  const cat = categories.find(c => c.id === q.categoryId)
                   const diff = difficulties.find(d => d.id === q.difficulty)
                   const isSelected = selected.has(q.id)
                   return (
@@ -779,7 +880,6 @@ export default function Questions() {
                         className="mt-1 cursor-pointer"
                       />
 
-                      {/* Round reorder arrows */}
                       {selectedRound && (
                         <div className="flex flex-col gap-0.5 mt-0.5">
                           <button
@@ -801,7 +901,6 @@ export default function Questions() {
                         <div className="flex items-start justify-between gap-4">
                           <p className="text-sm font-medium leading-snug">{q.title}</p>
                           <div className="flex items-center gap-2 shrink-0">
-                            {cat && <Badge color={cat.color + '33'}>{cat.name}</Badge>}
                             {diff && <Badge color={diff.color + '33'}>{diff.name}</Badge>}
                             <Badge>{TYPE_LABELS[q.type]}</Badge>
                           </div>
@@ -855,7 +954,6 @@ export default function Questions() {
       {editing !== false && (
         <QuestionForm
           question={editing}
-          categories={categories}
           difficulties={difficulties}
           tags={tags}
           onSave={handleSave}

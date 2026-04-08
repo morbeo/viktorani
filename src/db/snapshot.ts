@@ -1,10 +1,9 @@
 import { db } from '@/db'
-import type { Category, DifficultyLevel, Tag, Question, Round, Game, Note } from '@/db'
+import type { DifficultyLevel, Tag, Question, Round, Game, Note } from '@/db'
 
 export interface DatabaseSnapshot {
   version: number
   exportedAt: number
-  categories: Category[]
   difficulties: DifficultyLevel[]
   tags: Tag[]
   questions: Question[]
@@ -15,9 +14,8 @@ export interface DatabaseSnapshot {
 
 export async function exportDatabase(): Promise<void> {
   const snapshot: DatabaseSnapshot = {
-    version: 1,
+    version: 2,
     exportedAt: Date.now(),
-    categories: await db.categories.toArray(),
     difficulties: await db.difficulties.toArray(),
     tags: await db.tags.toArray(),
     questions: await db.questions.toArray(),
@@ -37,21 +35,29 @@ export async function exportDatabase(): Promise<void> {
 
 export async function importDatabase(file: File): Promise<void> {
   const text = await file.text()
-  const snapshot = JSON.parse(text) as DatabaseSnapshot
+  const snapshot = JSON.parse(text) as DatabaseSnapshot & {
+    categories?: unknown[] // accepted but ignored from v1 exports
+  }
 
-  if (snapshot.version !== 1) {
+  if (snapshot.version !== 1 && snapshot.version !== 2) {
     throw new Error(`Unsupported snapshot version: ${snapshot.version}`)
   }
 
-  // Merge — existing records with same ID are overwritten
   await db.transaction(
     'rw',
-    [db.categories, db.difficulties, db.tags, db.questions, db.rounds, db.games, db.notes],
+    [db.difficulties, db.tags, db.questions, db.rounds, db.games, db.notes],
     async () => {
-      if (snapshot.categories?.length) await db.categories.bulkPut(snapshot.categories)
       if (snapshot.difficulties?.length) await db.difficulties.bulkPut(snapshot.difficulties)
       if (snapshot.tags?.length) await db.tags.bulkPut(snapshot.tags)
-      if (snapshot.questions?.length) await db.questions.bulkPut(snapshot.questions)
+      if (snapshot.questions?.length) {
+        // Strip legacy categoryId if present
+        const cleaned = snapshot.questions.map((q: Question & { categoryId?: unknown }) => {
+          const { categoryId: _dropped, ...rest } = q as Question & { categoryId?: unknown }
+          void _dropped
+          return rest as Question
+        })
+        await db.questions.bulkPut(cleaned)
+      }
       if (snapshot.rounds?.length) await db.rounds.bulkPut(snapshot.rounds)
       if (snapshot.games?.length) await db.games.bulkPut(snapshot.games)
       if (snapshot.notes?.length) await db.notes.bulkPut(snapshot.notes)
@@ -59,89 +65,7 @@ export async function importDatabase(file: File): Promise<void> {
   )
 }
 
-// ── Question bulk import/export ───────────────────────────────────────────────
-
-export interface QuestionExportRow {
-  id?: string
-  title: string
-  type: 'multiple_choice' | 'true_false' | 'open_ended'
-  options: string[] // MC: 4 items; TF: ['True','False']; OE: []
-  answer: string // MC: exact option text; TF: 'True'|'False'; OE: expected answer
-  description?: string
-  category?: string // category name (matched by name on import)
-  difficulty?: string // difficulty name (matched by name on import)
-  tags?: string[] // tag names (matched by name on import)
-}
-
-export const QUESTION_EXAMPLES: QuestionExportRow[] = [
-  {
-    title: 'What is the capital of France?',
-    type: 'multiple_choice',
-    options: ['Berlin', 'Madrid', 'Paris', 'Rome'],
-    answer: 'Paris',
-    description: 'European capitals question.',
-    category: 'Geography',
-    difficulty: 'Easy',
-    tags: ['Geography'],
-  },
-  {
-    title: 'The Great Wall of China is visible from space.',
-    type: 'true_false',
-    options: ['True', 'False'],
-    answer: 'False',
-    description: 'Common myth — it is not visible from low Earth orbit with the naked eye.',
-    category: 'Science',
-    difficulty: 'Medium',
-    tags: ['Science', 'History'],
-  },
-  {
-    title: 'What element has the chemical symbol Au?',
-    type: 'open_ended',
-    options: [],
-    answer: 'Gold',
-    description: 'From the Latin "aurum".',
-    category: 'Science',
-    difficulty: 'Hard',
-    tags: ['Science'],
-  },
-]
-
-export async function exportQuestions(ids?: string[]): Promise<void> {
-  const questions: Question[] = ids?.length
-    ? (await db.questions.bulkGet(ids)).filter((q): q is Question => q !== undefined)
-    : await db.questions.toArray()
-
-  const [categories, difficulties, tags] = await Promise.all([
-    db.categories.toArray(),
-    db.difficulties.toArray(),
-    db.tags.toArray(),
-  ])
-
-  const catMap = Object.fromEntries(categories.map(c => [c.id, c.name]))
-  const diffMap = Object.fromEntries(difficulties.map(d => [d.id, d.name]))
-  const tagMap = Object.fromEntries(tags.map(t => [t.id, t.name]))
-
-  const rows: QuestionExportRow[] = questions.map(q => ({
-    id: q.id,
-    title: q.title,
-    type: q.type,
-    options: q.options,
-    answer: q.answer,
-    description: q.description || undefined,
-    category: q.categoryId ? catMap[q.categoryId] : undefined,
-    difficulty: q.difficulty ? diffMap[q.difficulty] : undefined,
-    tags: q.tags.map(tid => tagMap[tid]).filter(Boolean),
-  }))
-
-  const label = ids?.length ? `${ids.length}-questions` : 'all-questions'
-  const blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `viktorani-${label}-${new Date().toISOString().slice(0, 10)}.json`
-  a.click()
-  URL.revokeObjectURL(url)
-}
+// ── Questions import/export ───────────────────────────────────────────────────
 
 export interface ImportResult {
   imported: number
@@ -149,58 +73,50 @@ export interface ImportResult {
   errors: string[]
 }
 
+const REQUIRED_FIELDS = ['title', 'type', 'answer'] as const
+
 export async function importQuestions(file: File): Promise<ImportResult> {
   const text = await file.text()
-  const rows = JSON.parse(text) as QuestionExportRow[]
-
-  if (!Array.isArray(rows)) throw new Error('Expected a JSON array of questions.')
-
-  const [categories, difficulties, tags] = await Promise.all([
-    db.categories.toArray(),
-    db.difficulties.toArray(),
-    db.tags.toArray(),
-  ])
-
-  const catByName = Object.fromEntries(categories.map(c => [c.name.toLowerCase(), c.id]))
-  const diffByName = Object.fromEntries(difficulties.map(d => [d.name.toLowerCase(), d.id]))
-  const tagByName = Object.fromEntries(tags.map(t => [t.name.toLowerCase(), t.id]))
+  let raw: unknown[]
+  try {
+    raw = JSON.parse(text)
+    if (!Array.isArray(raw)) throw new Error('Expected a JSON array')
+  } catch (e) {
+    throw new Error(`Invalid JSON: ${(e as Error).message}`)
+  }
 
   const result: ImportResult = { imported: 0, skipped: 0, errors: [] }
   const now = Date.now()
 
-  for (const [i, row] of rows.entries()) {
-    try {
-      if (!row.title?.trim()) {
-        result.errors.push(`Row ${i + 1}: missing title`)
-        result.skipped++
-        continue
-      }
-      if (!['multiple_choice', 'true_false', 'open_ended'].includes(row.type)) {
-        result.errors.push(`Row ${i + 1}: invalid type "${row.type}"`)
-        result.skipped++
-        continue
-      }
+  for (let i = 0; i < raw.length; i++) {
+    const row = raw[i] as Record<string, unknown>
+    const missing = REQUIRED_FIELDS.filter(f => !String(row[f] ?? '').trim())
+    if (missing.length) {
+      result.errors.push(`Row ${i + 1}: missing ${missing.join(', ')}`)
+      result.skipped++
+      continue
+    }
 
+    try {
+      const title = String(row.title).trim()
       const q: Question = {
-        id: row.id ?? crypto.randomUUID(),
-        title: row.title.trim(),
-        type: row.type,
-        options: row.options ?? [],
-        answer: row.answer ?? '',
-        description: row.description ?? '',
-        categoryId: row.category ? (catByName[row.category.toLowerCase()] ?? null) : null,
-        difficulty: row.difficulty ? (diffByName[row.difficulty.toLowerCase()] ?? null) : null,
-        tags: (row.tags ?? []).map(t => tagByName[t.toLowerCase()]).filter(Boolean),
-        media: null,
-        mediaType: null,
-        createdAt: now,
+        id: typeof row.id === 'string' ? row.id : crypto.randomUUID(),
+        title,
+        type: (row.type as Question['type']) ?? 'open_ended',
+        options: Array.isArray(row.options) ? (row.options as string[]) : [],
+        answer: String(row.answer),
+        description: typeof row.description === 'string' ? row.description : '',
+        difficulty: typeof row.difficulty === 'string' ? row.difficulty : null,
+        tags: Array.isArray(row.tags) ? (row.tags as string[]) : [],
+        media: typeof row.media === 'string' ? row.media : null,
+        mediaType: (row.mediaType as Question['mediaType']) ?? null,
+        createdAt: typeof row.createdAt === 'number' ? row.createdAt : now,
         updatedAt: now,
       }
-
-      await db.questions.put(q) // put = upsert (updates if id exists)
+      await db.questions.put(q)
       result.imported++
-    } catch (err) {
-      result.errors.push(`Row ${i + 1}: ${(err as Error).message}`)
+    } catch (e) {
+      result.errors.push(`Row ${i + 1}: ${(e as Error).message}`)
       result.skipped++
     }
   }
@@ -208,8 +124,50 @@ export async function importQuestions(file: File): Promise<ImportResult> {
   return result
 }
 
+export async function exportQuestions(ids?: string[]): Promise<void> {
+  const questions = ids?.length
+    ? await db.questions.bulkGet(ids).then(qs => qs.filter(Boolean) as Question[])
+    : await db.questions.toArray()
+
+  const blob = new Blob([JSON.stringify(questions, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `viktorani-questions-${new Date().toISOString().slice(0, 10)}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export function downloadExampleQuestions(): void {
-  const blob = new Blob([JSON.stringify(QUESTION_EXAMPLES, null, 2)], { type: 'application/json' })
+  const example: Partial<Question>[] = [
+    {
+      title: 'What is the capital of France?',
+      type: 'multiple_choice',
+      options: ['Berlin', 'Madrid', 'Paris', 'Rome'],
+      answer: 'Paris',
+      description: 'European geography',
+      difficulty: null,
+      tags: [],
+    },
+    {
+      title: 'Is the Great Wall of China visible from space?',
+      type: 'true_false',
+      options: ['True', 'False'],
+      answer: 'False',
+      description: 'Common myth — not visible with the naked eye.',
+      difficulty: null,
+      tags: [],
+    },
+    {
+      title: 'Who wrote Hamlet?',
+      type: 'open_ended',
+      options: [],
+      answer: 'Shakespeare',
+      difficulty: null,
+      tags: [],
+    },
+  ]
+  const blob = new Blob([JSON.stringify(example, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url

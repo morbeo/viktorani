@@ -1,41 +1,38 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { db } from '@/db'
-import ManageCategories from '@/components/settings/ManageCategories'
+import ManageTags from '@/components/settings/ManageTags'
 import ManageDifficulties from '@/components/settings/ManageDifficulties'
 
-// ── helpers ───────────────────────────────────────────────────────────────────
-
 async function clearAll() {
-  await Promise.all([db.categories.clear(), db.difficulties.clear(), db.questions.clear()])
+  await Promise.all([db.tags.clear(), db.difficulties.clear(), db.questions.clear()])
 }
 
-// ── ManageCategories ──────────────────────────────────────────────────────────
+// ── ManageTags ────────────────────────────────────────────────────────────────
 
-describe('ManageCategories', () => {
+describe('ManageTags', () => {
   beforeEach(clearAll)
 
   it('renders empty state', async () => {
-    render(<ManageCategories />)
-    expect(await screen.findByText(/no categories yet/i)).toBeInTheDocument()
+    render(<ManageTags />)
+    expect(await screen.findByText(/no tags yet/i)).toBeInTheDocument()
   })
 
-  it('adds a new category', async () => {
-    render(<ManageCategories />)
+  it('adds a new tag', async () => {
+    render(<ManageTags />)
     fireEvent.click(screen.getByRole('button', { name: /add/i }))
 
-    const input = await screen.findByPlaceholderText(/category name/i)
+    const input = await screen.findByPlaceholderText(/tag name/i)
     fireEvent.change(input, { target: { value: 'Science' } })
     fireEvent.click(screen.getByRole('button', { name: /save/i }))
 
     expect(await screen.findByText('Science')).toBeInTheDocument()
-    const count = await db.categories.count()
-    expect(count).toBe(1)
+    expect(await db.tags.count()).toBe(1)
   })
 
-  it('edits an existing category', async () => {
-    await db.categories.add({ id: 'c1', name: 'History', color: '#e67e22' })
-    render(<ManageCategories />)
+  it('edits an existing tag', async () => {
+    await db.tags.add({ id: 't1', name: 'History', color: '#e67e22' })
+    render(<ManageTags />)
 
     fireEvent.click(await screen.findByRole('button', { name: /edit history/i }))
 
@@ -44,46 +41,49 @@ describe('ManageCategories', () => {
     fireEvent.click(screen.getByRole('button', { name: /save/i }))
 
     expect(await screen.findByText('Ancient History')).toBeInTheDocument()
-    const cat = await db.categories.get('c1')
-    expect(cat?.name).toBe('Ancient History')
+    const tag = await db.tags.get('t1')
+    expect(tag?.name).toBe('Ancient History')
   })
 
-  it('deletes a category', async () => {
-    await db.categories.add({ id: 'c1', name: 'Sports', color: '#27ae60' })
-    render(<ManageCategories />)
+  it('deletes a tag', async () => {
+    await db.tags.add({ id: 't1', name: 'Sports', color: '#27ae60' })
+    render(<ManageTags />)
 
     fireEvent.click(await screen.findByRole('button', { name: /delete sports/i }))
 
     await waitFor(async () => {
-      expect(await db.categories.count()).toBe(0)
+      expect(await db.tags.count()).toBe(0)
     })
     expect(screen.queryByText('Sports')).not.toBeInTheDocument()
   })
 
-  it('blocks deletion of a category in use', async () => {
-    const catId = 'c1'
-    await db.categories.add({ id: catId, name: 'Music', color: '#8e44ad' })
+  it('blocks deletion of a tag in use', async () => {
+    await db.tags.add({ id: 't1', name: 'Music', color: '#8e44ad' })
     await db.questions.add({
       id: 'q1',
-      categoryId: catId,
-      difficulty: 'd1',
-      type: 'text',
-      question: 'Q?',
+      title: 'Q?',
+      type: 'open_ended',
+      options: [],
       answer: 'A',
+      description: '',
+      difficulty: null,
+      tags: ['t1'],
+      media: null,
+      mediaType: null,
       createdAt: Date.now(),
-    } as unknown as Parameters<typeof db.questions.add>[0])
+      updatedAt: Date.now(),
+    })
 
-    render(<ManageCategories />)
-
+    render(<ManageTags />)
     fireEvent.click(await screen.findByRole('button', { name: /delete music/i }))
 
     expect(await screen.findByText(/1 question/i)).toBeInTheDocument()
-    expect(await db.categories.count()).toBe(1)
+    expect(await db.tags.count()).toBe(1)
   })
 
   it('cancels inline edit without saving', async () => {
-    await db.categories.add({ id: 'c1', name: 'Geography', color: '#16a085' })
-    render(<ManageCategories />)
+    await db.tags.add({ id: 't1', name: 'Geography', color: '#16a085' })
+    render(<ManageTags />)
 
     fireEvent.click(await screen.findByRole('button', { name: /edit geography/i }))
     const input = screen.getByDisplayValue('Geography')
@@ -95,10 +95,10 @@ describe('ManageCategories', () => {
   })
 
   it('saves on Enter key', async () => {
-    render(<ManageCategories />)
+    render(<ManageTags />)
     fireEvent.click(screen.getByRole('button', { name: /add/i }))
 
-    const input = await screen.findByPlaceholderText(/category name/i)
+    const input = await screen.findByPlaceholderText(/tag name/i)
     fireEvent.change(input, { target: { value: 'Movies' } })
     fireEvent.keyDown(input, { key: 'Enter' })
 
@@ -151,16 +151,20 @@ describe('ManageDifficulties', () => {
     await db.difficulties.add({ id: 'd1', name: 'Hard', score: 15, color: '#c0392b', order: 0 })
     await db.questions.add({
       id: 'q1',
-      categoryId: 'c1',
-      difficulty: 'd1',
-      type: 'text',
-      question: 'Q?',
+      title: 'Q?',
+      type: 'open_ended',
+      options: [],
       answer: 'A',
+      description: '',
+      difficulty: 'd1',
+      tags: [],
+      media: null,
+      mediaType: null,
       createdAt: Date.now(),
-    } as unknown as Parameters<typeof db.questions.add>[0])
+      updatedAt: Date.now(),
+    })
 
     render(<ManageDifficulties />)
-
     fireEvent.click(await screen.findByRole('button', { name: /delete hard/i }))
 
     expect(await screen.findByText(/1 question/i)).toBeInTheDocument()
