@@ -1,5 +1,5 @@
 import AdminLayout from '@/components/AdminLayout'
-import ManageCategories from '@/components/settings/ManageCategories'
+import ManageTags from '@/components/settings/ManageTags'
 import ManageDifficulties from '@/components/settings/ManageDifficulties'
 import { exportDatabase, importDatabase } from '@/db/snapshot'
 import { useState } from 'react'
@@ -28,8 +28,8 @@ export default function Settings() {
   return (
     <AdminLayout title="Settings">
       <div className="max-w-2xl mx-auto flex flex-col gap-10 py-6 px-4">
-        {/* ── Categories ───────────────────────────────────────── */}
-        <ManageCategories />
+        {/* ── Tags ─────────────────────────────────────────────── */}
+        <ManageTags />
 
         {/* ── Difficulty levels ────────────────────────────────── */}
         <ManageDifficulties />

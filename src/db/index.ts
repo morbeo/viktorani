@@ -24,12 +24,6 @@ export type WidgetType =
   | 'game_controls'
   | 'progress'
 
-export interface Category {
-  id: string
-  name: string
-  color: string
-}
-
 export interface DifficultyLevel {
   id: string
   name: string
@@ -51,7 +45,6 @@ export interface Question {
   options: string[] // multiple_choice: 4 items; true_false: ['True','False']
   answer: string // correct answer
   description: string // markdown
-  categoryId: string | null
   difficulty: string | null
   tags: string[]
   media: string | null // base64 or URL
@@ -169,7 +162,6 @@ export interface GameQuestion {
 // ── Database ─────────────────────────────────────────────────────────────────
 
 class ViktoraniDB extends Dexie {
-  categories!: EntityTable<Category, 'id'>
   difficulties!: EntityTable<DifficultyLevel, 'id'>
   tags!: EntityTable<Tag, 'id'>
   questions!: EntityTable<Question, 'id'>
@@ -186,6 +178,7 @@ class ViktoraniDB extends Dexie {
 
   constructor() {
     super('viktorani')
+
     this.version(2).stores({
       categories: 'id, name',
       difficulties: 'id, name, order',
@@ -202,6 +195,33 @@ class ViktoraniDB extends Dexie {
       timers: 'id, gameId',
       gameQuestions: 'id, gameId, roundId, order',
     })
+
+    // v3: drop categories table; remove categoryId index from questions
+    this.version(3)
+      .stores({
+        categories: null, // drop table
+        difficulties: 'id, name, order',
+        tags: 'id, name',
+        questions: 'id, difficulty, type, createdAt',
+        rounds: 'id, createdAt',
+        games: 'id, status, createdAt',
+        teams: 'id, gameId',
+        players: 'id, gameId, teamId, deviceId',
+        buzzEvents: 'id, gameId, playerId, questionId, timestamp',
+        layouts: 'id, gameId, target',
+        widgets: 'id, layoutId, order',
+        notes: 'id, name, createdAt, updatedAt',
+        timers: 'id, gameId',
+        gameQuestions: 'id, gameId, roundId, order',
+      })
+      .upgrade(tx => {
+        return tx
+          .table('questions')
+          .toCollection()
+          .modify((q: Record<string, unknown>) => {
+            delete q['categoryId']
+          })
+      })
   }
 }
 
@@ -211,22 +231,25 @@ export const db = new ViktoraniDB()
 
 export async function seedDefaults() {
   const diffCount = await db.difficulties.count()
-  if (diffCount > 0) return
+  if (diffCount === 0) {
+    await db.difficulties.bulkAdd([
+      { id: crypto.randomUUID(), name: 'Easy', score: 5, color: '#27ae60', order: 0 },
+      { id: crypto.randomUUID(), name: 'Medium', score: 10, color: '#e67e22', order: 1 },
+      { id: crypto.randomUUID(), name: 'Hard', score: 15, color: '#c0392b', order: 2 },
+    ])
+  }
 
-  await db.difficulties.bulkAdd([
-    { id: crypto.randomUUID(), name: 'Easy', score: 5, color: '#27ae60', order: 0 },
-    { id: crypto.randomUUID(), name: 'Medium', score: 10, color: '#e67e22', order: 1 },
-    { id: crypto.randomUUID(), name: 'Hard', score: 15, color: '#c0392b', order: 2 },
-  ])
-
-  await db.tags.bulkAdd([
-    { id: crypto.randomUUID(), name: 'Pop Culture', color: '#9b59b6' },
-    { id: crypto.randomUUID(), name: 'History', color: '#e67e22' },
-    { id: crypto.randomUUID(), name: 'Sports', color: '#27ae60' },
-    { id: crypto.randomUUID(), name: 'Science', color: '#2980b9' },
-    { id: crypto.randomUUID(), name: 'Geography', color: '#16a085' },
-    { id: crypto.randomUUID(), name: 'Music', color: '#8e44ad' },
-    { id: crypto.randomUUID(), name: 'Movies', color: '#c0392b' },
-    { id: crypto.randomUUID(), name: 'Literature', color: '#c9a84c' },
-  ])
+  const tagCount = await db.tags.count()
+  if (tagCount === 0) {
+    await db.tags.bulkAdd([
+      { id: crypto.randomUUID(), name: 'Pop Culture', color: '#9b59b6' },
+      { id: crypto.randomUUID(), name: 'History', color: '#e67e22' },
+      { id: crypto.randomUUID(), name: 'Sports', color: '#27ae60' },
+      { id: crypto.randomUUID(), name: 'Science', color: '#2980b9' },
+      { id: crypto.randomUUID(), name: 'Geography', color: '#16a085' },
+      { id: crypto.randomUUID(), name: 'Music', color: '#8e44ad' },
+      { id: crypto.randomUUID(), name: 'Movies', color: '#c0392b' },
+      { id: crypto.randomUUID(), name: 'Literature', color: '#c9a84c' },
+    ])
+  }
 }

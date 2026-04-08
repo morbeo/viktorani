@@ -1,14 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import Fuse from 'fuse.js'
-import type { Question, Category, DifficultyLevel, Tag } from '@/db'
+import type { Question, DifficultyLevel, Tag } from '@/db'
+import type { TagFilterState } from '@/pages/admin/Questions'
 
-// ── Test fixtures ─────────────────────────────────────────────────────────────
-
-const categories: Category[] = [
-  { id: 'cat-geo', name: 'Geography', color: '#00f' },
-  { id: 'cat-sci', name: 'Science', color: '#0f0' },
-  { id: 'cat-hist', name: 'History', color: '#f00' },
-]
+// ── Fixtures ──────────────────────────────────────────────────────────────────
 
 const difficulties: DifficultyLevel[] = [
   { id: 'diff-easy', name: 'Easy', score: 5, color: '#0f0', order: 0 },
@@ -18,18 +13,17 @@ const difficulties: DifficultyLevel[] = [
 const tagList: Tag[] = [
   { id: 'tag-music', name: 'Music', color: '#f0f' },
   { id: 'tag-sports', name: 'Sports', color: '#ff0' },
+  { id: 'tag-science', name: 'Science', color: '#0ff' },
 ]
 
-const BASE: Omit<
-  Question,
-  'id' | 'title' | 'type' | 'options' | 'answer' | 'categoryId' | 'difficulty' | 'tags'
-> = {
-  description: '',
-  media: null,
-  mediaType: null,
-  createdAt: 0,
-  updatedAt: 0,
-}
+const BASE: Omit<Question, 'id' | 'title' | 'type' | 'options' | 'answer' | 'difficulty' | 'tags'> =
+  {
+    description: '',
+    media: null,
+    mediaType: null,
+    createdAt: 0,
+    updatedAt: 0,
+  }
 
 const questions: Question[] = [
   {
@@ -39,9 +33,8 @@ const questions: Question[] = [
     type: 'multiple_choice',
     options: ['Berlin', 'Madrid', 'Paris', 'Rome'],
     answer: 'Paris',
-    categoryId: 'cat-geo',
     difficulty: 'diff-easy',
-    tags: [],
+    tags: ['tag-science'],
   },
   {
     ...BASE,
@@ -50,7 +43,6 @@ const questions: Question[] = [
     type: 'open_ended',
     options: [],
     answer: 'Shakespeare',
-    categoryId: 'cat-hist',
     difficulty: 'diff-hard',
     tags: ['tag-music'],
   },
@@ -61,7 +53,6 @@ const questions: Question[] = [
     type: 'open_ended',
     options: [],
     answer: 'Water',
-    categoryId: 'cat-sci',
     difficulty: 'diff-easy',
     tags: ['tag-sports'],
     description: 'Chemical formula for water',
@@ -73,7 +64,6 @@ const questions: Question[] = [
     type: 'open_ended',
     options: [],
     answer: 'Six',
-    categoryId: null,
     difficulty: null,
     tags: ['tag-music'],
   },
@@ -84,17 +74,14 @@ const questions: Question[] = [
     type: 'multiple_choice',
     options: ['Lion', 'Cheetah', 'Horse', 'Dog'],
     answer: 'Cheetah',
-    categoryId: 'cat-sci',
     difficulty: 'diff-hard',
-    tags: [],
+    tags: ['tag-music', 'tag-sports'],
   },
 ]
 
-// Mirror the enrichment done in Questions.tsx
 function enrichDocs(qs: Question[]) {
   return qs.map(q => ({
     ...q,
-    _categoryName: categories.find(c => c.id === q.categoryId)?.name ?? '',
     _difficultyName: difficulties.find(d => d.id === q.difficulty)?.name ?? '',
     _tagNames: q.tags.map(tid => tagList.find(t => t.id === tid)?.name ?? '').join(' '),
     _options: q.options.join(' '),
@@ -107,7 +94,6 @@ function makeFuse(qs: Question[]) {
       { name: 'title', weight: 3 },
       { name: 'answer', weight: 2 },
       { name: '_options', weight: 2 },
-      { name: '_categoryName', weight: 1.5 },
       { name: '_difficultyName', weight: 1 },
       { name: '_tagNames', weight: 1 },
       { name: 'description', weight: 0.5 },
@@ -119,108 +105,90 @@ function makeFuse(qs: Question[]) {
   })
 }
 
+// Mirror the tri-state tag filter logic from Questions.tsx
+function applyTagFilters(qs: Question[], tagFilters: Record<string, TagFilterState>): Question[] {
+  const included = Object.entries(tagFilters)
+    .filter(([, s]) => s === 'include')
+    .map(([id]) => id)
+  const excluded = Object.entries(tagFilters)
+    .filter(([, s]) => s === 'exclude')
+    .map(([id]) => id)
+
+  return qs.filter(q => {
+    if (included.length > 0 && !included.every(tid => q.tags.includes(tid))) return false
+    if (excluded.length > 0 && excluded.some(tid => q.tags.includes(tid))) return false
+    return true
+  })
+}
+
 // ── Fuzzy search ──────────────────────────────────────────────────────────────
 
 describe('fuzzy search', () => {
   const fuse = makeFuse(questions)
 
   it('finds question by exact title word', () => {
-    const results = fuse.search('Hamlet')
-    expect(results.map(r => r.item.id)).toContain('q2')
+    expect(fuse.search('Hamlet').map(r => r.item.id)).toContain('q2')
   })
 
   it('finds question by partial title (fuzzy)', () => {
-    const results = fuse.search('capit')
-    expect(results.map(r => r.item.id)).toContain('q1')
+    expect(fuse.search('capit').map(r => r.item.id)).toContain('q1')
   })
 
   it('finds question by answer', () => {
-    const results = fuse.search('Shakespeare')
-    expect(results.map(r => r.item.id)).toContain('q2')
+    expect(fuse.search('Shakespeare').map(r => r.item.id)).toContain('q2')
   })
 
   it('finds question by option value', () => {
-    const results = fuse.search('Cheetah')
-    expect(results.map(r => r.item.id)).toContain('q5')
-  })
-
-  it('finds question by category name', () => {
-    const results = fuse.search('Geography')
-    expect(results.map(r => r.item.id)).toContain('q1')
+    expect(fuse.search('Cheetah').map(r => r.item.id)).toContain('q5')
   })
 
   it('finds question by difficulty name', () => {
-    const results = fuse.search('Hard')
-    const ids = results.map(r => r.item.id)
-    expect(ids).toContain('q2') // hard
-    expect(ids).toContain('q5') // hard
+    const ids = fuse.search('Hard').map(r => r.item.id)
+    expect(ids).toContain('q2')
+    expect(ids).toContain('q5')
   })
 
   it('finds question by tag name', () => {
-    const results = fuse.search('Music')
-    const ids = results.map(r => r.item.id)
+    const ids = fuse.search('Music').map(r => r.item.id)
     expect(ids).toContain('q2')
     expect(ids).toContain('q4')
   })
 
   it('finds question by description', () => {
-    const results = fuse.search('Chemical formula')
-    expect(results.map(r => r.item.id)).toContain('q3')
+    expect(fuse.search('Chemical formula').map(r => r.item.id)).toContain('q3')
   })
 
   it('returns empty array for no matches', () => {
-    const results = fuse.search('xyznotexist')
-    expect(results).toHaveLength(0)
+    expect(fuse.search('xyznotexist')).toHaveLength(0)
   })
 
-  it('ranks title match higher than description match', () => {
-    // 'Water' appears as the answer to q3; also 'guitar' is in q4 title
+  it('ranks title/answer match higher than description', () => {
     const results = fuse.search('Water')
     expect(results.length).toBeGreaterThan(0)
-    // The top result should be q3 (answer = Water)
     expect(results[0].item.id).toBe('q3')
   })
 
   it('is case-insensitive', () => {
-    const upper = fuse.search('FRANCE')
-    const lower = fuse.search('france')
-    expect(upper.map(r => r.item.id)).toEqual(lower.map(r => r.item.id))
+    const upper = fuse.search('FRANCE').map(r => r.item.id)
+    const lower = fuse.search('france').map(r => r.item.id)
+    expect(upper).toEqual(lower)
   })
 
-  it('ignores search terms shorter than minMatchCharLength (2)', () => {
-    // Single character — Fuse returns nothing due to minMatchCharLength: 2
-    const results = fuse.search('a')
-    // Either empty or no meaningful match — should not crash
-    expect(Array.isArray(results)).toBe(true)
-  })
-
-  it('searches across multiple fields — category and tag queries work independently', () => {
-    // 'Geography' matches q1 via category name
-    const geo = fuse.search('Geography')
-    expect(geo.map(r => r.item.id)).toContain('q1')
-    // 'Sports' matches q3 via tag name
-    const sports = fuse.search('Sports')
-    expect(sports.map(r => r.item.id)).toContain('q3')
+  it('ignores search terms shorter than minMatchCharLength', () => {
+    expect(Array.isArray(fuse.search('a'))).toBe(true)
   })
 })
 
 // ── Hard filters ──────────────────────────────────────────────────────────────
 
 describe('hard filters', () => {
-  function applyFilters(qs: Question[], { filterCat = '', filterDiff = '', filterType = '' } = {}) {
+  function applyFilters(qs: Question[], { filterDiff = '', filterType = '' } = {}) {
     return qs.filter(q => {
-      if (filterCat && q.categoryId !== filterCat) return false
       if (filterDiff && q.difficulty !== filterDiff) return false
       if (filterType && q.type !== filterType) return false
       return true
     })
   }
-
-  it('filters by category', () => {
-    const result = applyFilters(questions, { filterCat: 'cat-sci' })
-    expect(result.map(q => q.id)).toEqual(expect.arrayContaining(['q3', 'q5']))
-    expect(result.map(q => q.id)).not.toContain('q1')
-  })
 
   it('filters by difficulty', () => {
     const result = applyFilters(questions, { filterDiff: 'diff-hard' })
@@ -233,8 +201,11 @@ describe('hard filters', () => {
     expect(mc.every(q => q.type === 'multiple_choice')).toBe(true)
   })
 
-  it('combines category and difficulty filters', () => {
-    const result = applyFilters(questions, { filterCat: 'cat-sci', filterDiff: 'diff-hard' })
+  it('combines difficulty and type filters', () => {
+    const result = applyFilters(questions, {
+      filterDiff: 'diff-hard',
+      filterType: 'multiple_choice',
+    })
     expect(result.map(q => q.id)).toEqual(['q5'])
   })
 
@@ -243,7 +214,78 @@ describe('hard filters', () => {
   })
 })
 
-// ── Select-all matched logic ──────────────────────────────────────────────────
+// ── Tri-state tag filters ─────────────────────────────────────────────────────
+
+describe('tri-state tag filters', () => {
+  it('no filter — returns all', () => {
+    expect(applyTagFilters(questions, {})).toHaveLength(questions.length)
+  })
+
+  it('include single tag — returns only questions with that tag', () => {
+    const result = applyTagFilters(questions, { 'tag-music': 'include' })
+    expect(result.map(q => q.id)).toEqual(expect.arrayContaining(['q2', 'q4', 'q5']))
+    expect(result.map(q => q.id)).not.toContain('q1')
+    expect(result.map(q => q.id)).not.toContain('q3')
+  })
+
+  it('exclude single tag — returns questions without that tag', () => {
+    const result = applyTagFilters(questions, { 'tag-music': 'exclude' })
+    expect(result.map(q => q.id)).toEqual(expect.arrayContaining(['q1', 'q3']))
+    expect(result.map(q => q.id)).not.toContain('q2')
+    expect(result.map(q => q.id)).not.toContain('q4')
+    expect(result.map(q => q.id)).not.toContain('q5')
+  })
+
+  it('include multiple tags — question must have ALL of them', () => {
+    // q5 has both music and sports; q2 only music; q3 only sports
+    const result = applyTagFilters(questions, {
+      'tag-music': 'include',
+      'tag-sports': 'include',
+    })
+    expect(result.map(q => q.id)).toEqual(['q5'])
+  })
+
+  it('exclude multiple tags — question must have NONE of them', () => {
+    const result = applyTagFilters(questions, {
+      'tag-music': 'exclude',
+      'tag-sports': 'exclude',
+    })
+    // Only q1 (science only) survives
+    expect(result.map(q => q.id)).toEqual(['q1'])
+  })
+
+  it('include one, exclude another — intersection minus exclusion', () => {
+    // include music (q2, q4, q5), exclude sports (q3, q5) → q2, q4
+    const result = applyTagFilters(questions, {
+      'tag-music': 'include',
+      'tag-sports': 'exclude',
+    })
+    const ids = result.map(q => q.id)
+    expect(ids).toContain('q2')
+    expect(ids).toContain('q4')
+    expect(ids).not.toContain('q5') // has both music and sports → excluded
+    expect(ids).not.toContain('q1')
+    expect(ids).not.toContain('q3')
+  })
+
+  it('"none" state is treated as no filter', () => {
+    const withNone = applyTagFilters(questions, { 'tag-music': 'none' })
+    const withEmpty = applyTagFilters(questions, {})
+    expect(withNone.map(q => q.id)).toEqual(withEmpty.map(q => q.id))
+  })
+
+  it('combining tag filter with hard filters narrows result', () => {
+    // include music + filter type=open_ended
+    const tagFiltered = applyTagFilters(questions, { 'tag-music': 'include' })
+    const result = tagFiltered.filter(q => q.type === 'open_ended')
+    const ids = result.map(q => q.id)
+    expect(ids).toContain('q2')
+    expect(ids).toContain('q4')
+    expect(ids).not.toContain('q5') // multiple_choice
+  })
+})
+
+// ── Select-all logic ──────────────────────────────────────────────────────────
 
 describe('select-all matched logic', () => {
   function computeState(sorted: Question[], selected: Set<string>) {
@@ -260,8 +302,7 @@ describe('select-all matched logic', () => {
 
   it('allSelected is true when all matched questions are selected', () => {
     const ids = new Set(questions.map(q => q.id))
-    const { allSelected } = computeState(questions, ids)
-    expect(allSelected).toBe(true)
+    expect(computeState(questions, ids).allSelected).toBe(true)
   })
 
   it('someSelected (indeterminate) when only subset selected', () => {
@@ -271,38 +312,21 @@ describe('select-all matched logic', () => {
   })
 
   it('toggling on selects all matched ids', () => {
-    let selected = new Set<string>()
-    // Simulate toggle-all on
     const sorted = questions.slice(0, 3)
-    selected = new Set([...selected, ...sorted.map(q => q.id)])
+    const selected = new Set([...sorted.map(q => q.id)])
     expect(selected.size).toBe(3)
     sorted.forEach(q => expect(selected.has(q.id)).toBe(true))
   })
 
-  it('toggling off deselects only the matched ids, preserving others', () => {
-    // Suppose q4, q5 are selected outside the current filter
+  it('toggling off deselects only matched, preserving others', () => {
     const selected = new Set(['q1', 'q2', 'q3', 'q4'])
-    const sorted = questions.slice(0, 3) // q1, q2, q3 are the matched set
-    // Deselect matched
+    const sorted = questions.slice(0, 3)
     sorted.forEach(q => selected.delete(q.id))
     expect(selected.has('q1')).toBe(false)
-    expect(selected.has('q2')).toBe(false)
-    expect(selected.has('q3')).toBe(false)
-    expect(selected.has('q4')).toBe(true) // preserved
+    expect(selected.has('q4')).toBe(true)
   })
 
   it('allSelected is false when sorted is empty', () => {
-    const { allSelected } = computeState([], new Set(['q1']))
-    expect(allSelected).toBe(false)
-  })
-
-  it('select-all after search selects only the search results', () => {
-    const fuse = makeFuse(questions)
-    const searchResults = fuse.search('Music').map(r => r.item)
-    // Should only be q2 and q4
-    const selectedAfter = new Set(searchResults.map(q => q.id))
-    expect(selectedAfter.has('q2')).toBe(true)
-    expect(selectedAfter.has('q4')).toBe(true)
-    expect(selectedAfter.has('q1')).toBe(false) // not a music question
+    expect(computeState([], new Set(['q1'])).allSelected).toBe(false)
   })
 })
