@@ -166,6 +166,8 @@ Force pushes and branch deletion are blocked. To apply or re-apply protection:
 bash scripts/protect-master.sh
 ```
 
+> **Note:** `scripts/` is gitignored. Add scripts explicitly with `git add --force scripts/`.
+
 ### Dependabot
 
 Dependencies are updated weekly (Monday 08:00 Sofia time). Patch and minor updates are grouped into a single PR per ecosystem and auto-merged once CI passes. Major bumps require manual review.
