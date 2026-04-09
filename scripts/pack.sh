@@ -96,6 +96,7 @@ ARCHIVE="${OUTPUT_DIR%/}/${ARCHIVE_NAME}.tar.gz"
 EXCLUDES=(
   --exclude='.git'
   --exclude='node_modules'
+  --exclude='archives'
   --exclude='dist'
   --exclude='.vite'
   --exclude='coverage'
