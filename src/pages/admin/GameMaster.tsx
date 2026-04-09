@@ -5,11 +5,13 @@ import AdminLayout from '@/components/AdminLayout'
 import { Button, Badge, TransportPill } from '@/components/ui'
 import { NavHeader } from '@/components/NavHeader'
 import { RoundBoundary } from '@/components/RoundBoundary'
+import { BuzzerPanel } from '@/components/buzzer/BuzzerPanel'
 import { db } from '@/db'
 import { transportManager } from '@/transport'
 import { serialiseGameState, upsertPlayer, markPlayerAway } from '@/pages/admin/gamemaster-utils'
 import { useNavigation } from '@/hooks/useNavigation'
 import { useKeyNav } from '@/hooks/useKeyNav'
+import { useBuzzer } from '@/hooks/useBuzzer'
 import type { Game, Player } from '@/db'
 import type { TransportStatus, TransportType, TransportEvent } from '@/transport/types'
 
@@ -278,16 +280,55 @@ function ActiveGame({ game }: ActiveGameProps) {
   const [boundaryEntry, setBoundaryEntry] = useState<
     import('@/pages/admin/gamemaster-utils').NavEntry | null
   >(null)
-  const [modalOpen] = useState(false) // future modals will set this
+  const [modalOpen] = useState(false)
 
-  // onRoundBoundary is called from inside goNext/goPrev (event-handler context),
-  // so calling setState here is safe — no effect needed.
   const handleBoundary = useCallback((entry: import('@/pages/admin/gamemaster-utils').NavEntry) => {
     setBoundaryEntry(entry)
     setShowBoundary(true)
   }, [])
 
   const { seq, pos, goNext, goPrev, isReady } = useNavigation(game, handleBoundary)
+
+  // Current question ID derived from nav position
+  const currentQuestionId = pos ? (seq[pos.flatIndex]?.questionId ?? null) : null
+
+  const { displayBuzzes, buzzes, toggleLock, adjudicate, clearBuzzes, handleIncomingBuzz } =
+    useBuzzer(game, currentQuestionId)
+
+  // Expose handleIncomingBuzz upward via the onBuzz prop bridge
+  useEffect(() => {
+    // Re-register whenever handleIncomingBuzz identity changes (questionId changed)
+    // The parent GameMaster calls onBuzz which delegates here
+    ;(window as unknown as Record<string, unknown>)['__vkt_handleBuzz'] = handleIncomingBuzz
+  }, [handleIncomingBuzz])
+
+  // Space = toggle buzzer lock (only when no modal open)
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (modalOpen) return
+      if (
+        e.code === 'Space' &&
+        !(e.target instanceof HTMLInputElement) &&
+        !(e.target instanceof HTMLTextAreaElement)
+      ) {
+        e.preventDefault()
+        void toggleLock()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [modalOpen, toggleLock])
+
+  // Clear buzzes when question changes
+  const prevQuestionId = useRef<string | null>(null)
+  useEffect(() => {
+    if (prevQuestionId.current && prevQuestionId.current !== currentQuestionId) {
+      void clearBuzzes(prevQuestionId.current)
+    }
+    prevQuestionId.current = currentQuestionId
+  }, [currentQuestionId, clearBuzzes])
+
+  // Load existing buzzes when question changes is handled inside useBuzzer via questionId dep
 
   useKeyNav({
     onNext: goNext,
@@ -308,7 +349,6 @@ function ActiveGame({ game }: ActiveGameProps) {
 
   return (
     <div className="flex flex-col h-full -mx-8 -my-6" style={{ height: 'calc(100vh - 64px)' }}>
-      {/* Round boundary overlay */}
       {showBoundary && boundaryEntry && (
         <RoundBoundary
           roundName={boundaryEntry.roundName}
@@ -317,21 +357,28 @@ function ActiveGame({ game }: ActiveGameProps) {
         />
       )}
 
-      {/* Navigation header */}
       <NavHeader pos={pos} totalQ={seq.length} onPrev={goPrev} onNext={goNext} />
 
-      {/* Main content area — question display, buzzer, scoring filled in next epics */}
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center" style={{ color: 'var(--color-muted)' }}>
-          <p className="text-lg font-medium mb-1" style={{ color: 'var(--color-ink)' }}>
+      <div className="flex-1 overflow-y-auto px-8 py-6">
+        <div className="max-w-3xl mx-auto flex flex-col gap-6">
+          {/* Question context */}
+          <div style={{ color: 'var(--color-muted)' }} className="text-sm">
             {seq[pos.flatIndex]?.roundName} · Q {pos.questionIdx + 1} of {pos.roundQuestions}
-          </p>
-          <p className="text-xs">
-            Question display, buzzer and scoring panels coming in the next epics.
-          </p>
-          <p className="text-xs mt-1">
-            Use ← → or the buttons above to navigate · {pos.flatIndex + 1} / {seq.length} total
-          </p>
+            <span className="ml-3 text-xs">
+              ({pos.flatIndex + 1} / {seq.length} total)
+            </span>
+          </div>
+
+          {/* Buzzer panel */}
+          <BuzzerPanel
+            game={game}
+            questionId={currentQuestionId}
+            buzzes={buzzes}
+            displayBuzzes={displayBuzzes}
+            onToggleLock={() => void toggleLock()}
+            onAdjudicate={(id, decision) => void adjudicate(id, decision)}
+            onClear={() => currentQuestionId && void clearBuzzes(currentQuestionId)}
+          />
         </div>
       </div>
     </div>
@@ -398,7 +445,7 @@ export default function GameMaster() {
     }
   }, [game?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Subscribe to player JOIN / LEAVE events
+  // Subscribe to player JOIN / LEAVE / BUZZ events
   const handleEvent = useCallback(async (event: TransportEvent) => {
     const g = gameRef.current
     if (!g) return
@@ -426,6 +473,26 @@ export default function GameMaster() {
     if (event.type === 'LEAVE') {
       await db.players.update(event.playerId, { isAway: true })
       setPlayers(prev => markPlayerAway(prev, event.playerId))
+    }
+
+    if (event.type === 'BUZZ') {
+      // Delegate to the ActiveGame's useBuzzer via window bridge
+      const handler = (window as unknown as Record<string, unknown>)['__vkt_handleBuzz'] as
+        | ((p: {
+            playerId: string
+            playerName: string
+            teamId: string | null
+            timestamp: number
+          }) => Promise<void>)
+        | undefined
+      if (handler) {
+        void handler({
+          playerId: event.playerId,
+          playerName: event.playerName,
+          teamId: null, // transport doesn't carry teamId yet; looked up in useBuzzer
+          timestamp: event.timestamp,
+        })
+      }
     }
   }, [])
 
