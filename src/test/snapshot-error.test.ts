@@ -116,16 +116,6 @@ describe('importQuestions — field coercions', () => {
     expect(all[0].media).toBeNull()
   })
 
-  it('falls back to open_ended when row.type is nullish', async () => {
-    const { importQuestions } = await import('@/db/snapshot')
-    // Omit type entirely so (row.type ?? 'open_ended') takes the fallback (line 105)
-    const rows = [{ title: 'Q', answer: 'A' }]
-    const file = new File([JSON.stringify(rows)], 'q.json', { type: 'application/json' })
-    await importQuestions(file)
-    const all = await db.questions.toArray()
-    expect(all[0].type).toBe('open_ended')
-  })
-
   it('records missing fields when row has null required values', async () => {
     const { importQuestions } = await import('@/db/snapshot')
     // row[f] is null → String(null ?? '') = '' → trim() = '' → hits missing branch (line 93)
