@@ -180,7 +180,7 @@ describe('ManageDifficulties', () => {
       const nameInput = await screen.findByPlaceholderText('Name')
       fireEvent.change(nameInput, { target: { value: name } })
       fireEvent.click(screen.getByRole('button', { name: /save/i }))
-      await screen.findByText(name)
+      await waitFor(() => screen.getByText(name))
     }
 
     const all = await db.difficulties.orderBy('order').toArray()
