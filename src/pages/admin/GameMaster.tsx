@@ -13,6 +13,8 @@ import { serialiseGameState, upsertPlayer, markPlayerAway } from '@/pages/admin/
 import { useNavigation } from '@/hooks/useNavigation'
 import { useKeyNav } from '@/hooks/useKeyNav'
 import { useBuzzer } from '@/hooks/useBuzzer'
+import { useTimerList } from '@/hooks/useTimer'
+import { TimerPanel } from '@/components/timer/TimerPanel'
 import type { Game, Player } from '@/db'
 import type { TransportStatus, TransportType, TransportEvent } from '@/transport/types'
 
@@ -296,6 +298,8 @@ function ActiveGame({ game }: ActiveGameProps) {
   const { displayBuzzes, buzzes, toggleLock, adjudicate, clearBuzzes, handleIncomingBuzz } =
     useBuzzer(game, currentQuestionId)
 
+  const timerHook = useTimerList(game.id)
+
   // Expose handleIncomingBuzz upward via the onBuzz prop bridge
   useEffect(() => {
     // Re-register whenever handleIncomingBuzz identity changes (questionId changed)
@@ -380,6 +384,9 @@ function ActiveGame({ game }: ActiveGameProps) {
             onAdjudicate={(id, decision) => void adjudicate(id, decision)}
             onClear={() => currentQuestionId && void clearBuzzes(currentQuestionId)}
           />
+
+          {/* Timers */}
+          <TimerPanel gameId={game.id} hook={timerHook} />
 
           {/* Scoreboard */}
           <ScoreboardPanel game={game} />
