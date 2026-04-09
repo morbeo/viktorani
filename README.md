@@ -46,8 +46,7 @@ npm run dev
 ```
 
 > **Note:** `--legacy-peer-deps` is a temporary workaround while `vite-plugin-pwa` updates
-> its peer dependency range for Vite 8. The `overrides` block in `package.json` pins Vite 8
-> without downgrading. Remove the flag once `vite-plugin-pwa` officially supports Vite 8.
+> its peer dependency range for Vite 8. Remove the flag once resolved.
 
 ### Available scripts
 
@@ -55,17 +54,12 @@ npm run dev
 | ----------------------- | ---------------------------------------------- |
 | `npm run dev`           | Start dev server at `localhost:5173`           |
 | `npm run build`         | Type-check + production build → `dist/`        |
-| `npm run preview`       | Serve the production build locally             |
 | `npm run lint`          | ESLint across all `*.ts` / `*.tsx` files       |
 | `npm run typecheck`     | Type-check app and test files (both tsconfigs) |
 | `npm run test`          | Run unit tests once via Vitest                 |
 | `npm run test:watch`    | Run tests in watch mode                        |
 | `npm run test:coverage` | Run tests with V8 coverage report              |
-| `npm run pack`          | Build a release tarball into `dist/`           |
-| `npm run release`       | Cut a release interactively via `release-it`   |
-| `npm run release:dry`   | Preview the release without making any changes |
-| `npm run release:patch` | Cut a patch release non-interactively (CI)     |
-| `npm run release:minor` | Cut a minor release non-interactively (CI)     |
+| `npm run preview`       | Serve the production build locally             |
 
 ---
 
@@ -146,15 +140,42 @@ restore or share your question bank.
 
 ### Workflows
 
-| Workflow      | Trigger                   | Purpose                                                        |
-| ------------- | ------------------------- | -------------------------------------------------------------- |
-| `ci.yml`      | PRs to `master`           | Type-check, lint, test, build — blocks merge if any step fails |
-| `deploy.yml`  | push to `master` + manual | Type-check → lint → test → build → deploy to GitHub Pages      |
-| `release.yml` | push of `v*` tags         | Build tarball → publish GitHub Release with changelog          |
+| Workflow        | Trigger                   | Purpose                                                                |
+| --------------- | ------------------------- | ---------------------------------------------------------------------- |
+| `ci.yml`        | PRs to `master`           | PR title lint + type-check, lint, test, build — both required to merge |
+| `deploy.yml`    | push to `master` + manual | Type-check → lint → test → build → deploy to GitHub Pages              |
+| `release.yml`   | push of `v*` tags         | Build tarball → generate release notes → publish GitHub Release        |
+| `automerge.yml` | `CI` workflow completes   | Auto-merge Dependabot patch/minor PRs when CI passes                   |
 
 All workflows set `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` to opt into the Node 24 runner ahead of the June 2026 forced migration.
 
-`deploy.yml` only triggers on pushes that touch `src/`, `public/`, `index.html`, `vite.config.ts`, or `package*.json` — unrelated changes (docs, scripts) skip the deploy.
+`deploy.yml` only triggers on pushes that touch `src/`, `public/`, `index.html`, `vite.config.ts`, or `package*.json`, and ignores tag pushes — preventing a collision with `release.yml` when `release-it` bumps the version.
+
+### Branch protection
+
+`master` requires two status checks before merge:
+
+| Check             | What it gates                          |
+| ----------------- | -------------------------------------- |
+| `CI / lint-title` | PR title follows conventional commits  |
+| `CI / ci`         | Type-check, lint, test, build all pass |
+
+Force pushes and branch deletion are blocked. To apply or re-apply protection:
+
+```bash
+bash scripts/protect-master.sh
+```
+
+### Dependabot
+
+Dependencies are updated weekly (Monday 08:00 Sofia time). Patch and minor updates are grouped into a single PR per ecosystem and auto-merged once CI passes. Major bumps require manual review.
+
+Labels used: `dependencies` (npm + Actions), `ci` (Actions only). Create them once:
+
+```bash
+gh label create dependencies --color 0075ca --description "Dependency updates"
+gh label create ci --color e4e669 --description "CI/CD changes"
+```
 
 ### Versioning & releasing
 
@@ -181,9 +202,9 @@ npm run release:minor   # non-interactive minor bump
 2. Bump the version in `package.json`
 3. Build the release tarball via `scripts/pack.sh`
 4. Commit, tag, and push
-5. Create a GitHub Release with the tarball attached
+5. Update `CHANGELOG.md`
 
-Pushing the tag triggers `release.yml`, which builds a fresh tarball and publishes the GitHub Release. `GITHUB_TOKEN` is sufficient — no extra PAT required.
+Pushing the tag triggers `release.yml`, which builds a fresh tarball, generates per-release notes with `git-cliff`, and publishes the GitHub Release. `GITHUB_TOKEN` is sufficient — no extra PAT required.
 
 ---
 
@@ -209,8 +230,6 @@ on GitHub Pages and at `/` in dev.
 ---
 
 ## Testing
-
-**202 unit tests** across five suites, run with [Vitest](https://vitest.dev) + jsdom + Testing Library.
 
 | Suite            | File                       | What it covers                                                                                                                           |
 | ---------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
