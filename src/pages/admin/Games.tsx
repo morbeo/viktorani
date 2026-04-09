@@ -22,6 +22,10 @@ interface WizardState {
   maxPerTeam: number
   allowIndividual: boolean
   passphrase: string
+  // Buzzer config
+  autoLockOnFirstCorrect: boolean
+  allowFalseStarts: boolean
+  buzzDeduplication: 'firstOnly' | 'all'
   // Step 2
   roundMode: 'existing' | 'custom'
   selectedRoundIds: string[]
@@ -40,6 +44,9 @@ function defaultWizard(): WizardState {
     maxPerTeam: 0,
     allowIndividual: true,
     passphrase: generatePassphrase(),
+    autoLockOnFirstCorrect: false,
+    allowFalseStarts: false,
+    buzzDeduplication: 'firstOnly',
     roundMode: 'existing',
     selectedRoundIds: [],
     customRounds: [],
@@ -231,6 +238,50 @@ function Step1({
           </div>
         </div>
       )}
+
+      {/* Buzzer configuration */}
+      <div
+        className="flex flex-col gap-3 rounded-lg border p-3"
+        style={{ borderColor: 'var(--color-border)' }}
+      >
+        <p
+          className="text-xs font-semibold uppercase tracking-wider"
+          style={{ color: 'var(--color-muted)' }}
+        >
+          Buzzer behaviour
+        </p>
+        <Toggle
+          label="Auto-lock after first correct answer"
+          checked={state.autoLockOnFirstCorrect}
+          onChange={v => set('autoLockOnFirstCorrect', v)}
+        />
+        <Toggle
+          label="Record false starts (buzzes before unlock)"
+          checked={state.allowFalseStarts}
+          onChange={v => set('allowFalseStarts', v)}
+        />
+        <div className="flex flex-col gap-1">
+          <span className="text-sm">Buzz display</span>
+          <div className="flex gap-2">
+            {(['firstOnly', 'all'] as const).map(mode => (
+              <button
+                key={mode}
+                onClick={() => set('buzzDeduplication', mode)}
+                className="px-3 py-1.5 rounded text-xs font-medium border transition-all"
+                style={{
+                  borderColor:
+                    state.buzzDeduplication === mode ? 'var(--color-ink)' : 'var(--color-border)',
+                  background: state.buzzDeduplication === mode ? 'var(--color-ink)' : 'transparent',
+                  color:
+                    state.buzzDeduplication === mode ? 'var(--color-cream)' : 'var(--color-muted)',
+                }}
+              >
+                {mode === 'firstOnly' ? 'First buzz per player' : 'All attempts'}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -524,7 +575,6 @@ function GameWizard({
         transportMode: state.transportMode,
         roomId: generateRoomId(),
         passphrase: state.transportMode !== 'peer' ? state.passphrase : null,
-        scoringEnabled: state.scoringEnabled,
         showQuestion: state.showQuestion,
         showAnswers: state.showAnswers,
         showMedia: state.showMedia,
@@ -535,6 +585,11 @@ function GameWizard({
         currentRoundIdx: 0,
         currentQuestionIdx: 0,
         buzzerLocked: true,
+        scoringEnabled: state.scoringEnabled,
+        autoLockOnFirstCorrect: state.autoLockOnFirstCorrect,
+        allowFalseStarts: state.allowFalseStarts,
+        buzzDeduplication: state.buzzDeduplication,
+        tiebreakerMode: 'serverOrder' as const,
         createdAt: now,
         updatedAt: now,
       }
