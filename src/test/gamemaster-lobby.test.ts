@@ -28,6 +28,10 @@ const BASE_GAME: Game = {
   currentRoundIdx: 0,
   currentQuestionIdx: 0,
   buzzerLocked: true,
+  autoLockOnFirstCorrect: false,
+  allowFalseStarts: false,
+  buzzDeduplication: 'firstOnly' as const,
+  tiebreakerMode: 'serverOrder' as const,
   createdAt: 1000,
   updatedAt: 1000,
 }
