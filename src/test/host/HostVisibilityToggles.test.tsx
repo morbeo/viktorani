@@ -35,6 +35,10 @@ const GAME: Game = {
   currentRoundIdx: 0,
   currentQuestionIdx: 0,
   buzzerLocked: false,
+  autoLockOnFirstCorrect: false,
+  allowFalseStarts: false,
+  buzzDeduplication: 'firstOnly' as const,
+  tiebreakerMode: 'serverOrder' as const,
   createdAt: 0,
   updatedAt: 0,
 }

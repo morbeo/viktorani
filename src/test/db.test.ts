@@ -210,6 +210,10 @@ describe('DB schema', () => {
       currentRoundIdx: 0,
       currentQuestionIdx: 0,
       buzzerLocked: true,
+      autoLockOnFirstCorrect: false,
+      allowFalseStarts: false,
+      buzzDeduplication: 'firstOnly',
+      tiebreakerMode: 'serverOrder',
       createdAt: Date.now(),
       updatedAt: Date.now(),
     })
@@ -245,6 +249,10 @@ describe('DB schema', () => {
       currentRoundIdx: 0,
       currentQuestionIdx: 0,
       buzzerLocked: true,
+      autoLockOnFirstCorrect: false,
+      allowFalseStarts: false,
+      buzzDeduplication: 'firstOnly' as const,
+      tiebreakerMode: 'serverOrder' as const,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     }
@@ -278,9 +286,42 @@ describe('DB schema', () => {
 
   it('orders buzz events by timestamp', async () => {
     await db.buzzEvents.bulkAdd([
-      { id: 'b1', gameId: 'g1', playerId: 'p1', questionId: 'q1', timestamp: 1000, correct: null },
-      { id: 'b2', gameId: 'g1', playerId: 'p2', questionId: 'q1', timestamp: 1050, correct: null },
-      { id: 'b3', gameId: 'g1', playerId: 'p3', questionId: 'q1', timestamp: 900, correct: null },
+      {
+        id: 'b1',
+        gameId: 'g1',
+        questionId: 'q1',
+        playerId: 'p1',
+        playerName: 'Alice',
+        teamId: null,
+        timestamp: 1000,
+        isFalseStart: false,
+        gmDecision: null,
+        decidedAt: null,
+      },
+      {
+        id: 'b2',
+        gameId: 'g1',
+        questionId: 'q1',
+        playerId: 'p2',
+        playerName: 'Bob',
+        teamId: null,
+        timestamp: 1050,
+        isFalseStart: false,
+        gmDecision: null,
+        decidedAt: null,
+      },
+      {
+        id: 'b3',
+        gameId: 'g1',
+        questionId: 'q1',
+        playerId: 'p3',
+        playerName: 'Carol',
+        teamId: null,
+        timestamp: 900,
+        isFalseStart: false,
+        gmDecision: null,
+        decidedAt: null,
+      },
     ])
     const events = await db.buzzEvents.orderBy('timestamp').toArray()
     expect(events.map(e => e.timestamp)).toEqual([900, 1000, 1050])
@@ -452,6 +493,10 @@ describe('importDatabase', () => {
       currentRoundIdx: 0,
       currentQuestionIdx: 0,
       buzzerLocked: true,
+      autoLockOnFirstCorrect: false,
+      allowFalseStarts: false,
+      buzzDeduplication: 'firstOnly' as const,
+      tiebreakerMode: 'serverOrder' as const,
       createdAt: now,
       updatedAt: now,
     }
