@@ -7,15 +7,21 @@ import { exportDatabase, importDatabase } from '@/db/snapshot'
 
 interface Stats {
   questions: number
-  rounds:    number
-  games:     number
-  notes:     number
-  active:    number
+  rounds: number
+  games: number
+  notes: number
+  active: number
 }
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const [stats, setStats] = useState<Stats>({ questions: 0, rounds: 0, games: 0, notes: 0, active: 0 })
+  const [stats, setStats] = useState<Stats>({
+    questions: 0,
+    rounds: 0,
+    games: 0,
+    notes: 0,
+    active: 0,
+  })
   const [importing, setImporting] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
 
@@ -42,7 +48,10 @@ export default function Dashboard() {
       setMsg('Import successful')
       setTimeout(() => setMsg(null), 3000)
       const [questions, rounds, games, notes] = await Promise.all([
-        db.questions.count(), db.rounds.count(), db.games.count(), db.notes.count(),
+        db.questions.count(),
+        db.rounds.count(),
+        db.games.count(),
+        db.notes.count(),
       ])
       setStats(s => ({ ...s, questions, rounds, games, notes }))
     } catch (err) {
@@ -55,9 +64,9 @@ export default function Dashboard() {
 
   const statCards = [
     { label: 'Questions', value: stats.questions, icon: '?', to: '/admin/questions' },
-    { label: 'Rounds',    value: stats.rounds,    icon: '◎', to: '/admin/questions' },
-    { label: 'Games',     value: stats.games,     icon: '▶', to: '/admin/games' },
-    { label: 'Notes',     value: stats.notes,     icon: '✎', to: '/admin/notes' },
+    { label: 'Rounds', value: stats.rounds, icon: '◎', to: '/admin/questions' },
+    { label: 'Games', value: stats.games, icon: '▶', to: '/admin/games' },
+    { label: 'Notes', value: stats.notes, icon: '✎', to: '/admin/notes' },
   ]
 
   return (
@@ -78,7 +87,9 @@ export default function Dashboard() {
         >
           <div className="flex items-center gap-3">
             <span className="text-xl">▶</span>
-            <span className="font-semibold">{stats.active} game{stats.active > 1 ? 's' : ''} currently active</span>
+            <span className="font-semibold">
+              {stats.active} game{stats.active > 1 ? 's' : ''} currently active
+            </span>
           </div>
           <Button variant="primary" size="sm" onClick={() => navigate('/admin/games')}>
             Go to Games
@@ -87,7 +98,10 @@ export default function Dashboard() {
       )}
 
       {/* Stat grid */}
-      <div className="grid grid-cols-2 gap-4 mb-10" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+      <div
+        className="grid grid-cols-2 gap-4 mb-10"
+        style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}
+      >
         {statCards.map(({ label, value, icon, to }) => (
           <button
             key={label}
@@ -99,7 +113,9 @@ export default function Dashboard() {
             <div className="text-3xl font-black" style={{ fontFamily: 'Playfair Display, serif' }}>
               {value}
             </div>
-            <div className="text-sm mt-1" style={{ color: 'var(--color-muted)' }}>{label}</div>
+            <div className="text-sm mt-1" style={{ color: 'var(--color-muted)' }}>
+              {label}
+            </div>
           </button>
         ))}
       </div>
@@ -143,13 +159,28 @@ export default function Dashboard() {
           </p>
           <label
             className="inline-flex items-center justify-center gap-2 font-medium rounded transition-all cursor-pointer px-4 py-2 text-sm border"
-            style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink)', background: 'transparent' }}
+            style={{
+              borderColor: 'var(--color-border)',
+              color: 'var(--color-ink)',
+              background: 'transparent',
+            }}
           >
             {importing ? 'Importing…' : 'Import JSON'}
-            <input type="file" accept=".json" className="sr-only" onChange={handleImport} disabled={importing} />
+            <input
+              type="file"
+              accept=".json"
+              className="sr-only"
+              onChange={handleImport}
+              disabled={importing}
+            />
           </label>
           {msg && (
-            <p className="text-xs mt-2" style={{ color: msg.startsWith('Import failed') ? 'var(--color-red)' : 'var(--color-green)' }}>
+            <p
+              className="text-xs mt-2"
+              style={{
+                color: msg.startsWith('Import failed') ? 'var(--color-red)' : 'var(--color-green)',
+              }}
+            >
               {msg}
             </p>
           )}

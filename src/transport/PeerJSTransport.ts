@@ -5,17 +5,21 @@ import type { ITransport, TransportConfig, TransportEvent, TransportStatus } fro
 const PREFIX = 'vkt-'
 
 export class PeerJSTransport implements ITransport {
-  private peer:        Peer | null = null
+  private peer: Peer | null = null
   private connections: Map<string, DataConnection> = new Map()
-  private handlers:    Array<(e: TransportEvent) => void> = []
-  private _status:     TransportStatus = 'idle'
-  private role:        'host' | 'player' = 'host'
+  private handlers: Array<(e: TransportEvent) => void> = []
+  private _status: TransportStatus = 'idle'
+  private role: 'host' | 'player' = 'host'
 
-  get status()        { return this._status }
-  get transportType() { return 'peer' as const }
+  get status() {
+    return this._status
+  }
+  get transportType() {
+    return 'peer' as const
+  }
 
   async connect(config: TransportConfig): Promise<void> {
-    this.role    = config.role
+    this.role = config.role
     this._status = 'connecting'
 
     return new Promise((resolve, reject) => {
@@ -40,12 +44,12 @@ export class PeerJSTransport implements ITransport {
         resolve()
       })
 
-      this.peer.on('connection', (conn) => {
+      this.peer.on('connection', conn => {
         // Host receives player connections
         this.setupConnection(conn)
       })
 
-      this.peer.on('error', (err) => {
+      this.peer.on('error', err => {
         clearTimeout(timeout)
         this._status = 'error'
         reject(err)
@@ -62,7 +66,7 @@ export class PeerJSTransport implements ITransport {
       this.connections.set(conn.peer, conn)
     })
 
-    conn.on('data', (data) => {
+    conn.on('data', data => {
       const event = data as TransportEvent
       this.handlers.forEach(h => h(event))
     })
@@ -76,7 +80,7 @@ export class PeerJSTransport implements ITransport {
     this.connections.forEach(c => c.close())
     this.connections.clear()
     this.peer?.destroy()
-    this.peer    = null
+    this.peer = null
     this._status = 'disconnected'
   }
 

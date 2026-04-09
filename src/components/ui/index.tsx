@@ -3,21 +3,22 @@ import type { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes } from 'react
 // ── Button ────────────────────────────────────────────────────────────────────
 
 type BtnVariant = 'primary' | 'secondary' | 'danger' | 'ghost'
-type BtnSize    = 'sm' | 'md' | 'lg'
+type BtnSize = 'sm' | 'md' | 'lg'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: BtnVariant
-  size?:    BtnSize
+  size?: BtnSize
   children: ReactNode
 }
 
-const btnBase = 'inline-flex items-center justify-center gap-2 font-medium rounded transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+const btnBase =
+  'inline-flex items-center justify-center gap-2 font-medium rounded transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
 
 const btnVariants: Record<BtnVariant, string> = {
-  primary:   'text-white',
+  primary: 'text-white',
   secondary: 'border',
-  danger:    'text-white',
-  ghost:     'hover:bg-black/5',
+  danger: 'text-white',
+  ghost: 'hover:bg-black/5',
 }
 
 const btnSizes: Record<BtnSize, string> = {
@@ -27,13 +28,23 @@ const btnSizes: Record<BtnSize, string> = {
 }
 
 const btnStyles: Record<BtnVariant, React.CSSProperties> = {
-  primary:   { background: 'var(--color-ink)', color: 'var(--color-cream)' },
-  secondary: { borderColor: 'var(--color-border)', color: 'var(--color-ink)', background: 'transparent' },
-  danger:    { background: 'var(--color-red)', color: '#fff' },
-  ghost:     { color: 'var(--color-muted)', background: 'transparent' },
+  primary: { background: 'var(--color-ink)', color: 'var(--color-cream)' },
+  secondary: {
+    borderColor: 'var(--color-border)',
+    color: 'var(--color-ink)',
+    background: 'transparent',
+  },
+  danger: { background: 'var(--color-red)', color: '#fff' },
+  ghost: { color: 'var(--color-muted)', background: 'transparent' },
 }
 
-export function Button({ variant = 'secondary', size = 'md', children, style, ...props }: ButtonProps) {
+export function Button({
+  variant = 'secondary',
+  size = 'md',
+  children,
+  style,
+  ...props
+}: ButtonProps) {
   return (
     <button
       className={`${btnBase} ${btnVariants[variant]} ${btnSizes[size]}`}
@@ -49,15 +60,19 @@ export function Button({ variant = 'secondary', size = 'md', children, style, ..
 
 interface BadgeProps {
   children: ReactNode
-  color?:   string
-  style?:   React.CSSProperties
+  color?: string
+  style?: React.CSSProperties
 }
 
 export function Badge({ children, color, style }: BadgeProps) {
   return (
     <span
       className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
-      style={{ background: color ?? 'var(--color-gold-light)', color: 'var(--color-ink)', ...style }}
+      style={{
+        background: color ?? 'var(--color-gold-light)',
+        color: 'var(--color-ink)',
+        ...style,
+      }}
     >
       {children}
     </span>
@@ -67,9 +82,9 @@ export function Badge({ children, color, style }: BadgeProps) {
 // ── Card ──────────────────────────────────────────────────────────────────────
 
 interface CardProps {
-  children:  ReactNode
+  children: ReactNode
   className?: string
-  style?:    React.CSSProperties
+  style?: React.CSSProperties
 }
 
 export function Card({ children, className = '', style }: CardProps) {
@@ -102,8 +117,8 @@ export function Input({ label, id, className = '', style, ...props }: InputProps
         className={`px-3 py-2 rounded border text-sm outline-none transition-all ${className}`}
         style={{
           borderColor: 'var(--color-border)',
-          background:  'var(--color-cream)',
-          color:       'var(--color-ink)',
+          background: 'var(--color-cream)',
+          color: 'var(--color-ink)',
           ...style,
         }}
         {...props}
@@ -131,9 +146,9 @@ export function Textarea({ label, id, className = '', style, ...props }: Textare
         className={`px-3 py-2 rounded border text-sm outline-none resize-y transition-all ${className}`}
         style={{
           borderColor: 'var(--color-border)',
-          background:  'var(--color-cream)',
-          color:       'var(--color-ink)',
-          minHeight:   120,
+          background: 'var(--color-cream)',
+          color: 'var(--color-ink)',
+          minHeight: 120,
           ...style,
         }}
         {...props}
@@ -145,8 +160,8 @@ export function Textarea({ label, id, className = '', style, ...props }: Textare
 // ── Select ────────────────────────────────────────────────────────────────────
 
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
-  label?:   string
-  options:  { value: string; label: string }[]
+  label?: string
+  options: { value: string; label: string }[]
 }
 
 export function Select({ label, id, options, className = '', style, ...props }: SelectProps) {
@@ -162,14 +177,16 @@ export function Select({ label, id, options, className = '', style, ...props }: 
         className={`px-3 py-2 rounded border text-sm outline-none ${className}`}
         style={{
           borderColor: 'var(--color-border)',
-          background:  'var(--color-cream)',
-          color:       'var(--color-ink)',
+          background: 'var(--color-cream)',
+          color: 'var(--color-ink)',
           ...style,
         }}
         {...props}
       >
         {options.map(o => (
-          <option key={o.value} value={o.value}>{o.label}</option>
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
         ))}
       </select>
     </div>
@@ -179,10 +196,10 @@ export function Select({ label, id, options, className = '', style, ...props }: 
 // ── Modal ─────────────────────────────────────────────────────────────────────
 
 interface ModalProps {
-  open:      boolean
-  onClose:   () => void
-  title?:    string
-  children:  ReactNode
+  open: boolean
+  onClose: () => void
+  title?: string
+  children: ReactNode
   maxWidth?: string
 }
 
@@ -198,15 +215,26 @@ export function Modal({ open, onClose, title, children, maxWidth = '480px' }: Mo
         className="w-full rounded-xl border shadow-2xl"
         style={{
           maxWidth,
-          background:   'var(--color-cream)',
-          borderColor:  'var(--color-border)',
+          background: 'var(--color-cream)',
+          borderColor: 'var(--color-border)',
         }}
         onClick={e => e.stopPropagation()}
       >
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
-            <h3 className="text-lg font-bold" style={{ fontFamily: 'Playfair Display, serif' }}>{title}</h3>
-            <button onClick={onClose} className="text-xl leading-none hover:opacity-60 transition-opacity" style={{ color: 'var(--color-muted)' }}>×</button>
+          <div
+            className="flex items-center justify-between px-6 py-4 border-b"
+            style={{ borderColor: 'var(--color-border)' }}
+          >
+            <h3 className="text-lg font-bold" style={{ fontFamily: 'Playfair Display, serif' }}>
+              {title}
+            </h3>
+            <button
+              onClick={onClose}
+              className="text-xl leading-none hover:opacity-60 transition-opacity"
+              style={{ color: 'var(--color-muted)' }}
+            >
+              ×
+            </button>
           </div>
         )}
         <div className="p-6">{children}</div>
@@ -221,7 +249,9 @@ export function Empty({ icon = '○', message }: { icon?: string; message: strin
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
       <span className="text-4xl opacity-30">{icon}</span>
-      <p className="text-sm" style={{ color: 'var(--color-muted)' }}>{message}</p>
+      <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
+        {message}
+      </p>
     </div>
   )
 }
@@ -231,10 +261,25 @@ export function Empty({ icon = '○', message }: { icon?: string; message: strin
 import type { TransportStatus, TransportType } from '@/transport/types'
 
 export function TransportPill({ status, type }: { status: TransportStatus; type: TransportType }) {
-  const color = status === 'connected' ? 'var(--color-green)' : status === 'connecting' ? 'var(--color-gold)' : 'var(--color-muted)'
-  const label = status === 'connected' ? type === 'peer' ? 'PeerJS' : 'Gun.js' : status === 'connecting' ? 'Connecting…' : 'Offline'
+  const color =
+    status === 'connected'
+      ? 'var(--color-green)'
+      : status === 'connecting'
+        ? 'var(--color-gold)'
+        : 'var(--color-muted)'
+  const label =
+    status === 'connected'
+      ? type === 'peer'
+        ? 'PeerJS'
+        : 'Gun.js'
+      : status === 'connecting'
+        ? 'Connecting…'
+        : 'Offline'
   return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium mono border" style={{ borderColor: color, color }}>
+    <span
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium mono border"
+      style={{ borderColor: color, color }}
+    >
       <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: color }} />
       {label}
     </span>

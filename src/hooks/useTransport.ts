@@ -4,7 +4,7 @@ import type { TransportStatus, TransportType, TransportEvent } from '@/transport
 
 export function useTransport() {
   const [status, setStatus] = useState<TransportStatus>(transportManager.status)
-  const [type,   setType]   = useState<TransportType>(transportManager.transportType)
+  const [type, setType] = useState<TransportType>(transportManager.transportType)
 
   useEffect(() => {
     return transportManager.onStatusChange((s, t) => {
