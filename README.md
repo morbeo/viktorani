@@ -41,12 +41,9 @@ No backend — runs entirely in the browser.
 ```bash
 git clone https://github.com/morbeo/viktorani.git
 cd viktorani
-npm install --legacy-peer-deps   # legacy flag needed until vite-plugin-pwa supports Vite 8
+npm install
 npm run dev
 ```
-
-> **Note:** `--legacy-peer-deps` is a temporary workaround while `vite-plugin-pwa` updates
-> its peer dependency range for Vite 8. Remove the flag once resolved.
 
 ### Available scripts
 
@@ -60,6 +57,11 @@ npm run dev
 | `npm run test:watch`    | Run tests in watch mode                        |
 | `npm run test:coverage` | Run tests with V8 coverage report              |
 | `npm run preview`       | Serve the production build locally             |
+| `npm run pack`          | Build release tarball via `scripts/pack.sh`    |
+| `npm run release:dry`   | Preview release — no changes made              |
+| `npm run release`       | Interactive release: choose version, tag, push |
+| `npm run release:patch` | Non-interactive patch bump                     |
+| `npm run release:minor` | Non-interactive minor bump                     |
 
 ---
 
@@ -68,7 +70,7 @@ npm run dev
 ```
 src/
 ├── db/
-│   ├── index.ts          # Dexie schema — all 14 collections
+│   ├── index.ts          # Dexie schema — all collections
 │   └── snapshot.ts       # JSON export / import
 ├── transport/
 │   ├── types.ts          # GameEvent / PlayerEvent interfaces
@@ -76,9 +78,15 @@ src/
 │   ├── GunTransport.ts   # SEA-encrypted Gun.js relay
 │   └── index.ts          # TransportManager — auto-detect + manual override
 ├── hooks/
-│   └── useTransport.ts
+│   ├── useTransport.ts
+│   ├── useBuzzer.ts
+│   ├── useGameVisibility.ts
+│   ├── useScoreboard.ts
+│   └── useTimer.ts
 ├── components/
 │   ├── AdminLayout.tsx
+│   ├── host/             # HostQuestionPanel and sub-components
+│   ├── timer/            # TimerPanel, TimerCard, CreateTimerModal
 │   └── ui/index.tsx      # Button, Card, Input, Modal, Badge…
 ├── pages/
 │   ├── admin/            # Dashboard, Questions, Games, GameMaster, Layouts, Notes, Settings
@@ -87,9 +95,14 @@ src/
 │   ├── setup.ts          # jsdom polyfills (fake-indexeddb, URL mocks)
 │   ├── transport.test.ts
 │   ├── db.test.ts
+│   ├── db-migration.test.ts
 │   ├── ui.test.tsx
 │   ├── routing.test.tsx
-│   └── questions-search.test.ts
+│   ├── questions-search.test.ts
+│   ├── settings.test.tsx
+│   ├── host/             # HostQuestionPanel component tests
+│   ├── buzzer.test.ts
+│   └── timer/            # Timer hook and component tests
 └── App.tsx               # HashRouter + all routes
 
 public/
@@ -128,7 +141,7 @@ large on the Game Master screen so the host can read it aloud if QR scanning fai
 All data lives in **IndexedDB** (via Dexie.js) on the host device. Nothing is sent to
 any server.
 
-**Collections:** categories, difficulties, tags, questions, rounds, games, teams, players,
+**Collections:** difficulties, tags, questions, rounds, games, teams, players,
 buzzEvents, layouts, widgets, notes, timers, gameQuestions.
 
 **Backup:** export a full JSON snapshot from the Dashboard. Import it on any device to
@@ -233,21 +246,15 @@ on GitHub Pages and at `/` in dev.
 
 ## Testing
 
-| Suite            | File                       | What it covers                                                                                                                           |
-| ---------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Transport        | `transport.test.ts`        | `generatePassphrase`, `generateRoomId`, `TransportManager` (all modes, fallback, events, listeners)                                      |
-| Database         | `db.test.ts`               | `seedDefaults` (idempotency, guard, seed values), schema CRUD, indexes, snapshot import/export, question bulk import/export              |
-| UI components    | `ui.test.tsx`              | Button, Badge, Card, Input, Textarea, Select, Modal, Empty, TransportPill                                                                |
-| Routing          | `routing.test.tsx`         | All routes render the correct page, unknown routes redirect to `/admin`                                                                  |
-| Questions search | `questions-search.test.ts` | Fuzzy search across all fields (title, answer, options, category, difficulty, tags, description), hard filters, select-all matched logic |
-
-Tests run on every commit locally (pre-commit hook) and on every push to `master` (deploy workflow gate).
+Tests are organised by feature area under `src/test/`. Run them with:
 
 ```bash
 npm run test            # run once
 npm run test:watch      # watch mode during development
 npm run test:coverage   # coverage report → coverage/lcov.info
 ```
+
+Tests run on every commit locally (pre-commit hook) and on every push to `master` (deploy workflow gate).
 
 Two tsconfigs keep app and test types separate:
 
@@ -264,6 +271,12 @@ Two tsconfigs keep app and test types separate:
 4. PR title must pass conventional commit lint (checked by `pr-title.yml`)
 5. Open PR against `master`
 
+### Commit types
+
+`feat` · `fix` · `refactor` · `perf` · `test` · `docs` · `ci` · `chore` · `build` · `epic`
+
+> `epic` is used as the type on PR-level commits that close a multi-subtask issue.
+
 ### Commit scopes
 
-`admin` · `player` · `transport` · `db` · `ui` · `pwa` · `deps` · `release`
+`admin` · `player` · `gamemaster` · `transport` · `db` · `ui` · `routing` · `pwa` · `build` · `deps` · `release` · `test` · `lint` · `github`
