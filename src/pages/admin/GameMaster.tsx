@@ -6,6 +6,7 @@ import { Button, Badge, TransportPill } from '@/components/ui'
 import { NavHeader } from '@/components/NavHeader'
 import { RoundBoundary } from '@/components/RoundBoundary'
 import { BuzzerPanel } from '@/components/buzzer/BuzzerPanel'
+import { ScoreboardPanel } from '@/components/scoreboard/ScoreboardPanel'
 import { db } from '@/db'
 import { transportManager } from '@/transport'
 import { serialiseGameState, upsertPlayer, markPlayerAway } from '@/pages/admin/gamemaster-utils'
@@ -379,6 +380,9 @@ function ActiveGame({ game }: ActiveGameProps) {
             onAdjudicate={(id, decision) => void adjudicate(id, decision)}
             onClear={() => currentQuestionId && void clearBuzzes(currentQuestionId)}
           />
+
+          {/* Scoreboard */}
+          <ScoreboardPanel game={game} />
         </div>
       </div>
     </div>
