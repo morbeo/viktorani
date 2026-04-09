@@ -6,6 +6,9 @@ export type QuestionType = 'multiple_choice' | 'true_false' | 'open_ended'
 export type Difficulty = 'easy' | 'medium' | 'hard' | string
 export type GameStatus = 'waiting' | 'active' | 'paused' | 'ended'
 export type TransportMode = 'auto' | 'peer' | 'gun'
+export type GmDecision = 'Correct' | 'Incorrect' | 'Skip'
+export type BuzzDeduplication = 'firstOnly' | 'all'
+export type TiebreakerMode = 'serverOrder'
 export type WidgetType =
   | 'buzzer'
   | 'question'
@@ -68,17 +71,27 @@ export interface Game {
   transportMode: TransportMode
   roomId: string | null
   passphrase: string | null // Gun.js SEA encryption
-  scoringEnabled: boolean
+  // Visibility
   showQuestion: boolean
   showAnswers: boolean
   showMedia: boolean
+  // Players / teams
   maxTeams: number // 0 = unlimited
   maxPerTeam: number // 0 = unlimited
   allowIndividual: boolean
+  // Rounds / navigation
   roundIds: string[]
   currentRoundIdx: number
   currentQuestionIdx: number
+  // Buzzer state
   buzzerLocked: boolean
+  // Buzzer configuration
+  scoringEnabled: boolean
+  autoLockOnFirstCorrect: boolean
+  allowFalseStarts: boolean
+  buzzDeduplication: BuzzDeduplication
+  tiebreakerMode: TiebreakerMode
+  // Timestamps
   createdAt: number
   updatedAt: number
 }
@@ -105,10 +118,16 @@ export interface Player {
 export interface BuzzEvent {
   id: string
   gameId: string
-  playerId: string
   questionId: string
-  timestamp: number // microsecond precision
-  correct: boolean | null
+  playerId: string
+  playerName: string
+  teamId: string | null
+  /** microsecond precision via performance.now() offset from Date.now() */
+  timestamp: number
+  /** true when buzz arrived before buzzerLocked was cleared */
+  isFalseStart: boolean
+  gmDecision: GmDecision | null
+  decidedAt: number | null
 }
 
 export interface Layout {
@@ -220,6 +239,45 @@ class ViktoraniDB extends Dexie {
           .toCollection()
           .modify((q: Record<string, unknown>) => {
             delete q['categoryId']
+          })
+      })
+
+    // v4: full BuzzEvent schema + buzzer config back-fill on Game records
+    this.version(4)
+      .stores({
+        difficulties: 'id, name, order',
+        tags: 'id, name',
+        questions: 'id, difficulty, type, createdAt',
+        rounds: 'id, createdAt',
+        games: 'id, status, createdAt',
+        teams: 'id, gameId',
+        players: 'id, gameId, teamId, deviceId',
+        buzzEvents: 'id, gameId, playerId, questionId, timestamp',
+        layouts: 'id, gameId, target',
+        widgets: 'id, layoutId, order',
+        notes: 'id, name, createdAt, updatedAt',
+        timers: 'id, gameId',
+        gameQuestions: 'id, gameId, roundId, order',
+      })
+      .upgrade(async tx => {
+        await tx
+          .table('games')
+          .toCollection()
+          .modify((g: Record<string, unknown>) => {
+            if (g['autoLockOnFirstCorrect'] === undefined) g['autoLockOnFirstCorrect'] = false
+            if (g['allowFalseStarts'] === undefined) g['allowFalseStarts'] = false
+            if (g['buzzDeduplication'] === undefined) g['buzzDeduplication'] = 'firstOnly'
+            if (g['tiebreakerMode'] === undefined) g['tiebreakerMode'] = 'serverOrder'
+          })
+        await tx
+          .table('buzzEvents')
+          .toCollection()
+          .modify((b: Record<string, unknown>) => {
+            if (b['playerName'] === undefined) b['playerName'] = 'Unknown'
+            if (b['teamId'] === undefined) b['teamId'] = null
+            if (b['isFalseStart'] === undefined) b['isFalseStart'] = false
+            if (b['gmDecision'] === undefined) b['gmDecision'] = null
+            if (b['decidedAt'] === undefined) b['decidedAt'] = null
           })
       })
   }
