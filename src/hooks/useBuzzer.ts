@@ -92,12 +92,25 @@ export function useBuzzer(game: Game, questionId: string | null): UseBuzzerResul
       )
 
       if (decision === 'Correct') {
-        // Increment score on the player
-        const buzz = buzzes.find(b => b.id === buzzId)
+        // Read the buzz from DB to avoid closing over React state
+        const buzz = await db.buzzEvents.get(buzzId)
         if (buzz && g.scoringEnabled) {
           const player = await db.players.get(buzz.playerId)
           if (player) {
-            const newScore = player.score + 1
+            // Resolve score increment from question difficulty; fall back to 1
+            let increment = 1
+            const qId = questionId
+            if (qId) {
+              const gq = await db.gameQuestions.where('questionId').equals(qId).first()
+              if (gq) {
+                const question = await db.questions.get(gq.questionId)
+                if (question?.difficulty) {
+                  const diff = await db.difficulties.get(question.difficulty)
+                  if (diff) increment = diff.score
+                }
+              }
+            }
+            const newScore = player.score + increment
             await db.players.update(buzz.playerId, { score: newScore })
 
             // Broadcast updated scores
@@ -114,7 +127,7 @@ export function useBuzzer(game: Game, questionId: string | null): UseBuzzerResul
         }
       }
     },
-    [buzzes]
+    [questionId]
   )
 
   // ── Clear ────────────────────────────────────────────────────────────────
