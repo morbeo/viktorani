@@ -11,6 +11,18 @@ import type {
 export type { TransportConfig, TransportEvent, TransportStatus, TransportType }
 export type { GameEvent, PlayerEvent, SerializedGameState } from './types'
 
+// ── Secure random helper ──────────────────────────────────────────────────────
+
+/**
+ * Returns a cryptographically secure random integer in [0, max).
+ * Uses crypto.getRandomValues() — available in all modern browsers and Node ≥ 15.
+ */
+function secureRandomInt(max: number): number {
+  const array = new Uint32Array(1)
+  crypto.getRandomValues(array)
+  return array[0] % max
+}
+
 // ── Passphrase generator ──────────────────────────────────────────────────────
 
 const WORDS = [
@@ -47,14 +59,12 @@ const WORDS = [
 ]
 
 export function generatePassphrase(wordCount = 4): string {
-  return Array.from(
-    { length: wordCount },
-    () => WORDS[Math.floor(Math.random() * WORDS.length)]
-  ).join('-')
+  return Array.from({ length: wordCount }, () => WORDS[secureRandomInt(WORDS.length)]).join('-')
 }
 
 export function generateRoomId(): string {
-  return Math.random().toString(36).slice(2, 8).toUpperCase()
+  const CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  return Array.from({ length: 6 }, () => CHARS[secureRandomInt(CHARS.length)]).join('')
 }
 
 // ── Manager ───────────────────────────────────────────────────────────────────

@@ -77,7 +77,9 @@ export class GunTransport implements ITransport {
     if (!this.room || !this.passphrase) return
     const sharedSecret = await SEA.work(this.passphrase, this.room._.get.split(':')[1])
     const encrypted = await SEA.encrypt(JSON.stringify(event), sharedSecret)
-    const key = `${Date.now()}-${Math.random().toString(36).slice(2)}`
+    const keyBytes = new Uint32Array(1)
+    crypto.getRandomValues(keyBytes)
+    const key = `${Date.now()}-${keyBytes[0].toString(36)}`
     this.room.get('events').get(key).put(encrypted)
   }
 
