@@ -434,37 +434,39 @@ describe('PeerJSTransport', () => {
     const t = new PeerJSTransport()
 
     const connectPromise = t.connect(PEER_PLAYER_CONFIG)
+    await Promise.resolve() // let new Peer() register handlers
+
+    // Grab the MockDataConnection created by mock's connect() inside the 'open' handler.
+    // We need to emit 'open' on the Peer first, which triggers connect() internally.
+    // Intercept connect() to capture the returned MockDataConnection.
     const peer = MockPeer.lastInstance as unknown as {
       emit(e: string, ...a: unknown[]): void
-      connect(id: string): {
-        on: ReturnType<typeof vi.fn>
+      connect: (id: string) => {
+        emit(e: string, ...a: unknown[]): void
         send: ReturnType<typeof vi.fn>
+        on: (e: string, h: (...a: unknown[]) => void) => void
         open: boolean
-        peer: string
       }
     }
 
-    // Grab the connection created inside connect() for the player role
-    const hostConn = { peer: 'vkt-ROOM1', open: true, send: vi.fn(), on: vi.fn(), close: vi.fn() }
-    // Monkey-patch peer.connect to return our controlled conn before open fires
-    const origConnect = (
-      MockPeer.lastInstance as unknown as { connect: (...a: unknown[]) => unknown }
-    ).connect
-    ;(MockPeer.lastInstance as unknown as { connect: (...a: unknown[]) => unknown }).connect = () =>
-      hostConn
+    let capturedConn: ReturnType<typeof peer.connect> | null = null
+    const origConnect = peer.connect.bind(peer)
+    peer.connect = (id: string) => {
+      capturedConn = origConnect(id)
+      return capturedConn
+    }
 
     peer.emit('open')
     await connectPromise
 
-    // Fire open on the host connection so it is stored
-    hostConn.on.mock.calls.find((args: unknown[]) => args[0] === 'open')?.[1]?.()
+    // capturedConn is the MockDataConnection — fire its 'open' so it's stored
+    expect(capturedConn).not.toBeNull()
+    capturedConn!.emit('open')
 
     const event: TransportEvent = { type: 'BUZZER_UNLOCK' }
     t.send(event)
 
-    expect(hostConn.send).toHaveBeenCalledWith(event)
-    ;(MockPeer.lastInstance as unknown as { connect: (...a: unknown[]) => unknown }).connect =
-      origConnect
+    expect(capturedConn!.send).toHaveBeenCalledWith(event)
   })
 
   it('rejects after timeout when peer never emits open', async () => {
