@@ -382,4 +382,122 @@ describe('PeerJSTransport', () => {
     unsub()
     expect(handler).not.toHaveBeenCalled()
   })
+
+  it('connection: data event forwards to registered onEvent handlers', async () => {
+    const { PeerJSTransport } = await import('@/transport/PeerJSTransport')
+    const t = new PeerJSTransport()
+
+    const connectPromise = t.connect(PEER_HOST_CONFIG)
+    MockPeer.lastInstance.emit('open')
+    await connectPromise
+
+    const received: TransportEvent[] = []
+    t.onEvent(e => received.push(e))
+
+    const conn = { peer: 'p1', open: true, send: vi.fn(), on: vi.fn(), close: vi.fn() }
+    const peer = MockPeer.lastInstance as unknown as { emit(e: string, ...a: unknown[]): void }
+    peer.emit('connection', conn)
+
+    // Fire open so the connection is stored
+    conn.on.mock.calls.find((args: unknown[]) => args[0] === 'open')?.[1]?.()
+    // Fire data
+    const event: TransportEvent = { type: 'BUZZER_LOCK' }
+    conn.on.mock.calls.find((args: unknown[]) => args[0] === 'data')?.[1]?.(event)
+
+    expect(received).toHaveLength(1)
+    expect(received[0]).toEqual(event)
+  })
+
+  it('connection: close event removes connection from map', async () => {
+    const { PeerJSTransport } = await import('@/transport/PeerJSTransport')
+    const t = new PeerJSTransport()
+
+    const connectPromise = t.connect(PEER_HOST_CONFIG)
+    MockPeer.lastInstance.emit('open')
+    await connectPromise
+
+    const conn = { peer: 'p1', open: true, send: vi.fn(), on: vi.fn(), close: vi.fn() }
+    const peer = MockPeer.lastInstance as unknown as { emit(e: string, ...a: unknown[]): void }
+    peer.emit('connection', conn)
+    conn.on.mock.calls.find((args: unknown[]) => args[0] === 'open')?.[1]?.()
+
+    // Connection is now stored; fire close to remove it
+    conn.on.mock.calls.find((args: unknown[]) => args[0] === 'close')?.[1]?.()
+
+    // After close, host broadcast should not reach this conn
+    t.send({ type: 'BUZZER_LOCK' })
+    expect(conn.send).not.toHaveBeenCalled()
+  })
+
+  it('player: send forwards event to the host connection', async () => {
+    const { PeerJSTransport } = await import('@/transport/PeerJSTransport')
+    const t = new PeerJSTransport()
+
+    const connectPromise = t.connect(PEER_PLAYER_CONFIG)
+    const peer = MockPeer.lastInstance as unknown as {
+      emit(e: string, ...a: unknown[]): void
+      connect(id: string): {
+        on: ReturnType<typeof vi.fn>
+        send: ReturnType<typeof vi.fn>
+        open: boolean
+        peer: string
+      }
+    }
+
+    // Grab the connection created inside connect() for the player role
+    const hostConn = { peer: 'vkt-ROOM1', open: true, send: vi.fn(), on: vi.fn(), close: vi.fn() }
+    // Monkey-patch peer.connect to return our controlled conn before open fires
+    const origConnect = (
+      MockPeer.lastInstance as unknown as { connect: (...a: unknown[]) => unknown }
+    ).connect
+    ;(MockPeer.lastInstance as unknown as { connect: (...a: unknown[]) => unknown }).connect = () =>
+      hostConn
+
+    peer.emit('open')
+    await connectPromise
+
+    // Fire open on the host connection so it is stored
+    hostConn.on.mock.calls.find((args: unknown[]) => args[0] === 'open')?.[1]?.()
+
+    const event: TransportEvent = { type: 'BUZZER_UNLOCK' }
+    t.send(event)
+
+    expect(hostConn.send).toHaveBeenCalledWith(event)
+    ;(MockPeer.lastInstance as unknown as { connect: (...a: unknown[]) => unknown }).connect =
+      origConnect
+  })
+
+  it('rejects after timeout when peer never emits open', async () => {
+    vi.useFakeTimers()
+    const { PeerJSTransport } = await import('@/transport/PeerJSTransport')
+    const t = new PeerJSTransport()
+
+    const connectPromise = t.connect(PEER_HOST_CONFIG)
+    vi.advanceTimersByTime(8001)
+
+    await expect(connectPromise).rejects.toThrow('PeerJS connection timeout')
+    expect(t.status).toBe('disconnected')
+    vi.useRealTimers()
+  })
+})
+
+// ── TransportManager.tryTransport (transport/index.ts lines 64-65) ─────────────
+// The existing transport.test.ts stubs out tryTransport entirely. These tests
+// let it run for real using the PeerJS mock so the two lines are covered.
+
+describe('TransportManager — tryTransport executes connect and stores transport', () => {
+  it('peer mode: tryTransport runs connect and assigns transport', async () => {
+    const { TransportManager } = await import('@/transport')
+    const manager = new TransportManager()
+
+    // Emit 'open' on whatever Peer instance gets created inside connect(),
+    // using a microtask so the new instance exists before we reference it.
+    const connectPromise = manager.connect(PEER_HOST_CONFIG)
+    await Promise.resolve() // let new Peer() and .on('open', ...) register
+    MockPeer.lastInstance.emit('open')
+    await connectPromise
+
+    expect(manager.status).toBe('connected')
+    expect(manager.transportType).toBe('peer')
+  })
 })
