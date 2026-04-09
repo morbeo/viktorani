@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.0.5](https://github.com/morbeo/viktorani/compare/v0.0.4...v0.0.5) (2026-04-09)
+
+### Features
+
+- **admin:** nav sequence and position logic ([13aa513](https://github.com/morbeo/viktorani/commit/13aa5130cb3e90584b52005232381830db2f8c9a))
+- **admin:** useKeyNav — arrow key navigation with modal guard ([0f74c35](https://github.com/morbeo/viktorani/commit/0f74c353b0fcd064a12a5a9df3e166e234dab032))
+- **admin:** useNavigation hook — DB persist, SLIDE_CHANGE emit ([7fe0e5e](https://github.com/morbeo/viktorani/commit/7fe0e5e9b11fa9532648b2cf6a3b4c47c6fc2ca7))
+- **admin:** wire navigation into active game view ([c760494](https://github.com/morbeo/viktorani/commit/c7604944a0c0ea885dfc54326661d63f124bf2dc))
+- **ui:** NavHeader — round label, Q counter, progress bar ([7f7f778](https://github.com/morbeo/viktorani/commit/7f7f77890bef99b6abce220ab0ec154a16c577f1))
+- **ui:** RoundBoundary — full-screen round transition overlay ([e88b982](https://github.com/morbeo/viktorani/commit/e88b9820d76d5457398d1e0c375707a9e9b86b59))
+
 ## [0.0.4](https://github.com/morbeo/viktorani/compare/v0.0.3...v0.0.4) (2026-04-08)
 
 ### Features
