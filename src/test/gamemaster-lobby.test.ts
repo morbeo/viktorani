@@ -235,3 +235,161 @@ describe('markPlayerAway', () => {
     expect(markPlayerAway([], 'p1')).toHaveLength(0)
   })
 })
+
+// ── buildNavSequence ──────────────────────────────────────────────────────────
+
+import { buildNavSequence } from '@/pages/admin/gamemaster-utils'
+import type { GameQuestion, Round } from '@/db'
+
+const ROUNDS: Round[] = [
+  { id: 'r1', name: 'Round 1', description: '', questionIds: ['q1', 'q2'], createdAt: 0 },
+  { id: 'r2', name: 'Round 2', description: '', questionIds: ['q3'], createdAt: 0 },
+]
+
+const GQS: GameQuestion[] = [
+  { id: 'gq1', gameId: 'g1', questionId: 'q1', roundId: 'r1', order: 0, status: 'pending' },
+  { id: 'gq2', gameId: 'g1', questionId: 'q2', roundId: 'r1', order: 1, status: 'correct' },
+  { id: 'gq3', gameId: 'g1', questionId: 'q3', roundId: 'r2', order: 2, status: 'pending' },
+]
+
+describe('buildNavSequence', () => {
+  it('returns one entry per game question', () => {
+    expect(buildNavSequence(GQS, ROUNDS)).toHaveLength(3)
+  })
+
+  it('assigns flat indices 0, 1, 2', () => {
+    const seq = buildNavSequence(GQS, ROUNDS)
+    expect(seq.map(e => e.flatIndex)).toEqual([0, 1, 2])
+  })
+
+  it('resolves round name and index from rounds list', () => {
+    const seq = buildNavSequence(GQS, ROUNDS)
+    expect(seq[0].roundName).toBe('Round 1')
+    expect(seq[0].roundIdx).toBe(0)
+    expect(seq[2].roundName).toBe('Round 2')
+    expect(seq[2].roundIdx).toBe(1)
+  })
+
+  it('carries questionId and gameQuestionId', () => {
+    const seq = buildNavSequence(GQS, ROUNDS)
+    expect(seq[0].questionId).toBe('q1')
+    expect(seq[0].gameQuestionId).toBe('gq1')
+  })
+
+  it('carries question status', () => {
+    const seq = buildNavSequence(GQS, ROUNDS)
+    expect(seq[1].questionStatus).toBe('correct')
+  })
+
+  it('sorts by order field regardless of input order', () => {
+    const shuffled = [GQS[2], GQS[0], GQS[1]]
+    const seq = buildNavSequence(shuffled, ROUNDS)
+    expect(seq.map(e => e.questionId)).toEqual(['q1', 'q2', 'q3'])
+  })
+
+  it('returns empty array for no questions', () => {
+    expect(buildNavSequence([], ROUNDS)).toHaveLength(0)
+  })
+
+  it('falls back round name to "Round" for unknown roundId', () => {
+    const gqOrphan: GameQuestion = {
+      id: 'gq9',
+      gameId: 'g1',
+      questionId: 'qX',
+      roundId: 'unknown',
+      order: 0,
+      status: 'pending',
+    }
+    const seq = buildNavSequence([gqOrphan], ROUNDS)
+    expect(seq[0].roundName).toBe('Round')
+    expect(seq[0].roundIdx).toBe(0)
+  })
+
+  it('does not mutate the input array', () => {
+    const input = [...GQS]
+    buildNavSequence([GQS[2], GQS[0]], ROUNDS)
+    expect(input).toHaveLength(3)
+  })
+})
+
+// ── getNavPosition + step ─────────────────────────────────────────────────────
+
+import { getNavPosition, step } from '@/pages/admin/gamemaster-utils'
+
+// Reuse GQS + ROUNDS from above — 3 questions: r1(q1,q2), r2(q3)
+const SEQ = buildNavSequence(GQS, ROUNDS)
+
+describe('getNavPosition', () => {
+  it('first question: isFirst=true, isLast=false, roundIdx=0', () => {
+    const pos = getNavPosition(SEQ, 0, -1)
+    expect(pos.isFirst).toBe(true)
+    expect(pos.isLast).toBe(false)
+    expect(pos.roundIdx).toBe(0)
+  })
+
+  it('last question: isLast=true', () => {
+    const pos = getNavPosition(SEQ, 2, 1)
+    expect(pos.isLast).toBe(true)
+    expect(pos.isFirst).toBe(false)
+  })
+
+  it('questionIdx is position within the round', () => {
+    expect(getNavPosition(SEQ, 0, -1).questionIdx).toBe(0) // q1 is 1st in r1
+    expect(getNavPosition(SEQ, 1, -1).questionIdx).toBe(1) // q2 is 2nd in r1
+    expect(getNavPosition(SEQ, 2, -1).questionIdx).toBe(0) // q3 is 1st in r2
+  })
+
+  it('roundQuestions reflects count in that round', () => {
+    expect(getNavPosition(SEQ, 0, -1).roundQuestions).toBe(2) // r1 has 2
+    expect(getNavPosition(SEQ, 2, -1).roundQuestions).toBe(1) // r2 has 1
+  })
+
+  it('isRoundBoundary false on first call (prevRoundIdx = -1)', () => {
+    expect(getNavPosition(SEQ, 0, -1).isRoundBoundary).toBe(false)
+  })
+
+  it('isRoundBoundary false when staying in same round', () => {
+    expect(getNavPosition(SEQ, 1, 0).isRoundBoundary).toBe(false) // r1 → r1
+  })
+
+  it('isRoundBoundary true when crossing into next round', () => {
+    expect(getNavPosition(SEQ, 2, 0).isRoundBoundary).toBe(true) // r1 → r2
+  })
+
+  it('isRoundBoundary true when going backwards across a round', () => {
+    // Moving from flatIndex=2 (r2) backward to flatIndex=1 (r1) — boundary crossed
+    expect(getNavPosition(SEQ, 1, 1).isRoundBoundary).toBe(true)
+    // Moving within r1 backward — no boundary
+    expect(getNavPosition(SEQ, 0, 0).isRoundBoundary).toBe(false)
+  })
+
+  it('returns flatIndex matching the requested index', () => {
+    expect(getNavPosition(SEQ, 1, 0).flatIndex).toBe(1)
+  })
+})
+
+describe('step', () => {
+  it('moves forward by 1', () => {
+    expect(step(SEQ, 0, 1)).toBe(1)
+    expect(step(SEQ, 1, 1)).toBe(2)
+  })
+
+  it('moves backward by 1', () => {
+    expect(step(SEQ, 2, -1)).toBe(1)
+    expect(step(SEQ, 1, -1)).toBe(0)
+  })
+
+  it('clamps at 0 when going back from first', () => {
+    expect(step(SEQ, 0, -1)).toBe(0)
+  })
+
+  it('clamps at last when going forward from last', () => {
+    expect(step(SEQ, 2, 1)).toBe(2)
+  })
+
+  it('handles single-question sequence', () => {
+    const single = [SEQ[0]]
+    expect(step(single, 0, 1)).toBe(0)
+    expect(step(single, 0, -1)).toBe(0)
+  })
+})

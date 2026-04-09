@@ -3,9 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import AdminLayout from '@/components/AdminLayout'
 import { Button, Badge, TransportPill } from '@/components/ui'
+import { NavHeader } from '@/components/NavHeader'
+import { RoundBoundary } from '@/components/RoundBoundary'
 import { db } from '@/db'
 import { transportManager } from '@/transport'
 import { serialiseGameState, upsertPlayer, markPlayerAway } from '@/pages/admin/gamemaster-utils'
+import { useNavigation } from '@/hooks/useNavigation'
+import { useKeyNav } from '@/hooks/useKeyNav'
 import type { Game, Player } from '@/db'
 import type { TransportStatus, TransportType, TransportEvent } from '@/transport/types'
 
@@ -263,6 +267,77 @@ function Lobby({
   )
 }
 
+// ── Active game view ──────────────────────────────────────────────────────────
+
+interface ActiveGameProps {
+  game: Game
+}
+
+function ActiveGame({ game }: ActiveGameProps) {
+  const [showBoundary, setShowBoundary] = useState(false)
+  const [boundaryEntry, setBoundaryEntry] = useState<
+    import('@/pages/admin/gamemaster-utils').NavEntry | null
+  >(null)
+  const [modalOpen] = useState(false) // future modals will set this
+
+  // onRoundBoundary is called from inside goNext/goPrev (event-handler context),
+  // so calling setState here is safe — no effect needed.
+  const handleBoundary = useCallback((entry: import('@/pages/admin/gamemaster-utils').NavEntry) => {
+    setBoundaryEntry(entry)
+    setShowBoundary(true)
+  }, [])
+
+  const { seq, pos, goNext, goPrev, isReady } = useNavigation(game, handleBoundary)
+
+  useKeyNav({
+    onNext: goNext,
+    onPrev: goPrev,
+    modalOpen,
+    enabled: game.status === 'active',
+  })
+
+  if (!isReady) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <p style={{ color: 'var(--color-muted)' }}>Loading questions…</p>
+      </div>
+    )
+  }
+
+  if (!pos) return null
+
+  return (
+    <div className="flex flex-col h-full -mx-8 -my-6" style={{ height: 'calc(100vh - 64px)' }}>
+      {/* Round boundary overlay */}
+      {showBoundary && boundaryEntry && (
+        <RoundBoundary
+          roundName={boundaryEntry.roundName}
+          roundIdx={boundaryEntry.roundIdx}
+          onDone={() => setShowBoundary(false)}
+        />
+      )}
+
+      {/* Navigation header */}
+      <NavHeader pos={pos} totalQ={seq.length} onPrev={goPrev} onNext={goNext} />
+
+      {/* Main content area — question display, buzzer, scoring filled in next epics */}
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center" style={{ color: 'var(--color-muted)' }}>
+          <p className="text-lg font-medium mb-1" style={{ color: 'var(--color-ink)' }}>
+            {seq[pos.flatIndex]?.roundName} · Q {pos.questionIdx + 1} of {pos.roundQuestions}
+          </p>
+          <p className="text-xs">
+            Question display, buzzer and scoring panels coming in the next epics.
+          </p>
+          <p className="text-xs mt-1">
+            Use ← → or the buttons above to navigate · {pos.flatIndex + 1} / {seq.length} total
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function GameMaster() {
@@ -416,14 +491,10 @@ export default function GameMaster() {
     )
   }
 
-  // Active / paused / ended — subsequent epics fill this in
+  // Active / paused / ended — navigation view
   return (
     <AdminLayout>
-      <div className="flex items-center justify-center py-20">
-        <p style={{ color: 'var(--color-muted)' }}>
-          Game is <strong>{game.status}</strong> — controls coming in the next epic.
-        </p>
-      </div>
+      <ActiveGame game={game} />
     </AdminLayout>
   )
 }

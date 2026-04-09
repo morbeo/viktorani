@@ -25,19 +25,21 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 20
-          cache: npm
 
-      - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+      - name: Install git-cliff
+        run: npm install --no-save git-cliff
 
       - name: Build tarball
         run: mkdir dist && bash scripts/pack.sh -o dist --name viktorani-${{ github.ref_name }}
+
+      - name: Generate release notes
+        run: git cliff --tag ${{ github.ref_name }} --unreleased --strip header > RELEASE_NOTES.md
 
       - name: Create GitHub Release
         run: |
           gh release create ${{ github.ref_name }} \
             dist/viktorani-${{ github.ref_name }}.tar.gz \
             --title "${{ github.ref_name }}" \
-            --notes-file CHANGELOG.md
+            --notes-file RELEASE_NOTES.md
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
