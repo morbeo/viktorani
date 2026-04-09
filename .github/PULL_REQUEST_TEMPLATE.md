@@ -1,5 +1,7 @@
 ## What
 
+Closes #<!-- issue number -->
+
 <!-- One-line summary of the change. -->
 
 ## Why
@@ -12,8 +14,11 @@
 
 ## Checklist
 
+- [ ] PR title follows conventional commits — `type(scope): description`
+      Scopes: `admin` · `player` · `transport` · `db` · `ui` · `pwa` · `deps` · `release`
+- [ ] Tests added or updated
+- [ ] `npm run test` passes locally
 - [ ] `npm run build` passes locally
 - [ ] `npm run lint` passes locally
-- [ ] PR title follows conventional commits (`feat(scope): description`)
+- [ ] Docs updated if behaviour changed
 - [ ] No `console.log` left in production paths
-- [ ] New components have sensible default props / error states
