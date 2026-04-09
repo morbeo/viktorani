@@ -89,6 +89,7 @@ describe('importQuestions — field coercions', () => {
 
   it('defaults difficulty to null when row.difficulty is not a string', async () => {
     const { importQuestions } = await import('@/db/snapshot')
+    // Pass difficulty as a number — hits the `else null` branch on line 109
     const rows = [{ title: 'Q', type: 'open_ended', answer: 'A', difficulty: 99 }]
     const file = new File([JSON.stringify(rows)], 'q.json', { type: 'application/json' })
     await importQuestions(file)
@@ -107,11 +108,32 @@ describe('importQuestions — field coercions', () => {
 
   it('defaults media to null when row.media is not a string', async () => {
     const { importQuestions } = await import('@/db/snapshot')
+    // Pass media as a number — hits the `else null` branch on line 111
     const rows = [{ title: 'Q', type: 'open_ended', answer: 'A', media: 123 }]
     const file = new File([JSON.stringify(rows)], 'q.json', { type: 'application/json' })
     await importQuestions(file)
     const all = await db.questions.toArray()
     expect(all[0].media).toBeNull()
+  })
+
+  it('falls back to open_ended when row.type is nullish', async () => {
+    const { importQuestions } = await import('@/db/snapshot')
+    // Omit type entirely so (row.type ?? 'open_ended') takes the fallback (line 105)
+    const rows = [{ title: 'Q', answer: 'A' }]
+    const file = new File([JSON.stringify(rows)], 'q.json', { type: 'application/json' })
+    await importQuestions(file)
+    const all = await db.questions.toArray()
+    expect(all[0].type).toBe('open_ended')
+  })
+
+  it('records missing fields when row has null required values', async () => {
+    const { importQuestions } = await import('@/db/snapshot')
+    // row[f] is null → String(null ?? '') = '' → trim() = '' → hits missing branch (line 93)
+    const rows = [{ title: null, type: 'open_ended', answer: 'A' }]
+    const file = new File([JSON.stringify(rows)], 'q.json', { type: 'application/json' })
+    const result = await importQuestions(file)
+    expect(result.skipped).toBe(1)
+    expect(result.errors[0]).toMatch(/missing title/)
   })
 })
 
