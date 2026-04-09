@@ -6,8 +6,16 @@ export default {
       'perf', 'test', 'ci', 'build', 'revert',
     ]],
     'scope-enum': [1, 'always', [
-      'admin', 'player', 'transport', 'db',
-      'ui', 'pwa', 'deps', 'release',
+      // Features
+      'admin', 'player', 'gamemaster',
+      // Data & transport
+      'db', 'transport',
+      // UI
+      'ui', 'routing',
+      // PWA & build
+      'pwa', 'build',
+      // Tooling
+      'deps', 'release', 'ci', 'test', 'lint', 'github',
     ]],
     'subject-case': [2, 'never', ['start-case', 'pascal-case', 'upper-case']],
     'header-max-length': [2, 'always', 100],
