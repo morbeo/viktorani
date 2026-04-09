@@ -38,7 +38,7 @@ PAYLOAD=$(cat <<JSON
 {
   "required_status_checks": {
     "strict": true,
-    "contexts": ["CI / ci"]
+    "contexts": ["CI / ci", "PR Title / lint-title"]
   },
   "enforce_admins": false,
   "required_pull_request_reviews": {
@@ -68,8 +68,9 @@ gh api \
 echo ""
 echo "✓ Branch protection applied to master"
 echo ""
-echo "Required status check: 'CI / ci'"
-echo "  - PRs must pass CI before merge"
+echo "Required status checks:"
+echo "  - 'CI / ci'             — typecheck, lint, test, build"
+echo "  - 'PR Title / lint-title' — conventional commit title format"
 echo "  - Branch must be up to date before merge"
 echo "  - Force pushes blocked"
 echo "  - Deletion blocked"
