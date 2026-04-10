@@ -9,6 +9,7 @@ on:
       - 'public/**'
       - 'index.html'
       - 'vite.config.ts'
+      - 'typedoc.json'
       - 'package.json'
       - 'package-lock.json'
 
@@ -53,8 +54,14 @@ jobs:
       - name: Test
         run: npm run test
 
-      - name: Build
+      - name: Build app
         run: npm run build
+
+      - name: Generate API docs
+        run: npm run docs
+
+      - name: Copy API docs into dist
+        run: cp -r docs/api dist/api
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
