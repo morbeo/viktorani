@@ -1,32 +1,32 @@
-# Dependencies
-node_modules/
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Build output
-dist/
+node_modules
+dist
+dist-ssr
+*.local
 
-# Generated API docs (built by npm run docs / docs.yml CI)
-docs/api/
-
-# Coverage
-coverage/
-
-# Local env
-.env
-.env.local
-.env.*.local
-
-# Editor
-.vscode/
-.idea/
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
 
-# OS
-.DS_Store
-Thumbs.db
+archives
+scripts
+coverage
+deploy
 
-# Scripts (added manually with git add --force)
-scripts/
+# Generated API docs (npm run docs / docs.yml CI)
+docs/api/
