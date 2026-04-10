@@ -16,6 +16,10 @@ interface TimerPanelProps {
 /**
  * Host-facing panel: list of active timers with individual + bulk controls,
  * expiry overlay, and edit modal.
+ *
+ * The pause/resume bulk action is a single toggle button:
+ * - When all pauseable timers are paused → "Resume all"
+ * - Otherwise → "Pause all"
  */
 export function TimerPanel({ gameId, hook }: TimerPanelProps) {
   const [showCreate, setShowCreate] = useState(false)
@@ -38,7 +42,12 @@ export function TimerPanel({ gameId, hook }: TimerPanelProps) {
     remaining,
   } = hook
 
-  // Host-side expiry: visual overlay (and audio is handled inside the hook)
+  // Timers that are actively running (not expired, not paused, not never-started)
+  const pauseableTimers = timers.filter(t => !t.paused && t.startedAt !== null)
+  const allPaused = pauseableTimers.length === 0 && timers.some(t => t.paused)
+
+  const handlePauseResumeAll = allPaused ? resumeAll : pauseAll
+
   const handleExpire = useCallback((evt: ExpiryEvent) => {
     if (evt.visualNotify === 'host' || evt.visualNotify === 'both') {
       setExpiredEvent(evt)
@@ -100,18 +109,10 @@ export function TimerPanel({ gameId, hook }: TimerPanelProps) {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={pauseAll}
+                  onClick={handlePauseResumeAll}
                   style={{ color: 'var(--color-muted)' }}
                 >
-                  Pause all
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={resumeAll}
-                  style={{ color: 'var(--color-muted)' }}
-                >
-                  Resume all
+                  {allPaused ? 'Resume all' : 'Pause all'}
                 </Button>
                 <Button
                   size="sm"
