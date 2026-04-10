@@ -1,0 +1,12 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPointStrategy": "expand",
+  "entryPoints": ["src/transport", "src/db", "src/hooks"],
+  "exclude": ["src/test/**", "src/pages/**", "src/components/**", "**/*.test.*"],
+  "out": "docs/api",
+  "name": "Viktorani API",
+  "readme": "none",
+  "includeVersion": true,
+  "disableSources": false,
+  "plugin": ["typedoc-plugin-markdown"]
+}
