@@ -44,6 +44,8 @@ export default defineConfig({
       exclude: [
         'node_modules/',
         'dist/',
+        'archive/',
+        'deploy/',
         'src/main.tsx',
         'src/pages/**', // page-level integration — tested via e2e
         'src/components/AdminLayout.tsx',
