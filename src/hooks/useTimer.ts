@@ -209,6 +209,15 @@ export interface ExpiryEvent {
  * - Plays a beep if audioNotify includes 'host'
  * - Emits TIMER_EXPIRED so players can react
  * - Calls onExpire for host-side visual overlay
+ *
+ * Remaining is computed directly from the timer object (not via the
+ * `remaining()` callback) to avoid reading a stale timersRef that lags
+ * one render behind state. This prevents a false fire immediately after
+ * restart, when timersRef still holds the pre-restart (expired) snapshot.
+ *
+ * The firedRef key is cleared whenever a timer is actively running with
+ * time remaining, so a second natural expiry on the same timer correctly
+ * re-fires after the previous run's key has been evicted.
  */
 export function useTimerExpiry(
   timers: Timer[],
@@ -219,9 +228,23 @@ export function useTimerExpiry(
 
   useEffect(() => {
     for (const t of timers) {
-      if (t.paused || t.startedAt === null) continue
-      if (remaining(t.id) > 0) continue
       const runKey = `${t.id}:${t.startedAt}`
+
+      if (t.paused || t.startedAt === null) continue
+
+      // Compute remaining directly from the timer record — avoids the
+      // one-render lag that timersRef (used inside remaining()) has after
+      // a restart, which would otherwise cause a spurious zero-crossing.
+      const elapsed = (Date.now() - t.startedAt) / 1000
+      const rem = Math.max(0, t.remaining - elapsed)
+
+      if (rem > 0) {
+        // Timer is actively running — evict any stale fired key for this
+        // run so a future natural expiry can re-fire correctly.
+        firedRef.current.delete(runKey)
+        continue
+      }
+
       if (firedRef.current.has(runKey)) continue
       firedRef.current.add(runKey)
 

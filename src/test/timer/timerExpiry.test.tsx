@@ -152,6 +152,42 @@ describe('useTimerExpiry', () => {
     expect(onExpire).toHaveBeenCalledTimes(2)
   })
 
+  it('fires on second natural expiry after restart (bug #84 regression)', () => {
+    // Regression: after expiry, firedRef held id:startedAt. On restart,
+    // a brief render could run the hook while timersRef was stale (remaining≈0,
+    // new startedAt), adding the new runKey to firedRef before the timer
+    // actually ran. The second natural expiry then found the key and silently
+    // skipped. Fix: compute remaining directly from t.startedAt/t.remaining
+    // and evict the runKey when the timer is actively running (rem > 0).
+    const onExpire = vi.fn()
+
+    // Run 1: timer started at T1, expires
+    const T1 = Date.now() - 65_000 // 65s ago → expired
+    const timer1 = makeTimer({ paused: false, startedAt: T1, remaining: 60 })
+    const { rerender } = renderHook(
+      ({ timer }: { timer: ReturnType<typeof makeTimer> }) => {
+        useTimerExpiry([timer], vi.fn(), onExpire)
+      },
+      { initialProps: { timer: timer1 } }
+    )
+    expect(onExpire).toHaveBeenCalledTimes(1)
+
+    // Simulate restart: timer is now running with a fresh startedAt and full remaining
+    // (this is what restartTimer produces — remaining = duration, startedAt = now)
+    const T2 = Date.now() // just started
+    const timerRunning = makeTimer({ paused: false, startedAt: T2, remaining: 60 })
+    rerender({ timer: timerRunning })
+    // Should NOT fire — timer is actively running (rem ≈ 60 > 0)
+    expect(onExpire).toHaveBeenCalledTimes(1)
+
+    // Now the timer expires naturally on its second run
+    const T2_expired = T2 - 65_000 // pretend it started 65s ago
+    const timer2 = makeTimer({ paused: false, startedAt: T2_expired, remaining: 60 })
+    rerender({ timer: timer2 })
+    // Must fire — this is the bug: previously the key id:T2 was already in firedRef
+    expect(onExpire).toHaveBeenCalledTimes(2)
+  })
+
   it('calls playBeep when audioNotify includes host', () => {
     const beepSpy = vi.spyOn({ playBeep }, 'playBeep').mockImplementation(() => {})
     // We can't easily spy on the module export in the same file,
