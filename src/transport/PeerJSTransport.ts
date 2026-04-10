@@ -4,6 +4,24 @@ import type { ITransport, TransportConfig, TransportEvent, TransportStatus } fro
 // PeerJS peer IDs are prefixed to avoid collisions with other apps
 const PREFIX = 'vkt-'
 
+/**
+ * WebRTC transport implemented via PeerJS.
+ *
+ * @remarks
+ * The host registers a deterministic PeerJS ID derived from the room code
+ * (`vkt-<roomId>`). Players connect to that well-known ID. All data flows
+ * over WebRTC data channels with DTLS encryption provided by the browser.
+ *
+ * Connection topology:
+ * - **Host**: one `Peer` instance listens for incoming connections; each
+ *   connected player gets its own `DataConnection` in `connections`.
+ * - **Player**: one `Peer` instance with a random ID; a single outbound
+ *   `DataConnection` to the host.
+ *
+ * The 8-second timeout on `connect()` allows {@link TransportManager} to fall
+ * back to {@link GunTransport} in `'auto'` mode when the PeerJS signalling
+ * server is unreachable.
+ */
 export class PeerJSTransport implements ITransport {
   private peer: Peer | null = null
   private connections: Map<string, DataConnection> = new Map()
