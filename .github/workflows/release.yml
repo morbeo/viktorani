@@ -24,16 +24,13 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: 20
-
-      - name: Install git-cliff
-        run: npm install --no-save git-cliff
+          node-version: lts/*
 
       - name: Build tarball
         run: mkdir dist && bash scripts/pack.sh -o dist --name viktorani-${{ github.ref_name }}
 
       - name: Generate release notes
-        run: git-cliff --tag ${{ github.ref_name }} --unreleased --strip header > RELEASE_NOTES.md
+        run: npx --yes git-cliff --tag ${{ github.ref_name }} --unreleased --strip header > RELEASE_NOTES.md
 
       - name: Create GitHub Release
         run: |
