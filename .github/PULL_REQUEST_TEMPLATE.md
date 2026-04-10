@@ -1,24 +1,17 @@
-## What
-
 Closes #<!-- issue number -->
 
+## What
 <!-- One-line summary of the change. -->
 
 ## Why
+<!-- What problem does this solve? -->
 
-<!-- Context: what problem does this solve, or what feature does it add? -->
-
-## How
-
-<!-- Brief description of the approach. Call out any tricky decisions. -->
+## Notes
+<!-- Tricky decisions, follow-up work, manual testing steps. Delete if none. -->
 
 ## Checklist
-
 - [ ] PR title follows conventional commits — `type(scope): description`
       Scopes: `admin` · `player` · `transport` · `db` · `ui` · `pwa` · `deps` · `release`
 - [ ] Tests added or updated
-- [ ] `npm run test` passes locally
-- [ ] `npm run build` passes locally
-- [ ] `npm run lint` passes locally
+- [ ] `npm test && npm run build && npm run lint` pass locally
 - [ ] Docs updated if behaviour changed
-- [ ] No `console.log` left in production paths

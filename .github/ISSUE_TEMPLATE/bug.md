@@ -4,22 +4,15 @@ about: Something is broken
 labels: bug
 ---
 
-## Describe the bug
-
-<!-- What happened? What did you expect? -->
+## What happened
+<!-- What did you expect vs what actually occurred? -->
 
 ## Steps to reproduce
-
 1. 
 2. 
-3. 
 
 ## Environment
+- Browser / Device:
+- Transport (PeerJS / Gun.js / Auto):
 
-- Browser:
-- Device:
-- Transport mode (PeerJS / Gun.js / Auto):
-
-## Additional context
-
-<!-- Screenshots, console errors, etc. -->
+<!-- Screenshots or console errors welcome -->
