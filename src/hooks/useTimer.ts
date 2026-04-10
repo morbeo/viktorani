@@ -18,6 +18,7 @@ export interface UseTimerListResult {
     patch: Partial<Pick<Timer, 'audioNotify' | 'visualNotify' | 'autoReset' | 'label'>>
   ) => Promise<void>
   pauseAll: () => Promise<void>
+  resumeAll: () => Promise<void>
   restartAll: () => Promise<void>
   deleteAll: () => Promise<void>
   remaining: (id: string) => number
@@ -170,6 +171,10 @@ export function useTimerList(gameId: string): UseTimerListResult {
     await Promise.all(timersRef.current.filter(t => !t.paused).map(t => pauseTimer(t.id)))
   }, [pauseTimer])
 
+  const resumeAll = useCallback(async () => {
+    await Promise.all(timersRef.current.filter(t => t.paused).map(t => resumeTimer(t.id)))
+  }, [resumeTimer])
+
   const restartAll = useCallback(async () => {
     await Promise.all(timersRef.current.map(t => restartTimer(t.id)))
   }, [restartTimer])
@@ -189,6 +194,7 @@ export function useTimerList(gameId: string): UseTimerListResult {
     updateTimer,
     deleteTimer,
     pauseAll,
+    resumeAll,
     restartAll,
     deleteAll,
     remaining,

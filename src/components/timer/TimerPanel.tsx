@@ -32,6 +32,7 @@ export function TimerPanel({ gameId, hook }: TimerPanelProps) {
     updateTimer,
     deleteTimer,
     pauseAll,
+    resumeAll,
     restartAll,
     deleteAll,
     remaining,
@@ -103,6 +104,14 @@ export function TimerPanel({ gameId, hook }: TimerPanelProps) {
                   style={{ color: 'var(--color-muted)' }}
                 >
                   Pause all
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={resumeAll}
+                  style={{ color: 'var(--color-muted)' }}
+                >
+                  Resume all
                 </Button>
                 <Button
                   size="sm"
