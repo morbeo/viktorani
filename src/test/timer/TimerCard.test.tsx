@@ -75,6 +75,7 @@ describe('TimerCard', () => {
   })
 
   it('shows Paused when paused mid-run', () => {
+    // remaining < duration → paused mid-run → label should be 'Paused', not 'Ready'
     render(
       <TimerCard
         timer={makeTimer({ paused: true, remaining: 30, startedAt: null })}
@@ -87,12 +88,29 @@ describe('TimerCard', () => {
         onEdit={noop}
       />
     )
-    // startedAt was set before so it shows Paused (not Ready)
-    // In the component: paused && startedAt===null && timer was never started → Ready
-    // With remaining < duration it implies it was started once → Paused
-    // Our logic: startedAt===null && paused → Ready. Paused+remaining<duration → Paused.
-    // The card shows Ready when startedAt===null. Let's verify the time display instead.
-    expect(screen.getByText('00:30')).toBeTruthy()
+    expect(screen.getByText('Paused')).toBeTruthy()
+  })
+
+  it('calls onResume (not onStart) when ▶ clicked on a paused mid-run timer (bug #86)', () => {
+    // Regression: paused timers with startedAt===null were calling onStart
+    // (which resets remaining) instead of onResume (which continues from snapshot).
+    const onStart = vi.fn()
+    const onResume = vi.fn()
+    render(
+      <TimerCard
+        timer={makeTimer({ paused: true, remaining: 30, startedAt: null })}
+        remaining={30}
+        onStart={onStart}
+        onPause={noop}
+        onResume={onResume}
+        onRestart={noop}
+        onDelete={noop}
+        onEdit={noop}
+      />
+    )
+    fireEvent.click(screen.getByTitle('Resume'))
+    expect(onResume).toHaveBeenCalledOnce()
+    expect(onStart).not.toHaveBeenCalled()
   })
 
   it('shows Time up! when remaining is 0 and running', () => {

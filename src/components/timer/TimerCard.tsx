@@ -61,11 +61,17 @@ export function TimerCard({
   const isRunning = !timer.paused && timer.startedAt !== null
   const isDone = remaining <= 0 && !timer.paused && timer.startedAt !== null
 
+  // A paused timer with startedAt===null is either:
+  //   "Ready"  — never started: remaining === duration
+  //   "Paused" — mid-run pause: remaining < duration (elapsed was snapshotted)
+  const isNeverStarted =
+    timer.paused && timer.startedAt === null && timer.remaining >= timer.duration
+
   const handleToggle = useCallback(() => {
-    if (timer.startedAt === null && timer.paused) onStart()
+    if (isNeverStarted) onStart()
     else if (isRunning) onPause()
     else onResume()
-  }, [timer.startedAt, timer.paused, isRunning, onStart, onPause, onResume])
+  }, [isNeverStarted, isRunning, onStart, onPause, onResume])
 
   // Notify indicator badges
   const hasAudio = timer.audioNotify !== 'none'
@@ -99,13 +105,7 @@ export function TimerCard({
         </p>
         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
           <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
-            {isDone
-              ? 'Time up!'
-              : isRunning
-                ? 'Running'
-                : timer.startedAt === null && timer.paused
-                  ? 'Ready'
-                  : 'Paused'}
+            {isDone ? 'Time up!' : isRunning ? 'Running' : isNeverStarted ? 'Ready' : 'Paused'}
           </p>
           {hasAudio && (
             <span
@@ -143,7 +143,7 @@ export function TimerCard({
           size="sm"
           variant={isRunning ? 'secondary' : 'primary'}
           onClick={handleToggle}
-          title={isRunning ? 'Pause' : timer.startedAt === null ? 'Start' : 'Resume'}
+          title={isRunning ? 'Pause' : isNeverStarted ? 'Start' : 'Resume'}
         >
           {isRunning ? '⏸' : '▶'}
         </Button>
