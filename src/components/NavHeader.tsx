@@ -1,3 +1,5 @@
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { Icon } from '@/components/ui'
 import type { NavPosition } from '@/pages/admin/gamemaster-utils'
 
 interface NavHeaderProps {
@@ -29,7 +31,7 @@ export function NavHeader({ pos, totalQ, onPrev, onNext }: NavHeaderProps) {
         className="w-8 h-8 rounded flex items-center justify-center transition-all hover:bg-black/5 disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
         style={{ color: 'var(--color-ink)' }}
       >
-        ←
+        <Icon icon={ChevronLeft} size="md" />
       </button>
 
       {/* Centre: label + progress */}
@@ -70,7 +72,7 @@ export function NavHeader({ pos, totalQ, onPrev, onNext }: NavHeaderProps) {
         className="w-8 h-8 rounded flex items-center justify-center transition-all hover:bg-black/5 disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
         style={{ color: 'var(--color-ink)' }}
       >
-        →
+        <Icon icon={ChevronRight} size="md" />
       </button>
     </div>
   )

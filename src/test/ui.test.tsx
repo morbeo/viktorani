@@ -194,14 +194,14 @@ describe('Modal', () => {
     expect(screen.getByText('Confirm')).toBeInTheDocument()
   })
 
-  it('calls onClose when the × button is clicked', () => {
+  it('calls onClose when the close button is clicked', () => {
     const onClose = vi.fn()
     render(
       <Modal open title="Test" onClose={onClose}>
         body
       </Modal>
     )
-    fireEvent.click(screen.getByText('×'))
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(onClose).toHaveBeenCalledOnce()
   })
 

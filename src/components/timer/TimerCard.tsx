@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
-import { Button } from '@/components/ui'
+import { Play, Pause, RotateCcw, SlidersHorizontal, Trash2, Bell, Eye } from 'lucide-react'
+import { Button, Icon } from '@/components/ui'
 import { formatTime } from '@/hooks/useTimer'
 import type { Timer } from '@/db'
 
@@ -78,6 +79,9 @@ export function TimerCard({
   const hasVisual = timer.visualNotify !== 'none'
   const hasAutoReset = timer.autoReset !== 'none'
 
+  const toggleIcon = isRunning ? Pause : Play
+  const toggleLabel = isRunning ? 'Pause' : isNeverStarted ? 'Start' : 'Resume'
+
   return (
     <div
       className="rounded-xl border flex items-center gap-4 px-4 py-3"
@@ -109,29 +113,32 @@ export function TimerCard({
           </p>
           {hasAudio && (
             <span
-              className="text-xs px-1.5 py-0.5 rounded-full"
+              className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full"
               style={{ background: 'var(--color-gold)22', color: 'var(--color-gold)' }}
               title={`Audio: ${timer.audioNotify}`}
             >
-              🔔 {timer.audioNotify}
+              <Icon icon={Bell} size="sm" />
+              {timer.audioNotify}
             </span>
           )}
           {hasVisual && (
             <span
-              className="text-xs px-1.5 py-0.5 rounded-full"
+              className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full"
               style={{ background: 'var(--color-gold)22', color: 'var(--color-gold)' }}
               title={`Visual: ${timer.visualNotify}`}
             >
-              👁 {timer.visualNotify}
+              <Icon icon={Eye} size="sm" />
+              {timer.visualNotify}
             </span>
           )}
           {hasAutoReset && (
             <span
-              className="text-xs px-1.5 py-0.5 rounded-full"
+              className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full"
               style={{ background: 'var(--color-border)', color: 'var(--color-muted)' }}
               title={`Auto-reset: ${timer.autoReset}`}
             >
-              ↺ {timer.autoReset}
+              <Icon icon={RotateCcw} size="sm" />
+              {timer.autoReset}
             </span>
           )}
         </div>
@@ -143,36 +150,40 @@ export function TimerCard({
           size="sm"
           variant={isRunning ? 'secondary' : 'primary'}
           onClick={handleToggle}
-          title={isRunning ? 'Pause' : isNeverStarted ? 'Start' : 'Resume'}
+          title={toggleLabel}
+          aria-label={toggleLabel}
         >
-          {isRunning ? '⏸' : '▶'}
+          <Icon icon={toggleIcon} size="sm" />
         </Button>
         <Button
           size="sm"
           variant="ghost"
           onClick={onRestart}
           title="Restart"
+          aria-label="Restart timer"
           style={{ color: 'var(--color-muted)' }}
         >
-          ↺
+          <Icon icon={RotateCcw} size="sm" />
         </Button>
         <Button
           size="sm"
           variant="ghost"
           onClick={onEdit}
           title="Timer settings"
+          aria-label="Timer settings"
           style={{ color: 'var(--color-muted)' }}
         >
-          ⚙
+          <Icon icon={SlidersHorizontal} size="sm" />
         </Button>
         <Button
           size="sm"
           variant="ghost"
           onClick={onDelete}
           title="Delete timer"
+          aria-label="Delete timer"
           style={{ color: 'var(--color-muted)' }}
         >
-          ✕
+          <Icon icon={Trash2} size="sm" />
         </Button>
       </div>
     </div>

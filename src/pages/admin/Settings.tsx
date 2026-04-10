@@ -4,7 +4,8 @@ import ManageDifficulties from '@/components/settings/ManageDifficulties'
 import { exportDatabase, importDatabase } from '@/db/snapshot'
 import { purgeDatabase, seedDefaults } from '@/db'
 import { useState } from 'react'
-import { Button, Modal, Input } from '@/components/ui'
+import { Button, Modal, Input, Icon } from '@/components/ui'
+import { Download, Trash2 } from 'lucide-react'
 
 export default function Settings() {
   const [importing, setImporting] = useState(false)
@@ -93,6 +94,7 @@ export default function Settings() {
 
           <div className="flex flex-wrap gap-3">
             <Button variant="secondary" onClick={exportDatabase}>
+              <Icon icon={Download} size="sm" />
               Export JSON
             </Button>
 
@@ -143,6 +145,7 @@ export default function Settings() {
               </p>
             </div>
             <Button variant="danger" size="sm" onClick={() => setPurgeOpen(true)}>
+              <Icon icon={Trash2} size="sm" />
               Purge
             </Button>
           </div>

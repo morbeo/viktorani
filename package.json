@@ -1,7 +1,7 @@
 {
   "name": "viktorani",
   "private": true,
-  "version": "0.0.5",
+  "version": "0.0.4",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -26,6 +26,7 @@
     "fuse.js": "^7.3.0",
     "gun": "^0.2020.1241",
     "peerjs": "^1.5.5",
+    "lucide-react": "^0.468.0",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",

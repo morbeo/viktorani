@@ -1,3 +1,6 @@
+import { Lock, LockOpen } from 'lucide-react'
+import { Icon } from '@/components/ui'
+
 interface BuzzerLockButtonProps {
   isLocked: boolean
   onToggle: () => void
@@ -25,7 +28,7 @@ export function BuzzerLockButton({ isLocked, onToggle, disabled }: BuzzerLockBut
         cursor: disabled ? 'not-allowed' : 'pointer',
       }}
     >
-      <span style={{ fontSize: 20 }}>{isLocked ? '🔒' : '🔓'}</span>
+      <Icon icon={isLocked ? Lock : LockOpen} size="md" />
       <span>{isLocked ? 'Buzzer Locked' : 'Buzzer Open'}</span>
     </button>
   )

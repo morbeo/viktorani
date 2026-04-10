@@ -1,7 +1,21 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import Fuse from 'fuse.js'
 import AdminLayout from '@/components/AdminLayout'
-import { Button, Badge, Input, Select, Modal, Textarea, Empty } from '@/components/ui'
+import { Button, Badge, Input, Select, Modal, Textarea, Empty, Icon } from '@/components/ui'
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Download,
+  Upload,
+  ListChecks,
+  ToggleLeft,
+  PencilLine,
+  ChevronUp,
+  ChevronDown,
+  CircleCheck,
+} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { db } from '@/db'
 import { exportQuestions, importQuestions, downloadExampleQuestions } from '@/db/snapshot'
 import type { ImportResult } from '@/db/snapshot'
@@ -29,6 +43,12 @@ const TYPE_LABELS: Record<QuestionType, string> = {
   open_ended: 'Open ended',
 }
 
+const TYPE_ICONS: Record<QuestionType, LucideIcon> = {
+  multiple_choice: ListChecks,
+  true_false: ToggleLeft,
+  open_ended: PencilLine,
+}
+
 // ── Tri-state tag filter ──────────────────────────────────────────────────────
 
 export type TagFilterState = 'none' | 'include' | 'exclude'
@@ -39,10 +59,10 @@ const TAG_FILTER_NEXT: Record<TagFilterState, TagFilterState> = {
   exclude: 'none',
 }
 
-const TAG_FILTER_ICON: Record<TagFilterState, string> = {
-  none: '',
-  include: '✓',
-  exclude: '✕',
+const TAG_FILTER_ICON: Record<TagFilterState, LucideIcon | null> = {
+  none: null,
+  include: CircleCheck,
+  exclude: Trash2,
 }
 
 interface TagFilterPillProps {
@@ -73,10 +93,8 @@ function TagFilterPill({ tag, state, onChange }: TagFilterPillProps) {
         textDecoration: isExclude ? 'line-through' : 'none',
       }}
     >
-      {isActive && (
-        <span style={{ fontStyle: 'normal', textDecoration: 'none', display: 'inline-block' }}>
-          {TAG_FILTER_ICON[state]}
-        </span>
+      {isActive && TAG_FILTER_ICON[state] && (
+        <Icon icon={TAG_FILTER_ICON[state]!} size="sm" aria-hidden />
       )}
       {tag.name}
     </button>
@@ -769,16 +787,19 @@ export default function Questions() {
             {selected.size > 0 && (
               <>
                 <Button variant="ghost" size="sm" onClick={() => setRoundModal(true)}>
-                  + Round from {selected.size} selected
+                  <Icon icon={Plus} size="sm" />
+                  Round from {selected.size} selected
                 </Button>
                 <Button
                   variant="secondary"
                   size="sm"
                   onClick={() => exportQuestions([...selected])}
                 >
-                  ↓ Export {selected.size}
+                  <Icon icon={Download} size="sm" />
+                  Export {selected.size}
                 </Button>
                 <Button variant="danger" size="sm" onClick={() => handleDelete([...selected])}>
+                  <Icon icon={Trash2} size="sm" />
                   Delete {selected.size}
                 </Button>
               </>
@@ -792,7 +813,8 @@ export default function Questions() {
                 disabled={importing}
                 onClick={() => importRef.current?.click()}
               >
-                {importing ? 'Importing…' : '↑ Import'}
+                <Icon icon={Upload} size="sm" />
+                {importing ? 'Importing…' : 'Import'}
               </Button>
               <input
                 ref={importRef}
@@ -805,12 +827,14 @@ export default function Questions() {
 
             {selected.size === 0 && (
               <Button variant="secondary" size="sm" onClick={() => exportQuestions()}>
-                ↓ Export all
+                <Icon icon={Download} size="sm" />
+                Export all
               </Button>
             )}
 
             <Button variant="primary" size="sm" onClick={() => setEditing({})}>
-              + New question
+              <Icon icon={Plus} size="sm" />
+              New question
             </Button>
           </div>
 
@@ -884,15 +908,17 @@ export default function Questions() {
                         <div className="flex flex-col gap-0.5 mt-0.5">
                           <button
                             onClick={() => moveInRound(q.id, -1)}
-                            className="text-xs opacity-30 hover:opacity-80 leading-none"
+                            className="opacity-30 hover:opacity-80 flex items-center"
+                            aria-label="Move question up"
                           >
-                            ▲
+                            <Icon icon={ChevronUp} size="sm" />
                           </button>
                           <button
                             onClick={() => moveInRound(q.id, 1)}
-                            className="text-xs opacity-30 hover:opacity-80 leading-none"
+                            className="opacity-30 hover:opacity-80 flex items-center"
+                            aria-label="Move question down"
                           >
-                            ▼
+                            <Icon icon={ChevronDown} size="sm" />
                           </button>
                         </div>
                       )}
@@ -902,7 +928,10 @@ export default function Questions() {
                           <p className="text-sm font-medium leading-snug">{q.title}</p>
                           <div className="flex items-center gap-2 shrink-0">
                             {diff && <Badge color={diff.color + '33'}>{diff.name}</Badge>}
-                            <Badge>{TYPE_LABELS[q.type]}</Badge>
+                            <Badge>
+                              <Icon icon={TYPE_ICONS[q.type]} size="sm" className="mr-1" />
+                              {TYPE_LABELS[q.type]}
+                            </Badge>
                           </div>
                         </div>
                         {q.answer && (
@@ -929,16 +958,24 @@ export default function Questions() {
                       </div>
 
                       <div className="flex gap-1 shrink-0">
-                        <Button variant="ghost" size="sm" onClick={() => setEditing(q)}>
-                          Edit
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditing(q)}
+                          aria-label="Edit question"
+                          title="Edit"
+                        >
+                          <Icon icon={Pencil} size="sm" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDelete([q.id])}
+                          aria-label="Delete question"
+                          title="Delete"
                           style={{ color: 'var(--color-red)' }}
                         >
-                          Del
+                          <Icon icon={Trash2} size="sm" />
                         </Button>
                       </div>
                     </div>

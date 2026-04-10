@@ -1,6 +1,7 @@
+import { Eraser } from 'lucide-react'
 import { BuzzerLockButton } from './BuzzerLockButton'
 import { BuzzList } from './BuzzList'
-import { Button } from '@/components/ui'
+import { Button, Icon } from '@/components/ui'
 import type { Game, BuzzEvent, GmDecision } from '@/db'
 
 interface BuzzerPanelProps {
@@ -50,6 +51,7 @@ export function BuzzerPanel({
               title="Clear all buzzes for this question"
               style={{ color: 'var(--color-muted)' }}
             >
+              <Icon icon={Eraser} size="sm" />
               Clear buzzes
             </Button>
           )}

@@ -1,18 +1,30 @@
 import { NavLink } from 'react-router-dom'
 import type { ReactNode } from 'react'
+import {
+  LayoutDashboard,
+  CircleHelp,
+  Trophy,
+  NotebookPen,
+  Settings,
+  Users,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
+import { Icon } from '@/components/ui'
 
 interface Props {
   children: ReactNode
   title?: string
 }
 
-const nav = [
-  { to: '/admin', label: 'Dashboard', icon: '◈' },
-  { to: '/admin/questions', label: 'Questions', icon: '?' },
-  { to: '/admin/games', label: 'Games', icon: '▶' },
-  { to: '/admin/notes', label: 'Notes', icon: '✎' },
-  { to: '/admin/settings', label: 'Settings', icon: '⚙' },
+const nav: { to: string; label: string; icon: LucideIcon }[] = [
+  { to: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/admin/questions', label: 'Questions', icon: CircleHelp },
+  { to: '/admin/games', label: 'Games', icon: Trophy },
+  { to: '/admin/notes', label: 'Notes', icon: NotebookPen },
+  { to: '/admin/settings', label: 'Settings', icon: Settings },
 ]
 
 export default function AdminLayout({ children, title }: Props) {
@@ -53,6 +65,7 @@ export default function AdminLayout({ children, title }: Props) {
           )}
           <button
             onClick={() => setCollapsed(c => !c)}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             className="flex items-center justify-center rounded transition-all hover:bg-black/5"
             style={{
               color: 'var(--color-muted)',
@@ -60,11 +73,9 @@ export default function AdminLayout({ children, title }: Props) {
               height: 28,
               flexShrink: 0,
               marginLeft: collapsed ? 0 : 8,
-              fontSize: 14,
             }}
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
-            {collapsed ? '›' : '‹'}
+            <Icon icon={collapsed ? ChevronRight : ChevronLeft} size="sm" />
           </button>
         </div>
 
@@ -89,7 +100,7 @@ export default function AdminLayout({ children, title }: Props) {
                 background: isActive ? 'var(--color-gold-light)' : undefined,
               })}
             >
-              <span className="text-base w-5 text-center shrink-0">{icon}</span>
+              <Icon icon={icon} size={collapsed ? 'md' : 'sm'} className="shrink-0" />
               {!collapsed && label}
             </NavLink>
           ))}
@@ -105,7 +116,7 @@ export default function AdminLayout({ children, title }: Props) {
             }`}
             style={{ color: 'var(--color-muted)', borderColor: 'var(--color-border)' }}
           >
-            <span className="text-base w-5 text-center shrink-0">⊕</span>
+            <Icon icon={Users} size={collapsed ? 'md' : 'sm'} className="shrink-0" />
             {!collapsed && 'Player view'}
           </a>
         </div>
