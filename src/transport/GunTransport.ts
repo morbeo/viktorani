@@ -20,6 +20,30 @@ type GunNode = {
 
 const GUN_PEERS = ['https://gun-manhattan.herokuapp.com/gun', 'https://peer.wallie.io/gun']
 
+/**
+ * Relay-server transport implemented via Gun.js with SEA encryption.
+ *
+ * @remarks
+ * Gun.js is a decentralised, eventually-consistent graph database that uses
+ * public relay servers as a signalling and message-relay layer. Unlike PeerJS,
+ * it does not require a direct WebRTC connection between peers — all data flows
+ * through the relay, making it more reliable behind restrictive NATs and
+ * corporate firewalls.
+ *
+ * **Encryption:** Every event is symmetrically encrypted with
+ * [SEA](https://gun.eco/docs/SEA) (Security, Encryption, Authorization) using
+ * a shared secret derived from `passphrase` + `roomId` via `SEA.work()`. This
+ * prevents relay server operators or other Gun.js users from reading game data.
+ * The passphrase is displayed to players as part of the QR code payload.
+ *
+ * **Namespace:** Events are written to the Gun graph under the key
+ * `viktorani:<roomId>/events/<timestamp-random>`. Each event gets a unique
+ * key so Gun's CRDT merge does not overwrite previous entries.
+ *
+ * **Fallback role:** In `'auto'` mode, {@link TransportManager} instantiates
+ * this class only when {@link PeerJSTransport} fails — typically when the
+ * PeerJS cloud server is unreachable.
+ */
 export class GunTransport implements ITransport {
   private gun: GunInstance | null = null
   private room: GunNode | null = null
