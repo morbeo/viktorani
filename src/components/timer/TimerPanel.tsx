@@ -1,8 +1,12 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Button } from '@/components/ui'
 import { TimerCard } from './TimerCard'
 import { CreateTimerModal } from './CreateTimerModal'
-import type { UseTimerListResult } from '@/hooks/useTimer'
+import { EditTimerModal } from './EditTimerModal'
+import { TimerExpiredOverlay } from './TimerExpiredOverlay'
+import { useTimerExpiry } from '@/hooks/useTimer'
+import type { UseTimerListResult, ExpiryEvent } from '@/hooks/useTimer'
+import type { Timer } from '@/db'
 
 interface TimerPanelProps {
   gameId: string
@@ -10,11 +14,13 @@ interface TimerPanelProps {
 }
 
 /**
- * Host-facing panel: list of active timers with individual + bulk controls
- * and a button to create new ones.
+ * Host-facing panel: list of active timers with individual + bulk controls,
+ * expiry overlay, and edit modal.
  */
 export function TimerPanel({ gameId, hook }: TimerPanelProps) {
   const [showCreate, setShowCreate] = useState(false)
+  const [editingTimer, setEditingTimer] = useState<Timer | null>(null)
+  const [expiredEvent, setExpiredEvent] = useState<ExpiryEvent | null>(null)
 
   const {
     timers,
@@ -23,6 +29,7 @@ export function TimerPanel({ gameId, hook }: TimerPanelProps) {
     pauseTimer,
     resumeTimer,
     restartTimer,
+    updateTimer,
     deleteTimer,
     pauseAll,
     restartAll,
@@ -30,17 +37,40 @@ export function TimerPanel({ gameId, hook }: TimerPanelProps) {
     remaining,
   } = hook
 
+  // Host-side expiry: visual overlay (and audio is handled inside the hook)
+  const handleExpire = useCallback((evt: ExpiryEvent) => {
+    if (evt.visualNotify === 'host' || evt.visualNotify === 'both') {
+      setExpiredEvent(evt)
+    }
+  }, [])
+
+  useTimerExpiry(timers, remaining, handleExpire)
+
   async function handleCreate(label: string, duration: number) {
     const t = await createTimer({ gameId, label, duration })
     setShowCreate(false)
-    // Auto-start immediately
     await startTimer(t.id)
   }
 
   return (
     <>
+      {expiredEvent && (
+        <TimerExpiredOverlay label={expiredEvent.label} onDismiss={() => setExpiredEvent(null)} />
+      )}
+
       {showCreate && (
         <CreateTimerModal onConfirm={handleCreate} onCancel={() => setShowCreate(false)} />
+      )}
+
+      {editingTimer && (
+        <EditTimerModal
+          timer={editingTimer}
+          onSave={async patch => {
+            await updateTimer(editingTimer.id, patch)
+            setEditingTimer(null)
+          }}
+          onCancel={() => setEditingTimer(null)}
+        />
       )}
 
       <div
@@ -63,7 +93,6 @@ export function TimerPanel({ gameId, hook }: TimerPanelProps) {
               </span>
             )}
           </span>
-
           <div className="flex items-center gap-2">
             {timers.length > 1 && (
               <>
@@ -116,6 +145,7 @@ export function TimerPanel({ gameId, hook }: TimerPanelProps) {
                 onResume={() => void resumeTimer(t.id)}
                 onRestart={() => void restartTimer(t.id)}
                 onDelete={() => void deleteTimer(t.id)}
+                onEdit={() => setEditingTimer(t)}
               />
             ))}
           </div>

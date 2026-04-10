@@ -156,6 +156,9 @@ export interface Note {
   updatedAt: number
 }
 
+export type TimerNotify = 'none' | 'host' | 'players' | 'both'
+export type TimerAutoReset = 'none' | 'question' | 'round' | 'any'
+
 export interface Timer {
   id: string
   gameId: string
@@ -167,6 +170,12 @@ export interface Timer {
   visible: boolean
   paused: boolean
   startedAt: number | null
+  /** Who hears the audio beep when the timer hits zero */
+  audioNotify: TimerNotify
+  /** Who sees the visual popup when the timer hits zero */
+  visualNotify: TimerNotify
+  /** Which navigation event auto-resets (pauses + restores remaining) this timer */
+  autoReset: TimerAutoReset
 }
 
 export interface GameQuestion {
@@ -278,6 +287,34 @@ class ViktoraniDB extends Dexie {
             if (b['isFalseStart'] === undefined) b['isFalseStart'] = false
             if (b['gmDecision'] === undefined) b['gmDecision'] = null
             if (b['decidedAt'] === undefined) b['decidedAt'] = null
+          })
+      })
+
+    // v5: add audioNotify, visualNotify, autoReset to timers
+    this.version(5)
+      .stores({
+        difficulties: 'id, name, order',
+        tags: 'id, name',
+        questions: 'id, difficulty, type, createdAt',
+        rounds: 'id, createdAt',
+        games: 'id, status, createdAt',
+        teams: 'id, gameId',
+        players: 'id, gameId, teamId, deviceId',
+        buzzEvents: 'id, gameId, playerId, questionId, timestamp',
+        layouts: 'id, gameId, target',
+        widgets: 'id, layoutId, order',
+        notes: 'id, name, createdAt, updatedAt',
+        timers: 'id, gameId',
+        gameQuestions: 'id, gameId, roundId, order',
+      })
+      .upgrade(async tx => {
+        await tx
+          .table('timers')
+          .toCollection()
+          .modify((t: Record<string, unknown>) => {
+            if (t['audioNotify'] === undefined) t['audioNotify'] = 'none'
+            if (t['visualNotify'] === undefined) t['visualNotify'] = 'none'
+            if (t['autoReset'] === undefined) t['autoReset'] = 'none'
           })
       })
   }
