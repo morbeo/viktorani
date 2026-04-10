@@ -1,6 +1,18 @@
 import { db } from '@/db'
 import type { DifficultyLevel, Tag, Question, Round, Game, Note } from '@/db'
 
+/**
+ * Full database snapshot used for backup and restore.
+ *
+ * @remarks
+ * Version history:
+ * - **v1**: Included a `categories` array (now ignored on import).
+ * - **v2**: Categories removed; tags are the sole classifier.
+ *
+ * Runtime-only collections (`players`, `teams`, `buzzEvents`, `timers`,
+ * `gameQuestions`, `layouts`, `widgets`) are intentionally excluded —
+ * they represent transient session state that is not meaningful to restore.
+ */
 export interface DatabaseSnapshot {
   version: number
   exportedAt: number
@@ -12,6 +24,13 @@ export interface DatabaseSnapshot {
   notes: Note[]
 }
 
+/**
+ * Serialise the question bank and game definitions to a JSON file download.
+ *
+ * @remarks
+ * Triggers a browser file-save dialog. The downloaded file can be imported
+ * on another device via {@link importDatabase}.
+ */
 export async function exportDatabase(): Promise<void> {
   const snapshot: DatabaseSnapshot = {
     version: 2,
@@ -33,6 +52,17 @@ export async function exportDatabase(): Promise<void> {
   URL.revokeObjectURL(url)
 }
 
+/**
+ * Restore a previously exported snapshot into the local database.
+ *
+ * @remarks
+ * Uses `bulkPut` so existing records with matching IDs are overwritten.
+ * Accepts both v1 (with categories) and v2 snapshots — `categoryId` fields
+ * are stripped from question records transparently.
+ *
+ * @param file - A `.json` file previously produced by {@link exportDatabase}.
+ * @throws If the file contains an unsupported snapshot version.
+ */
 export async function importDatabase(file: File): Promise<void> {
   const text = await file.text()
   const snapshot = JSON.parse(text) as DatabaseSnapshot & {
@@ -67,6 +97,7 @@ export async function importDatabase(file: File): Promise<void> {
 
 // ── Questions import/export ───────────────────────────────────────────────────
 
+/** Summary returned by {@link importQuestions} after processing a file. */
 export interface ImportResult {
   imported: number
   skipped: number
@@ -75,6 +106,24 @@ export interface ImportResult {
 
 const REQUIRED_FIELDS = ['title', 'type', 'answer'] as const
 
+/**
+ * Import questions from a JSON array file into the question bank.
+ *
+ * @remarks
+ * Each element must have at least `title`, `type`, and `answer`.
+ * Rows missing required fields are skipped and reported in `errors`.
+ * Uses `db.questions.put` so existing records with matching `id` are updated.
+ *
+ * @param file - A `.json` file containing an array of partial {@link Question} objects.
+ * @returns A summary with counts of imported, skipped, and error rows.
+ * @throws If the file is not valid JSON or is not a JSON array.
+ *
+ * @example
+ * ```ts
+ * const result = await importQuestions(file)
+ * console.log(`Imported ${result.imported}, skipped ${result.skipped}`)
+ * ```
+ */
 export async function importQuestions(file: File): Promise<ImportResult> {
   const text = await file.text()
   let raw: unknown[]
@@ -124,6 +173,11 @@ export async function importQuestions(file: File): Promise<ImportResult> {
   return result
 }
 
+/**
+ * Export selected questions (or all questions) to a JSON file download.
+ *
+ * @param ids - Optional array of question IDs to export. Exports all if omitted.
+ */
 export async function exportQuestions(ids?: string[]): Promise<void> {
   const questions = ids?.length
     ? await db.questions.bulkGet(ids).then(qs => qs.filter(Boolean) as Question[])
@@ -138,6 +192,10 @@ export async function exportQuestions(ids?: string[]): Promise<void> {
   URL.revokeObjectURL(url)
 }
 
+/**
+ * Download a small example questions file to help users understand the import format.
+ * Contains one question of each type: multiple choice, true/false, and open-ended.
+ */
 export function downloadExampleQuestions(): void {
   const example: Partial<Question>[] = [
     {

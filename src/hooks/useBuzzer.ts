@@ -3,29 +3,70 @@ import { db } from '@/db'
 import { transportManager } from '@/transport'
 import type { Game, BuzzEvent, GmDecision } from '@/db'
 
+/** Return value of {@link useBuzzer}. */
 export interface UseBuzzerResult {
+  /** All buzz events for the current question, sorted by timestamp ascending. */
   buzzes: BuzzEvent[]
-  /** Filtered for display — respects game.buzzDeduplication */
+  /**
+   * Filtered subset for display — respects `game.buzzDeduplication`.
+   * In `'firstOnly'` mode, only the first buzz per player is shown.
+   */
   displayBuzzes: BuzzEvent[]
+  /** Whether the buzzer is currently locked (mirrors `game.buzzerLocked`). */
   isLocked: boolean
+  /** Toggle the buzzer lock state and broadcast the change to players. */
   toggleLock: () => Promise<void>
+  /**
+   * Record an incoming buzz from the transport layer.
+   * Call this from the GM's transport event handler when a `BUZZ` event arrives.
+   */
   handleIncomingBuzz: (payload: {
     playerId: string
     playerName: string
     teamId: string | null
     timestamp: number
   }) => Promise<void>
+  /**
+   * Record the GM's ruling on a specific buzz.
+   * On `'Correct'`, awards points (if scoring is enabled) and optionally auto-locks.
+   */
   adjudicate: (buzzId: string, decision: GmDecision) => Promise<void>
+  /** Delete all buzz records for a question (e.g. when moving to the next question). */
   clearBuzzes: (questionId: string) => Promise<void>
 }
 
 /**
  * All buzzer logic for the GM side.
  *
- * - Receives incoming BUZZ transport events and writes BuzzEvents to DB.
- * - Handles false-start rules, deduplication, adjudication, and auto-lock.
- * - Does NOT subscribe to transport itself — caller feeds events via
- *   handleIncomingBuzz so GameMaster controls the single transport subscription.
+ * @remarks
+ * This hook does **not** subscribe to transport events itself — the caller is
+ * responsible for forwarding `BUZZ` events via `handleIncomingBuzz`. This keeps
+ * the single transport subscription in the GameMaster component and avoids
+ * duplicate registrations when the hook re-renders.
+ *
+ * **False-start handling:** If `game.allowFalseStarts` is `false`, buzzes that
+ * arrive while the buzzer is locked are silently ignored. If `true`, they are
+ * recorded with `isFalseStart: true` and shown in the GM's buzz list.
+ *
+ * **Auto-lock:** When `game.autoLockOnFirstCorrect` is `true`, the buzzer is
+ * locked automatically after the GM rules a buzz as `'Correct'`.
+ *
+ * **Scoring:** When `game.scoringEnabled` is `true`, a correct ruling increments
+ * the player's score by the difficulty point value of the current question.
+ *
+ * @param game - The active game record. Used for configuration flags and IDs.
+ * @param questionId - ID of the currently displayed question, or `null` if none.
+ *
+ * @example
+ * ```tsx
+ * const { displayBuzzes, toggleLock, adjudicate } = useBuzzer(game, currentQuestionId)
+ *
+ * useTransportEvents(useCallback(event => {
+ *   if (event.type === 'BUZZ') {
+ *     handleIncomingBuzz(event)
+ *   }
+ * }, [handleIncomingBuzz]))
+ * ```
  */
 export function useBuzzer(game: Game, questionId: string | null): UseBuzzerResult {
   const [buzzes, setBuzzes] = useState<BuzzEvent[]>([])
@@ -156,8 +197,14 @@ export function useBuzzer(game: Game, questionId: string | null): UseBuzzerResul
 }
 
 /**
- * Load existing buzz events for a question from DB.
- * Call this when question changes to hydrate useBuzzer's state.
+ * Load existing buzz events for a question from IndexedDB.
+ *
+ * @remarks
+ * Call this when the current question changes to hydrate `useBuzzer`'s local state.
+ * Results are sorted by timestamp ascending so the display order matches arrival order.
+ *
+ * @param questionId - The question whose buzz history to load.
+ * @returns Array of {@link BuzzEvent} records sorted by timestamp.
  */
 export async function loadBuzzesForQuestion(questionId: string): Promise<BuzzEvent[]> {
   return db.buzzEvents.where('questionId').equals(questionId).sortBy('timestamp')
