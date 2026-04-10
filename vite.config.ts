@@ -41,19 +41,21 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
+    exclude: [
+      'node_modules/',
+      'archives',
+      'deploy/',
+      'dist/',
+      'src/main.tsx',
+      'src/pages/**', // page-level integration — tested via e2e
+      'src/components/AdminLayout.tsx',
+      '**/*.d.ts',
+      'vite.config.ts',
+      'commitlint.config.js',
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
-      exclude: [
-        'node_modules/',
-        'dist/',
-        'src/main.tsx',
-        'src/pages/**', // page-level integration — tested via e2e
-        'src/components/AdminLayout.tsx',
-        '**/*.d.ts',
-        'vite.config.ts',
-        'commitlint.config.js',
-      ],
     },
   },
 })
