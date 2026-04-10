@@ -6,7 +6,7 @@ export default {
       'perf', 'test', 'ci', 'build', 'revert',
       'epic',
     ]],
-    'scope-enum': [2, 'always', [
+    'scope-enum': [1, 'always', [
       // Features
       'admin', 'player', 'gamemaster',
       // Data & transport
