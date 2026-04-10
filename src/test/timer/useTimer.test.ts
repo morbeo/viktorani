@@ -191,6 +191,45 @@ describe('useTimerList', () => {
     expect(result.current.remaining(timerId)).toBe(45)
   })
 
+  it('resumeAll resumes all paused timers', async () => {
+    const { result } = renderHook(() => useTimerList(GAME_ID))
+    await flush()
+
+    let idA!: string
+    let idB!: string
+    await act(async () => {
+      const a = await result.current.createTimer({ gameId: GAME_ID, label: 'A', duration: 30 })
+      const b = await result.current.createTimer({ gameId: GAME_ID, label: 'B', duration: 30 })
+      idA = a.id
+      idB = b.id
+      await result.current.startTimer(idA)
+      await result.current.startTimer(idB)
+    })
+
+    await flush()
+
+    await act(async () => {
+      await result.current.pauseAll()
+    })
+
+    expect(result.current.timers.every(t => t.paused)).toBe(true)
+
+    await flush()
+
+    await act(async () => {
+      await result.current.resumeAll()
+    })
+
+    expect(result.current.timers.find(t => t.id === idA)?.paused).toBe(false)
+    expect(result.current.timers.find(t => t.id === idB)?.paused).toBe(false)
+    expect(transportManager.send).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'TIMER_RESUME', id: idA })
+    )
+    expect(transportManager.send).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'TIMER_RESUME', id: idB })
+    )
+  })
+
   it('deleteAll clears all timers', async () => {
     const { result } = renderHook(() => useTimerList(GAME_ID))
     await flush()
