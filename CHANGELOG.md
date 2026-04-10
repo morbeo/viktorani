@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.6](https://github.com/morbeo/viktorani/compare/v0.0.5...v0.0.6) (2026-04-10)
+
+### Features
+
+- **ui:** add Lucide React icon set across all screens ([1b89924](https://github.com/morbeo/viktorani/commit/1b899241d23e158edff7dea1468082f7d586b9f3)), closes [#89](https://github.com/morbeo/viktorani/issues/89) [#90](https://github.com/morbeo/viktorani/issues/90) [#91](https://github.com/morbeo/viktorani/issues/91) [#92](https://github.com/morbeo/viktorani/issues/92) [#93](https://github.com/morbeo/viktorani/issues/93) [#94](https://github.com/morbeo/viktorani/issues/94) [#95](https://github.com/morbeo/viktorani/issues/95) [#96](https://github.com/morbeo/viktorani/issues/96)
+
 ## [0.0.5](https://github.com/morbeo/viktorani/compare/v0.0.4...v0.0.5) (2026-04-10)
 
 ### Features
