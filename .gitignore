@@ -28,5 +28,7 @@ coverage/
 .DS_Store
 Thumbs.db
 
-# Scripts (added manually with git add --force)
+# Scripts and stuff
+archives/
+deploy/
 scripts/
