@@ -1,5 +1,7 @@
 import { useState, useCallback } from 'react'
+import { Plus, Minus, ChevronDown, ChevronRight, Medal } from 'lucide-react'
 import { useScoreboard } from '@/hooks/useScoreboard'
+import { Icon } from '@/components/ui'
 import type { Game } from '@/db'
 
 interface FlashState {
@@ -102,12 +104,16 @@ export function ScoreboardPanel({ game }: ScoreboardPanelProps) {
                     transition: 'background 0.15s ease',
                   }}
                 >
-                  {/* Rank */}
+                  {/* Rank — medal for first place */}
                   <span
-                    className="w-5 text-center text-xs font-bold shrink-0"
+                    className="w-5 text-center text-xs font-bold shrink-0 flex items-center justify-center"
                     style={{ color: rank === 0 ? 'var(--color-gold)' : 'var(--color-muted)' }}
                   >
-                    {rank + 1}
+                    {rank === 0 ? (
+                      <Icon icon={Medal} size="sm" className="text-[var(--color-gold)]" />
+                    ) : (
+                      rank + 1
+                    )}
                   </span>
 
                   {/* Name + expand toggle */}
@@ -126,16 +132,12 @@ export function ScoreboardPanel({ game }: ScoreboardPanelProps) {
                     }
                   >
                     {hasMembers && (
-                      <span
-                        className="text-xs shrink-0 transition-transform"
-                        style={{
-                          color: 'var(--color-muted)',
-                          transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                          display: 'inline-block',
-                        }}
-                      >
-                        ▶
-                      </span>
+                      <Icon
+                        icon={isExpanded ? ChevronDown : ChevronRight}
+                        size="sm"
+                        className="shrink-0 transition-transform"
+                        aria-hidden={true}
+                      />
                     )}
                     <span className="truncate">{entry.name}</span>
                     {entry.kind === 'team' && (
@@ -172,7 +174,7 @@ export function ScoreboardPanel({ game }: ScoreboardPanelProps) {
                   {/* Adjust buttons */}
                   <div className="flex items-center gap-1 shrink-0">
                     <button
-                      className="w-7 h-7 rounded flex items-center justify-center text-base font-bold transition-colors"
+                      className="w-7 h-7 rounded flex items-center justify-center transition-colors"
                       style={{
                         background: 'var(--color-red)18',
                         color: 'var(--color-red)',
@@ -180,10 +182,10 @@ export function ScoreboardPanel({ game }: ScoreboardPanelProps) {
                       onClick={() => void handleAdjust(entry.id, entry.kind, -defaultIncrement)}
                       aria-label={`Subtract ${defaultIncrement} from ${entry.name}`}
                     >
-                      −
+                      <Icon icon={Minus} size="sm" />
                     </button>
                     <button
-                      className="w-7 h-7 rounded flex items-center justify-center text-base font-bold transition-colors"
+                      className="w-7 h-7 rounded flex items-center justify-center transition-colors"
                       style={{
                         background: 'var(--color-green)18',
                         color: 'var(--color-green)',
@@ -191,7 +193,7 @@ export function ScoreboardPanel({ game }: ScoreboardPanelProps) {
                       onClick={() => void handleAdjust(entry.id, entry.kind, +defaultIncrement)}
                       aria-label={`Add ${defaultIncrement} to ${entry.name}`}
                     >
-                      +
+                      <Icon icon={Plus} size="sm" />
                     </button>
                   </div>
                 </div>
@@ -243,7 +245,7 @@ export function ScoreboardPanel({ game }: ScoreboardPanelProps) {
                           </span>
                           <div className="flex items-center gap-1 shrink-0">
                             <button
-                              className="w-6 h-6 rounded flex items-center justify-center text-sm font-bold"
+                              className="w-6 h-6 rounded flex items-center justify-center"
                               style={{
                                 background: 'var(--color-red)18',
                                 color: 'var(--color-red)',
@@ -253,10 +255,10 @@ export function ScoreboardPanel({ game }: ScoreboardPanelProps) {
                               }
                               aria-label={`Subtract ${defaultIncrement} from ${member.name}`}
                             >
-                              −
+                              <Icon icon={Minus} size="sm" />
                             </button>
                             <button
-                              className="w-6 h-6 rounded flex items-center justify-center text-sm font-bold"
+                              className="w-6 h-6 rounded flex items-center justify-center"
                               style={{
                                 background: 'var(--color-green)18',
                                 color: 'var(--color-green)',
@@ -266,7 +268,7 @@ export function ScoreboardPanel({ game }: ScoreboardPanelProps) {
                               }
                               aria-label={`Add ${defaultIncrement} to ${member.name}`}
                             >
-                              +
+                              <Icon icon={Plus} size="sm" />
                             </button>
                           </div>
                         </div>

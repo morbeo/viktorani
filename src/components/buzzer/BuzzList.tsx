@@ -1,5 +1,6 @@
+import { CircleCheck, CircleX, Ban, TriangleAlert } from 'lucide-react'
 import type { BuzzEvent, GmDecision } from '@/db'
-import { Button } from '@/components/ui'
+import { Button, Icon } from '@/components/ui'
 
 interface BuzzListProps {
   buzzes: BuzzEvent[]
@@ -101,9 +102,10 @@ export function BuzzList({ buzzes, allBuzzes, onAdjudicate, showAll }: BuzzListP
 
                 {buzz.isFalseStart && (
                   <span
-                    className="text-xs px-1.5 py-0.5 rounded font-medium"
+                    className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded font-medium"
                     style={{ background: 'var(--color-gold)22', color: 'var(--color-gold)' }}
                   >
+                    <Icon icon={TriangleAlert} size="sm" />
                     False Start
                   </span>
                 )}
@@ -139,6 +141,7 @@ export function BuzzList({ buzzes, allBuzzes, onAdjudicate, showAll }: BuzzListP
                 <Button
                   size="sm"
                   onClick={() => onAdjudicate(buzz.id, 'Correct')}
+                  aria-label="Mark correct"
                   style={{
                     background: 'var(--color-green)',
                     color: '#fff',
@@ -147,11 +150,12 @@ export function BuzzList({ buzzes, allBuzzes, onAdjudicate, showAll }: BuzzListP
                   }}
                   title="Mark correct"
                 >
-                  ✓
+                  <Icon icon={CircleCheck} size="sm" />
                 </Button>
                 <Button
                   size="sm"
                   onClick={() => onAdjudicate(buzz.id, 'Incorrect')}
+                  aria-label="Mark incorrect"
                   style={{
                     background: 'var(--color-red)',
                     color: '#fff',
@@ -160,16 +164,18 @@ export function BuzzList({ buzzes, allBuzzes, onAdjudicate, showAll }: BuzzListP
                   }}
                   title="Mark incorrect"
                 >
-                  ✗
+                  <Icon icon={CircleX} size="sm" />
                 </Button>
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={() => onAdjudicate(buzz.id, 'Skip')}
+                  aria-label="Skip buzz"
                   style={{ minHeight: 36, minWidth: 36 }}
                   title="Skip"
                 >
-                  ⊘
+                  <Icon icon={Ban} size="sm" />
+                  <span>Skip</span>
                 </Button>
               </div>
             )}

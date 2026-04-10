@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
+import { QrCode, Rocket, Hourglass, CircleDot, Circle } from 'lucide-react'
 import AdminLayout from '@/components/AdminLayout'
-import { Button, Badge, TransportPill } from '@/components/ui'
+import { Button, Badge, TransportPill, Icon } from '@/components/ui'
 import { NavHeader } from '@/components/NavHeader'
 import { RoundBoundary } from '@/components/RoundBoundary'
 import { BuzzerPanel } from '@/components/buzzer/BuzzerPanel'
@@ -41,10 +42,13 @@ function PlayerRow({ player }: { player: Player }) {
       className="flex items-center gap-3 px-4 py-2.5 border-b last:border-b-0"
       style={{ borderColor: 'var(--color-border)' }}
     >
-      <span
-        className="w-2 h-2 rounded-full shrink-0"
-        style={{ background: player.isAway ? 'var(--color-muted)' : 'var(--color-green)' }}
-        title={player.isAway ? 'Away' : 'Online'}
+      <Icon
+        icon={player.isAway ? Circle : CircleDot}
+        size="sm"
+        className="shrink-0"
+        aria-hidden={false}
+        aria-label={player.isAway ? 'Away' : 'Online'}
+        // colour via inline style since CSS vars aren't Tailwind classes
       />
       <span className="flex-1 text-sm">{player.name}</span>
       {player.isAway && (
@@ -120,9 +124,10 @@ function Lobby({
           style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
         >
           <p
-            className="text-xs font-semibold uppercase tracking-wider"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider"
             style={{ color: 'var(--color-muted)' }}
           >
+            <Icon icon={QrCode} size="sm" />
             Scan to join
           </p>
 
@@ -183,7 +188,8 @@ function Lobby({
 
           <div className="flex-1 overflow-y-auto" style={{ maxHeight: 240 }}>
             {players.length === 0 ? (
-              <div className="flex items-center justify-center h-24">
+              <div className="flex flex-col items-center justify-center gap-2 h-24">
+                <Icon icon={Hourglass} size="md" aria-hidden />
                 <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
                   Waiting for players to join…
                 </p>
@@ -264,7 +270,8 @@ function Lobby({
           </label>
 
           <Button variant="primary" size="lg" onClick={onStart} disabled={!canStart || starting}>
-            {starting ? 'Starting…' : 'Start game →'}
+            <Icon icon={Rocket} size="sm" />
+            {starting ? 'Starting…' : 'Start game'}
           </Button>
         </div>
       </div>

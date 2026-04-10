@@ -1,4 +1,9 @@
 import type { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes } from 'react'
+import { X, Network, Radio, CircleDot, CircleOff } from 'lucide-react'
+import { Icon } from './Icon'
+import type { TransportStatus, TransportType } from '@/transport/types'
+
+export { Icon } from './Icon'
 
 // ── Button ────────────────────────────────────────────────────────────────────
 
@@ -230,10 +235,11 @@ export function Modal({ open, onClose, title, children, maxWidth = '480px' }: Mo
             </h3>
             <button
               onClick={onClose}
-              className="text-xl leading-none hover:opacity-60 transition-opacity"
+              aria-label="Close"
+              className="flex items-center justify-center w-7 h-7 rounded hover:bg-black/5 transition-opacity"
               style={{ color: 'var(--color-muted)' }}
             >
-              ×
+              <Icon icon={X} size="sm" />
             </button>
           </div>
         )}
@@ -258,7 +264,19 @@ export function Empty({ icon = '○', message }: { icon?: string; message: strin
 
 // ── Transport status pill ─────────────────────────────────────────────────────
 
-import type { TransportStatus, TransportType } from '@/transport/types'
+const TRANSPORT_ICON: Record<TransportStatus, typeof Network> = {
+  connected: CircleDot,
+  connecting: CircleDot,
+  disconnected: CircleOff,
+  idle: CircleOff,
+  error: CircleOff,
+}
+
+function transportTypeIcon(type: TransportType): typeof Network {
+  if (type === 'peer') return Network
+  if (type === 'gun') return Radio
+  return CircleOff
+}
 
 export function TransportPill({ status, type }: { status: TransportStatus; type: TransportType }) {
   const color =
@@ -267,6 +285,7 @@ export function TransportPill({ status, type }: { status: TransportStatus; type:
       : status === 'connecting'
         ? 'var(--color-gold)'
         : 'var(--color-muted)'
+
   const label =
     status === 'connected'
       ? type === 'peer'
@@ -275,12 +294,16 @@ export function TransportPill({ status, type }: { status: TransportStatus; type:
       : status === 'connecting'
         ? 'Connecting…'
         : 'Offline'
+
+  // Show transport type icon when connected, generic status icon otherwise
+  const IconComponent = status === 'connected' ? transportTypeIcon(type) : TRANSPORT_ICON[status]
+
   return (
     <span
       className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium mono border"
       style={{ borderColor: color, color }}
     >
-      <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: color }} />
+      <Icon icon={IconComponent} size="sm" className="shrink-0" />
       {label}
     </span>
   )

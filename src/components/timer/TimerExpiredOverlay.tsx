@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { AlarmClock } from 'lucide-react'
+import { Icon } from '@/components/ui'
 
 interface TimerExpiredOverlayProps {
   label: string
@@ -77,8 +79,8 @@ export function TimerExpiredOverlay({
             transform="rotate(-90 24 24)"
           />
         </svg>
-        <span className="absolute text-3xl" role="img" aria-label="alarm">
-          ⏰
+        <span className="absolute flex items-center justify-center" style={{ color: '#fff' }}>
+          <Icon icon={AlarmClock} size="md" aria-hidden={false} aria-label="alarm" />
         </span>
       </div>
 

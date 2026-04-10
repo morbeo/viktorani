@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
-import { Button } from '@/components/ui'
+import { Plus, PauseCircle, PlayCircle, RotateCcw, Trash2 } from 'lucide-react'
+import { Button, Icon } from '@/components/ui'
 import { TimerCard } from './TimerCard'
 import { CreateTimerModal } from './CreateTimerModal'
 import { EditTimerModal } from './EditTimerModal'
@@ -110,30 +111,42 @@ export function TimerPanel({ gameId, hook }: TimerPanelProps) {
                   size="sm"
                   variant="ghost"
                   onClick={handlePauseResumeAll}
+                  aria-label={allPaused ? 'Resume all timers' : 'Pause all timers'}
                   style={{ color: 'var(--color-muted)' }}
                 >
+                  <Icon icon={allPaused ? PlayCircle : PauseCircle} size="sm" />
                   {allPaused ? 'Resume all' : 'Pause all'}
                 </Button>
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={restartAll}
+                  aria-label="Restart all timers"
                   style={{ color: 'var(--color-muted)' }}
                 >
+                  <Icon icon={RotateCcw} size="sm" />
                   Restart all
                 </Button>
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={deleteAll}
+                  aria-label="Clear all timers"
                   style={{ color: 'var(--color-muted)' }}
                 >
+                  <Icon icon={Trash2} size="sm" />
                   Clear all
                 </Button>
               </>
             )}
-            <Button size="sm" variant="primary" onClick={() => setShowCreate(true)}>
-              + Timer
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => setShowCreate(true)}
+              aria-label="Add timer"
+            >
+              <Icon icon={Plus} size="sm" />
+              Timer
             </Button>
           </div>
         </div>
