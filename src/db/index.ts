@@ -324,7 +324,7 @@ export interface GameQuestion {
  * - **v3**: Drop `categories`; remove `categoryId` index (ADR-0007).
  * - **v4**: Full `BuzzEvent` schema + buzzer-config back-fill on `Game` records.
  */
-class ViktoraniDB extends Dexie {
+export class ViktoraniDB extends Dexie {
   difficulties!: EntityTable<DifficultyLevel, 'id'>
   tags!: EntityTable<Tag, 'id'>
   questions!: EntityTable<Question, 'id'>
