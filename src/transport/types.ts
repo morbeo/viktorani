@@ -77,7 +77,7 @@ export interface SerializedGameState {
 }
 
 /**
- * Configuration passed to {@link ITransport.connect}.
+ * Configuration passed to {@link transport/types.ITransport.connect}.
  *
  * @remarks
  * `passphrase` is used by Gun.js SEA for symmetric encryption of the
@@ -104,7 +104,7 @@ export type TransportType = 'peer' | 'gun' | null
 // ── Interface all transports must implement ───────────────────────────────────
 
 /**
- * Common interface implemented by {@link PeerJSTransport} and {@link GunTransport}.
+ * Common interface implemented by {@link transport/PeerJSTransport.PeerJSTransport} and {@link transport/GunTransport.GunTransport}.
  *
  * @remarks
  * All transports are one-room-per-instance. Call `connect()` once per session;

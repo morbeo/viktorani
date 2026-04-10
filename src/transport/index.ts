@@ -106,7 +106,8 @@ export function generateRoomId(): string {
 
 // ── Manager ───────────────────────────────────────────────────────────────────
 
-type StatusListener = (status: TransportStatus, type: TransportType) => void
+/** Callback invoked when the transport connection status or type changes. */
+export type StatusListener = (status: TransportStatus, type: TransportType) => void
 
 /**
  * Facade over {@link PeerJSTransport} and {@link GunTransport} that handles

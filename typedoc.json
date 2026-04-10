@@ -2,11 +2,20 @@
   "$schema": "https://typedoc.org/schema.json",
   "entryPointStrategy": "expand",
   "entryPoints": ["src/transport", "src/db", "src/hooks"],
-  "exclude": ["src/test/**", "src/pages/**", "src/components/**", "**/*.test.*"],
+  "exclude": [
+    "src/test/**",
+    "src/pages/**",
+    "src/components/**",
+    "**/*.test.*",
+    "src/hooks/useNavigation.ts",
+    "src/hooks/useKeyNav.ts",
+    "src/hooks/useLocalStorage.ts"
+  ],
   "out": "docs/api",
   "name": "Viktorani API",
   "readme": "none",
   "includeVersion": true,
   "disableSources": false,
+  "suppressCommentWarningsInDeclarationFiles": true,
   "plugin": ["typedoc-plugin-markdown"]
 }

@@ -40,8 +40,8 @@ const GUN_PEERS = ['https://gun-manhattan.herokuapp.com/gun', 'https://peer.wall
  * `viktorani:<roomId>/events/<timestamp-random>`. Each event gets a unique
  * key so Gun's CRDT merge does not overwrite previous entries.
  *
- * **Fallback role:** In `'auto'` mode, {@link TransportManager} instantiates
- * this class only when {@link PeerJSTransport} fails — typically when the
+ * **Fallback role:** In `'auto'` mode, {@link transport.TransportManager} instantiates
+ * this class only when {@link transport/PeerJSTransport.PeerJSTransport} fails — typically when the
  * PeerJS cloud server is unreachable.
  */
 export class GunTransport implements ITransport {
