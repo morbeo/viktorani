@@ -3,30 +3,57 @@ import { db } from '@/db'
 import { transportManager } from '@/transport'
 import type { Game, Player, Team, DifficultyLevel } from '@/db'
 
+/** A single row in the scoreboard — either a team or an individual player. */
 export interface ScoreEntry {
   id: string
   name: string
   score: number
-  /** null for individual player when no team */
+  /** `null` for individual players not on a team. */
   teamId: string | null
-  /** Present for team rows; undefined for solo players */
+  /** Present for team rows; lists each member's individual score. */
   members?: { id: string; name: string; score: number }[]
   kind: 'player' | 'team'
 }
 
+/** Return value of {@link useScoreboard}. */
 export interface UseScoreboardResult {
+  /** Sorted list of scoreboard rows (descending by score). */
   entries: ScoreEntry[]
+  /**
+   * Apply a score delta to a player or team.
+   * Persists the change to IndexedDB and broadcasts a `SCORE_UPDATE` event.
+   */
   adjust: (id: string, kind: 'player' | 'team', delta: number) => Promise<void>
+  /** Suggested increment step — the lowest difficulty point value, or `1` if none configured. */
   defaultIncrement: number
 }
 
 /**
  * Manages scoreboard state for the GM view.
  *
- * - Loads players (and teams in team mode) from DB on mount.
- * - Provides `adjust` to apply manual +/- delta to a player or team.
- * - Emits SCORE_UPDATE after every adjustment so players see live scores.
- * - In team mode, aggregates player scores into team totals.
+ * @remarks
+ * - Loads players (and teams in team mode) from IndexedDB on mount.
+ * - Provides {@link UseScoreboardResult.adjust} to apply manual +/− delta to a player or team.
+ * - Emits a `SCORE_UPDATE` transport event after every adjustment so players see live scores.
+ * - In team mode, adjusting an individual player's score also recalculates and persists
+ *   the parent team's aggregate score.
+ * - Scores are clamped to a minimum of `0`.
+ *
+ * @param game - The active {@link Game} record. Only `game.id` is used for DB queries.
+ * @returns Sorted entries, the adjust callback, and a suggested increment step.
+ *
+ * @example
+ * ```tsx
+ * function Scoreboard({ game }: { game: Game }) {
+ *   const { entries, adjust, defaultIncrement } = useScoreboard(game)
+ *   return entries.map(e => (
+ *     <div key={e.id}>
+ *       {e.name}: {e.score}
+ *       <button onClick={() => adjust(e.id, e.kind, defaultIncrement)}>+</button>
+ *     </div>
+ *   ))
+ * }
+ * ```
  */
 export function useScoreboard(game: Game): UseScoreboardResult {
   const [players, setPlayers] = useState<Player[]>([])
