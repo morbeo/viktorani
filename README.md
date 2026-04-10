@@ -4,6 +4,7 @@ Bar trivia PWA with WebRTC multiplayer, Reveal.js slides, and buzzer gameplay.
 No backend — runs entirely in the browser.
 
 **Live:** https://morbeo.github.io/viktorani/
+**API docs:** [![API Docs](https://img.shields.io/badge/docs-API-blue)](https://morbeo.github.io/viktorani/api/)
 
 ---
 
@@ -11,6 +12,7 @@ No backend — runs entirely in the browser.
 
 - [Tech stack](#tech-stack)
 - [Getting started](#getting-started)
+- [Documentation](#documentation)
 - [Project structure](#project-structure)
 - [Multiplayer](#multiplayer)
 - [Data storage](#data-storage)
@@ -51,6 +53,7 @@ npm run dev
 | ----------------------- | ---------------------------------------------- |
 | `npm run dev`           | Start dev server at `localhost:5173`           |
 | `npm run build`         | Type-check + production build → `dist/`        |
+| `npm run docs`          | Generate API docs → `docs/api/` (gitignored)   |
 | `npm run lint`          | ESLint across all `*.ts` / `*.tsx` files       |
 | `npm run typecheck`     | Type-check app and test files (both tsconfigs) |
 | `npm run test`          | Run unit tests once via Vitest                 |
@@ -62,6 +65,24 @@ npm run dev
 | `npm run release`       | Interactive release: choose version, tag, push |
 | `npm run release:patch` | Non-interactive patch bump                     |
 | `npm run release:minor` | Non-interactive minor bump                     |
+
+---
+
+## Documentation
+
+| Document                                            | Description                              |
+| --------------------------------------------------- | ---------------------------------------- |
+| [Host guide](docs/user-guide/host.md)               | Setting up and running a trivia night    |
+| [Player guide](docs/user-guide/player.md)           | Joining a game and buzzing in            |
+| [API docs](https://morbeo.github.io/viktorani/api/) | Generated TypeDoc — transport, DB, hooks |
+| [Architecture decisions](docs/adr/)                 | ADRs for all major technical decisions   |
+
+To generate API docs locally:
+
+```bash
+npm run docs
+# Output: docs/api/ (gitignored — generated at build time)
+```
 
 ---
 
@@ -104,6 +125,10 @@ src/
 │   ├── buzzer.test.ts
 │   └── timer/            # Timer hook and component tests
 └── App.tsx               # HashRouter + all routes
+
+docs/
+├── adr/                  # Architecture Decision Records
+└── user-guide/           # Host and player guides
 
 public/
 ├── favicon.svg           # SVG favicon (source of truth)
@@ -153,12 +178,13 @@ restore or share your question bank.
 
 ### Workflows
 
-| Workflow        | Trigger                   | Purpose                                                                |
-| --------------- | ------------------------- | ---------------------------------------------------------------------- |
-| `ci.yml`        | PRs to `master`           | PR title lint + type-check, lint, test, build — both required to merge |
-| `deploy.yml`    | push to `master` + manual | Type-check → lint → test → build → deploy to GitHub Pages              |
-| `release.yml`   | push of `v*` tags         | Build tarball → generate release notes → publish GitHub Release        |
-| `automerge.yml` | `CI` workflow completes   | Auto-merge Dependabot patch/minor PRs when CI passes                   |
+| Workflow        | Trigger                         | Purpose                                                                |
+| --------------- | ------------------------------- | ---------------------------------------------------------------------- |
+| `ci.yml`        | PRs to `master`                 | PR title lint + type-check, lint, test, build — both required to merge |
+| `deploy.yml`    | push to `master` + manual       | Type-check → lint → test → build → deploy to GitHub Pages              |
+| `docs.yml`      | push to `master` (src/ changes) | Generate TypeDoc → publish to `gh-pages` under `/api/`                 |
+| `release.yml`   | push of `v*` tags               | Build tarball → generate release notes → publish GitHub Release        |
+| `automerge.yml` | `CI` workflow completes         | Auto-merge Dependabot patch/minor PRs when CI passes                   |
 
 All workflows set `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` to opt into the Node 24 runner ahead of the June 2026 forced migration.
 
@@ -179,7 +205,7 @@ Force pushes and branch deletion are blocked. To apply or re-apply protection:
 bash scripts/protect-master.sh
 ```
 
-> **Note:** `scripts/` is gitignored. Add scripts explicitly with `git add --force scripts/`.
+> **Note:** `scripts/` is gitignored. Add scripts explicitly with `git add --force scripts/`
 
 ### Dependabot
 
