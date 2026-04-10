@@ -15,7 +15,5 @@
   "name": "Viktorani API",
   "readme": "none",
   "includeVersion": true,
-  "disableSources": false,
-  "suppressCommentWarningsInDeclarationFiles": true,
-  "plugin": ["typedoc-plugin-markdown"]
+  "disableSources": false
 }

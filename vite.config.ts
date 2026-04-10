@@ -28,6 +28,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // Prevent the service worker from intercepting requests to the
+        // TypeDoc API docs deployed at /viktorani/api/
+        navigateFallbackDenylist: [/^\/viktorani\/api\//],
       },
     }),
   ],
@@ -44,8 +47,6 @@ export default defineConfig({
       exclude: [
         'node_modules/',
         'dist/',
-        'archive/',
-        'deploy/',
         'src/main.tsx',
         'src/pages/**', // page-level integration — tested via e2e
         'src/components/AdminLayout.tsx',
