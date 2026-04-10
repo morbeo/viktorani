@@ -16,6 +16,9 @@ function makeTimer(overrides: Partial<Timer> = {}): Timer {
     visible: true,
     paused: true,
     startedAt: null,
+    audioNotify: 'none',
+    visualNotify: 'none',
+    autoReset: 'none',
     ...overrides,
   }
 }
@@ -33,6 +36,7 @@ describe('TimerCard', () => {
         onResume={noop}
         onRestart={noop}
         onDelete={noop}
+        onEdit={noop}
       />
     )
     expect(screen.getByText('Finals')).toBeTruthy()
@@ -48,6 +52,7 @@ describe('TimerCard', () => {
         onResume={noop}
         onRestart={noop}
         onDelete={noop}
+        onEdit={noop}
       />
     )
     expect(screen.getByText('Ready')).toBeTruthy()
@@ -63,6 +68,7 @@ describe('TimerCard', () => {
         onResume={noop}
         onRestart={noop}
         onDelete={noop}
+        onEdit={noop}
       />
     )
     expect(screen.getByText('Running')).toBeTruthy()
@@ -78,6 +84,7 @@ describe('TimerCard', () => {
         onResume={noop}
         onRestart={noop}
         onDelete={noop}
+        onEdit={noop}
       />
     )
     // startedAt was set before so it shows Paused (not Ready)
@@ -98,6 +105,7 @@ describe('TimerCard', () => {
         onResume={noop}
         onRestart={noop}
         onDelete={noop}
+        onEdit={noop}
       />
     )
     expect(screen.getByText('Time up!')).toBeTruthy()
@@ -114,6 +122,7 @@ describe('TimerCard', () => {
         onResume={noop}
         onRestart={noop}
         onDelete={noop}
+        onEdit={noop}
       />
     )
     fireEvent.click(screen.getByTitle('Start'))
@@ -131,6 +140,7 @@ describe('TimerCard', () => {
         onResume={noop}
         onRestart={noop}
         onDelete={noop}
+        onEdit={noop}
       />
     )
     fireEvent.click(screen.getByTitle('Pause'))
@@ -148,6 +158,7 @@ describe('TimerCard', () => {
         onResume={noop}
         onRestart={noop}
         onDelete={onDelete}
+        onEdit={noop}
       />
     )
     fireEvent.click(screen.getByTitle('Delete timer'))
@@ -165,6 +176,7 @@ describe('TimerCard', () => {
         onResume={noop}
         onRestart={onRestart}
         onDelete={noop}
+        onEdit={noop}
       />
     )
     fireEvent.click(screen.getByTitle('Restart'))
@@ -181,6 +193,7 @@ describe('TimerCard', () => {
         onResume={noop}
         onRestart={noop}
         onDelete={noop}
+        onEdit={noop}
       />
     )
     expect(screen.getByText('01:30')).toBeTruthy()

@@ -13,7 +13,7 @@ import { serialiseGameState, upsertPlayer, markPlayerAway } from '@/pages/admin/
 import { useNavigation } from '@/hooks/useNavigation'
 import { useKeyNav } from '@/hooks/useKeyNav'
 import { useBuzzer } from '@/hooks/useBuzzer'
-import { useTimerList } from '@/hooks/useTimer'
+import { useTimerList, applyAutoReset } from '@/hooks/useTimer'
 import { TimerPanel } from '@/components/timer/TimerPanel'
 import type { Game, Player } from '@/db'
 import type { TransportStatus, TransportType, TransportEvent } from '@/transport/types'
@@ -299,6 +299,28 @@ function ActiveGame({ game }: ActiveGameProps) {
     useBuzzer(game, currentQuestionId)
 
   const timerHook = useTimerList(game.id)
+  const timerHookRef = useRef(timerHook)
+  useEffect(() => {
+    timerHookRef.current = timerHook
+  }, [timerHook])
+
+  // Auto-reset timers on navigation
+  const prevPos = useRef<typeof pos>(null)
+  useEffect(() => {
+    if (!pos || !prevPos.current) {
+      prevPos.current = pos
+      return
+    }
+    const prev = prevPos.current
+    prevPos.current = pos
+    const changeType = pos.roundIdx !== prev.roundIdx ? 'round' : 'question'
+    void applyAutoReset(timerHookRef.current.timers, changeType).then(() => {
+      // Sync local state after DB writes
+      timerHookRef.current.timers
+        .filter(t => t.autoReset !== 'none')
+        .forEach(t => timerHookRef.current.pauseTimer(t.id).catch(() => {}))
+    })
+  }, [pos])
 
   // Expose handleIncomingBuzz upward via the onBuzz prop bridge
   useEffect(() => {

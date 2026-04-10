@@ -221,6 +221,9 @@ describe('useTimerList', () => {
       visible: true,
       paused: true,
       startedAt: null,
+      audioNotify: 'none',
+      visualNotify: 'none',
+      autoReset: 'none',
     })
 
     const { result } = renderHook(() => useTimerList(GAME_ID))

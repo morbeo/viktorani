@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { db } from '@/db'
 import { transportManager } from '@/transport'
-import type { Timer } from '@/db'
+import type { Timer, TimerNotify, TimerAutoReset } from '@/db'
+
+export type { TimerNotify, TimerAutoReset }
 
 export interface UseTimerListResult {
   timers: Timer[]
@@ -11,35 +13,26 @@ export interface UseTimerListResult {
   resumeTimer: (id: string) => Promise<void>
   restartTimer: (id: string) => Promise<void>
   deleteTimer: (id: string) => Promise<void>
+  updateTimer: (
+    id: string,
+    patch: Partial<Pick<Timer, 'audioNotify' | 'visualNotify' | 'autoReset' | 'label'>>
+  ) => Promise<void>
   pauseAll: () => Promise<void>
   restartAll: () => Promise<void>
   deleteAll: () => Promise<void>
-  /** Remaining seconds for a given timer id (live, from RAF ticker) */
   remaining: (id: string) => number
 }
 
-/**
- * Manages all timers for a game session.
- *
- * - Hydrates from DB on mount so a page reload restores running timers.
- * - Drives a single requestAnimationFrame ticker that computes remaining
- *   time from `startedAt` without broadcasting ticks to players.
- * - Emits TIMER_START / TIMER_PAUSE / TIMER_RESUME transport events for
- *   players to render their own local countdown.
- */
 export function useTimerList(gameId: string): UseTimerListResult {
   const [timers, setTimers] = useState<Timer[]>([])
-  // Live remaining seconds keyed by timer id — updated by RAF ticker
   const [tick, setTick] = useState(0)
   const rafRef = useRef<number | null>(null)
   const timersRef = useRef<Timer[]>([])
 
-  // Keep ref in sync for RAF callback (avoids stale closure)
   useEffect(() => {
     timersRef.current = timers
   }, [timers])
 
-  // Load from DB on mount
   useEffect(() => {
     if (!gameId) return
     db.timers
@@ -49,39 +42,31 @@ export function useTimerList(gameId: string): UseTimerListResult {
       .then(rows => setTimers(rows))
   }, [gameId])
 
-  // RAF ticker — increments `tick` once per second so callers re-render
   useEffect(() => {
     let last = performance.now()
-
     function frame(now: number) {
       if (now - last >= 200) {
-        // 5fps is enough for second-precision countdown
         last = now
         setTick(t => t + 1)
       }
       rafRef.current = requestAnimationFrame(frame)
     }
-
     rafRef.current = requestAnimationFrame(frame)
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
     }
   }, [])
 
-  // Compute live remaining for a timer
   const remaining = useCallback(
     (id: string): number => {
-      void tick // subscribe to tick updates
+      void tick
       const t = timersRef.current.find(x => x.id === id)
       if (!t) return 0
       if (t.paused || t.startedAt === null) return Math.max(0, t.remaining)
-      const elapsed = (Date.now() - t.startedAt) / 1000
-      return Math.max(0, t.remaining - elapsed)
+      return Math.max(0, t.remaining - (Date.now() - t.startedAt) / 1000)
     },
     [tick]
   )
-
-  // ── Mutators ─────────────────────────────────────────────────────────────
 
   const updateLocal = useCallback((id: string, patch: Partial<Timer>) => {
     setTimers(prev => prev.map(t => (t.id === id ? { ...t, ...patch } : t)))
@@ -100,6 +85,9 @@ export function useTimerList(gameId: string): UseTimerListResult {
         visible: true,
         paused: true,
         startedAt: null,
+        audioNotify: 'none',
+        visualNotify: 'none',
+        autoReset: 'none',
       }
       await db.timers.add(timer)
       setTimers(prev => [...prev, timer])
@@ -153,18 +141,24 @@ export function useTimerList(gameId: string): UseTimerListResult {
       const t = timersRef.current.find(x => x.id === id)
       if (!t) return
       await pauseTimer(id)
-      // Brief delay then start fresh
       const now = Date.now()
-      const patch: Partial<Timer> = {
-        paused: false,
-        remaining: t.duration,
-        startedAt: now,
-      }
+      const patch: Partial<Timer> = { paused: false, remaining: t.duration, startedAt: now }
       await db.timers.update(id, patch)
       updateLocal(id, patch)
       transportManager.send({ type: 'TIMER_START', id, duration: t.duration, label: t.label })
     },
     [pauseTimer, updateLocal]
+  )
+
+  const updateTimer = useCallback(
+    async (
+      id: string,
+      patch: Partial<Pick<Timer, 'audioNotify' | 'visualNotify' | 'autoReset' | 'label'>>
+    ) => {
+      await db.timers.update(id, patch)
+      updateLocal(id, patch)
+    },
+    [updateLocal]
   )
 
   const deleteTimer = useCallback(async (id: string) => {
@@ -173,8 +167,7 @@ export function useTimerList(gameId: string): UseTimerListResult {
   }, [])
 
   const pauseAll = useCallback(async () => {
-    const running = timersRef.current.filter(t => !t.paused)
-    await Promise.all(running.map(t => pauseTimer(t.id)))
+    await Promise.all(timersRef.current.filter(t => !t.paused).map(t => pauseTimer(t.id)))
   }, [pauseTimer])
 
   const restartAll = useCallback(async () => {
@@ -182,8 +175,7 @@ export function useTimerList(gameId: string): UseTimerListResult {
   }, [restartTimer])
 
   const deleteAll = useCallback(async () => {
-    const ids = timersRef.current.map(t => t.id)
-    await db.timers.bulkDelete(ids)
+    await db.timers.bulkDelete(timersRef.current.map(t => t.id))
     setTimers([])
   }, [])
 
@@ -194,11 +186,98 @@ export function useTimerList(gameId: string): UseTimerListResult {
     pauseTimer,
     resumeTimer,
     restartTimer,
+    updateTimer,
     deleteTimer,
     pauseAll,
     restartAll,
     deleteAll,
     remaining,
+  }
+}
+
+// ── Expiry detection ──────────────────────────────────────────────────────────
+
+export interface ExpiryEvent {
+  id: string
+  label: string
+  audioNotify: TimerNotify
+  visualNotify: TimerNotify
+}
+
+/**
+ * Fires once per timer run when remaining hits zero.
+ * - Plays a beep if audioNotify includes 'host'
+ * - Emits TIMER_EXPIRED so players can react
+ * - Calls onExpire for host-side visual overlay
+ */
+export function useTimerExpiry(
+  timers: Timer[],
+  remaining: (id: string) => number,
+  onExpire: (evt: ExpiryEvent) => void
+) {
+  const firedRef = useRef<Set<string>>(new Set())
+
+  useEffect(() => {
+    for (const t of timers) {
+      if (t.paused || t.startedAt === null) continue
+      if (remaining(t.id) > 0) continue
+      const runKey = `${t.id}:${t.startedAt}`
+      if (firedRef.current.has(runKey)) continue
+      firedRef.current.add(runKey)
+
+      if (t.audioNotify === 'host' || t.audioNotify === 'both') playBeep()
+      transportManager.send({ type: 'TIMER_EXPIRED', id: t.id, label: t.label })
+      onExpire({
+        id: t.id,
+        label: t.label,
+        audioNotify: t.audioNotify,
+        visualNotify: t.visualNotify,
+      })
+    }
+  })
+}
+
+/** Plays a short 880 Hz sine beep via Web Audio API. No-ops in test envs. */
+export function playBeep(frequency = 880, durationMs = 600) {
+  try {
+    const ctx = new AudioContext()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.type = 'sine'
+    osc.frequency.value = frequency
+    gain.gain.setValueAtTime(0.4, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + durationMs / 1000)
+    osc.start(ctx.currentTime)
+    osc.stop(ctx.currentTime + durationMs / 1000)
+    osc.onended = () => {
+      void ctx.close()
+    }
+  } catch {
+    /* AudioContext unavailable */
+  }
+}
+
+// ── Auto-reset ────────────────────────────────────────────────────────────────
+
+export type NavChangeType = 'question' | 'round'
+
+/**
+ * Pauses and restores timers whose autoReset matches the navigation change.
+ * Call from ActiveGame whenever pos changes.
+ */
+export async function applyAutoReset(timers: Timer[], changeType: NavChangeType) {
+  for (const t of timers) {
+    if (t.autoReset === 'none') continue
+    const matches =
+      t.autoReset === 'any' ||
+      t.autoReset === changeType ||
+      (t.autoReset === 'round' && changeType === 'round')
+    if (!matches || (t.paused && t.startedAt === null)) continue
+    const patch = { paused: true, remaining: t.duration, startedAt: null } as Partial<Timer>
+    await db.timers.update(t.id, patch)
+    transportManager.send({ type: 'TIMER_PAUSE', id: t.id })
   }
 }
 

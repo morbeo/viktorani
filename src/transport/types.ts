@@ -8,6 +8,7 @@ export type GameEvent =
   | { type: 'TIMER_START'; id: string; duration: number; label: string }
   | { type: 'TIMER_PAUSE'; id: string }
   | { type: 'TIMER_RESUME'; id: string }
+  | { type: 'TIMER_EXPIRED'; id: string; label: string }
   | { type: 'GAME_STATE'; state: SerializedGameState }
   | { type: 'VISIBILITY'; showQuestion: boolean; showAnswers: boolean; showMedia: boolean }
   | { type: 'GAME_STATUS'; status: 'active' | 'paused' | 'ended' }
