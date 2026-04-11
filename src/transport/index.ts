@@ -1,5 +1,3 @@
-import { PeerJSTransport } from './PeerJSTransport'
-import { GunTransport } from './GunTransport'
 import type {
   ITransport,
   TransportConfig,
@@ -17,7 +15,7 @@ export type { GameEvent, PlayerEvent, SerializedGameState } from './types'
  * Returns a cryptographically secure random integer in [0, max).
  *
  * @remarks
- * Uses `crypto.getRandomValues()` — available in all modern browsers and Node ≥ 15.
+ * Uses `crypto.getRandomValues()` — available in all modern browsers and Node >= 15.
  * Unlike `Math.random()`, the output is suitable for security-sensitive operations
  * such as passphrase generation.
  *
@@ -115,13 +113,16 @@ export type StatusListener = (status: TransportStatus, type: TransportType) => v
  *
  * @remarks
  * Instantiated as a module-level singleton (`transportManager`). Components
- * and hooks interact with the transport exclusively through this class —
+ * and hooks interact with the transport exclusively through this class --
  * never by constructing transport instances directly.
  *
  * **Mode selection** (`config.mode`):
- * - `'peer'` — use PeerJS only.
- * - `'gun'`  — use Gun.js only.
- * - `'auto'` — try PeerJS; if it fails within the timeout, fall back to Gun.js.
+ * - `'peer'` -- use PeerJS only.
+ * - `'gun'`  -- use Gun.js only.
+ * - `'auto'` -- try PeerJS; if it fails within the timeout, fall back to Gun.js.
+ *
+ * PeerJS and GunTransport are dynamically imported inside `connect()` so
+ * neither appears in the initial bundle.
  *
  * @example
  * ```ts
@@ -152,8 +153,11 @@ export class TransportManager {
    *
    * @remarks
    * Any existing connection is cleanly disconnected before the new one starts.
-   * All previously registered event handlers are preserved — they will receive
+   * All previously registered event handlers are preserved -- they will receive
    * events from the new connection without needing to re-subscribe.
+   *
+   * PeerJS and GunTransport are imported dynamically per branch so they are
+   * excluded from the initial bundle and loaded only when a connection is made.
    *
    * @param config - Room credentials and transport mode.
    * @throws If the selected transport fails to connect (non-`'auto'` modes only).
@@ -162,15 +166,19 @@ export class TransportManager {
     await this.disconnect()
 
     if (config.mode === 'peer') {
+      const { PeerJSTransport } = await import('./PeerJSTransport')
       await this.tryTransport(new PeerJSTransport(), config)
     } else if (config.mode === 'gun') {
+      const { GunTransport } = await import('./GunTransport')
       await this.tryTransport(new GunTransport(), config)
     } else {
       // Auto: try PeerJS first, fall back to Gun.js
       try {
+        const { PeerJSTransport } = await import('./PeerJSTransport')
         await this.tryTransport(new PeerJSTransport(), config)
       } catch {
         console.info('[Transport] PeerJS failed, falling back to Gun.js')
+        const { GunTransport } = await import('./GunTransport')
         await this.tryTransport(new GunTransport(), config)
       }
     }
@@ -192,7 +200,7 @@ export class TransportManager {
    * Disconnect from the current room and release all transport resources.
    *
    * @remarks
-   * Safe to call when not connected — it is a no-op in that case.
+   * Safe to call when not connected -- it is a no-op in that case.
    * Status listeners are notified after disconnection.
    */
   async disconnect(): Promise<void> {
@@ -255,5 +263,5 @@ export class TransportManager {
   }
 }
 
-/** Module-level singleton — import and use this directly rather than instantiating. */
+/** Module-level singleton -- import and use this directly rather than instantiating. */
 export const transportManager = new TransportManager()
