@@ -1,4 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie'
+import type { ManagedPlayer, ManagedTeam, ManagedLabel } from '@/types/players-teams'
+export type { ManagedPlayer, ManagedTeam, ManagedLabel } from '@/types/players-teams'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -319,10 +321,7 @@ export interface GameQuestion {
 /**
  * Main Dexie database class. Exported as the {@link db} singleton.
  *
- * Schema versions:
- * - **v2**: Initial schema with `categories` table and `categoryId` on questions.
- * - **v3**: Drop `categories`; remove `categoryId` index (ADR-0007).
- * - **v4**: Full `BuzzEvent` schema + buzzer-config back-fill on `Game` records.
+ * Schema version: 1 (no migration history — WIP, no production databases yet).
  */
 export class ViktoraniDB extends Dexie {
   difficulties!: EntityTable<DifficultyLevel, 'id'>
@@ -338,15 +337,17 @@ export class ViktoraniDB extends Dexie {
   notes!: EntityTable<Note, 'id'>
   timers!: EntityTable<Timer, 'id'>
   gameQuestions!: EntityTable<GameQuestion, 'id'>
+  managedPlayers!: EntityTable<ManagedPlayer, 'id'>
+  managedTeams!: EntityTable<ManagedTeam, 'id'>
+  managedLabels!: EntityTable<ManagedLabel, 'id'>
 
   constructor() {
     super('viktorani')
 
-    this.version(2).stores({
-      categories: 'id, name',
+    this.version(1).stores({
       difficulties: 'id, name, order',
       tags: 'id, name',
-      questions: 'id, categoryId, difficulty, type, createdAt',
+      questions: 'id, difficulty, type, createdAt',
       rounds: 'id, createdAt',
       games: 'id, status, createdAt',
       teams: 'id, gameId',
@@ -357,73 +358,10 @@ export class ViktoraniDB extends Dexie {
       notes: 'id, name, createdAt, updatedAt',
       timers: 'id, gameId',
       gameQuestions: 'id, gameId, roundId, order',
+      managedPlayers: 'id, name, archivedAt',
+      managedTeams: 'id, name, archivedAt',
+      managedLabels: 'id, name',
     })
-
-    // v3: drop categories table; remove categoryId index from questions
-    this.version(3)
-      .stores({
-        categories: null, // drop table
-        difficulties: 'id, name, order',
-        tags: 'id, name',
-        questions: 'id, difficulty, type, createdAt',
-        rounds: 'id, createdAt',
-        games: 'id, status, createdAt',
-        teams: 'id, gameId',
-        players: 'id, gameId, teamId, deviceId',
-        buzzEvents: 'id, gameId, playerId, questionId, timestamp',
-        layouts: 'id, gameId, target',
-        widgets: 'id, layoutId, order',
-        notes: 'id, name, createdAt, updatedAt',
-        timers: 'id, gameId',
-        gameQuestions: 'id, gameId, roundId, order',
-      })
-      .upgrade(tx => {
-        return tx
-          .table('questions')
-          .toCollection()
-          .modify((q: Record<string, unknown>) => {
-            delete q['categoryId']
-          })
-      })
-
-    // v4: full BuzzEvent schema + buzzer config back-fill on Game records
-    this.version(4)
-      .stores({
-        difficulties: 'id, name, order',
-        tags: 'id, name',
-        questions: 'id, difficulty, type, createdAt',
-        rounds: 'id, createdAt',
-        games: 'id, status, createdAt',
-        teams: 'id, gameId',
-        players: 'id, gameId, teamId, deviceId',
-        buzzEvents: 'id, gameId, playerId, questionId, timestamp',
-        layouts: 'id, gameId, target',
-        widgets: 'id, layoutId, order',
-        notes: 'id, name, createdAt, updatedAt',
-        timers: 'id, gameId',
-        gameQuestions: 'id, gameId, roundId, order',
-      })
-      .upgrade(async tx => {
-        await tx
-          .table('games')
-          .toCollection()
-          .modify((g: Record<string, unknown>) => {
-            if (g['autoLockOnFirstCorrect'] === undefined) g['autoLockOnFirstCorrect'] = false
-            if (g['allowFalseStarts'] === undefined) g['allowFalseStarts'] = false
-            if (g['buzzDeduplication'] === undefined) g['buzzDeduplication'] = 'firstOnly'
-            if (g['tiebreakerMode'] === undefined) g['tiebreakerMode'] = 'serverOrder'
-          })
-        await tx
-          .table('buzzEvents')
-          .toCollection()
-          .modify((b: Record<string, unknown>) => {
-            if (b['playerName'] === undefined) b['playerName'] = 'Unknown'
-            if (b['teamId'] === undefined) b['teamId'] = null
-            if (b['isFalseStart'] === undefined) b['isFalseStart'] = false
-            if (b['gmDecision'] === undefined) b['gmDecision'] = null
-            if (b['decidedAt'] === undefined) b['decidedAt'] = null
-          })
-      })
   }
 }
 
@@ -500,6 +438,9 @@ export async function purgeDatabase(): Promise<void> {
       db.notes,
       db.timers,
       db.gameQuestions,
+      db.managedPlayers,
+      db.managedTeams,
+      db.managedLabels,
     ],
     async () => {
       await Promise.all([
@@ -516,6 +457,9 @@ export async function purgeDatabase(): Promise<void> {
         db.notes.clear(),
         db.timers.clear(),
         db.gameQuestions.clear(),
+        db.managedPlayers.clear(),
+        db.managedTeams.clear(),
+        db.managedLabels.clear(),
       ])
     }
   )
