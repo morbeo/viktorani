@@ -5,6 +5,7 @@ import type { ManagedPlayer, ManagedTeam } from '@/types/players-teams'
 import { Empty } from '@/components/ui'
 import PlayerForm from './PlayerForm'
 import BulkActionBar from './BulkActionBar'
+import PlayerQrModal from './PlayerQrModal'
 
 type LabelFilter = Record<string, 'include' | 'exclude'>
 
@@ -32,6 +33,7 @@ export default function PlayerList({ filterTeamId, search = '', labelFilter = {}
   const labels = useLiveQuery(() => db.managedLabels.toArray(), [])
 
   const [editing, setEditing] = useState<ManagedPlayer | null | undefined>(undefined)
+  const [qrTarget, setQrTarget] = useState<ManagedPlayer | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
   const teamMap = Object.fromEntries((teams ?? []).map(t => [t.id, t]))
@@ -120,6 +122,7 @@ export default function PlayerList({ filterTeamId, search = '', labelFilter = {}
             onCheck={() => toggleOne(player.id)}
             onEdit={() => setEditing(player)}
             onArchive={() => archive(player)}
+            onQr={() => setQrTarget(player)}
           />
         ))}
 
@@ -144,6 +147,7 @@ export default function PlayerList({ filterTeamId, search = '', labelFilter = {}
         player={editing ?? null}
         onClose={() => setEditing(undefined)}
       />
+      <PlayerQrModal open={qrTarget !== null} player={qrTarget} onClose={() => setQrTarget(null)} />
     </div>
   )
 }
@@ -157,6 +161,7 @@ interface RowProps {
   onCheck?: () => void
   onEdit?: () => void
   onArchive?: () => void
+  onQr?: () => void
   onRestore?: () => void
 }
 
@@ -169,6 +174,7 @@ function PlayerRow({
   onCheck,
   onEdit,
   onArchive,
+  onQr,
   onRestore,
 }: RowProps) {
   const playerTeams = player.teamIds.map(id => teamMap[id]).filter(Boolean)
@@ -256,6 +262,14 @@ function PlayerRow({
         </>
       ) : (
         <>
+          <button
+            onClick={onQr}
+            className="text-xs px-2 py-1 rounded transition-colors hover:bg-black/5"
+            style={{ color: 'var(--color-muted)' }}
+            aria-label={`Show QR for ${player.name}`}
+          >
+            QR
+          </button>
           <button
             onClick={onEdit}
             className="text-xs px-2 py-1 rounded transition-colors hover:bg-black/5"
