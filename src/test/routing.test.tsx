@@ -30,6 +30,7 @@ function TestRoutes() {
       <Route path="/admin/game/:id" element={<div>GameMaster</div>} />
       <Route path="/admin/layouts/:gameId" element={<div>Layouts</div>} />
       <Route path="/admin/notes" element={<div>Notes</div>} />
+      <Route path="/admin/notes/:id" element={<div>NoteDetail</div>} />
       <Route path="/admin/settings" element={<div>Settings</div>} />
       <Route path="/join" element={<div>Join</div>} />
       <Route path="/join/:roomId" element={<div>Join</div>} />
@@ -81,6 +82,11 @@ describe('App routing', () => {
   it('renders Notes at /admin/notes', () => {
     renderAt('/admin/notes')
     expect(screen.getByText('Notes')).toBeInTheDocument()
+  })
+
+  it('renders NoteDetail at /admin/notes/:id', () => {
+    renderAt('/admin/notes/some-note-id')
+    expect(screen.getByText('NoteDetail')).toBeInTheDocument()
   })
 
   it('renders Settings at /admin/settings', () => {

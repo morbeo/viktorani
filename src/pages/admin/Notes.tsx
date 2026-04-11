@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import AdminLayout from '@/components/AdminLayout'
@@ -320,32 +321,44 @@ export default function Notes() {
               </div>
             ) : (
               filtered.map(note => (
-                <button
+                <div
                   key={note.id}
-                  onClick={() => setSelected(note.id)}
-                  className="w-full text-left px-4 py-3 border-b transition-all"
+                  className="relative border-b group"
                   style={{
                     borderColor: 'var(--color-border)',
                     background: selected === note.id ? 'var(--color-gold-light)' : 'transparent',
                   }}
                 >
-                  <p
-                    className="text-sm truncate"
-                    style={{ fontWeight: selected === note.id ? 600 : 400 }}
+                  <button
+                    onClick={() => setSelected(note.id)}
+                    className="w-full text-left px-4 py-3 pr-8 transition-all"
                   >
-                    {note.name}
-                  </p>
-                  <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--color-muted)' }}>
-                    {formatDate(note.updatedAt)}
-                    {note.content.trim()
-                      ? ' · ' +
-                        note.content
-                          .trim()
-                          .slice(0, 40)
-                          .replace(/[#*`_]/g, '')
-                      : ''}
-                  </p>
-                </button>
+                    <p
+                      className="text-sm truncate"
+                      style={{ fontWeight: selected === note.id ? 600 : 400 }}
+                    >
+                      {note.name}
+                    </p>
+                    <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--color-muted)' }}>
+                      {formatDate(note.updatedAt)}
+                      {note.content.trim()
+                        ? ' · ' +
+                          note.content
+                            .trim()
+                            .slice(0, 40)
+                            .replace(/[#*`_]/g, '')
+                        : ''}
+                    </p>
+                  </button>
+                  <Link
+                    to={`/admin/notes/${note.id}`}
+                    title="Open note page"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity text-xs leading-none"
+                    style={{ color: 'var(--color-muted)' }}
+                  >
+                    ↗
+                  </Link>
+                </div>
               ))
             )}
           </div>
