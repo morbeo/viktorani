@@ -1,19 +1,25 @@
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { seedDefaults } from '@/db'
 
-// Pages — Admin
-import Dashboard from '@/pages/admin/Dashboard'
-import Questions from '@/pages/admin/Questions'
-import Games from '@/pages/admin/Games'
-import GameMaster from '@/pages/admin/GameMaster'
-import Layouts from '@/pages/admin/Layouts'
-import Notes from '@/pages/admin/Notes'
-import Settings from '@/pages/admin/Settings'
+// Pages — Admin (lazy-loaded per route)
+const Dashboard = lazy(() => import('@/pages/admin/Dashboard'))
+const Questions = lazy(() => import('@/pages/admin/Questions'))
+const Games = lazy(() => import('@/pages/admin/Games'))
+const GameMaster = lazy(() => import('@/pages/admin/GameMaster'))
+const Layouts = lazy(() => import('@/pages/admin/Layouts'))
+const Notes = lazy(() => import('@/pages/admin/Notes'))
+const Settings = lazy(() => import('@/pages/admin/Settings'))
 
-// Pages — Player
-import Join from '@/pages/player/Join'
-import Play from '@/pages/player/Play'
+// Pages — Player (lazy-loaded per route)
+const Join = lazy(() => import('@/pages/player/Join'))
+const Play = lazy(() => import('@/pages/player/Play'))
+
+const Loading = () => (
+  <div className="flex h-screen items-center justify-center">
+    <span className="text-muted">Loading...</span>
+  </div>
+)
 
 export default function App() {
   useEffect(() => {
@@ -22,20 +28,22 @@ export default function App() {
 
   return (
     <HashRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to="/admin" replace />} />
-        <Route path="/admin" element={<Dashboard />} />
-        <Route path="/admin/questions" element={<Questions />} />
-        <Route path="/admin/games" element={<Games />} />
-        <Route path="/admin/game/:id" element={<GameMaster />} />
-        <Route path="/admin/layouts/:gameId" element={<Layouts />} />
-        <Route path="/admin/notes" element={<Notes />} />
-        <Route path="/admin/settings" element={<Settings />} />
-        <Route path="/join" element={<Join />} />
-        <Route path="/join/:roomId" element={<Join />} />
-        <Route path="/play/:roomId" element={<Play />} />
-        <Route path="*" element={<Navigate to="/admin" replace />} />
-      </Routes>
+      <Suspense fallback={<Loading />}>
+        <Routes>
+          <Route path="/" element={<Navigate to="/admin" replace />} />
+          <Route path="/admin" element={<Dashboard />} />
+          <Route path="/admin/questions" element={<Questions />} />
+          <Route path="/admin/games" element={<Games />} />
+          <Route path="/admin/game/:id" element={<GameMaster />} />
+          <Route path="/admin/layouts/:gameId" element={<Layouts />} />
+          <Route path="/admin/notes" element={<Notes />} />
+          <Route path="/admin/settings" element={<Settings />} />
+          <Route path="/join" element={<Join />} />
+          <Route path="/join/:roomId" element={<Join />} />
+          <Route path="/play/:roomId" element={<Play />} />
+          <Route path="*" element={<Navigate to="/admin" replace />} />
+        </Routes>
+      </Suspense>
     </HashRouter>
   )
 }
