@@ -10,6 +10,7 @@ vi.mock('@/pages/admin/GameMaster', () => ({ default: () => <div>GameMaster</div
 vi.mock('@/pages/admin/Layouts', () => ({ default: () => <div>Layouts</div> }))
 vi.mock('@/pages/admin/Notes', () => ({ default: () => <div>Notes</div> }))
 vi.mock('@/pages/admin/Settings', () => ({ default: () => <div>Settings</div> }))
+vi.mock('@/pages/admin/PlayersTeams', () => ({ default: () => <div>PlayersTeams</div> }))
 vi.mock('@/pages/player/Join', () => ({ default: () => <div>Join</div> }))
 vi.mock('@/pages/player/Play', () => ({ default: () => <div>Play</div> }))
 vi.mock('@/db', () => ({
@@ -31,6 +32,7 @@ function TestRoutes() {
       <Route path="/admin/layouts/:gameId" element={<div>Layouts</div>} />
       <Route path="/admin/notes" element={<div>Notes</div>} />
       <Route path="/admin/notes/:id" element={<div>NoteDetail</div>} />
+      <Route path="/admin/players-teams" element={<div>PlayersTeams</div>} />
       <Route path="/admin/settings" element={<div>Settings</div>} />
       <Route path="/join" element={<div>Join</div>} />
       <Route path="/join/:roomId" element={<div>Join</div>} />
@@ -92,6 +94,11 @@ describe('App routing', () => {
   it('renders Settings at /admin/settings', () => {
     renderAt('/admin/settings')
     expect(screen.getByText('Settings')).toBeInTheDocument()
+  })
+
+  it('renders PlayersTeams at /admin/players-teams', () => {
+    renderAt('/admin/players-teams')
+    expect(screen.getByText('PlayersTeams')).toBeInTheDocument()
   })
 
   it('renders Join at /join', () => {
