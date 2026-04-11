@@ -492,10 +492,17 @@ describe('TransportManager — tryTransport executes connect and stores transpor
     const { TransportManager } = await import('@/transport')
     const manager = new TransportManager()
 
-    // Emit 'open' on whatever Peer instance gets created inside connect(),
-    // using a microtask so the new instance exists before we reference it.
+    // connect() dynamically imports PeerJSTransport, adding async ticks
+    // before new Peer() is called and MockPeer.lastInstance is set.
+    // Clear lastInstance first so the poll loop waits for the fresh
+    // instance created by this connect() call, not a stale one from a
+    // prior test.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(MockPeer as any).lastInstance = null
     const connectPromise = manager.connect(PEER_HOST_CONFIG)
-    await Promise.resolve() // let new Peer() and .on('open', ...) register
+    while (!MockPeer.lastInstance) {
+      await Promise.resolve()
+    }
     MockPeer.lastInstance.emit('open')
     await connectPromise
 
