@@ -4,21 +4,18 @@ import { db } from '@/db'
 import type { ManagedPlayer, ManagedTeam } from '@/types/players-teams'
 import { Empty } from '@/components/ui'
 import PlayerForm from './PlayerForm'
+import BulkActionBar from './BulkActionBar'
 
 type LabelFilter = Record<string, 'include' | 'exclude'>
 
 interface Props {
-  /** When set, only shows players belonging to this team. */
   filterTeamId?: string
-  /** Search string applied to player names (fuzzy match). */
   search?: string
-  /** Tri-state label filter -- include/exclude by label ID. */
   labelFilter?: LabelFilter
 }
 
 function matchesSearch(name: string, search: string): boolean {
-  const q = search.toLowerCase()
-  return name.toLowerCase().includes(q)
+  return name.toLowerCase().includes(search.toLowerCase())
 }
 
 function matchesLabelFilter(labelIds: string[], filter: LabelFilter): boolean {
@@ -35,7 +32,7 @@ export default function PlayerList({ filterTeamId, search = '', labelFilter = {}
   const labels = useLiveQuery(() => db.managedLabels.toArray(), [])
 
   const [editing, setEditing] = useState<ManagedPlayer | null | undefined>(undefined)
-  // undefined = form closed, null = new player, ManagedPlayer = editing existing
+  const [selected, setSelected] = useState<Set<string>>(new Set())
 
   const teamMap = Object.fromEntries((teams ?? []).map(t => [t.id, t]))
   const labelMap = Object.fromEntries((labels ?? []).map(l => [l.id, l]))
@@ -50,6 +47,25 @@ export default function PlayerList({ filterTeamId, search = '', labelFilter = {}
 
   const active = visible.filter(p => !p.archivedAt)
   const archived = visible.filter(p => p.archivedAt)
+  const activeIds = active.map(p => p.id)
+  const allSelected = activeIds.length > 0 && activeIds.every(id => selected.has(id))
+  const someSelected = selected.size > 0
+
+  function toggleOne(id: string) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
+  function toggleAll() {
+    setSelected(allSelected ? new Set() : new Set(activeIds))
+  }
 
   async function archive(p: ManagedPlayer) {
     await db.managedPlayers.update(p.id, { archivedAt: new Date() })
@@ -66,15 +82,32 @@ export default function PlayerList({ filterTeamId, search = '', labelFilter = {}
     return 'No players yet — add your first player or scan a QR'
   }
 
-  if (players === undefined) return null // loading
+  if (players === undefined) return null
 
   return (
-    <>
+    <div className="flex flex-col">
       <div
         className="rounded-lg overflow-hidden border"
         style={{ borderColor: 'var(--color-border)' }}
       >
-        {/* Active players */}
+        {active.length > 0 && (
+          <div
+            className="flex items-center gap-3 px-3 py-2 border-b"
+            style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
+          >
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={toggleAll}
+              aria-label="Select all players"
+              className="w-3.5 h-3.5 cursor-pointer"
+            />
+            <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
+              {someSelected ? `${selected.size} selected` : 'Select all'}
+            </span>
+          </div>
+        )}
+
         {active.length === 0 && archived.length === 0 && <Empty message={emptyMessage()} />}
 
         {active.map(player => (
@@ -83,12 +116,13 @@ export default function PlayerList({ filterTeamId, search = '', labelFilter = {}
             player={player}
             teamMap={teamMap}
             labelMap={labelMap}
+            checked={selected.has(player.id)}
+            onCheck={() => toggleOne(player.id)}
             onEdit={() => setEditing(player)}
             onArchive={() => archive(player)}
           />
         ))}
 
-        {/* Archived players — inline, greyed out */}
         {archived.map(player => (
           <PlayerRow
             key={player.id}
@@ -101,22 +135,26 @@ export default function PlayerList({ filterTeamId, search = '', labelFilter = {}
         ))}
       </div>
 
+      {someSelected && (
+        <BulkActionBar selectedIds={selected} onDone={() => setSelected(new Set())} />
+      )}
+
       <PlayerForm
         open={editing !== undefined}
         player={editing ?? null}
         onClose={() => setEditing(undefined)}
       />
-    </>
+    </div>
   )
 }
-
-// ── Row ───────────────────────────────────────────────────────────────────────
 
 interface RowProps {
   player: ManagedPlayer
   teamMap: Record<string, ManagedTeam>
   labelMap: Record<string, { name: string; color: string }>
   archived?: boolean
+  checked?: boolean
+  onCheck?: () => void
   onEdit?: () => void
   onArchive?: () => void
   onRestore?: () => void
@@ -127,6 +165,8 @@ function PlayerRow({
   teamMap,
   labelMap,
   archived,
+  checked,
+  onCheck,
   onEdit,
   onArchive,
   onRestore,
@@ -137,12 +177,18 @@ function PlayerRow({
   return (
     <div
       className="flex items-center gap-3 px-3 py-2.5 border-b last:border-b-0"
-      style={{
-        borderColor: 'var(--color-border)',
-        opacity: archived ? 0.45 : 1,
-      }}
+      style={{ borderColor: 'var(--color-border)', opacity: archived ? 0.45 : 1 }}
     >
-      {/* Team badges */}
+      {!archived && (
+        <input
+          type="checkbox"
+          checked={checked ?? false}
+          onChange={onCheck}
+          aria-label={`Select ${player.name}`}
+          className="w-3.5 h-3.5 cursor-pointer shrink-0"
+        />
+      )}
+
       <div className="flex gap-1 shrink-0">
         {playerTeams.length > 0 ? (
           playerTeams.map(team => (
@@ -167,12 +213,10 @@ function PlayerRow({
         )}
       </div>
 
-      {/* Name */}
       <span className="flex-1 text-sm min-w-0 truncate" style={{ color: 'var(--color-ink)' }}>
         {player.name}
       </span>
 
-      {/* Label chips */}
       <div className="flex gap-1 flex-wrap overflow-hidden max-w-[140px]">
         {playerLabels.map(label => (
           <span
@@ -189,12 +233,10 @@ function PlayerRow({
         ))}
       </div>
 
-      {/* Score */}
       <span className="text-xs tabular-nums shrink-0" style={{ color: 'var(--color-muted)' }}>
         {player.totalScore} pts
       </span>
 
-      {/* Actions */}
       {archived ? (
         <>
           <span
