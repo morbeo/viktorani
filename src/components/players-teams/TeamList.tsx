@@ -5,6 +5,7 @@ import type { ManagedTeam } from '@/types/players-teams'
 import { Empty, Icon } from '@/components/ui'
 import { resolveIcon } from './teamIcons'
 import TeamForm from './TeamForm'
+import TeamQrModal from './TeamQrModal'
 
 type LabelFilter = Record<string, 'include' | 'exclude'>
 
@@ -34,6 +35,7 @@ export default function TeamList({
   const teams = useLiveQuery(() => db.managedTeams.orderBy('name').toArray(), [])
 
   const [editing, setEditing] = useState<ManagedTeam | null | undefined>(undefined)
+  const [qrTarget, setQrTarget] = useState<ManagedTeam | null>(null)
   // undefined = form closed, null = new team, ManagedTeam = editing existing
 
   const visible = (teams ?? []).filter(t => {
@@ -79,6 +81,7 @@ export default function TeamList({
             onClick={() => onSelect?.(selectedTeamId === team.id ? null : team.id)}
             onEdit={() => setEditing(team)}
             onArchive={() => archive(team)}
+            onQr={() => setQrTarget(team)}
           />
         ))}
 
@@ -92,6 +95,7 @@ export default function TeamList({
         team={editing ?? null}
         onClose={() => setEditing(undefined)}
       />
+      <TeamQrModal open={qrTarget !== null} team={qrTarget} onClose={() => setQrTarget(null)} />
     </>
   )
 }
@@ -105,10 +109,20 @@ interface RowProps {
   onClick?: () => void
   onEdit?: () => void
   onArchive?: () => void
+  onQr?: () => void
   onRestore?: () => void
 }
 
-function TeamRow({ team, selected, archived, onClick, onEdit, onArchive, onRestore }: RowProps) {
+function TeamRow({
+  team,
+  selected,
+  archived,
+  onClick,
+  onEdit,
+  onArchive,
+  onQr,
+  onRestore,
+}: RowProps) {
   const TeamIcon = resolveIcon(team.icon)
 
   return (
@@ -174,6 +188,17 @@ function TeamRow({ team, selected, archived, onClick, onEdit, onArchive, onResto
               aria-hidden
             />
           )}
+          <button
+            onClick={e => {
+              e.stopPropagation()
+              onQr?.()
+            }}
+            className="text-xs px-2 py-1 rounded transition-colors hover:bg-black/5"
+            style={{ color: 'var(--color-muted)' }}
+            aria-label={`Show QR for ${team.name}`}
+          >
+            QR
+          </button>
           <button
             onClick={e => {
               e.stopPropagation()
