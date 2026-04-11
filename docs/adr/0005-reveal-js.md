@@ -1,7 +1,7 @@
 # ADR-0005 — Use Reveal.js for question presentation
 
 **Date:** 2025-04-05
-**Status:** Accepted
+**Status:** Superseded by ADR-0013
 
 ## Context
 
@@ -22,3 +22,9 @@ Questions are presented using Reveal.js. Each question maps to a Reveal.js slide
 ## Consequences
 
 Reveal.js adds to the bundle size. The GM interface embeds a Reveal.js instance and exposes controls (next, previous, jump to question). Player devices receive slide index updates via the transport layer and render a simplified view — they do not run a full Reveal.js instance themselves. The Reveal.js `base` must account for the `/viktorani/` path prefix configured in Vite (see ADR-0004).
+
+---
+
+## Superseded
+
+Reveal.js was never imported in `src/` — the dependency was listed in `package.json` but the GM question display was implemented with custom React components instead. `reveal.js` was removed from `package.json` in the bundle-size reduction epic (issue #99). See ADR-0013 for the adopted approach.

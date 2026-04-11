@@ -24,7 +24,6 @@
     "dexie": "^4.4.2",
     "dexie-react-hooks": "^4.4.0",
     "fuse.js": "^7.3.0",
-    "gun": "^0.2020.1241",
     "peerjs": "^1.5.5",
     "lucide-react": "^0.468.0",
     "qrcode.react": "^4.2.0",
@@ -32,8 +31,7 @@
     "react-dom": "^19.2.4",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.14.0",
-    "remark-gfm": "^4.0.1",
-    "reveal.js": "^6.0.0"
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.5.0",
