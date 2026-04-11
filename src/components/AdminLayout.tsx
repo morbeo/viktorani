@@ -4,9 +4,9 @@ import {
   LayoutDashboard,
   CircleHelp,
   Trophy,
+  Users,
   NotebookPen,
   Settings,
-  Users,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
@@ -23,6 +23,7 @@ const nav: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/admin/questions', label: 'Questions', icon: CircleHelp },
   { to: '/admin/games', label: 'Games', icon: Trophy },
+  { to: '/admin/players-teams', label: 'Players & Teams', icon: Users },
   { to: '/admin/notes', label: 'Notes', icon: NotebookPen },
   { to: '/admin/settings', label: 'Settings', icon: Settings },
 ]
