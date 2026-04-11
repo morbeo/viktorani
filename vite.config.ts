@@ -55,7 +55,7 @@ export default defineConfig({
     ],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'lcov'],
+      reporter: ['text', 'json-summary'],
       // Files excluded from coverage entirely (untestable boilerplate,
       // entry points, or files covered by e2e rather than unit tests).
       exclude: [

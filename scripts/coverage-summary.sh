@@ -66,12 +66,12 @@ md="## Coverage Report
 
 | File | Stmts | Branch | Funcs | Lines |
 |------|-------|--------|-------|-------|
-$(echo "$json" | jq -r '
+$(echo "$json" | jq -r --arg root "$(readlink -f $PWD)/" '
   to_entries
   | map(select(.key != "total"))
   | sort_by(.key)
   | .[]
-  | "| `\(.key | ltrimstr($ENV.PWD + "/src/"))` | \(.value.statements.pct)% | \(.value.branches.pct)% | \(.value.functions.pct)% | \(.value.lines.pct)% |"
+  | "| `\(.key | ltrimstr($root))` | \(.value.statements.pct)% | \(.value.branches.pct)% | \(.value.functions.pct)% | \(.value.lines.pct)% |"
 ')
 
 </details>
