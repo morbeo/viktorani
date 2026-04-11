@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.0.8 (2026-04-11)
+
+### Features
+
+- add import/export functionality to Notes page ([098d0ea](https://github.com/morbeo/viktorani/commit/098d0ea4287466fb886e6748a4073e1ebd816ade))
+- add import/export Notes functions to db/snapshot.ts ([20ccb42](https://github.com/morbeo/viktorani/commit/20ccb42fd6891039e88442b9511d65eb16cee20d))
+- **ci:** skip tests when no code files changed ([8077677](https://github.com/morbeo/viktorani/commit/807767700886d7748ebf3b6f13c5d6a7f6120b3e))
+- **db:** add managed players, teams, and labels schema ([09195d4](https://github.com/morbeo/viktorani/commit/09195d480b9b9224a954f8405c27fb6826e99fd5)), closes [#109](https://github.com/morbeo/viktorani/issues/109) [#109](https://github.com/morbeo/viktorani/issues/109)
+- **players-teams:** dual-pane management view ([91d2522](https://github.com/morbeo/viktorani/commit/91d252271a20aec854f27cdc74b5597457301320)), closes [#113](https://github.com/morbeo/viktorani/issues/113)
+- **players-teams:** label CRUD component and tests ([9050c7b](https://github.com/morbeo/viktorani/commit/9050c7b624ac22059d7a22085bd1532903385dbc)), closes [#110](https://github.com/morbeo/viktorani/issues/110)
+- **players-teams:** player CRUD, page scaffold, and routing ([ce2dda1](https://github.com/morbeo/viktorani/commit/ce2dda1052c71d72012956f4444a21047542fa0b)), closes [#112](https://github.com/morbeo/viktorani/issues/112)
+- **players-teams:** team CRUD component and tests ([7ec291f](https://github.com/morbeo/viktorani/commit/7ec291fb28e3151e38639bfe347b4583d068e515)), closes [#111](https://github.com/morbeo/viktorani/issues/111)
+- **routing:** open notes directly via /admin/notes/:id ([a9e4977](https://github.com/morbeo/viktorani/commit/a9e497733c707ffeb0455758875d3ddf33757f8b)), closes [#121](https://github.com/morbeo/viktorani/issues/121)
+
+### Bug Fixes
+
+- move libs to components ([ffa58b6](https://github.com/morbeo/viktorani/commit/ffa58b6371e268acf99c1809235c46651ca9692f))
+
+### Performance Improvements
+
+- **build:** lazy-load all routes in App.tsx ([02e56f1](https://github.com/morbeo/viktorani/commit/02e56f13292e13526517714ba81d6083b7dad493)), closes [#102](https://github.com/morbeo/viktorani/issues/102) [#99](https://github.com/morbeo/viktorani/issues/99)
+- **transport:** lazy-load PeerJS and GunTransport ([5225a19](https://github.com/morbeo/viktorani/commit/5225a1931ce3eeb0c1be5b76a4114ffb85eab293)), closes [#101](https://github.com/morbeo/viktorani/issues/101) [#99](https://github.com/morbeo/viktorani/issues/99)
+
 ## [0.0.7](https://github.com/morbeo/viktorani/compare/v0.0.5...v0.0.7) (2026-04-10)
 
 ### Features
