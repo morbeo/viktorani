@@ -6,22 +6,42 @@ import { Empty, Icon } from '@/components/ui'
 import { resolveIcon } from './teamIcons'
 import TeamForm from './TeamForm'
 
+type LabelFilter = Record<string, 'include' | 'exclude'>
+
 interface Props {
   search?: string
-  /** Called when user clicks a team row — used by dual-pane to filter players. */
+  /** Tri-state label filter -- include/exclude by label ID. */
+  labelFilter?: LabelFilter
+  /** Called when user clicks a team row -- used by dual-pane to filter players. */
   onSelect?: (teamId: string | null) => void
   selectedTeamId?: string | null
 }
 
-export default function TeamList({ search = '', onSelect, selectedTeamId }: Props) {
+function matchesLabelFilter(labelIds: string[], filter: LabelFilter): boolean {
+  for (const [id, state] of Object.entries(filter)) {
+    if (state === 'include' && !labelIds.includes(id)) return false
+    if (state === 'exclude' && labelIds.includes(id)) return false
+  }
+  return true
+}
+
+export default function TeamList({
+  search = '',
+  labelFilter = {},
+  onSelect,
+  selectedTeamId,
+}: Props) {
   const teams = useLiveQuery(() => db.managedTeams.orderBy('name').toArray(), [])
 
   const [editing, setEditing] = useState<ManagedTeam | null | undefined>(undefined)
   // undefined = form closed, null = new team, ManagedTeam = editing existing
 
-  const visible = (teams ?? []).filter(
-    t => !search || t.name.toLowerCase().includes(search.toLowerCase())
-  )
+  const visible = (teams ?? []).filter(t => {
+    if (search && !t.name.toLowerCase().includes(search.toLowerCase())) return false
+    if (Object.keys(labelFilter).length > 0 && !matchesLabelFilter(t.labelIds, labelFilter))
+      return false
+    return true
+  })
 
   const active = visible.filter(t => !t.archivedAt)
   const archived = visible.filter(t => t.archivedAt)
@@ -113,6 +133,7 @@ function TeamRow({ team, selected, archived, onClick, onEdit, onArchive, onResto
       >
         <Icon icon={TeamIcon} size="sm" />
       </span>
+
       {/* Name */}
       <span className="flex-1 text-sm min-w-0 truncate" style={{ color: 'var(--color-ink)' }}>
         {team.name}

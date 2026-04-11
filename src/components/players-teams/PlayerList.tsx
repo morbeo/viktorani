@@ -5,11 +5,15 @@ import type { ManagedPlayer, ManagedTeam } from '@/types/players-teams'
 import { Empty } from '@/components/ui'
 import PlayerForm from './PlayerForm'
 
+type LabelFilter = Record<string, 'include' | 'exclude'>
+
 interface Props {
   /** When set, only shows players belonging to this team. */
   filterTeamId?: string
   /** Search string applied to player names (fuzzy match). */
   search?: string
+  /** Tri-state label filter -- include/exclude by label ID. */
+  labelFilter?: LabelFilter
 }
 
 function matchesSearch(name: string, search: string): boolean {
@@ -17,7 +21,15 @@ function matchesSearch(name: string, search: string): boolean {
   return name.toLowerCase().includes(q)
 }
 
-export default function PlayerList({ filterTeamId, search = '' }: Props) {
+function matchesLabelFilter(labelIds: string[], filter: LabelFilter): boolean {
+  for (const [id, state] of Object.entries(filter)) {
+    if (state === 'include' && !labelIds.includes(id)) return false
+    if (state === 'exclude' && labelIds.includes(id)) return false
+  }
+  return true
+}
+
+export default function PlayerList({ filterTeamId, search = '', labelFilter = {} }: Props) {
   const players = useLiveQuery(() => db.managedPlayers.orderBy('name').toArray(), [])
   const teams = useLiveQuery(() => db.managedTeams.toArray(), [])
   const labels = useLiveQuery(() => db.managedLabels.toArray(), [])
@@ -31,6 +43,8 @@ export default function PlayerList({ filterTeamId, search = '' }: Props) {
   const visible = (players ?? []).filter(p => {
     if (filterTeamId && !p.teamIds.includes(filterTeamId)) return false
     if (search && !matchesSearch(p.name, search)) return false
+    if (Object.keys(labelFilter).length > 0 && !matchesLabelFilter(p.labelIds, labelFilter))
+      return false
     return true
   })
 
