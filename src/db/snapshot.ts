@@ -192,6 +192,33 @@ export async function exportQuestions(ids?: string[]): Promise<void> {
   URL.revokeObjectURL(url)
 }
 
+// ── Notes import/export ───────────────────────────────────────────────────────
+
+/**
+ * Export a single note as a `.md` file download.
+ */
+export function exportNote(note: Note): void {
+  const blob = new Blob([note.content], { type: 'text/markdown' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  const safeName = note.name.replace(/[^a-z0-9\-_. ]/gi, '_').trim() || 'note'
+  a.download = `${safeName}.md`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+/**
+ * Read a `.md` file as sanitized plaintext for use as note content.
+ * HTML tags are stripped so only plain markdown syntax is retained.
+ */
+export async function importNoteFile(file: File): Promise<{ name: string; content: string }> {
+  const raw = await file.text()
+  const content = raw.replace(/<[^>]*>/g, '')
+  const name = file.name.replace(/\.md$/i, '').replace(/[-_]/g, ' ').trim() || 'Imported note'
+  return { name, content }
+}
+
 /**
  * Download a small example questions file to help users understand the import format.
  * Contains one question of each type: multiple choice, true/false, and open-ended.
