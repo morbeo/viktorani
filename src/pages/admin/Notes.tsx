@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import AdminLayout from '@/components/AdminLayout'
 import { Button, Input, Textarea, Modal, Empty } from '@/components/ui'
 import { db } from '@/db'
 import type { Note } from '@/db'
+import { exportNote, importNoteFile } from '@/db/snapshot'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -148,10 +149,12 @@ function NoteViewer({
   note,
   onEdit,
   onDelete,
+  onExport,
 }: {
   note: Note
   onEdit: () => void
   onDelete: () => void
+  onExport: () => void
 }) {
   return (
     <div className="flex flex-col h-full">
@@ -171,6 +174,9 @@ function NoteViewer({
           </p>
         </div>
         <div className="flex gap-2">
+          <Button variant="ghost" size="sm" onClick={onExport}>
+            Export .md
+          </Button>
           <Button variant="secondary" size="sm" onClick={onEdit}>
             Edit
           </Button>
@@ -206,6 +212,7 @@ export default function Notes() {
   const [editing, setEditing] = useState<Partial<Note> | null | false>(false)
   const [deleting, setDeleting] = useState<Note | null>(null)
   const [search, setSearch] = useState('')
+  const importInputRef = useRef<HTMLInputElement>(null)
 
   async function load() {
     const all = await db.notes.orderBy('updatedAt').reverse().toArray()
@@ -224,7 +231,6 @@ export default function Notes() {
       )
     : notes
 
-  // Derive active note — fall back to first in list when selection is stale or null
   const activeNote = notes.find(n => n.id === selected) ?? notes[0] ?? null
 
   async function handleSave(data: { id?: string; name: string; content: string }) {
@@ -249,6 +255,18 @@ export default function Notes() {
   async function handleDelete(note: Note) {
     await db.notes.delete(note.id)
     setDeleting(null)
+    await load()
+  }
+
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    const { name, content } = await importNoteFile(file)
+    const ts = Date.now()
+    const id = crypto.randomUUID()
+    await db.notes.add({ id, name, content, createdAt: ts, updatedAt: ts })
+    setSelected(id)
     await load()
   }
 
@@ -332,10 +350,23 @@ export default function Notes() {
             )}
           </div>
 
-          <div className="px-4 py-3 border-t" style={{ borderColor: 'var(--color-border)' }}>
+          <div
+            className="px-4 py-3 border-t flex gap-2"
+            style={{ borderColor: 'var(--color-border)' }}
+          >
             <Button variant="primary" size="sm" onClick={() => setEditing({})}>
               + New note
             </Button>
+            <Button variant="secondary" size="sm" onClick={() => importInputRef.current?.click()}>
+              Import .md
+            </Button>
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".md,text/markdown"
+              className="hidden"
+              onChange={handleImport}
+            />
           </div>
         </aside>
 
@@ -346,6 +377,7 @@ export default function Notes() {
               note={activeNote}
               onEdit={() => setEditing(activeNote)}
               onDelete={() => setDeleting(activeNote)}
+              onExport={() => exportNote(activeNote)}
             />
           ) : (
             <div className="flex items-center justify-center h-full">
