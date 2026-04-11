@@ -1,3 +1,8 @@
 npx lint-staged
-npm run typecheck
-npm run test
+
+if bash scripts/detect-code-changes.sh --staged | grep -q '^code=true$'; then
+  npm run typecheck
+  npm run test
+else
+  echo "No code files staged -- skipping typecheck and tests."
+fi

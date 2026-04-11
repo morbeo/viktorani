@@ -19,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
 
       - uses: actions/setup-node@v6
         with:
@@ -30,8 +32,21 @@ jobs:
       - name: Lint PR title
         run: echo "${{ github.event.pull_request.title }}" | npx --yes commitlint
 
+  detect:
+      runs-on: ubuntu-latest
+      outputs:
+        code: ${{ steps.changes.outputs.code }}
+      steps:
+        - uses: actions/checkout@v6
+
+        - name: Detect code changes
+          id: changes
+          run: bash scripts/detect-code-changes.sh "${{ github.event.pull_request.base.sha }}"
+
   ci:
     runs-on: ubuntu-latest
+    needs: detect
+    if: needs.detect.outputs.code == 'true'
     steps:
       - uses: actions/checkout@v6
 
@@ -54,7 +69,6 @@ jobs:
         run: npm run test:coverage
 
       - name: Coverage summary
-        if: always()
         run: bash scripts/coverage-summary.sh
 
       - name: Build
