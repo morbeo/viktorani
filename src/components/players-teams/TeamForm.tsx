@@ -4,7 +4,7 @@ import { db } from '@/db'
 import type { ManagedTeam } from '@/types/players-teams'
 import { Modal, Button, Input, Icon } from '@/components/ui'
 import { TEAM_ICONS, resolveIcon } from './teamIcons'
-import { whiteTextPassesAA, contrastRatio } from '@/lib/contrast'
+import { whiteTextPassesAA, contrastRatio } from './contrast'
 
 interface Props {
   team: ManagedTeam | null // null = new

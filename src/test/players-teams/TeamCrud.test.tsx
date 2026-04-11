@@ -4,7 +4,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { act } from 'react'
 import { db } from '@/db'
-import { contrastRatio, whiteTextPassesAA } from '@/lib/contrast'
+import { contrastRatio, whiteTextPassesAA } from '@/components/players-teams/contrast'
 import TeamForm from '@/components/players-teams/TeamForm'
 import TeamList from '@/components/players-teams/TeamList'
 
