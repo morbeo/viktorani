@@ -5,6 +5,7 @@ import PlayerList from '@/components/players-teams/PlayerList'
 import TeamForm from '@/components/players-teams/TeamForm'
 import PlayerForm from '@/components/players-teams/PlayerForm'
 import LabelFilterChips from '@/components/players-teams/LabelFilterChips'
+import ScanQrModal from '@/components/players-teams/ScanQrModal'
 import { Button } from '@/components/ui'
 
 type TabId = 'teams' | 'players'
@@ -27,6 +28,13 @@ export default function PlayersTeams() {
 
   // ── Mobile tab ──────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<TabId>('teams')
+  const [scanOpen, setScanOpen] = useState(false)
+  const [, setHighlightedIds] = useState<Set<string>>(new Set())
+
+  function handleImported(playerIds: string[]) {
+    setHighlightedIds(new Set(playerIds))
+    setTimeout(() => setHighlightedIds(new Set()), 3000)
+  }
 
   function handleSelectTeam(teamId: string | null) {
     setSelectedTeamId(teamId)
@@ -43,7 +51,7 @@ export default function PlayersTeams() {
       {/* ── Shared header ───────────────────────────────────────────────────── */}
       <div className="flex items-center gap-3 mb-4 -mt-2" aria-label="Players and Teams actions">
         <div className="flex-1" />
-        <Button variant="secondary" size="sm">
+        <Button variant="secondary" size="sm" onClick={() => setScanOpen(true)}>
           ⌖ Scan QR
         </Button>
         <Button
@@ -97,7 +105,7 @@ export default function PlayersTeams() {
           aria-label="Teams pane"
         >
           <PaneHeader
-            title={selectedTeamId ? 'Teams' : 'Teams'}
+            title="Teams"
             search={teamSearch}
             onSearch={setTeamSearch}
             searchPlaceholder="Search teams..."
@@ -151,6 +159,7 @@ export default function PlayersTeams() {
         defaultTeamId={selectedTeamId ?? undefined}
         onClose={() => setPlayerFormOpen(false)}
       />
+      <ScanQrModal open={scanOpen} onClose={() => setScanOpen(false)} onImported={handleImported} />
     </AdminLayout>
   )
 }
