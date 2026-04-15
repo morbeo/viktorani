@@ -2,6 +2,7 @@
   "extends": "./tsconfig.app.json",
   "compilerOptions": {
     "types": ["vite/client"],
+    "ignoreDeprecations": "6.0",
     "noUncheckedSideEffectImports": false
   },
   "include": ["src/test"],
