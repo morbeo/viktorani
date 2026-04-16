@@ -189,6 +189,8 @@ export interface Team {
   gameId: string
   name: string
   color: string
+  /** Lucide icon key (e.g. 'Zap', 'Shield'). Defaults to 'Shield' if not set. */
+  icon: string
   score: number
 }
 
