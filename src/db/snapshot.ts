@@ -131,7 +131,7 @@ export async function importQuestions(file: File): Promise<ImportResult> {
     raw = JSON.parse(text)
     if (!Array.isArray(raw)) throw new Error('Expected a JSON array')
   } catch (e) {
-    throw new Error(`Invalid JSON: ${(e as Error).message}`)
+    throw new Error(`Invalid JSON: ${(e as Error).message}`, { cause: e })
   }
 
   const result: ImportResult = { imported: 0, skipped: 0, errors: [] }
