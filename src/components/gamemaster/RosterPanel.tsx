@@ -1,5 +1,6 @@
 import { CircleDot, Circle, UserX } from 'lucide-react'
 import { Icon, Badge, Button } from '@/components/ui'
+import { resolveIcon } from '@/components/players-teams/teamIcons'
 import type { Player, Team } from '@/db'
 
 interface RosterPanelProps {
@@ -88,19 +89,13 @@ export function RosterPanel({ players, teams, onKick }: RosterPanelProps) {
 
                 {/* Team badge */}
                 {team ? (
-                  <Badge
-                    style={{
-                      background: team.color + '22',
-                      color: team.color,
-                      border: `1px solid ${team.color}44`,
-                      maxWidth: 96,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
+                  <span
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium text-white shrink-0"
+                    style={{ background: team.color, maxWidth: 108 }}
                   >
-                    {team.name}
-                  </Badge>
+                    <Icon icon={resolveIcon(team.icon)} size="sm" aria-hidden />
+                    <span className="truncate">{team.name}</span>
+                  </span>
                 ) : (
                   <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
                     no team
