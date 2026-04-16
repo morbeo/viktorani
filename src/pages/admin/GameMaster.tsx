@@ -10,6 +10,7 @@ import { BuzzerPanel } from '@/components/buzzer/BuzzerPanel'
 import { ScoreboardPanel } from '@/components/scoreboard/ScoreboardPanel'
 import { RosterPanel } from '@/components/gamemaster/RosterPanel'
 import { TeamManagerPanel } from '@/components/gamemaster/TeamManagerPanel'
+import { GameControls } from '@/components/gamemaster/GameControls'
 import { db } from '@/db'
 import { transportManager } from '@/transport'
 import {
@@ -23,6 +24,7 @@ import { useNavigation } from '@/hooks/useNavigation'
 import { useKeyNav } from '@/hooks/useKeyNav'
 import { useBuzzer } from '@/hooks/useBuzzer'
 import { useTimerList, applyAutoReset } from '@/hooks/useTimer'
+import { useGameLifecycle } from '@/hooks/useGameLifecycle'
 import { TimerPanel } from '@/components/timer/TimerPanel'
 import type { Game, Player, Team } from '@/db'
 import type { TransportStatus, TransportType, TransportEvent } from '@/transport/types'
@@ -283,9 +285,12 @@ function Lobby({
 
 interface ActiveGameProps {
   game: Game
+  players: Player[]
+  onGameChange: (updated: Game) => void
+  lifecycle: import('@/hooks/useGameLifecycle').UseGameLifecycleResult
 }
 
-function ActiveGame({ game }: ActiveGameProps) {
+function ActiveGame({ game, players, onGameChange, lifecycle }: ActiveGameProps) {
   const [showBoundary, setShowBoundary] = useState(false)
   const [boundaryEntry, setBoundaryEntry] = useState<
     import('@/pages/admin/gamemaster-utils').NavEntry | null
@@ -381,6 +386,8 @@ function ActiveGame({ game }: ActiveGameProps) {
 
   if (!pos) return null
 
+  const isEnded = game.status === 'ended'
+
   return (
     <div className="flex flex-col h-full -mx-8 -my-6" style={{ height: 'calc(100vh - 64px)' }}>
       {showBoundary && boundaryEntry && (
@@ -390,6 +397,13 @@ function ActiveGame({ game }: ActiveGameProps) {
           onDone={() => setShowBoundary(false)}
         />
       )}
+
+      <GameControls
+        game={game}
+        players={players}
+        onGameChange={onGameChange}
+        lifecycle={lifecycle}
+      />
 
       <NavHeader pos={pos} totalQ={seq.length} onPrev={goPrev} onNext={goNext} />
 
@@ -403,21 +417,37 @@ function ActiveGame({ game }: ActiveGameProps) {
             </span>
           </div>
 
-          {/* Buzzer panel */}
-          <BuzzerPanel
-            game={game}
-            questionId={currentQuestionId}
-            buzzes={buzzes}
-            displayBuzzes={displayBuzzes}
-            onToggleLock={() => void toggleLock()}
-            onAdjudicate={(id, decision) => void adjudicate(id, decision)}
-            onClear={() => currentQuestionId && void clearBuzzes(currentQuestionId)}
-          />
+          {/* Read-only banner for ended games */}
+          {isEnded && (
+            <div
+              className="px-4 py-3 rounded-lg border text-sm"
+              style={{
+                borderColor: 'var(--color-border)',
+                background: 'var(--color-border)44',
+                color: 'var(--color-muted)',
+              }}
+            >
+              This game has ended. The scoreboard is read-only.
+            </div>
+          )}
 
-          {/* Timers */}
-          <TimerPanel gameId={game.id} hook={timerHook} />
+          {/* Buzzer panel — hidden when ended */}
+          {!isEnded && (
+            <BuzzerPanel
+              game={game}
+              questionId={currentQuestionId}
+              buzzes={buzzes}
+              displayBuzzes={displayBuzzes}
+              onToggleLock={() => void toggleLock()}
+              onAdjudicate={(id, decision) => void adjudicate(id, decision)}
+              onClear={() => currentQuestionId && void clearBuzzes(currentQuestionId)}
+            />
+          )}
 
-          {/* Scoreboard */}
+          {/* Timers — hidden when ended */}
+          {!isEnded && <TimerPanel gameId={game.id} hook={timerHook} />}
+
+          {/* Scoreboard — always visible; ScoreboardPanel itself gates on scoringEnabled */}
           <ScoreboardPanel game={game} />
         </div>
       </div>
@@ -440,8 +470,12 @@ export default function GameMaster() {
   const [starting, setStarting] = useState(false)
   const [notFound, setNotFound] = useState(false)
 
+  const lifecycle = useGameLifecycle()
+
   const gameRef = useRef<Game | null>(null)
   gameRef.current = game
+  const playersRef = useRef<Player[]>([])
+  playersRef.current = players
 
   // Load game + existing players + teams on mount
   useEffect(() => {
@@ -472,6 +506,14 @@ export default function GameMaster() {
     const unsub = transportManager.onStatusChange((s, t) => {
       setStatus(s)
       setType(t)
+      // Re-sync players when transport reconnects mid-game
+      if (s === 'connected') {
+        const g = gameRef.current
+        const ps = playersRef.current
+        if (g && (g.status === 'active' || g.status === 'paused')) {
+          transportManager.send({ type: 'GAME_STATE', state: serialiseGameState(g, ps) })
+        }
+      }
     })
 
     transportManager
@@ -717,7 +759,12 @@ export default function GameMaster() {
   // Active / paused / ended — navigation view
   return (
     <AdminLayout>
-      <ActiveGame game={game} />
+      <ActiveGame
+        game={game}
+        players={players}
+        onGameChange={setGame}
+        lifecycle={lifecycle}
+      />
     </AdminLayout>
   )
 }
