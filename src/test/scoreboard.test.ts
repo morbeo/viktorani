@@ -71,6 +71,7 @@ function makeTeam(overrides: Partial<Team> = {}): Team {
   return {
     id: 't1',
     gameId: 'g1',
+    icon: 'shield',
     name: 'Red Team',
     color: '#c0392b',
     score: 0,
