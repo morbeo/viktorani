@@ -69,7 +69,6 @@ jobs:
         run: |
           VERSION=$(npm version ${{ inputs.bump }} --no-git-tag-version)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Release $VERSION ${{ inputs.bump }} by ${{ github.actor }}" >> "$GITHUB_RUN_NAME"
 
       - name: Generate changelog
         id: changelog
