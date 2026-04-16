@@ -10,48 +10,68 @@ on:
         type: choice
         options: [patch, minor, major]
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
-  release:
+  open-release-pr:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.RELEASE_PAT }}
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22
           cache: npm
 
-      - run: npm ci --legacy-peer-deps
+      - name: Install deps
+        run: npm ci --legacy-peer-deps
+
+      - name: Lint and test
+        run: |
+          npm run lint
+          npm run test
 
       - name: Configure git
         run: |
           git config user.name "Vladimir Kirov"
           git config user.email "morbeo@gmail.com"
 
-      - name: Bump version and generate changelog
+      - name: Bump version (no commit, no tag)
+        id: bump
         run: |
           VERSION=$(npm version ${{ inputs.bump }} --no-git-tag-version)
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          npx git-cliff --tag $VERSION -o CHANGELOG.md
-          git add CHANGELOG.md package.json package-lock.json
-          git commit -m "chore(release): $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Generate changelog
+        run: npx git-cliff --tag ${{ steps.bump.outputs.version }} -o CHANGELOG.md
+
+      - name: Commit and push release branch
+        run: |
+          BRANCH="chore/release-${{ steps.bump.outputs.version }}"
+          git checkout -b "$BRANCH"
+          git add package.json package-lock.json CHANGELOG.md
+          git commit -m "chore(release): ${{ steps.bump.outputs.version }}"
+          git push origin "$BRANCH"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+        id: branch
 
       - name: Open PR
         run: |
-          BRANCH="chore/release-${VERSION}"
-          git checkout -b $BRANCH
-          git push origin $BRANCH
           gh pr create \
-            --title "chore(release): ${{ env.VERSION }}" \
-            --body "Automated release bump for ${{ env.VERSION }}." \
+            --title "chore(release): ${{ steps.bump.outputs.version }}" \
+            --body "Automated release bump for ${{ steps.bump.outputs.version }}. Merging this PR will trigger the deploy workflow." \
             --base master \
-            --head $BRANCH
+            --head "${{ steps.branch.outputs.branch }}" \
+            --label "release"
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PAT }}
