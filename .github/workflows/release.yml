@@ -15,6 +15,12 @@ on:
         default: "false"
         type: choice
         options: ["false", "true"]
+      deploy:
+        description: "Trigger deploy after release"
+        required: false
+        default: "true"
+        type: choice
+        options: ["true", "false"]
 
 concurrency:
   group: release
@@ -38,7 +44,7 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           cache-dependency-path: package-lock.json
 
@@ -83,6 +89,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
 
       - name: Trigger deploy
+        if: inputs.deploy == 'true'
         run: gh workflow run deploy.yml --ref master
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PAT }}
