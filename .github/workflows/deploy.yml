@@ -13,13 +13,6 @@ on:
       - 'package-lock.json'
 
   workflow_dispatch:
-    inputs:
-      skip_checks:
-        description: "Skip lint/test (emergency deploy)"
-        required: false
-        default: "false"
-        type: choice
-        options: ["false", "true"]
 
 permissions:
   contents: read
@@ -35,7 +28,7 @@ env:
 
 jobs:
   deploy:
-    # Skip when the push is a release bump commit — publish.yml owns that deploy
+    # release.yml triggers this explicitly after tagging; skip the push event
     if: |
       github.event_name == 'workflow_dispatch' ||
       !startsWith(github.event.head_commit.message, 'chore(release):')
@@ -46,13 +39,13 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           cache-dependency-path: package-lock.json
 
@@ -60,15 +53,12 @@ jobs:
         run: npm ci --legacy-peer-deps
 
       - name: Lint
-        if: inputs.skip_checks != 'true'
         run: npm run lint
 
       - name: Test
-        if: inputs.skip_checks != 'true'
         run: npm run test
 
       - name: Type-check
-        if: inputs.skip_checks != 'true'
         run: npm run typecheck
 
       - name: Build
