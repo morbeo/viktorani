@@ -4,11 +4,17 @@ on:
   workflow_dispatch:
     inputs:
       bump:
-        description: "Version bump type"
+        description: "Version bump"
         required: true
         default: patch
         type: choice
         options: [patch, minor, major]
+      prerelease:
+        description: "Pre-release"
+        required: false
+        default: "false"
+        type: choice
+        options: ["false", "true"]
 
 concurrency:
   group: release
@@ -16,29 +22,33 @@ concurrency:
 
 permissions:
   contents: write
-  pull-requests: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  open-release-pr:
+  release:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           token: ${{ secrets.RELEASE_PAT }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install deps
         run: npm ci --legacy-peer-deps
 
-      - name: Lint and test
+      - name: Lint, typecheck, test
         run: |
           npm run lint
+          npm run typecheck
           npm run test
 
       - name: Configure git
@@ -46,7 +56,7 @@ jobs:
           git config user.name "Vladimir Kirov"
           git config user.email "morbeo@gmail.com"
 
-      - name: Bump version (no commit, no tag)
+      - name: Bump version
         id: bump
         run: |
           VERSION=$(npm version ${{ inputs.bump }} --no-git-tag-version)
@@ -55,23 +65,24 @@ jobs:
       - name: Generate changelog
         run: npx git-cliff --tag ${{ steps.bump.outputs.version }} -o CHANGELOG.md
 
-      - name: Commit and push release branch
+      - name: Commit, tag, push
         run: |
-          BRANCH="chore/release-${{ steps.bump.outputs.version }}"
-          git checkout -b "$BRANCH"
           git add package.json package-lock.json CHANGELOG.md
           git commit -m "chore(release): ${{ steps.bump.outputs.version }}"
-          git push origin "$BRANCH"
-          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
-        id: branch
+          git tag ${{ steps.bump.outputs.version }}
+          git push origin master --follow-tags
 
-      - name: Open PR
-        run: |
-          gh pr create \
-            --title "chore(release): ${{ steps.bump.outputs.version }}" \
-            --body "Automated release bump for ${{ steps.bump.outputs.version }}. Merging this PR will trigger the deploy workflow." \
-            --base master \
-            --head "${{ steps.branch.outputs.branch }}" \
-            --label "release"
+      - name: Create GitHub Release
+        uses: actions/create-release@latest
+        with:
+          tag_name: ${{ steps.bump.outputs.version }}
+          release_name: ${{ steps.bump.outputs.version }}
+          body: ${{ steps.changelog.outputs.content }}
+          prerelease: ${{ inputs.prerelease == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
+
+      - name: Trigger deploy
+        run: gh workflow run deploy.yml --ref master
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PAT }}
