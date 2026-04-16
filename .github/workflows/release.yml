@@ -1,3 +1,5 @@
+run-name: "Release ${{ inputs.bump }} by ${{ github.actor }}"
+
 name: Release
 
 on:
@@ -79,14 +81,14 @@ jobs:
           git push origin master --follow-tags
 
       - name: Create GitHub Release
-        uses: actions/create-release@latest
-        with:
-          tag_name: ${{ steps.bump.outputs.version }}
-          release_name: ${{ steps.bump.outputs.version }}
-          body: ${{ steps.changelog.outputs.content }}
-          prerelease: ${{ inputs.prerelease == 'true' }}
+        run: |
+          NOTES=$(npx git-cliff --tag ${{ steps.bump.outputs.version }} --current --strip all)
+          gh release create ${{ steps.bump.outputs.version }} \
+            --title "${{ steps.bump.outputs.version }}" \
+            --notes "$NOTES" \
+            ${{ inputs.prerelease == 'true' && '--prerelease' || '' }}
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
 
       - name: Trigger deploy
         if: inputs.deploy == 'true'
