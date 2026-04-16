@@ -160,14 +160,20 @@ describe('canAssignToTeam', () => {
 
   it('returns false when team is at cap', () => {
     const team = makeTeam({ id: 't1' })
-    const players = [makePlayer({ id: 'p1', teamId: 't1' }), makePlayer({ id: 'p2', teamId: 't1' })]
+    const players = [
+      makePlayer({ id: 'p1', teamId: 't1' }),
+      makePlayer({ id: 'p2', teamId: 't1' }),
+    ]
     expect(canAssignToTeam({ maxPerTeam: 2 }, team, players, 'p3')).toBe(false)
   })
 
   it('does not double-count player already on the team', () => {
     // p1 is already on t1 — moving p1 from t1 to t1 should not count twice
     const team = makeTeam({ id: 't1' })
-    const players = [makePlayer({ id: 'p1', teamId: 't1' }), makePlayer({ id: 'p2', teamId: 't1' })]
+    const players = [
+      makePlayer({ id: 'p1', teamId: 't1' }),
+      makePlayer({ id: 'p2', teamId: 't1' }),
+    ]
     // cap=2, p1 already on t1 — reassigning p1 should be allowed
     expect(canAssignToTeam({ maxPerTeam: 2 }, team, players, 'p1')).toBe(true)
   })
