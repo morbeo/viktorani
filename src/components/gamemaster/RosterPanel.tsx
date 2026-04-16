@@ -1,5 +1,5 @@
 import { CircleDot, Circle, UserX } from 'lucide-react'
-import { Icon, Badge, Button } from '@/components/ui'
+import { Icon, Button } from '@/components/ui'
 import { resolveIcon } from '@/components/players-teams/teamIcons'
 import type { Player, Team } from '@/db'
 
@@ -72,11 +72,7 @@ export function RosterPanel({ players, teams, onKick }: RosterPanelProps) {
                   aria-label={player.isAway ? 'Away' : 'Online'}
                   className="shrink-0"
                 >
-                  <Icon
-                    icon={player.isAway ? Circle : CircleDot}
-                    size="sm"
-                    aria-hidden={false}
-                  />
+                  <Icon icon={player.isAway ? Circle : CircleDot} size="sm" aria-hidden={false} />
                 </span>
 
                 {/* Name */}

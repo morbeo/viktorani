@@ -277,8 +277,22 @@ describe('DB schema', () => {
   })
 
   it('queries teams by gameId', async () => {
-    await db.teams.add({ id: 't1', gameId: 'g1', name: 'Red Team', color: '#f00', score: 0 })
-    await db.teams.add({ id: 't2', gameId: 'g2', name: 'Blue Team', color: '#00f', score: 0 })
+    await db.teams.add({
+      id: 't1',
+      gameId: 'g1',
+      icon: 'shield',
+      name: 'Red Team',
+      color: '#f00',
+      score: 0,
+    })
+    await db.teams.add({
+      id: 't2',
+      gameId: 'g2',
+      icon: 'star',
+      name: 'Blue Team',
+      color: '#00f',
+      score: 0,
+    })
     const teams = await db.teams.where('gameId').equals('g1').toArray()
     expect(teams).toHaveLength(1)
     expect(teams[0].name).toBe('Red Team')
