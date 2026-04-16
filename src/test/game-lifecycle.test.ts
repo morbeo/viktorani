@@ -156,11 +156,12 @@ describe('useGameLifecycle — endGame', () => {
     await result.current.endGame(makeGame(), players)
 
     const stateCall = mockSend.mock.calls.find(
-      ([e]: [{ type: string }]) => e.type === 'GAME_STATE'
+      (args: unknown[]) => (args[0] as { type: string }).type === 'GAME_STATE'
     )
     expect(stateCall).toBeDefined()
-    expect(stateCall![0].state.status).toBe('ended')
-    expect(stateCall![0].state.scores['p1']).toBe(42)
+    const stateEvent = stateCall![0] as { type: string; state: { status: string; scores: Record<string, number> } }
+    expect(stateEvent.state.status).toBe('ended')
+    expect(stateEvent.state.scores['p1']).toBe(42)
   })
 
   it('disconnects transport after emitting', async () => {
