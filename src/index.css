@@ -13,6 +13,12 @@ html[data-theme='light'] {
   --color-muted: #7a6f5e;
   --color-border: #d4c9b5;
   --color-surface: #ede8dc;
+  /* semantic aliases -- new components use these; existing components
+     will be migrated in a follow-up refactor */
+  --color-accent: var(--color-gold);
+  --color-accent-subtle: var(--color-gold-light);
+  --color-positive: var(--color-green);
+  --color-negative: var(--color-red);
 }
 
 /* Dark theme */
@@ -26,6 +32,10 @@ html[data-theme='dark'] {
   --color-muted: #8a8070;
   --color-border: #2e2a24;
   --color-surface: #211e1a;
+  --color-accent: var(--color-gold);
+  --color-accent-subtle: var(--color-gold-light);
+  --color-positive: var(--color-green);
+  --color-negative: var(--color-red);
 }
 
 /* System preference fallback (when data-theme="system" or unset) */
@@ -40,6 +50,10 @@ html[data-theme='dark'] {
     --color-muted: #8a8070;
     --color-border: #2e2a24;
     --color-surface: #211e1a;
+    --color-accent: var(--color-gold);
+    --color-accent-subtle: var(--color-gold-light);
+    --color-positive: var(--color-green);
+    --color-negative: var(--color-red);
   }
 }
 
