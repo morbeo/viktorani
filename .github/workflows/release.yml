@@ -72,7 +72,12 @@ jobs:
           echo "Release $VERSION ${{ inputs.bump }} by ${{ github.actor }}" >> "$GITHUB_RUN_NAME"
 
       - name: Generate changelog
-        run: npx git-cliff --tag ${{ steps.bump.outputs.version }} -o CHANGELOG.md
+        id: changelog
+        run: |
+          npx git-cliff --tag ${{ steps.bump.outputs.version }} -o CHANGELOG.md
+          echo "notes<<EOF" >> "$GITHUB_OUTPUT"
+          npx git-cliff --latest --strip all >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
 
       - name: Commit, tag, push
         run: |
@@ -83,10 +88,9 @@ jobs:
 
       - name: Create GitHub Release
         run: |
-          NOTES=$(npx git-cliff --tag ${{ steps.bump.outputs.version }} --current --strip all)
           gh release create ${{ steps.bump.outputs.version }} \
             --title "${{ steps.bump.outputs.version }}" \
-            --notes "$NOTES" \
+            --notes "${{ steps.changelog.outputs.notes }}" 
             ${{ inputs.prerelease == 'true' && '--prerelease' || '' }}
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PAT }}
