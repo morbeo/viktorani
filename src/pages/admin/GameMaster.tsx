@@ -1,22 +1,30 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
-import { QrCode, Rocket, Hourglass, CircleDot, Circle } from 'lucide-react'
+import { QrCode, Rocket } from 'lucide-react'
 import AdminLayout from '@/components/AdminLayout'
-import { Button, Badge, TransportPill, Icon } from '@/components/ui'
+import { Button, TransportPill, Icon } from '@/components/ui'
 import { NavHeader } from '@/components/NavHeader'
 import { RoundBoundary } from '@/components/RoundBoundary'
 import { BuzzerPanel } from '@/components/buzzer/BuzzerPanel'
 import { ScoreboardPanel } from '@/components/scoreboard/ScoreboardPanel'
+import { RosterPanel } from '@/components/gamemaster/RosterPanel'
+import { TeamManagerPanel } from '@/components/gamemaster/TeamManagerPanel'
 import { db } from '@/db'
 import { transportManager } from '@/transport'
-import { serialiseGameState, upsertPlayer, markPlayerAway } from '@/pages/admin/gamemaster-utils'
+import {
+  serialiseGameState,
+  upsertPlayer,
+  markPlayerAway,
+  setPlayerAway,
+  assignPlayerTeam,
+} from '@/pages/admin/gamemaster-utils'
 import { useNavigation } from '@/hooks/useNavigation'
 import { useKeyNav } from '@/hooks/useKeyNav'
 import { useBuzzer } from '@/hooks/useBuzzer'
 import { useTimerList, applyAutoReset } from '@/hooks/useTimer'
 import { TimerPanel } from '@/components/timer/TimerPanel'
-import type { Game, Player } from '@/db'
+import type { Game, Player, Team } from '@/db'
 import type { TransportStatus, TransportType, TransportEvent } from '@/transport/types'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -34,54 +42,36 @@ const STATUS_LABEL: Record<TransportStatus, string> = {
   error: 'Connection error',
 }
 
-// ── Player row ────────────────────────────────────────────────────────────────
-
-function PlayerRow({ player }: { player: Player }) {
-  return (
-    <div
-      className="flex items-center gap-3 px-4 py-2.5 border-b last:border-b-0"
-      style={{ borderColor: 'var(--color-border)' }}
-    >
-      <Icon
-        icon={player.isAway ? Circle : CircleDot}
-        size="sm"
-        className="shrink-0"
-        aria-hidden={false}
-        aria-label={player.isAway ? 'Away' : 'Online'}
-        // colour via inline style since CSS vars aren't Tailwind classes
-      />
-      <span className="flex-1 text-sm">{player.name}</span>
-      {player.isAway && (
-        <Badge style={{ background: 'var(--color-muted)22', color: 'var(--color-muted)' }}>
-          away
-        </Badge>
-      )}
-    </div>
-  )
-}
-
 // ── Lobby view ────────────────────────────────────────────────────────────────
 
 interface LobbyProps {
   game: Game
   players: Player[]
+  teams: Team[]
   status: TransportStatus
   type: TransportType
   soloBypass: boolean
   onToggleSolo: () => void
   onStart: () => Promise<void>
   starting: boolean
+  onKick: (playerId: string) => void
+  onCreateTeam: (name: string, color: string) => Promise<void>
+  onAssignPlayer: (playerId: string, teamId: string | null) => Promise<void>
 }
 
 function Lobby({
   game,
   players,
+  teams,
   status,
   type,
   soloBypass,
   onToggleSolo,
   onStart,
   starting,
+  onKick,
+  onCreateTeam,
+  onAssignPlayer,
 }: LobbyProps) {
   const activePlayers = players.filter(p => !p.isAway)
   const canStart = soloBypass || (status === 'connected' && activePlayers.length > 0)
@@ -159,45 +149,16 @@ function Lobby({
           )}
         </div>
 
-        {/* Player list */}
-        <div
-          className="rounded-xl border flex flex-col"
-          style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-        >
-          <div
-            className="px-4 py-3 border-b flex items-center justify-between"
-            style={{ borderColor: 'var(--color-border)' }}
-          >
-            <span
-              className="text-xs font-semibold uppercase tracking-wider"
-              style={{ color: 'var(--color-muted)' }}
-            >
-              Players
-            </span>
-            <span
-              className="text-xs font-bold px-2 py-0.5 rounded-full"
-              style={{
-                background:
-                  activePlayers.length > 0 ? 'var(--color-green)22' : 'var(--color-border)',
-                color: activePlayers.length > 0 ? 'var(--color-green)' : 'var(--color-muted)',
-              }}
-            >
-              {activePlayers.length} online
-            </span>
-          </div>
-
-          <div className="flex-1 overflow-y-auto" style={{ maxHeight: 240 }}>
-            {players.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-2 h-24">
-                <Icon icon={Hourglass} size="md" aria-hidden />
-                <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
-                  Waiting for players to join…
-                </p>
-              </div>
-            ) : (
-              players.map(p => <PlayerRow key={p.id} player={p} />)
-            )}
-          </div>
+        {/* Roster + team management */}
+        <div className="flex flex-col gap-4">
+          <RosterPanel players={players} teams={teams} onKick={onKick} />
+          <TeamManagerPanel
+            game={game}
+            teams={teams}
+            players={players}
+            onCreateTeam={onCreateTeam}
+            onAssignPlayer={onAssignPlayer}
+          />
         </div>
       </div>
 
@@ -433,6 +394,7 @@ export default function GameMaster() {
 
   const [game, setGame] = useState<Game | null>(null)
   const [players, setPlayers] = useState<Player[]>([])
+  const [teams, setTeams] = useState<Team[]>([])
   const [status, setStatus] = useState<TransportStatus>(transportManager.status)
   const [type, setType] = useState<TransportType>(transportManager.transportType)
   const [soloBypass, setSoloBypass] = useState(false)
@@ -442,7 +404,7 @@ export default function GameMaster() {
   const gameRef = useRef<Game | null>(null)
   gameRef.current = game
 
-  // Load game + existing players on mount
+  // Load game + existing players + teams on mount
   useEffect(() => {
     if (!id) return
     db.games.get(id).then(g => {
@@ -457,6 +419,11 @@ export default function GameMaster() {
       .equals(id)
       .toArray()
       .then(ps => setPlayers(ps.sort((a, b) => a.joinedAt - b.joinedAt)))
+    db.teams
+      .where('gameId')
+      .equals(id)
+      .toArray()
+      .then(ts => setTeams(ts))
   }, [id])
 
   // Connect transport when game is loaded
@@ -515,6 +482,11 @@ export default function GameMaster() {
       setPlayers(prev => markPlayerAway(prev, event.playerId))
     }
 
+    if (event.type === 'FOCUS_CHANGE') {
+      await db.players.update(event.playerId, { isAway: event.away })
+      setPlayers(prev => setPlayerAway(prev, event.playerId, event.away))
+    }
+
     if (event.type === 'BUZZ') {
       // Delegate to the ActiveGame's useBuzzer via window bridge
       const handler = (window as unknown as Record<string, unknown>)['__vkt_handleBuzz'] as
@@ -539,6 +511,57 @@ export default function GameMaster() {
   useEffect(() => {
     return transportManager.onEvent(handleEvent)
   }, [handleEvent])
+
+  // Kick player — mark as away in DB + state, broadcast updated game state
+  const handleKick = useCallback(
+    async (playerId: string) => {
+      const g = gameRef.current
+      if (!g) return
+      await db.players.update(playerId, { isAway: true })
+      setPlayers(prev => {
+        const updated = markPlayerAway(prev, playerId)
+        transportManager.send({ type: 'GAME_STATE', state: serialiseGameState(g, updated) })
+        return updated
+      })
+    },
+    []
+  )
+
+  // Create a session team, persist to DB, broadcast GAME_STATE
+  const handleCreateTeam = useCallback(
+    async (name: string, color: string) => {
+      const g = gameRef.current
+      if (!g) return
+      const team: Team = {
+        id: crypto.randomUUID(),
+        gameId: g.id,
+        name,
+        color,
+        score: 0,
+      }
+      await db.teams.add(team)
+      setTeams(prev => {
+        const updated = [...prev, team]
+        return updated
+      })
+    },
+    []
+  )
+
+  // Assign a player to a team (or clear), persist to DB, broadcast GAME_STATE
+  const handleAssignPlayer = useCallback(
+    async (playerId: string, teamId: string | null) => {
+      const g = gameRef.current
+      if (!g) return
+      await db.players.update(playerId, { teamId })
+      setPlayers(prev => {
+        const updated = assignPlayerTeam(prev, playerId, teamId)
+        transportManager.send({ type: 'GAME_STATE', state: serialiseGameState(g, updated) })
+        return updated
+      })
+    },
+    []
+  )
 
   // Start the game
   async function handleStart() {
@@ -587,12 +610,16 @@ export default function GameMaster() {
         <Lobby
           game={game}
           players={players}
+          teams={teams}
           status={status}
           type={type}
           soloBypass={soloBypass}
           onToggleSolo={() => setSoloBypass(s => !s)}
           onStart={handleStart}
           starting={starting}
+          onKick={handleKick}
+          onCreateTeam={handleCreateTeam}
+          onAssignPlayer={handleAssignPlayer}
         />
       </AdminLayout>
     )

@@ -1,4 +1,4 @@
-import type { Game, Player } from '@/db'
+import type { Game, Player, Team } from '@/db'
 import type { SerializedGameState } from '@/transport/types'
 
 /**
@@ -73,6 +73,56 @@ export function upsertPlayer(
  */
 export function markPlayerAway(players: Player[], playerId: string): Player[] {
   return players.map(p => (p.id === playerId ? { ...p, isAway: true } : p))
+}
+
+/**
+ * Sets a player's isAway flag (on or off) in a player list. Returns a new array.
+ */
+export function setPlayerAway(players: Player[], playerId: string, away: boolean): Player[] {
+  return players.map(p => (p.id === playerId ? { ...p, isAway: away } : p))
+}
+
+/**
+ * Assigns a player to a team (or clears the team when teamId is null).
+ * Returns a new array with the player's teamId updated.
+ */
+export function assignPlayerTeam(
+  players: Player[],
+  playerId: string,
+  teamId: string | null
+): Player[] {
+  return players.map(p => (p.id === playerId ? { ...p, teamId } : p))
+}
+
+// ── Cap enforcement ───────────────────────────────────────────────────────────
+
+/**
+ * Returns true when a new team may be created given the current game config
+ * and the number of existing teams.
+ *
+ * `maxTeams === 0` means unlimited.
+ */
+export function canCreateTeam(game: Pick<Game, 'maxTeams'>, currentTeamCount: number): boolean {
+  if (game.maxTeams === 0) return true
+  return currentTeamCount < game.maxTeams
+}
+
+/**
+ * Returns true when `playerId` may be assigned to `team`.
+ *
+ * Checks:
+ * - `maxPerTeam === 0` means unlimited.
+ * - Does not double-count the player if they are already on this team.
+ */
+export function canAssignToTeam(
+  game: Pick<Game, 'maxPerTeam'>,
+  team: Team,
+  players: Player[],
+  playerId: string
+): boolean {
+  if (game.maxPerTeam === 0) return true
+  const members = players.filter(p => p.teamId === team.id && p.id !== playerId)
+  return members.length < game.maxPerTeam
 }
 
 // ── Navigation types ──────────────────────────────────────────────────────────
