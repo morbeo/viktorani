@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.0.10 - 2026-04-16
+
+### Chores
+
+- Fix Create GitHub Release step ([2635fed](../../commit/2635fed8c62075de1724ac0a5822f26f43ea529a))
+- Update release workflow name dynamically ([e3c6da1](../../commit/e3c6da19a30aa7dad0a9c5e3adf4923c4573f925))
+
+### Refactoring
+
+- Changelog output ([6ba981c](../../commit/6ba981c6132efdc343fae5cb18fdfc860fb6e297))
+- Sadly can't be updated dynamically ([cd9cf3b](../../commit/cd9cf3b05fc1c775973c3edbcd61eb920c2dc6d8))
+
 ## v0.0.9 - 2026-04-16
 
 ### Bug Fixes
