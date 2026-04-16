@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
+import { NavHeader } from '@/components/NavHeader'
+import type { NavEntry, NavPosition } from '@/pages/admin/gamemaster-utils'
 import {
   Button,
   Badge,
@@ -10,6 +12,7 @@ import {
   Modal,
   Empty,
   TransportPill,
+  Steps,
 } from '@/components/ui'
 
 // ── Button ────────────────────────────────────────────────────────────────────
@@ -274,5 +277,154 @@ describe('TransportPill', () => {
   it('shows Offline when idle', () => {
     render(<TransportPill status="idle" type={null} />)
     expect(screen.getByText('Offline')).toBeInTheDocument()
+  })
+})
+
+// ── Steps ─────────────────────────────────────────────────────────────────────
+
+const STEPS = [
+  { label: 'Basic settings' },
+  { label: 'Select rounds' },
+  { label: 'Review & create' },
+]
+
+describe('Steps', () => {
+  it('renders one dot per step', () => {
+    const { container } = render(<Steps steps={STEPS} current={0} />)
+    const dots = container.querySelectorAll('[role="img"]')
+    expect(dots).toHaveLength(3)
+  })
+
+  it('shows the active step label', () => {
+    render(<Steps steps={STEPS} current={1} />)
+    expect(screen.getByText('Select rounds')).toBeInTheDocument()
+  })
+
+  it('labels the active step as current', () => {
+    render(<Steps steps={STEPS} current={0} />)
+    expect(screen.getByRole('img', { name: 'Basic settings (current)' })).toBeInTheDocument()
+  })
+
+  it('labels completed steps accordingly', () => {
+    render(<Steps steps={STEPS} current={2} />)
+    expect(screen.getByRole('img', { name: 'Basic settings (completed)' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Select rounds (completed)' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Review & create (current)' })).toBeInTheDocument()
+  })
+
+  it('labels upcoming steps with no suffix', () => {
+    render(<Steps steps={STEPS} current={0} />)
+    expect(screen.getByRole('img', { name: 'Select rounds' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Review & create' })).toBeInTheDocument()
+  })
+
+  it('updates label when current changes', () => {
+    const { rerender } = render(<Steps steps={STEPS} current={0} />)
+    expect(screen.getByText('Basic settings')).toBeInTheDocument()
+    rerender(<Steps steps={STEPS} current={2} />)
+    expect(screen.getByText('Review & create')).toBeInTheDocument()
+  })
+})
+
+// ── NavHeader ─────────────────────────────────────────────────────────────────
+
+function makeSeq(roundQuestions: number[]): NavEntry[] {
+  const entries: NavEntry[] = []
+  let flat = 0
+  roundQuestions.forEach((count, roundIdx) => {
+    const roundId = `round-${roundIdx}`
+    for (let q = 0; q < count; q++) {
+      entries.push({
+        flatIndex: flat++,
+        roundIdx,
+        roundId,
+        roundName: `Round ${roundIdx + 1}`,
+        questionId: `q-${roundIdx}-${q}`,
+        gameQuestionId: `gq-${roundIdx}-${q}`,
+        questionStatus: 'pending',
+      })
+    }
+  })
+  return entries
+}
+
+function makePos(seq: NavEntry[], flatIndex: number): NavPosition {
+  const entry = seq[flatIndex]
+  const inRound = seq.filter(e => e.roundId === entry.roundId)
+  const questionIdx = inRound.findIndex(e => e.flatIndex === flatIndex)
+  return {
+    flatIndex,
+    roundIdx: entry.roundIdx,
+    questionIdx,
+    roundQuestions: inRound.length,
+    isFirst: flatIndex === 0,
+    isLast: flatIndex === seq.length - 1,
+    isRoundBoundary: false,
+  }
+}
+
+describe('NavHeader', () => {
+  it('renders prev and next buttons', () => {
+    const seq = makeSeq([3, 3])
+    const pos = makePos(seq, 1)
+    render(<NavHeader pos={pos} seq={seq} onPrev={vi.fn()} onNext={vi.fn()} />)
+    expect(screen.getByLabelText('Previous question')).toBeInTheDocument()
+    expect(screen.getByLabelText('Next question')).toBeInTheDocument()
+  })
+
+  it('disables prev on first question', () => {
+    const seq = makeSeq([3, 3])
+    const pos = makePos(seq, 0)
+    render(<NavHeader pos={pos} seq={seq} onPrev={vi.fn()} onNext={vi.fn()} />)
+    expect(screen.getByLabelText('Previous question')).toBeDisabled()
+    expect(screen.getByLabelText('Next question')).not.toBeDisabled()
+  })
+
+  it('disables next on last question', () => {
+    const seq = makeSeq([3, 3])
+    const pos = makePos(seq, 5)
+    render(<NavHeader pos={pos} seq={seq} onPrev={vi.fn()} onNext={vi.fn()} />)
+    expect(screen.getByLabelText('Next question')).toBeDisabled()
+    expect(screen.getByLabelText('Previous question')).not.toBeDisabled()
+  })
+
+  it('shows correct round and question label', () => {
+    const seq = makeSeq([4, 3])
+    const pos = makePos(seq, 5)
+    render(<NavHeader pos={pos} seq={seq} onPrev={vi.fn()} onNext={vi.fn()} />)
+    expect(screen.getByText('Round 2')).toBeInTheDocument()
+    expect(screen.getByText('Q 6 / 7')).toBeInTheDocument()
+  })
+
+  it('fires onPrev and onNext when clicked', () => {
+    const onPrev = vi.fn()
+    const onNext = vi.fn()
+    const seq = makeSeq([3, 3])
+    const pos = makePos(seq, 2)
+    render(<NavHeader pos={pos} seq={seq} onPrev={onPrev} onNext={onNext} />)
+    fireEvent.click(screen.getByLabelText('Previous question'))
+    fireEvent.click(screen.getByLabelText('Next question'))
+    expect(onPrev).toHaveBeenCalledOnce()
+    expect(onNext).toHaveBeenCalledOnce()
+  })
+
+  it('renders one pill per round', () => {
+    const seq = makeSeq([3, 4, 2])
+    const pos = makePos(seq, 0)
+    const { container } = render(
+      <NavHeader pos={pos} seq={seq} onPrev={vi.fn()} onNext={vi.fn()} />
+    )
+    const track = container.querySelector('[role="progressbar"]')!
+    // three direct children of the track = three round pills
+    expect(track.children).toHaveLength(3)
+  })
+
+  it('sets correct aria attributes on the progress track', () => {
+    const seq = makeSeq([3, 3])
+    const pos = makePos(seq, 3)
+    render(<NavHeader pos={pos} seq={seq} onPrev={vi.fn()} onNext={vi.fn()} />)
+    const bar = screen.getByRole('progressbar')
+    expect(bar).toHaveAttribute('aria-valuenow', '4')
+    expect(bar).toHaveAttribute('aria-valuemax', '6')
   })
 })

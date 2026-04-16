@@ -405,7 +405,7 @@ function ActiveGame({ game, players, onGameChange, lifecycle }: ActiveGameProps)
         lifecycle={lifecycle}
       />
 
-      <NavHeader pos={pos} totalQ={seq.length} onPrev={goPrev} onNext={goNext} />
+      <NavHeader pos={pos} seq={seq} onPrev={goPrev} onNext={goNext} />
 
       <div className="flex-1 overflow-y-auto px-8 py-6">
         <div className="max-w-3xl mx-auto flex flex-col gap-6">
@@ -594,38 +594,32 @@ export default function GameMaster() {
   }, [handleEvent])
 
   // Kick player — mark as away in DB + state, broadcast updated game state
-  const handleKick = useCallback(
-    async (playerId: string) => {
-      const g = gameRef.current
-      if (!g) return
-      await db.players.update(playerId, { isAway: true })
-      setPlayers(prev => {
-        const updated = markPlayerAway(prev, playerId)
-        transportManager.send({ type: 'GAME_STATE', state: serialiseGameState(g, updated) })
-        return updated
-      })
-    },
-    []
-  )
+  const handleKick = useCallback(async (playerId: string) => {
+    const g = gameRef.current
+    if (!g) return
+    await db.players.update(playerId, { isAway: true })
+    setPlayers(prev => {
+      const updated = markPlayerAway(prev, playerId)
+      transportManager.send({ type: 'GAME_STATE', state: serialiseGameState(g, updated) })
+      return updated
+    })
+  }, [])
 
   // Create a session team, persist to DB, broadcast GAME_STATE
-  const handleCreateTeam = useCallback(
-    async (name: string, color: string, icon: string) => {
-      const g = gameRef.current
-      if (!g) return
-      const team: Team = {
-        id: crypto.randomUUID(),
-        gameId: g.id,
-        name,
-        color,
-        icon,
-        score: 0,
-      }
-      await db.teams.add(team)
-      setTeams(prev => [...prev, team])
-    },
-    []
-  )
+  const handleCreateTeam = useCallback(async (name: string, color: string, icon: string) => {
+    const g = gameRef.current
+    if (!g) return
+    const team: Team = {
+      id: crypto.randomUUID(),
+      gameId: g.id,
+      name,
+      color,
+      icon,
+      score: 0,
+    }
+    await db.teams.add(team)
+    setTeams(prev => [...prev, team])
+  }, [])
 
   // Import all active managed teams (and their players) into the session
   const handleImportFromManaged = useCallback(async () => {
@@ -638,7 +632,9 @@ export default function GameMaster() {
     ])
 
     // Upsert teams — skip any already in the session (by id)
-    const existingTeamIds = new Set((await db.teams.where('gameId').equals(g.id).toArray()).map(t => t.id))
+    const existingTeamIds = new Set(
+      (await db.teams.where('gameId').equals(g.id).toArray()).map(t => t.id)
+    )
     const newTeams: Team[] = managedTeams
       .filter(mt => !existingTeamIds.has(mt.id))
       .map(mt => ({
@@ -652,7 +648,9 @@ export default function GameMaster() {
     if (newTeams.length > 0) await db.teams.bulkAdd(newTeams)
 
     // Upsert players — skip any already in the session (by id)
-    const existingPlayerIds = new Set((await db.players.where('gameId').equals(g.id).toArray()).map(p => p.id))
+    const existingPlayerIds = new Set(
+      (await db.players.where('gameId').equals(g.id).toArray()).map(p => p.id)
+    )
     const now = Date.now()
     const newPlayers: import('@/db').Player[] = managedPlayers
       .filter(mp => !existingPlayerIds.has(mp.id))
@@ -679,19 +677,16 @@ export default function GameMaster() {
   }, [])
 
   // Assign a player to a team (or clear), persist to DB, broadcast GAME_STATE
-  const handleAssignPlayer = useCallback(
-    async (playerId: string, teamId: string | null) => {
-      const g = gameRef.current
-      if (!g) return
-      await db.players.update(playerId, { teamId })
-      setPlayers(prev => {
-        const updated = assignPlayerTeam(prev, playerId, teamId)
-        transportManager.send({ type: 'GAME_STATE', state: serialiseGameState(g, updated) })
-        return updated
-      })
-    },
-    []
-  )
+  const handleAssignPlayer = useCallback(async (playerId: string, teamId: string | null) => {
+    const g = gameRef.current
+    if (!g) return
+    await db.players.update(playerId, { teamId })
+    setPlayers(prev => {
+      const updated = assignPlayerTeam(prev, playerId, teamId)
+      transportManager.send({ type: 'GAME_STATE', state: serialiseGameState(g, updated) })
+      return updated
+    })
+  }, [])
 
   // Start the game
   async function handleStart() {
@@ -759,12 +754,7 @@ export default function GameMaster() {
   // Active / paused / ended — navigation view
   return (
     <AdminLayout>
-      <ActiveGame
-        game={game}
-        players={players}
-        onGameChange={setGame}
-        lifecycle={lifecycle}
-      />
+      <ActiveGame game={game} players={players} onGameChange={setGame} lifecycle={lifecycle} />
     </AdminLayout>
   )
 }

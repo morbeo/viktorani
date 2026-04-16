@@ -4,6 +4,8 @@ import { Icon } from './Icon'
 import type { TransportStatus, TransportType } from '@/transport/types'
 
 export { Icon } from './Icon'
+export { Steps } from './Steps'
+export type { StepConfig } from './Steps'
 
 // ── Button ────────────────────────────────────────────────────────────────────
 
