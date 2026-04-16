@@ -4,6 +4,12 @@ import { transportManager } from '@/transport'
 import { serialiseGameState } from '@/pages/admin/gamemaster-utils'
 import type { Game, Player, GameStatus } from '@/db'
 
+export interface UseGameLifecycleResult {
+  pauseGame: (game: Game) => Promise<Game>
+  resumeGame: (game: Game) => Promise<Game>
+  endGame: (game: Game, players: Player[]) => Promise<Game>
+}
+
 /**
  * Encapsulates pause / resume / end transitions for an active game session.
  *
@@ -16,7 +22,7 @@ import type { Game, Player, GameStatus } from '@/db'
  * All three functions are stable across renders (useCallback with no deps that
  * change — they read game/players through the closure args, not React state).
  */
-export function useGameLifecycle() {
+export function useGameLifecycle(): UseGameLifecycleResult {
   /** Pause an active game. No-op if the game is not active. */
   const pauseGame = useCallback(async (game: Game): Promise<Game> => {
     const now = Date.now()
