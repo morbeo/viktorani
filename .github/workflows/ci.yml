@@ -35,15 +35,15 @@ jobs:
         run: echo "${{ github.event.pull_request.title }}" | npx --yes commitlint
 
   detect:
-      runs-on: ubuntu-latest
-      outputs:
-        code: ${{ steps.changes.outputs.code }}
-      steps:
-        - uses: actions/checkout@v6
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.changes.outputs.code }}
+    steps:
+      - uses: actions/checkout@v6
 
-        - name: Detect code changes
-          id: changes
-          run: bash scripts/detect-code-changes.sh "${{ github.event.pull_request.base.sha }}"
+      - name: Detect code changes
+        id: changes
+        run: bash scripts/detect-code-changes.sh "${{ github.event.pull_request.base.sha }}"
 
   ci:
     runs-on: ubuntu-latest
