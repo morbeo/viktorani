@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
-import { QrCode, Rocket } from 'lucide-react'
+import { QrCode, Rocket, Copy, Check } from 'lucide-react'
 import AdminLayout from '@/components/AdminLayout'
 import { Button, TransportPill, Icon } from '@/components/ui'
 import { NavHeader } from '@/components/NavHeader'
@@ -55,8 +55,9 @@ interface LobbyProps {
   onStart: () => Promise<void>
   starting: boolean
   onKick: (playerId: string) => void
-  onCreateTeam: (name: string, color: string) => Promise<void>
+  onCreateTeam: (name: string, color: string, icon: string) => Promise<void>
   onAssignPlayer: (playerId: string, teamId: string | null) => Promise<void>
+  onImportFromManaged: () => Promise<void>
 }
 
 function Lobby({
@@ -72,10 +73,20 @@ function Lobby({
   onKick,
   onCreateTeam,
   onAssignPlayer,
+  onImportFromManaged,
 }: LobbyProps) {
   const activePlayers = players.filter(p => !p.isAway)
   const canStart = soloBypass || (status === 'connected' && activePlayers.length > 0)
   const url = game.roomId ? joinUrl(game.roomId) : ''
+  const [copied, setCopied] = useState(false)
+
+  function handleCopyUrl() {
+    if (!url) return
+    void navigator.clipboard.writeText(url).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
 
   return (
     <div className="max-w-3xl mx-auto flex flex-col gap-8 py-6">
@@ -135,7 +146,7 @@ function Lobby({
           )}
 
           {game.roomId && (
-            <div className="text-center">
+            <div className="text-center w-full">
               <p className="text-xs mb-1" style={{ color: 'var(--color-muted)' }}>
                 Room code
               </p>
@@ -145,6 +156,33 @@ function Lobby({
               >
                 {game.roomId}
               </p>
+
+              {/* Join URL + copy */}
+              <div
+                className="mt-3 flex items-center gap-1.5 rounded-lg px-3 py-1.5 w-full"
+                style={{ background: 'var(--color-border)' }}
+              >
+                <span
+                  className="flex-1 text-xs truncate text-left mono"
+                  style={{ color: 'var(--color-muted)' }}
+                  title={url}
+                >
+                  {url}
+                </span>
+                <button
+                  onClick={handleCopyUrl}
+                  className="shrink-0 flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors"
+                  style={{
+                    background: copied ? 'var(--color-green)22' : 'transparent',
+                    color: copied ? 'var(--color-green)' : 'var(--color-muted)',
+                  }}
+                  aria-label={copied ? 'Copied!' : 'Copy join URL'}
+                  title={copied ? 'Copied!' : 'Copy join URL'}
+                >
+                  <Icon icon={copied ? Check : Copy} size="sm" />
+                  {copied ? 'Copied' : 'Copy'}
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -158,6 +196,7 @@ function Lobby({
             players={players}
             onCreateTeam={onCreateTeam}
             onAssignPlayer={onAssignPlayer}
+            onImportFromManaged={onImportFromManaged}
           />
         </div>
       </div>
@@ -529,7 +568,7 @@ export default function GameMaster() {
 
   // Create a session team, persist to DB, broadcast GAME_STATE
   const handleCreateTeam = useCallback(
-    async (name: string, color: string) => {
+    async (name: string, color: string, icon: string) => {
       const g = gameRef.current
       if (!g) return
       const team: Team = {
@@ -537,16 +576,65 @@ export default function GameMaster() {
         gameId: g.id,
         name,
         color,
+        icon,
         score: 0,
       }
       await db.teams.add(team)
-      setTeams(prev => {
-        const updated = [...prev, team]
-        return updated
-      })
+      setTeams(prev => [...prev, team])
     },
     []
   )
+
+  // Import all active managed teams (and their players) into the session
+  const handleImportFromManaged = useCallback(async () => {
+    const g = gameRef.current
+    if (!g) return
+
+    const [managedTeams, managedPlayers] = await Promise.all([
+      db.managedTeams.filter(t => !t.archivedAt).toArray(),
+      db.managedPlayers.filter(p => !p.archivedAt).toArray(),
+    ])
+
+    // Upsert teams — skip any already in the session (by id)
+    const existingTeamIds = new Set((await db.teams.where('gameId').equals(g.id).toArray()).map(t => t.id))
+    const newTeams: Team[] = managedTeams
+      .filter(mt => !existingTeamIds.has(mt.id))
+      .map(mt => ({
+        id: mt.id,
+        gameId: g.id,
+        name: mt.name,
+        color: mt.color,
+        icon: mt.icon,
+        score: 0,
+      }))
+    if (newTeams.length > 0) await db.teams.bulkAdd(newTeams)
+
+    // Upsert players — skip any already in the session (by id)
+    const existingPlayerIds = new Set((await db.players.where('gameId').equals(g.id).toArray()).map(p => p.id))
+    const now = Date.now()
+    const newPlayers: import('@/db').Player[] = managedPlayers
+      .filter(mp => !existingPlayerIds.has(mp.id))
+      .map((mp, i) => ({
+        id: mp.id,
+        gameId: g.id,
+        name: mp.name,
+        // Assign to first matching session team
+        teamId: mp.teamIds.find(tid => managedTeams.some(mt => mt.id === tid)) ?? null,
+        score: 0,
+        isAway: false,
+        deviceId: '',
+        joinedAt: now + i,
+      }))
+    if (newPlayers.length > 0) await db.players.bulkAdd(newPlayers)
+
+    // Refresh state
+    const [freshTeams, freshPlayers] = await Promise.all([
+      db.teams.where('gameId').equals(g.id).toArray(),
+      db.players.where('gameId').equals(g.id).toArray(),
+    ])
+    setTeams(freshTeams)
+    setPlayers(freshPlayers.sort((a, b) => a.joinedAt - b.joinedAt))
+  }, [])
 
   // Assign a player to a team (or clear), persist to DB, broadcast GAME_STATE
   const handleAssignPlayer = useCallback(
@@ -620,6 +708,7 @@ export default function GameMaster() {
           onKick={handleKick}
           onCreateTeam={handleCreateTeam}
           onAssignPlayer={handleAssignPlayer}
+          onImportFromManaged={handleImportFromManaged}
         />
       </AdminLayout>
     )
