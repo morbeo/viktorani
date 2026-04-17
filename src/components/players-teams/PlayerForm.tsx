@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
 import type { ManagedPlayer } from '@/types/players-teams'
-import { Modal, Button, Input } from '@/components/ui'
+import { Modal, Button, Input, Icon } from '@/components/ui'
+import { resolveIcon } from './teamIcons'
 
 interface Props {
   /** Existing player to edit, or null to create a new one. */
@@ -150,7 +151,7 @@ export default function PlayerForm({ player, defaultTeamId, open, onClose }: Pro
                     aria-pressed={selected}
                     aria-label={`${selected ? 'Remove from' : 'Add to'} ${team.name}`}
                   >
-                    <span>{team.icon}</span>
+                    <Icon icon={resolveIcon(team.icon)} size="sm" />
                     {team.name}
                   </button>
                 )
