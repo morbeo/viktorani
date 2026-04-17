@@ -32,8 +32,4 @@ EXCLUDES=(
 
 cd "$ROOT"
 tar -czf "$OUT" "${EXCLUDES[@]}" .
-SIZE="$(du -sh "$OUT" | cut -f1)"
-echo "Packed: $OUT ($SIZE)"
-echo ""
-echo "Contents by size:"
-tar -tzf "$OUT" | xargs -I{} du -sh "$ROOT/{}" 2>/dev/null | sort -rh | head -20
+du -sh "$OUT"
