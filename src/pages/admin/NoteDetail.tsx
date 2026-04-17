@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { remarkDefinitionList, defListHastHandlers } from 'remark-definition-list'
+import rehypeRaw from 'rehype-raw'
+import rehypeSanitize from 'rehype-sanitize'
 import { db } from '@/db'
 import type { Note } from '@/db'
 
@@ -64,10 +67,7 @@ export default function NoteDetail() {
           >
             ← Notes
           </Link>
-          <h1
-            className="text-3xl font-bold mt-2"
-            style={{ fontFamily: 'Playfair Display, serif' }}
-          >
+          <h1 className="text-3xl font-bold mt-2" style={{ fontFamily: 'Playfair Display, serif' }}>
             {note.name}
           </h1>
           <p className="text-xs mt-1" style={{ color: 'var(--color-muted)' }}>
@@ -77,7 +77,13 @@ export default function NoteDetail() {
 
         {note.content.trim() ? (
           <div className="note-prose">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{note.content}</ReactMarkdown>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm, remarkDefinitionList]}
+              remarkRehypeOptions={{ handlers: defListHastHandlers }}
+              rehypePlugins={[rehypeRaw, rehypeSanitize]}
+            >
+              {note.content}
+            </ReactMarkdown>
           </div>
         ) : (
           <p style={{ color: 'var(--color-muted)', fontStyle: 'italic' }}>This note is empty.</p>

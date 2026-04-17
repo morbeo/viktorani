@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { remarkDefinitionList, defListHastHandlers } from 'remark-definition-list'
+import rehypeRaw from 'rehype-raw'
+import rehypeSanitize from 'rehype-sanitize'
 import AdminLayout from '@/components/AdminLayout'
 import { Button, Input, Textarea, Modal, Empty } from '@/components/ui'
 import { db } from '@/db'
@@ -77,7 +80,13 @@ function NoteForm({ note, onSave, onClose }: NoteFormProps) {
             >
               <div className="note-prose">
                 {content.trim() ? (
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm, remarkDefinitionList]}
+                    remarkRehypeOptions={{ handlers: defListHastHandlers }}
+                    rehypePlugins={[rehypeRaw, rehypeSanitize]}
+                  >
+                    {content}
+                  </ReactMarkdown>
                 ) : (
                   <p style={{ color: 'var(--color-muted)' }}>Nothing to preview.</p>
                 )}
@@ -195,7 +204,13 @@ function NoteViewer({
       <div className="flex-1 overflow-y-auto px-8 py-6">
         {note.content.trim() ? (
           <div className="note-prose">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{note.content}</ReactMarkdown>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm, remarkDefinitionList]}
+              remarkRehypeOptions={{ handlers: defListHastHandlers }}
+              rehypePlugins={[rehypeRaw, rehypeSanitize]}
+            >
+              {note.content}
+            </ReactMarkdown>
           </div>
         ) : (
           <p style={{ color: 'var(--color-muted)', fontStyle: 'italic' }}>This note is empty.</p>

@@ -127,6 +127,28 @@ pre {
   font-size: 1em;
   font-style: italic;
 }
+.note-prose h5 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 0.9em;
+  font-weight: 700;
+  font-style: normal;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-muted);
+  margin-top: 1.25em;
+  margin-bottom: 0.4em;
+  line-height: 1.25;
+}
+.note-prose h6 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 0.8em;
+  font-weight: 700;
+  font-style: italic;
+  color: var(--color-muted);
+  margin-top: 1em;
+  margin-bottom: 0.3em;
+  line-height: 1.25;
+}
 
 .note-prose p {
   margin-top: 0;
@@ -147,6 +169,30 @@ pre {
 .note-prose ol {
   padding-left: 1.5em;
   margin-bottom: 1em;
+}
+
+.note-prose ul {
+  list-style-type: disc;
+}
+
+.note-prose ul ul {
+  list-style-type: circle;
+}
+
+.note-prose ul ul ul {
+  list-style-type: square;
+}
+
+.note-prose ol {
+  list-style-type: decimal;
+}
+
+.note-prose ol ol {
+  list-style-type: lower-alpha;
+}
+
+.note-prose ol ol ol {
+  list-style-type: lower-roman;
 }
 
 .note-prose li {
@@ -241,4 +287,21 @@ pre {
 
 .note-prose tr:nth-child(even) td {
   background: var(--color-surface);
+}
+
+/* definition lists (via remark-definition-list) */
+.note-prose dl {
+  margin-bottom: 1em;
+}
+
+.note-prose dt {
+  font-weight: 600;
+  color: var(--color-ink);
+  margin-top: 0.75em;
+}
+
+.note-prose dd {
+  padding-left: 1.5em;
+  color: var(--color-muted);
+  margin-bottom: 0.25em;
 }
