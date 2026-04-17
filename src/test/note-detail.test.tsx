@@ -79,4 +79,117 @@ describe('NoteDetail', () => {
     const link = screen.getByRole('link', { name: '← Notes' })
     expect(link).toHaveAttribute('href', '/admin/notes')
   })
+
+  it('renders unordered list items as <li> elements', async () => {
+    const note = makeNote({ content: '- Alpha\n- Beta\n- Gamma' })
+    await act(async () => {
+      await db.notes.add(note)
+    })
+
+    renderAt(note.id)
+
+    await waitFor(() => expect(screen.getByText('Alpha')).toBeInTheDocument())
+    expect(screen.getByText('Beta')).toBeInTheDocument()
+    expect(screen.getByText('Gamma')).toBeInTheDocument()
+    expect(document.querySelector('ul')).toBeInTheDocument()
+  })
+
+  it('renders ordered list items as <ol><li> elements', async () => {
+    const note = makeNote({ content: '1. First\n2. Second\n3. Third' })
+    await act(async () => {
+      await db.notes.add(note)
+    })
+
+    renderAt(note.id)
+
+    await waitFor(() => expect(screen.getByText('First')).toBeInTheDocument())
+    expect(screen.getByText('Second')).toBeInTheDocument()
+    expect(document.querySelector('ol')).toBeInTheDocument()
+  })
+
+  it('renders h5 as an <h5> element', async () => {
+    const note = makeNote({ content: '##### Section Five' })
+    await act(async () => {
+      await db.notes.add(note)
+    })
+
+    renderAt(note.id)
+
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Section Five', level: 5 })).toBeInTheDocument()
+    )
+  })
+
+  it('renders h6 as an <h6> element', async () => {
+    const note = makeNote({ content: '###### Section Six' })
+    await act(async () => {
+      await db.notes.add(note)
+    })
+
+    renderAt(note.id)
+
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Section Six', level: 6 })).toBeInTheDocument()
+    )
+  })
+
+  it('renders nested ordered list as ol > ol in the DOM', async () => {
+    const note = makeNote({
+      content: '1. First\n   1. Nested A\n   2. Nested B\n2. Second',
+    })
+    await act(async () => {
+      await db.notes.add(note)
+    })
+
+    renderAt(note.id)
+
+    await waitFor(() => expect(screen.getByText('First')).toBeInTheDocument())
+    expect(document.querySelector('ol ol')).toBeInTheDocument()
+    expect(screen.getByText('Nested A')).toBeInTheDocument()
+    expect(screen.getByText('Nested B')).toBeInTheDocument()
+  })
+
+  it('renders definition list terms and descriptions', async () => {
+    const note = makeNote({
+      content: 'Apple\n:   A fruit\n\nBanana\n:   Another fruit',
+    })
+    await act(async () => {
+      await db.notes.add(note)
+    })
+
+    renderAt(note.id)
+
+    await waitFor(() => expect(screen.getByText('Apple')).toBeInTheDocument())
+    expect(screen.getByText('A fruit')).toBeInTheDocument()
+    expect(document.querySelector('dl')).toBeInTheDocument()
+    expect(document.querySelector('dt')).toBeInTheDocument()
+    expect(document.querySelector('dd')).toBeInTheDocument()
+  })
+
+  it('renders safe inline html', async () => {
+    const note = makeNote({ content: 'Before <strong>bold</strong> after' })
+    await act(async () => {
+      await db.notes.add(note)
+    })
+
+    renderAt(note.id)
+
+    await waitFor(() => expect(screen.getByText('bold')).toBeInTheDocument())
+    expect(document.querySelector('strong')).toBeInTheDocument()
+  })
+
+  it('strips dangerous html attributes (xss guard)', async () => {
+    const note = makeNote({
+      content: '<p onclick="alert(1)">Click me</p>',
+    })
+    await act(async () => {
+      await db.notes.add(note)
+    })
+
+    renderAt(note.id)
+
+    await waitFor(() => expect(screen.getByText('Click me')).toBeInTheDocument())
+    const p = document.querySelector('p[onclick]')
+    expect(p).not.toBeInTheDocument()
+  })
 })
