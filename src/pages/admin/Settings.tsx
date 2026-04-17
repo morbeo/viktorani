@@ -1,6 +1,7 @@
 import AdminLayout from '@/components/AdminLayout'
 import ManageTags from '@/components/settings/ManageTags'
 import ManageDifficulties from '@/components/settings/ManageDifficulties'
+import ManageLabels from '@/components/players-teams/ManageLabels'
 import { exportDatabase, importDatabase } from '@/db/snapshot'
 import { purgeDatabase, seedDefaults } from '@/db'
 import { useState } from 'react'
@@ -62,6 +63,9 @@ export default function Settings() {
 
         {/* ── Difficulty levels ────────────────────────────────── */}
         <ManageDifficulties />
+
+        {/* ── Labels ───────────────────────────────────────────── */}
+        <ManageLabels />
 
         {/* ── Data ─────────────────────────────────────────────── */}
         <section>
