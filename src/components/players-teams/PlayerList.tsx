@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
 import type { ManagedPlayer, ManagedTeam } from '@/types/players-teams'
-import { Empty } from '@/components/ui'
+import { Empty, Icon } from '@/components/ui'
+import { resolveIcon } from './teamIcons'
 import PlayerForm from './PlayerForm'
 import BulkActionBar from './BulkActionBar'
 import PlayerQrModal from './PlayerQrModal'
@@ -200,12 +201,12 @@ function PlayerRow({
           playerTeams.map(team => (
             <span
               key={team.id}
-              className="w-5 h-5 rounded flex items-center justify-center text-xs"
+              className="w-5 h-5 rounded flex items-center justify-center"
               style={{ background: team.color, color: '#fff' }}
               title={team.name}
               aria-label={team.name}
             >
-              {team.icon}
+              <Icon icon={resolveIcon(team.icon)} size="sm" />
             </span>
           ))
         ) : (
