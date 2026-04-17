@@ -219,3 +219,42 @@ export function getNavPosition(
 export function step(seq: NavEntry[], flatIndex: number, dir: 1 | -1): number {
   return Math.max(0, Math.min(seq.length - 1, flatIndex + dir))
 }
+
+// ── GameQuestion status transitions ──────────────────────────────────────────
+
+export type QuestionStatus = import('@/db').GameQuestion['status']
+
+/**
+ * Valid transitions from a given status.
+ * `pending` is the only allowed source state for GM rulings.
+ * Once a question is ruled, the status is final (no re-ruling).
+ */
+const VALID_TRANSITIONS: Record<QuestionStatus, QuestionStatus[]> = {
+  pending: ['correct', 'incorrect', 'skipped'],
+  correct: [],
+  incorrect: [],
+  skipped: [],
+}
+
+/**
+ * Returns the new status after a transition, or throws if the transition
+ * is not permitted.
+ *
+ * Rules:
+ * - Only `pending` questions may be transitioned.
+ * - `correct`, `incorrect`, and `skipped` are terminal states.
+ *
+ * Pure function — no DB access.
+ *
+ * @throws {Error} when the transition is not in VALID_TRANSITIONS.
+ */
+export function transitionQuestionStatus(
+  current: QuestionStatus,
+  next: QuestionStatus
+): QuestionStatus {
+  const allowed = VALID_TRANSITIONS[current]
+  if (!allowed.includes(next)) {
+    throw new Error(`invalid transition: ${current} -> ${next}`)
+  }
+  return next
+}
