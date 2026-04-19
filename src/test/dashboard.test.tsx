@@ -53,11 +53,15 @@ async function clearAll() {
 describe('Dashboard', () => {
   beforeEach(clearAll)
 
-  it('renders three tile headings on empty db', async () => {
+  it('renders three tiles via unique sub-labels', async () => {
     render(<Dashboard />, { wrapper: Wrapper })
-    expect(await screen.findByText('Questions')).toBeInTheDocument()
-    expect(screen.getByText('Games')).toBeInTheDocument()
-    expect(screen.getByText('Players & Teams')).toBeInTheDocument()
+    // Sub-labels are unique to tiles — sidebar nav never shows these
+    expect(await screen.findByText('across 0 rounds')).toBeInTheDocument()
+    expect(screen.getByText('0 teams')).toBeInTheDocument()
+    // Footer actions are also tile-unique
+    expect(screen.getByRole('button', { name: 'New question' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'New game' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'New team' })).toBeInTheDocument()
   })
 
   it('shows correct question count and round sub-label', async () => {
@@ -88,14 +92,18 @@ describe('Dashboard', () => {
       await db.games.add(makeGame({ status: 'active' }))
     })
     render(<Dashboard />, { wrapper: Wrapper })
-    expect(await screen.findByText('1 active')).toBeInTheDocument()
+    // Badge is in a <span>, sub-label is in a <div> — both contain "1 active";
+    // use getAllByText and assert at least one exists
+    await waitFor(() => {
+      expect(screen.getAllByText('1 active').length).toBeGreaterThanOrEqual(1)
+    })
     expect(screen.getByRole('button', { name: 'Resume' })).toBeInTheDocument()
   })
 
   it('shows New game and All games footer when no active game', async () => {
     render(<Dashboard />, { wrapper: Wrapper })
-    expect(await screen.findByText('New game')).toBeInTheDocument()
-    expect(screen.getByText('All games')).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'New game' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'All games' })).toBeInTheDocument()
   })
 
   it('shows player count and team sub-label', async () => {
@@ -118,13 +126,17 @@ describe('Dashboard', () => {
       await db.games.add(makeGame({ status: 'active' }))
     })
     render(<Dashboard />, { wrapper: Wrapper })
-    await screen.findByText('Games')
+    await screen.findByRole('button', { name: 'Resume' })
     expect(screen.queryByText(/currently active/i)).not.toBeInTheDocument()
   })
 
   it('does not render a Notes tile', async () => {
     render(<Dashboard />, { wrapper: Wrapper })
-    await screen.findByText('Questions')
-    expect(screen.queryByText(/^Notes$/)).not.toBeInTheDocument()
+    // Wait for tiles to render, then confirm no Notes-specific footer action exists.
+    // The word "Notes" appears in the sidebar nav — we check tile structure instead.
+    await screen.findByText('across 0 rounds')
+    expect(screen.queryByRole('button', { name: /new note/i })).not.toBeInTheDocument()
+    // Exactly 3 tile bodies (Questions, Games, Players & Teams)
+    expect(screen.getAllByRole('button', { name: /go to/i })).toHaveLength(3)
   })
 })
