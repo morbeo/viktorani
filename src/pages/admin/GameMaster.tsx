@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import { QrCode, Rocket, Copy, Check } from 'lucide-react'
 import AdminLayout from '@/components/AdminLayout'
-import { Button, TransportPill, Icon } from '@/components/ui'
+import { Button, TransportPill, Icon, useToast } from '@/components/ui'
 import { NavHeader } from '@/components/NavHeader'
 import { RoundBoundary } from '@/components/RoundBoundary'
 import { BuzzerPanel } from '@/components/buzzer/BuzzerPanel'
@@ -460,6 +460,7 @@ function ActiveGame({ game, players, onGameChange, lifecycle }: ActiveGameProps)
 export default function GameMaster() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { addToast } = useToast()
 
   const [game, setGame] = useState<Game | null>(null)
   const [players, setPlayers] = useState<Player[]>([])
@@ -534,60 +535,64 @@ export default function GameMaster() {
   }, [game?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Subscribe to player JOIN / LEAVE / BUZZ events
-  const handleEvent = useCallback(async (event: TransportEvent) => {
-    const g = gameRef.current
-    if (!g) return
+  const handleEvent = useCallback(
+    async (event: TransportEvent) => {
+      const g = gameRef.current
+      if (!g) return
 
-    if (event.type === 'JOIN') {
-      const record = {
-        id: event.playerId,
-        gameId: g.id,
-        name: event.playerName,
-        teamId: event.teamId,
-        deviceId: event.deviceId,
+      if (event.type === 'JOIN') {
+        const record = {
+          id: event.playerId,
+          gameId: g.id,
+          name: event.playerName,
+          teamId: event.teamId,
+          deviceId: event.deviceId,
+        }
+        // Preserve existing score / joinedAt via upsert
+        const existing = await db.players.get(event.playerId)
+        const player: Player = {
+          ...record,
+          score: existing?.score ?? 0,
+          isAway: false,
+          joinedAt: existing?.joinedAt ?? Date.now(),
+        }
+        await db.players.put(player)
+        setPlayers(prev => upsertPlayer(prev, record))
+        addToast(`${event.playerName} joined the lobby`, { variant: 'info', durationMs: 4000 })
       }
-      // Preserve existing score / joinedAt via upsert
-      const existing = await db.players.get(event.playerId)
-      const player: Player = {
-        ...record,
-        score: existing?.score ?? 0,
-        isAway: false,
-        joinedAt: existing?.joinedAt ?? Date.now(),
+
+      if (event.type === 'LEAVE') {
+        await db.players.update(event.playerId, { isAway: true })
+        setPlayers(prev => markPlayerAway(prev, event.playerId))
       }
-      await db.players.put(player)
-      setPlayers(prev => upsertPlayer(prev, record))
-    }
 
-    if (event.type === 'LEAVE') {
-      await db.players.update(event.playerId, { isAway: true })
-      setPlayers(prev => markPlayerAway(prev, event.playerId))
-    }
-
-    if (event.type === 'FOCUS_CHANGE') {
-      await db.players.update(event.playerId, { isAway: event.away })
-      setPlayers(prev => setPlayerAway(prev, event.playerId, event.away))
-    }
-
-    if (event.type === 'BUZZ') {
-      // Delegate to the ActiveGame's useBuzzer via window bridge
-      const handler = (window as unknown as Record<string, unknown>)['__vkt_handleBuzz'] as
-        | ((p: {
-            playerId: string
-            playerName: string
-            teamId: string | null
-            timestamp: number
-          }) => Promise<void>)
-        | undefined
-      if (handler) {
-        void handler({
-          playerId: event.playerId,
-          playerName: event.playerName,
-          teamId: null, // transport doesn't carry teamId yet; looked up in useBuzzer
-          timestamp: event.timestamp,
-        })
+      if (event.type === 'FOCUS_CHANGE') {
+        await db.players.update(event.playerId, { isAway: event.away })
+        setPlayers(prev => setPlayerAway(prev, event.playerId, event.away))
       }
-    }
-  }, [])
+
+      if (event.type === 'BUZZ') {
+        // Delegate to the ActiveGame's useBuzzer via window bridge
+        const handler = (window as unknown as Record<string, unknown>)['__vkt_handleBuzz'] as
+          | ((p: {
+              playerId: string
+              playerName: string
+              teamId: string | null
+              timestamp: number
+            }) => Promise<void>)
+          | undefined
+        if (handler) {
+          void handler({
+            playerId: event.playerId,
+            playerName: event.playerName,
+            teamId: null, // transport doesn't carry teamId yet; looked up in useBuzzer
+            timestamp: event.timestamp,
+          })
+        }
+      }
+    },
+    [addToast]
+  )
 
   useEffect(() => {
     return transportManager.onEvent(handleEvent)

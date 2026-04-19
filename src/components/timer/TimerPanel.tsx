@@ -1,10 +1,9 @@
 import { useState, useCallback } from 'react'
 import { Plus, PauseCircle, PlayCircle, RotateCcw, Trash2 } from 'lucide-react'
-import { Button, Icon } from '@/components/ui'
+import { Button, Icon, useToast, timerExpiredToast } from '@/components/ui'
 import { TimerCard } from './TimerCard'
 import { CreateTimerModal } from './CreateTimerModal'
 import { EditTimerModal } from './EditTimerModal'
-import { TimerExpiredOverlay } from './TimerExpiredOverlay'
 import { useTimerExpiry } from '@/hooks/useTimer'
 import type { UseTimerListResult, ExpiryEvent } from '@/hooks/useTimer'
 import type { Timer } from '@/db'
@@ -25,7 +24,7 @@ interface TimerPanelProps {
 export function TimerPanel({ gameId, hook }: TimerPanelProps) {
   const [showCreate, setShowCreate] = useState(false)
   const [editingTimer, setEditingTimer] = useState<Timer | null>(null)
-  const [expiredEvent, setExpiredEvent] = useState<ExpiryEvent | null>(null)
+  const { addToast } = useToast()
 
   const {
     timers,
@@ -49,11 +48,14 @@ export function TimerPanel({ gameId, hook }: TimerPanelProps) {
 
   const handlePauseResumeAll = allPaused ? resumeAll : pauseAll
 
-  const handleExpire = useCallback((evt: ExpiryEvent) => {
-    if (evt.visualNotify === 'host' || evt.visualNotify === 'both') {
-      setExpiredEvent(evt)
-    }
-  }, [])
+  const handleExpire = useCallback(
+    (evt: ExpiryEvent) => {
+      if (evt.visualNotify === 'host' || evt.visualNotify === 'both') {
+        timerExpiredToast(addToast, evt.label)
+      }
+    },
+    [addToast]
+  )
 
   useTimerExpiry(timers, remaining, handleExpire)
 
@@ -65,10 +67,6 @@ export function TimerPanel({ gameId, hook }: TimerPanelProps) {
 
   return (
     <>
-      {expiredEvent && (
-        <TimerExpiredOverlay label={expiredEvent.label} onDismiss={() => setExpiredEvent(null)} />
-      )}
-
       {showCreate && (
         <CreateTimerModal onConfirm={handleCreate} onCancel={() => setShowCreate(false)} />
       )}
