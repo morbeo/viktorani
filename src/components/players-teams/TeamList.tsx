@@ -6,6 +6,7 @@ import { Empty, Icon } from '@/components/ui'
 import { resolveIcon } from './teamIcons'
 import TeamForm from './TeamForm'
 import TeamQrModal from './TeamQrModal'
+import TeamBulkActionBar from './TeamBulkActionBar'
 
 type LabelFilter = Record<string, 'include' | 'exclude'>
 
@@ -34,19 +35,35 @@ export default function TeamList({
 }: Props) {
   const teams = useLiveQuery(() => db.managedTeams.orderBy('name').toArray(), [])
 
-  const [editing, setEditing] = useState<ManagedTeam | null | undefined>(undefined)
-  const [qrTarget, setQrTarget] = useState<ManagedTeam | null>(null)
-  // undefined = form closed, null = new team, ManagedTeam = editing existing
-
   const visible = (teams ?? []).filter(t => {
     if (search && !t.name.toLowerCase().includes(search.toLowerCase())) return false
     if (Object.keys(labelFilter).length > 0 && !matchesLabelFilter(t.labelIds, labelFilter))
       return false
     return true
   })
-
   const active = visible.filter(t => !t.archivedAt)
   const archived = visible.filter(t => t.archivedAt)
+
+  const [editing, setEditing] = useState<ManagedTeam | null | undefined>(undefined)
+  const [qrTarget, setQrTarget] = useState<ManagedTeam | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+
+  const activeIds = active.map(t => t.id)
+  const allSelected = activeIds.length > 0 && activeIds.every(id => selected.has(id))
+  const someSelected = selected.size > 0
+
+  function toggleOne(id: string) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleAll() {
+    setSelected(allSelected ? new Set() : new Set(activeIds))
+  }
 
   async function archive(t: ManagedTeam) {
     await db.managedTeams.update(t.id, { archivedAt: new Date() })
@@ -65,6 +82,24 @@ export default function TeamList({
         className="rounded-lg overflow-hidden border"
         style={{ borderColor: 'var(--color-border)' }}
       >
+        {active.length > 0 && (
+          <div
+            className="flex items-center gap-3 px-3 py-2 border-b"
+            style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
+          >
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={toggleAll}
+              aria-label="Select all teams"
+              className="w-3.5 h-3.5 cursor-pointer"
+            />
+            <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
+              {someSelected ? `${selected.size} selected` : 'Select all'}
+            </span>
+          </div>
+        )}
+
         {active.length === 0 && archived.length === 0 && (
           <Empty
             message={
@@ -78,6 +113,8 @@ export default function TeamList({
             key={team.id}
             team={team}
             selected={selectedTeamId === team.id}
+            checked={selected.has(team.id)}
+            onCheck={() => toggleOne(team.id)}
             onClick={() => onSelect?.(selectedTeamId === team.id ? null : team.id)}
             onEdit={() => setEditing(team)}
             onArchive={() => archive(team)}
@@ -89,6 +126,10 @@ export default function TeamList({
           <TeamRow key={team.id} team={team} archived onRestore={() => restore(team)} />
         ))}
       </div>
+
+      {someSelected && (
+        <TeamBulkActionBar selectedIds={selected} onDone={() => setSelected(new Set())} />
+      )}
 
       <TeamForm
         open={editing !== undefined}
@@ -105,6 +146,8 @@ export default function TeamList({
 interface RowProps {
   team: ManagedTeam
   selected?: boolean
+  checked?: boolean
+  onCheck?: () => void
   archived?: boolean
   onClick?: () => void
   onEdit?: () => void
@@ -116,6 +159,8 @@ interface RowProps {
 function TeamRow({
   team,
   selected,
+  checked,
+  onCheck,
   archived,
   onClick,
   onEdit,
@@ -139,6 +184,18 @@ function TeamRow({
       aria-pressed={selected}
       aria-label={archived ? undefined : `${selected ? 'Deselect' : 'Select'} team ${team.name}`}
     >
+      {/* Checkbox — active rows only */}
+      {!archived && (
+        <input
+          type="checkbox"
+          checked={checked ?? false}
+          onChange={onCheck}
+          onClick={e => e.stopPropagation()}
+          aria-label={`Select ${team.name}`}
+          className="w-3.5 h-3.5 cursor-pointer shrink-0"
+        />
+      )}
+
       {/* Badge */}
       <span
         className="w-6 h-6 rounded flex items-center justify-center shrink-0 text-white"
