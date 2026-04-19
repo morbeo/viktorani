@@ -7,6 +7,14 @@ import { purgeDatabase, seedDefaults } from '@/db'
 import { useState } from 'react'
 import { Button, Modal, Input, Icon } from '@/components/ui'
 import { Download, Trash2 } from 'lucide-react'
+import { useActionMode } from '@/hooks/useActionMode'
+import type { ActionMode } from '@/hooks/useActionMode'
+
+const ACTION_MODE_OPTIONS: { value: ActionMode; label: string; description: string }[] = [
+  { value: 'icons', label: 'Icons', description: 'Show icon only' },
+  { value: 'text', label: 'Text', description: 'Show label only' },
+  { value: 'both', label: 'Icons + text', description: 'Show icon and label' },
+]
 
 export default function Settings() {
   const [importing, setImporting] = useState(false)
@@ -14,6 +22,7 @@ export default function Settings() {
   const [purgeOpen, setPurgeOpen] = useState(false)
   const [purgeConfirm, setPurgeConfirm] = useState('')
   const [purging, setPurging] = useState(false)
+  const [actionMode, setActionMode] = useActionMode()
 
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -66,6 +75,39 @@ export default function Settings() {
 
         {/* ── Labels ───────────────────────────────────────────── */}
         <ManageLabels />
+
+        {/* ── Action buttons ───────────────────────────────────── */}
+        <section>
+          <div className="mb-3">
+            <h2 className="font-semibold text-base" style={{ color: 'var(--color-ink)' }}>
+              Action buttons
+            </h2>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
+              How row actions are displayed throughout the app
+            </p>
+          </div>
+
+          <div className="flex gap-2">
+            {ACTION_MODE_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => setActionMode(opt.value)}
+                className="flex-1 flex flex-col items-center gap-1 rounded-lg border py-3 px-2 text-xs font-medium transition-all"
+                style={{
+                  borderColor:
+                    actionMode === opt.value ? 'var(--color-ink)' : 'var(--color-border)',
+                  background:
+                    actionMode === opt.value ? 'var(--color-ink)' : 'var(--color-surface)',
+                  color: actionMode === opt.value ? 'var(--color-cream)' : 'var(--color-muted)',
+                }}
+                aria-pressed={actionMode === opt.value}
+                aria-label={opt.description}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </section>
 
         {/* ── Data ─────────────────────────────────────────────── */}
         <section>

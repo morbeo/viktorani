@@ -7,6 +7,9 @@ import { resolveIcon } from './teamIcons'
 import TeamForm from './TeamForm'
 import TeamQrModal from './TeamQrModal'
 import TeamBulkActionBar from './TeamBulkActionBar'
+import { useActionMode } from '@/hooks/useActionMode'
+import type { ActionMode } from '@/hooks/useActionMode'
+import { QrCode, Pencil, Archive } from 'lucide-react'
 
 type LabelFilter = Record<string, 'include' | 'exclude'>
 
@@ -34,6 +37,7 @@ export default function TeamList({
   selectedTeamId,
 }: Props) {
   const teams = useLiveQuery(() => db.managedTeams.orderBy('name').toArray(), [])
+  const [actionMode] = useActionMode()
 
   const visible = (teams ?? []).filter(t => {
     if (search && !t.name.toLowerCase().includes(search.toLowerCase())) return false
@@ -119,11 +123,12 @@ export default function TeamList({
             onEdit={() => setEditing(team)}
             onArchive={() => archive(team)}
             onQr={() => setQrTarget(team)}
+            actionMode={actionMode}
           />
         ))}
 
         {archived.map(team => (
-          <TeamRow key={team.id} team={team} archived onRestore={() => restore(team)} />
+          <TeamRow key={team.id} team={team} archived onRestore={() => restore(team)} actionMode={actionMode} />
         ))}
       </div>
 
@@ -154,6 +159,7 @@ interface RowProps {
   onArchive?: () => void
   onQr?: () => void
   onRestore?: () => void
+  actionMode: ActionMode
 }
 
 function TeamRow({
@@ -167,8 +173,12 @@ function TeamRow({
   onArchive,
   onQr,
   onRestore,
+  actionMode,
 }: RowProps) {
   const TeamIcon = resolveIcon(team.icon)
+
+  const showIcon = actionMode === 'icons' || actionMode === 'both'
+  const showText = actionMode === 'text' || actionMode === 'both'
 
   return (
     <div
@@ -250,33 +260,36 @@ function TeamRow({
               e.stopPropagation()
               onQr?.()
             }}
-            className="text-xs px-2 py-1 rounded transition-colors hover:bg-black/5"
+            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors hover:bg-black/5"
             style={{ color: 'var(--color-muted)' }}
             aria-label={`Show QR for ${team.name}`}
           >
-            QR
+            {showIcon && <Icon icon={QrCode} size="sm" aria-hidden />}
+            {showText && 'QR'}
           </button>
           <button
             onClick={e => {
               e.stopPropagation()
               onEdit?.()
             }}
-            className="text-xs px-2 py-1 rounded transition-colors hover:bg-black/5"
+            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors hover:bg-black/5"
             style={{ color: 'var(--color-muted)' }}
             aria-label={`Edit ${team.name}`}
           >
-            Edit
+            {showIcon && <Icon icon={Pencil} size="sm" aria-hidden />}
+            {showText && 'Edit'}
           </button>
           <button
             onClick={e => {
               e.stopPropagation()
               onArchive?.()
             }}
-            className="text-xs px-2 py-1 rounded transition-colors hover:bg-black/5"
+            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors hover:bg-black/5"
             style={{ color: 'var(--color-red)' }}
             aria-label={`Archive ${team.name}`}
           >
-            Archive
+            {showIcon && <Icon icon={Archive} size="sm" aria-hidden />}
+            {showText && 'Archive'}
           </button>
         </>
       )}

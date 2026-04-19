@@ -63,8 +63,8 @@ describe('Dashboard', () => {
   it('shows correct question count and round sub-label', async () => {
     await act(async () => {
       await db.rounds.bulkAdd([
-        { id: 'r1', title: 'R1', order: 0, createdAt: Date.now() },
-        { id: 'r2', title: 'R2', order: 1, createdAt: Date.now() },
+        { id: 'r1', name: 'R1', description: '', questionIds: [], createdAt: Date.now() },
+        { id: 'r2', name: 'R2', description: '', questionIds: [], createdAt: Date.now() },
       ])
       await db.questions.bulkAdd([
         {

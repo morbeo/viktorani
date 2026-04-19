@@ -7,6 +7,9 @@ import { resolveIcon } from './teamIcons'
 import PlayerForm from './PlayerForm'
 import BulkActionBar from './BulkActionBar'
 import PlayerQrModal from './PlayerQrModal'
+import { useActionMode } from '@/hooks/useActionMode'
+import type { ActionMode } from '@/hooks/useActionMode'
+import { QrCode, Pencil, Archive } from 'lucide-react'
 
 type LabelFilter = Record<string, 'include' | 'exclude'>
 
@@ -32,6 +35,7 @@ export default function PlayerList({ filterTeamId, search = '', labelFilter = {}
   const players = useLiveQuery(() => db.managedPlayers.orderBy('name').toArray(), [])
   const teams = useLiveQuery(() => db.managedTeams.toArray(), [])
   const labels = useLiveQuery(() => db.managedLabels.toArray(), [])
+  const [actionMode] = useActionMode()
 
   const [editing, setEditing] = useState<ManagedPlayer | null | undefined>(undefined)
   const [qrTarget, setQrTarget] = useState<ManagedPlayer | null>(null)
@@ -124,6 +128,7 @@ export default function PlayerList({ filterTeamId, search = '', labelFilter = {}
             onEdit={() => setEditing(player)}
             onArchive={() => archive(player)}
             onQr={() => setQrTarget(player)}
+            actionMode={actionMode}
           />
         ))}
 
@@ -135,6 +140,7 @@ export default function PlayerList({ filterTeamId, search = '', labelFilter = {}
             labelMap={labelMap}
             archived
             onRestore={() => restore(player)}
+            actionMode={actionMode}
           />
         ))}
       </div>
@@ -164,6 +170,7 @@ interface RowProps {
   onArchive?: () => void
   onQr?: () => void
   onRestore?: () => void
+  actionMode: ActionMode
 }
 
 function PlayerRow({
@@ -177,9 +184,13 @@ function PlayerRow({
   onArchive,
   onQr,
   onRestore,
+  actionMode,
 }: RowProps) {
   const playerTeams = player.teamIds.map(id => teamMap[id]).filter(Boolean)
   const playerLabels = player.labelIds.map(id => labelMap[id]).filter(Boolean)
+
+  const showIcon = actionMode === 'icons' || actionMode === 'both'
+  const showText = actionMode === 'text' || actionMode === 'both'
 
   return (
     <div
@@ -265,27 +276,30 @@ function PlayerRow({
         <>
           <button
             onClick={onQr}
-            className="text-xs px-2 py-1 rounded transition-colors hover:bg-black/5"
+            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors hover:bg-black/5"
             style={{ color: 'var(--color-muted)' }}
             aria-label={`Show QR for ${player.name}`}
           >
-            QR
+            {showIcon && <Icon icon={QrCode} size="sm" aria-hidden />}
+            {showText && 'QR'}
           </button>
           <button
             onClick={onEdit}
-            className="text-xs px-2 py-1 rounded transition-colors hover:bg-black/5"
+            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors hover:bg-black/5"
             style={{ color: 'var(--color-muted)' }}
             aria-label={`Edit ${player.name}`}
           >
-            Edit
+            {showIcon && <Icon icon={Pencil} size="sm" aria-hidden />}
+            {showText && 'Edit'}
           </button>
           <button
             onClick={onArchive}
-            className="text-xs px-2 py-1 rounded transition-colors hover:bg-black/5"
+            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors hover:bg-black/5"
             style={{ color: 'var(--color-red)' }}
             aria-label={`Archive ${player.name}`}
           >
-            Archive
+            {showIcon && <Icon icon={Archive} size="sm" aria-hidden />}
+            {showText && 'Archive'}
           </button>
         </>
       )}
