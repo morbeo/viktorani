@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { AlarmClock } from 'lucide-react'
 import { Icon } from '@/components/ui'
 
@@ -10,7 +10,8 @@ interface TimerExpiredOverlayProps {
 }
 
 /**
- * Fullscreen overlay shown when a timer hits zero.
+ * Full-screen overlay shown on the **player** screen when a timer hits zero.
+ * The host-side equivalent was replaced by a toast notification (#173).
  * Auto-dismisses after autoDismissMs or on click/keypress.
  */
 export function TimerExpiredOverlay({
@@ -19,6 +20,8 @@ export function TimerExpiredOverlay({
   autoDismissMs = 5000,
 }: TimerExpiredOverlayProps) {
   const [progress, setProgress] = useState(1)
+
+  const handleDismiss = useCallback(() => onDismiss(), [onDismiss])
 
   useEffect(() => {
     const start = performance.now()
@@ -29,7 +32,7 @@ export function TimerExpiredOverlay({
       const p = Math.max(0, 1 - elapsed / autoDismissMs)
       setProgress(p)
       if (p <= 0) {
-        onDismiss()
+        handleDismiss()
         return
       }
       rafId = requestAnimationFrame(tick)
@@ -37,15 +40,15 @@ export function TimerExpiredOverlay({
 
     rafId = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(rafId)
-  }, [autoDismissMs, onDismiss])
+  }, [autoDismissMs, handleDismiss])
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') onDismiss()
+      if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') handleDismiss()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onDismiss])
+  }, [handleDismiss])
 
   const circumference = 2 * Math.PI * 20
 
@@ -53,9 +56,9 @@ export function TimerExpiredOverlay({
     <div
       className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 cursor-pointer"
       style={{ background: 'rgba(0,0,0,0.82)' }}
-      onClick={onDismiss}
+      onClick={handleDismiss}
     >
-      {/* Pulsing ring */}
+      {/* Countdown ring */}
       <div className="relative flex items-center justify-center">
         <svg width="120" height="120" viewBox="0 0 48 48">
           <circle
