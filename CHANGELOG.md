@@ -1,16 +1,35 @@
 # Changelog
 
-## v0.0.10 - 2026-04-16
+## v0.0.11 - 2026-04-19
+
+### Bug Fixes
+
+- Render lists, h5/h6, definitions, and sanitized html in markdown ([e19743c](../../commit/e19743c290ad860d0359492c93d8034abef8a002))
+- Render team icons as lucide components in player list and form ([6e97929](../../commit/6e9792926bc5518f3f11803e6961c18e020b230a))
+- Wire ManageLabels into Settings page ([41093b1](../../commit/41093b18cdf3c24d55b55362aff1734fd9ec14a0))
+- Add multi-select checkboxes to team list ([23ead0b](../../commit/23ead0b7be601b358526057ff5b94251ebec771b))
+- Correct dashboard test queries and round fixture shape ([ac90e8a](../../commit/ac90e8ac06c475a6554b5811ecb0a95c6822f033))
 
 ### Chores
 
 - Fix Create GitHub Release step ([2635fed](../../commit/2635fed8c62075de1724ac0a5822f26f43ea529a))
 - Update release workflow name dynamically ([e3c6da1](../../commit/e3c6da19a30aa7dad0a9c5e3adf4923c4573f925))
+- Remove release-it ([82e4063](../../commit/82e406380ea5dad201fc0a3600c91d4cccfbd788))
+- Update package-lock.json ([bf1119a](../../commit/bf1119a76cdf7bef33062bbf47d0c431e74b1742))
+- Remove pack script clutter ([49d85e5](../../commit/49d85e5f82a4c317055a3b77a5a73bfdb88affeb))
+
+### Features
+
+- In-game progress indicator with round pills and question circles ([60c1049](../../commit/60c104912da642fc8ec7edb15c6da6344761fc05))
+- Add unit and integration test coverage for gamemaster logic ([d1549db](../../commit/d1549dbbb5677d2c95137324badf395a21f1e9fd))
+- Tri-state action button display mode setting ([585b2aa](../../commit/585b2aa2f13a5a09e6c1a818c22ec6aa88dc448e))
 
 ### Refactoring
 
 - Changelog output ([6ba981c](../../commit/6ba981c6132efdc343fae5cb18fdfc860fb6e297))
 - Sadly can't be updated dynamically ([cd9cf3b](../../commit/cd9cf3b05fc1c775973c3edbcd61eb920c2dc6d8))
+- Replace full-screen timer overlay with toast system ([c823ac4](../../commit/c823ac4c46e589dc79d963d8a878ae9b1e50ad56))
+- Redesign dashboard with 3 tiles and structural footers ([f896e9c](../../commit/f896e9ca438606f0a14220630e8c323d9f0b4d9e))
 
 ## v0.0.9 - 2026-04-16
 
