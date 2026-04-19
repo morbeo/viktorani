@@ -1,16 +1,91 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AdminLayout from '@/components/AdminLayout'
-import { Card, Button } from '@/components/ui'
+import { Icon } from '@/components/ui'
 import { db } from '@/db'
-import { exportDatabase, importDatabase } from '@/db/snapshot'
+import { CircleHelp, Trophy, UsersRound, Plus, Upload, Play, List, QrCode } from 'lucide-react'
 
 interface Stats {
   questions: number
   rounds: number
   games: number
-  notes: number
+  players: number
+  teams: number
   active: number
+}
+
+interface TileProps {
+  icon: typeof CircleHelp
+  label: string
+  value: number
+  sub: string
+  badge?: string
+  onClick: () => void
+  primary: { label: string; icon: typeof Plus; onClick: (e: React.MouseEvent) => void }
+  secondary: { label: string; icon: typeof Plus; onClick: (e: React.MouseEvent) => void }
+}
+
+function StatTile({ icon, label, value, sub, badge, onClick, primary, secondary }: TileProps) {
+  return (
+    <div
+      className="rounded-lg border flex flex-col overflow-hidden transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
+      style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={e => e.key === 'Enter' && onClick()}
+      aria-label={`Go to ${label}`}
+    >
+      {/* Body */}
+      <div className="p-5 flex-1">
+        <div className="flex items-start justify-between mb-3">
+          <Icon icon={icon} size="md" aria-hidden />
+          {badge && (
+            <span
+              className="text-xs font-semibold px-2 py-0.5 rounded-full"
+              style={{ background: 'var(--color-gold-light)', color: 'var(--color-ink)' }}
+            >
+              {badge}
+            </span>
+          )}
+        </div>
+        <div className="text-3xl font-black" style={{ fontFamily: 'Playfair Display, serif' }}>
+          {value}
+        </div>
+        <div className="text-sm font-medium mt-0.5">{label}</div>
+        <div className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
+          {sub}
+        </div>
+      </div>
+
+      {/* Structural footer — flush, no internal padding, split by divider */}
+      <div
+        className="flex border-t text-xs font-medium"
+        style={{ borderColor: 'var(--color-border)' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <button
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 transition-colors hover:bg-black/5"
+          style={{ color: 'var(--color-muted)' }}
+          onClick={primary.onClick}
+          aria-label={primary.label}
+        >
+          <Icon icon={primary.icon} size="sm" aria-hidden />
+          {primary.label}
+        </button>
+        <div className="w-px self-stretch" style={{ background: 'var(--color-border)' }} />
+        <button
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 transition-colors hover:bg-black/5"
+          style={{ color: 'var(--color-muted)' }}
+          onClick={secondary.onClick}
+          aria-label={secondary.label}
+        >
+          <Icon icon={secondary.icon} size="sm" aria-hidden />
+          {secondary.label}
+        </button>
+      </div>
+    </div>
+  )
 }
 
 export default function Dashboard() {
@@ -19,55 +94,47 @@ export default function Dashboard() {
     questions: 0,
     rounds: 0,
     games: 0,
-    notes: 0,
+    players: 0,
+    teams: 0,
     active: 0,
   })
-  const [importing, setImporting] = useState(false)
-  const [msg, setMsg] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
-      const [questions, rounds, games, notes, active] = await Promise.all([
+      const [questions, rounds, games, players, teams, active] = await Promise.all([
         db.questions.count(),
         db.rounds.count(),
         db.games.count(),
-        db.notes.count(),
+        db.managedPlayers.count(),
+        db.managedTeams.count(),
         db.games.where('status').equals('active').count(),
       ])
-      setStats({ questions, rounds, games, notes, active })
+      setStats({ questions, rounds, games, players, teams, active })
     }
     load()
   }, [])
 
-  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setImporting(true)
-    try {
-      await importDatabase(file)
-      setMsg('Import successful')
-      setTimeout(() => setMsg(null), 3000)
-      const [questions, rounds, games, notes] = await Promise.all([
-        db.questions.count(),
-        db.rounds.count(),
-        db.games.count(),
-        db.notes.count(),
-      ])
-      setStats(s => ({ ...s, questions, rounds, games, notes }))
-    } catch (err) {
-      setMsg(`Import failed: ${(err as Error).message}`)
-    } finally {
-      setImporting(false)
-      e.target.value = ''
+  function go(path: string) {
+    return () => navigate(path)
+  }
+
+  function action(path: string) {
+    return (e: React.MouseEvent) => {
+      e.stopPropagation()
+      navigate(path)
     }
   }
 
-  const statCards = [
-    { label: 'Questions', value: stats.questions, icon: '?', to: '/admin/questions' },
-    { label: 'Rounds', value: stats.rounds, icon: '◎', to: '/admin/questions' },
-    { label: 'Games', value: stats.games, icon: '▶', to: '/admin/games' },
-    { label: 'Notes', value: stats.notes, icon: '✎', to: '/admin/notes' },
-  ]
+  const gamesFooter =
+    stats.active > 0
+      ? {
+          primary: { label: 'Resume', icon: Play, onClick: action('/admin/games') },
+          secondary: { label: 'New game', icon: Plus, onClick: action('/admin/games') },
+        }
+      : {
+          primary: { label: 'New game', icon: Plus, onClick: action('/admin/games') },
+          secondary: { label: 'All games', icon: List, onClick: action('/admin/games') },
+        }
 
   return (
     <AdminLayout>
@@ -79,112 +146,38 @@ export default function Dashboard() {
         <p style={{ color: 'var(--color-muted)' }}>Your bar trivia command centre.</p>
       </div>
 
-      {/* Active game banner */}
-      {stats.active > 0 && (
-        <div
-          className="flex items-center justify-between px-5 py-4 rounded-lg mb-8 border"
-          style={{ background: 'var(--color-gold-light)', borderColor: 'var(--color-gold)' }}
-        >
-          <div className="flex items-center gap-3">
-            <span className="text-xl">▶</span>
-            <span className="font-semibold">
-              {stats.active} game{stats.active > 1 ? 's' : ''} currently active
-            </span>
-          </div>
-          <Button variant="primary" size="sm" onClick={() => navigate('/admin/games')}>
-            Go to Games
-          </Button>
-        </div>
-      )}
+      {/* Tile grid */}
+      <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        <StatTile
+          icon={CircleHelp}
+          label="Questions"
+          value={stats.questions}
+          sub={`across ${stats.rounds} round${stats.rounds !== 1 ? 's' : ''}`}
+          onClick={go('/admin/questions')}
+          primary={{ label: 'New question', icon: Plus, onClick: action('/admin/questions') }}
+          secondary={{ label: 'Import', icon: Upload, onClick: action('/admin/questions') }}
+        />
 
-      {/* Stat grid */}
-      <div
-        className="grid grid-cols-2 gap-4 mb-10"
-        style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}
-      >
-        {statCards.map(({ label, value, icon, to }) => (
-          <button
-            key={label}
-            onClick={() => navigate(to)}
-            className="text-left rounded-lg border p-5 transition-all hover:shadow-md hover:-translate-y-0.5"
-            style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-          >
-            <div className="text-3xl mb-3 opacity-40">{icon}</div>
-            <div className="text-3xl font-black" style={{ fontFamily: 'Playfair Display, serif' }}>
-              {value}
-            </div>
-            <div className="text-sm mt-1" style={{ color: 'var(--color-muted)' }}>
-              {label}
-            </div>
-          </button>
-        ))}
-      </div>
+        <StatTile
+          icon={Trophy}
+          label="Games"
+          value={stats.games}
+          sub={`${stats.active} active`}
+          badge={stats.active > 0 ? `${stats.active} active` : undefined}
+          onClick={go('/admin/games')}
+          primary={gamesFooter.primary}
+          secondary={gamesFooter.secondary}
+        />
 
-      {/* Quick actions */}
-      <div className="grid gap-4" style={{ gridTemplateColumns: '1fr 1fr' }}>
-        <Card>
-          <h3 className="font-bold text-lg mb-1">Start a game</h3>
-          <p className="text-sm mb-4" style={{ color: 'var(--color-muted)' }}>
-            Create a new session and invite players via QR code.
-          </p>
-          <Button variant="primary" onClick={() => navigate('/admin/games')}>
-            New game →
-          </Button>
-        </Card>
-
-        <Card>
-          <h3 className="font-bold text-lg mb-1">Question bank</h3>
-          <p className="text-sm mb-4" style={{ color: 'var(--color-muted)' }}>
-            Add, edit, and organise questions into rounds.
-          </p>
-          <Button variant="secondary" onClick={() => navigate('/admin/questions')}>
-            Manage questions →
-          </Button>
-        </Card>
-
-        <Card>
-          <h3 className="font-bold text-lg mb-1">Export data</h3>
-          <p className="text-sm mb-4" style={{ color: 'var(--color-muted)' }}>
-            Download a full JSON backup of all your questions, games, and notes.
-          </p>
-          <Button variant="secondary" onClick={exportDatabase}>
-            Export JSON
-          </Button>
-        </Card>
-
-        <Card>
-          <h3 className="font-bold text-lg mb-1">Import data</h3>
-          <p className="text-sm mb-4" style={{ color: 'var(--color-muted)' }}>
-            Restore from a previous export. Existing records with matching IDs will be overwritten.
-          </p>
-          <label
-            className="inline-flex items-center justify-center gap-2 font-medium rounded transition-all cursor-pointer px-4 py-2 text-sm border"
-            style={{
-              borderColor: 'var(--color-border)',
-              color: 'var(--color-ink)',
-              background: 'transparent',
-            }}
-          >
-            {importing ? 'Importing…' : 'Import JSON'}
-            <input
-              type="file"
-              accept=".json"
-              className="sr-only"
-              onChange={handleImport}
-              disabled={importing}
-            />
-          </label>
-          {msg && (
-            <p
-              className="text-xs mt-2"
-              style={{
-                color: msg.startsWith('Import failed') ? 'var(--color-red)' : 'var(--color-green)',
-              }}
-            >
-              {msg}
-            </p>
-          )}
-        </Card>
+        <StatTile
+          icon={UsersRound}
+          label="Players & Teams"
+          value={stats.players}
+          sub={`${stats.teams} team${stats.teams !== 1 ? 's' : ''}`}
+          onClick={go('/admin/players-teams')}
+          primary={{ label: 'New team', icon: Plus, onClick: action('/admin/players-teams') }}
+          secondary={{ label: 'Scan QR', icon: QrCode, onClick: action('/admin/players-teams') }}
+        />
       </div>
     </AdminLayout>
   )
