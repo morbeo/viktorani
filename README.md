@@ -59,9 +59,6 @@ npm run dev
 | `npm run test`          | Run unit tests once via Vitest                 |
 | `npm run test:watch`    | Run tests in watch mode                        |
 | `npm run test:coverage` | Run tests with V8 coverage report              |
-| `npm run test:e2e`      | Run Playwright e2e tests (requires built dist) |
-| `npm run test:e2e:ui`   | Open Playwright UI mode                        |
-| `npm run test:e2e:report` | Open last Playwright HTML report            |
 | `npm run preview`       | Serve the production build locally             |
 | `npm run pack`          | Build release tarball via `scripts/pack.sh`    |
 | `npm run release:dry`   | Preview release — no changes made              |
@@ -295,39 +292,16 @@ Two tsconfigs keep app and test types separate:
 ### End-to-end tests (Playwright)
 
 E2E tests live in `e2e/` and run against the production build served by
-`vite preview`. They require Playwright browsers to be installed once:
+`vite preview`. They are **local-only** — there is no CI workflow for them.
+Install Playwright browsers once, then build and run:
 
 ```bash
-npx playwright install chromium --with-deps   # CI: chromium only
-npx playwright install                         # local: all browsers
-```
-
-Then build and run:
-
-```bash
+npx playwright install chromium --with-deps
 npm run build
-npm run test:e2e                  # headless, all configured projects
-npm run test:e2e:ui               # interactive UI mode
-npm run test:e2e:report           # open last HTML report
+npm run test:e2e        # headless
+npm run test:e2e:ui     # interactive UI mode
+npm run test:e2e:report # open last HTML report
 ```
-
-The CI workflow (`.github/workflows/e2e.yml`) triggers on every push and
-PR to `master`, runs chromium only, and uploads the Playwright HTML report
-as an artifact when any test fails.
-
-**Coverage areas:**
-
-| File | What it tests |
-| ---- | ------------- |
-| `e2e/smoke.spec.ts` | Page title present |
-| `e2e/pwa.spec.ts` | Routes render, manifest valid, SW active, offline shell |
-| `e2e/admin-players-teams.spec.ts` | Players, teams, labels CRUD, QR modals, bulk actions |
-| `e2e/admin-questions-rounds.spec.ts` | Question CRUD persists, round builder add/remove |
-| `e2e/gamemaster-session.spec.ts` | Full game session, two browser contexts |
-| `e2e/transport-buzzer.spec.ts` | Buzzer lock/unlock across two real browser contexts |
-| `e2e/screen-widget-layout.spec.ts` | Screen widgets render, layout switch, reload persistence |
-| `e2e/db-persistence.spec.ts` | IDB records survive reload, verified via `page.evaluate()` |
-| `e2e/ui-keyboard-aria.spec.ts` | axe audit, tab order, QR modal keyboard access |
 
 > `npm run test:e2e` is intentionally separate from `npm run test` so
 > Vitest and Playwright never run in the same command.
