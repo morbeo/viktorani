@@ -199,7 +199,9 @@ describe('TeamForm — edit', () => {
       gameLog: [],
     }
     await db.managedTeams.add(team)
-    const { rerender } = renderInRouter(<TeamForm open team={team} onClose={() => {}} />)
+    const { rerender } = renderInRouter(
+      <TeamForm key="open-1" open team={team} onClose={() => {}} />
+    )
     expect(await screen.findByText(/below wcag aa/i)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /dismiss contrast warning/i }))
     await waitFor(() => {
@@ -208,12 +210,7 @@ describe('TeamForm — edit', () => {
     // Simulate close and reopen
     rerender(
       <MemoryRouter>
-        <TeamForm open={false} team={team} onClose={() => {}} />
-      </MemoryRouter>
-    )
-    rerender(
-      <MemoryRouter>
-        <TeamForm open team={team} onClose={() => {}} />
+        <TeamForm key="open-2" open team={team} onClose={() => {}} />
       </MemoryRouter>
     )
     expect(await screen.findByText(/below wcag aa/i)).toBeInTheDocument()
