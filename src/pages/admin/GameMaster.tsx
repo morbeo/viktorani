@@ -474,9 +474,15 @@ export default function GameMaster() {
   const lifecycle = useGameLifecycle()
 
   const gameRef = useRef<Game | null>(null)
-  gameRef.current = game
   const playersRef = useRef<Player[]>([])
-  playersRef.current = players
+
+  useEffect(() => {
+    gameRef.current = game
+  }, [game])
+
+  useEffect(() => {
+    playersRef.current = players
+  }, [players])
 
   // Load game + existing players + teams on mount
   useEffect(() => {

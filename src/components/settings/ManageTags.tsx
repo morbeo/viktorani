@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
 import type { Tag } from '@/db'
@@ -22,9 +22,10 @@ export default function ManageTags() {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  useEffect(() => {
+  function startEditing(state: EditState | null) {
+    setEditing(state)
     setError(null)
-  }, [editing])
+  }
 
   async function save() {
     if (!editing) return
@@ -41,7 +42,7 @@ export default function ManageTags() {
       } else {
         await db.tags.add({ id: crypto.randomUUID(), name, color: editing.color })
       }
-      setEditing(null)
+      startEditing(null)
     } catch {
       setError('Failed to save — name may already be in use')
     } finally {
@@ -59,7 +60,7 @@ export default function ManageTags() {
       return
     }
     await db.tags.delete(tag.id)
-    if (editing?.id === tag.id) setEditing(null)
+    if (editing?.id === tag.id) startEditing(null)
   }
 
   const isEditing = (id: string) => editing?.id === id
@@ -76,7 +77,7 @@ export default function ManageTags() {
           </p>
         </div>
         {!editing && (
-          <Button variant="secondary" size="sm" onClick={() => setEditing(empty())}>
+          <Button variant="secondary" size="sm" onClick={() => startEditing(empty())}>
             + Add
           </Button>
         )}
@@ -116,14 +117,14 @@ export default function ManageTags() {
               className="flex-1"
               onKeyDown={e => {
                 if (e.key === 'Enter') save()
-                if (e.key === 'Escape') setEditing(null)
+                if (e.key === 'Escape') startEditing(null)
               }}
               autoFocus
             />
             <Button variant="primary" size="sm" onClick={save} disabled={busy}>
               Save
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setEditing(null)}>
+            <Button variant="ghost" size="sm" onClick={() => startEditing(null)}>
               Cancel
             </Button>
           </div>
@@ -160,14 +161,14 @@ export default function ManageTags() {
                   className="flex-1"
                   onKeyDown={e => {
                     if (e.key === 'Enter') save()
-                    if (e.key === 'Escape') setEditing(null)
+                    if (e.key === 'Escape') startEditing(null)
                   }}
                   autoFocus
                 />
                 <Button variant="primary" size="sm" onClick={save} disabled={busy}>
                   Save
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => setEditing(null)}>
+                <Button variant="ghost" size="sm" onClick={() => startEditing(null)}>
                   Cancel
                 </Button>
               </div>
@@ -182,7 +183,7 @@ export default function ManageTags() {
                   {tag.name}
                 </span>
                 <button
-                  onClick={() => setEditing({ id: tag.id, name: tag.name, color: tag.color })}
+                  onClick={() => startEditing({ id: tag.id, name: tag.name, color: tag.color })}
                   className="text-xs px-2 py-1 rounded transition-colors hover:bg-black/5"
                   style={{ color: 'var(--color-muted)' }}
                   aria-label={`Edit ${tag.name}`}

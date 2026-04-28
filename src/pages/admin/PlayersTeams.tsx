@@ -152,8 +152,14 @@ export default function PlayersTeams() {
       </div>
 
       {/* ── Modals ──────────────────────────────────────────────────────────── */}
-      <TeamForm open={teamFormOpen} team={null} onClose={() => setTeamFormOpen(false)} />
+      <TeamForm
+        key="new-team"
+        open={teamFormOpen}
+        team={null}
+        onClose={() => setTeamFormOpen(false)}
+      />
       <PlayerForm
+        key={selectedTeamId ?? 'new-player'}
         open={playerFormOpen}
         player={null}
         defaultTeamId={selectedTeamId ?? undefined}

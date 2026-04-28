@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
 import type { ManagedPlayer } from '@/types/players-teams'
@@ -32,23 +32,12 @@ export default function PlayerForm({ player, defaultTeamId, open, onClose }: Pro
   const labels = useLiveQuery(() => db.managedLabels.orderBy('name').toArray(), [])
   const teams = useLiveQuery(() => db.managedTeams.orderBy('name').toArray(), [])
 
-  const [form, setForm] = useState<FormState>(emptyForm)
-  const [teamIds, setTeamIds] = useState<string[]>([])
+  const [form, setForm] = useState<FormState>(() => (player ? playerToForm(player) : emptyForm()))
+  const [teamIds, setTeamIds] = useState<string[]>(() =>
+    player ? player.teamIds : defaultTeamId ? [defaultTeamId] : []
+  )
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-
-  // Reset form whenever the modal opens
-  useEffect(() => {
-    if (!open) return
-    if (player) {
-      setForm(playerToForm(player))
-      setTeamIds(player.teamIds)
-    } else {
-      setForm(emptyForm())
-      setTeamIds(defaultTeamId ? [defaultTeamId] : [])
-    }
-    setError(null)
-  }, [open, player, defaultTeamId])
 
   function toggleLabel(id: string) {
     setForm(f => ({

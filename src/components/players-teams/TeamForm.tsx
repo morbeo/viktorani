@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
 import type { ManagedTeam } from '@/types/players-teams'
@@ -45,17 +45,10 @@ export default function TeamForm({ team, open, onClose }: Props) {
   const isNew = team === null
   const labels = useLiveQuery(() => db.managedLabels.orderBy('name').toArray(), [])
 
-  const [form, setForm] = useState<FormState>(emptyForm)
+  const [form, setForm] = useState<FormState>(() => (team ? teamToForm(team) : emptyForm()))
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [dismissedContrast, setDismissedContrast] = useState(false)
-
-  useEffect(() => {
-    if (!open) return
-    setForm(team ? teamToForm(team) : emptyForm())
-    setError(null)
-    setDismissedContrast(false)
-  }, [open, team])
 
   const contrastOk = whiteTextPassesAA(form.color)
   const ratio = contrastRatio('#ffffff', form.color)

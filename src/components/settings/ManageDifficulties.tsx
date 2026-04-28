@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
 import type { DifficultyLevel } from '@/db'
@@ -26,16 +26,14 @@ export default function ManageDifficulties() {
   // drag state — indices only, no extra lib
   const dragIdx = useRef<number | null>(null)
 
-  useEffect(() => {
-    setError(null)
-  }, [editing])
-
   function startAdd() {
     setEditing(empty())
+    setError(null)
   }
 
   function startEdit(d: DifficultyLevel) {
     setEditing({ id: d.id, name: d.name, color: d.color, score: d.score })
+    setError(null)
   }
 
   function cancel() {

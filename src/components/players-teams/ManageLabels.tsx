@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
 import type { ManagedLabel } from '@/types/players-teams'
@@ -22,9 +22,10 @@ export default function ManageLabels() {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  useEffect(() => {
+  function startEditing(state: EditState | null) {
+    setEditing(state)
     setError(null)
-  }, [editing])
+  }
 
   async function save() {
     if (!editing) return
@@ -41,7 +42,7 @@ export default function ManageLabels() {
       } else {
         await db.managedLabels.add({ id: crypto.randomUUID(), name, color: editing.color })
       }
-      setEditing(null)
+      startEditing(null)
     } catch {
       setError('Failed to save — name may already be in use')
     } finally {
@@ -63,7 +64,7 @@ export default function ManageLabels() {
       return
     }
     await db.managedLabels.delete(label.id)
-    if (editing?.id === label.id) setEditing(null)
+    if (editing?.id === label.id) startEditing(null)
   }
 
   const isEditing = (id: string) => editing?.id === id
@@ -80,7 +81,7 @@ export default function ManageLabels() {
           </p>
         </div>
         {!editing && (
-          <Button variant="secondary" size="sm" onClick={() => setEditing(empty())}>
+          <Button variant="secondary" size="sm" onClick={() => startEditing(empty())}>
             + Add
           </Button>
         )}
@@ -120,14 +121,14 @@ export default function ManageLabels() {
               className="flex-1"
               onKeyDown={e => {
                 if (e.key === 'Enter') save()
-                if (e.key === 'Escape') setEditing(null)
+                if (e.key === 'Escape') startEditing(null)
               }}
               autoFocus
             />
             <Button variant="primary" size="sm" onClick={save} disabled={busy}>
               Save
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setEditing(null)}>
+            <Button variant="ghost" size="sm" onClick={() => startEditing(null)}>
               Cancel
             </Button>
           </div>
@@ -164,14 +165,14 @@ export default function ManageLabels() {
                   className="flex-1"
                   onKeyDown={e => {
                     if (e.key === 'Enter') save()
-                    if (e.key === 'Escape') setEditing(null)
+                    if (e.key === 'Escape') startEditing(null)
                   }}
                   autoFocus
                 />
                 <Button variant="primary" size="sm" onClick={save} disabled={busy}>
                   Save
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => setEditing(null)}>
+                <Button variant="ghost" size="sm" onClick={() => startEditing(null)}>
                   Cancel
                 </Button>
               </div>
@@ -186,7 +187,7 @@ export default function ManageLabels() {
                   {label.name}
                 </span>
                 <button
-                  onClick={() => setEditing({ id: label.id, name: label.name, color: label.color })}
+                  onClick={() => startEditing({ id: label.id, name: label.name, color: label.color })}
                   className="text-xs px-2 py-1 rounded transition-colors hover:bg-black/5"
                   style={{ color: 'var(--color-muted)' }}
                   aria-label={`Edit ${label.name}`}
