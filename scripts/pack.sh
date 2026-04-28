@@ -28,6 +28,8 @@ EXCLUDES=(
   --exclude='public'
   --exclude='deploy'
   --exclude='archives'
+  --exclude='test-results'
+  --exclude='playwright-report'
 )
 
 cd "$ROOT"
