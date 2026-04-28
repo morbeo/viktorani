@@ -46,6 +46,7 @@ export default defineConfig({
       'archives',
       'deploy/',
       'dist/',
+      'e2e/',
       'src/main.tsx',
       'src/pages/**', // page-level integration — tested via e2e
       'src/components/AdminLayout.tsx',
