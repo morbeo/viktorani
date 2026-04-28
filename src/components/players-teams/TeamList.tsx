@@ -128,7 +128,13 @@ export default function TeamList({
         ))}
 
         {archived.map(team => (
-          <TeamRow key={team.id} team={team} archived onRestore={() => restore(team)} actionMode={actionMode} />
+          <TeamRow
+            key={team.id}
+            team={team}
+            archived
+            onRestore={() => restore(team)}
+            actionMode={actionMode}
+          />
         ))}
       </div>
 
@@ -137,6 +143,7 @@ export default function TeamList({
       )}
 
       <TeamForm
+        key={editing?.id ?? 'new'}
         open={editing !== undefined}
         team={editing ?? null}
         onClose={() => setEditing(undefined)}
