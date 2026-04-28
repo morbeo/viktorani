@@ -34,5 +34,5 @@ deploy/
 scripts/
 
 # Playwright
-/playwright-report/
-/test-results/
+playwright-report/
+test-results/
