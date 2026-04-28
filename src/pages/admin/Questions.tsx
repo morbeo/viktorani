@@ -500,6 +500,7 @@ export default function Questions() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- setState called after await, not synchronously
     void load()
   }, [])
 

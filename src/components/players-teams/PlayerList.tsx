@@ -150,6 +150,7 @@ export default function PlayerList({ filterTeamId, search = '', labelFilter = {}
       )}
 
       <PlayerForm
+        key={editing?.id ?? 'new'}
         open={editing !== undefined}
         player={editing ?? null}
         onClose={() => setEditing(undefined)}
