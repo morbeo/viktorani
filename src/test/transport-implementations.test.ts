@@ -16,11 +16,13 @@ vi.mock('peerjs', () => {
 
   class MockDataConnection {
     peer: string
+    connectionId: string
     open = true
     private events: EventMap = {}
 
     constructor(peer: string) {
       this.peer = peer
+      this.connectionId = `dc_${peer}`
     }
 
     on(event: string, handler: Handler) {
@@ -85,6 +87,18 @@ const PEER_HOST_CONFIG: TransportConfig = {
 const PEER_PLAYER_CONFIG: TransportConfig = {
   role: 'player',
   roomId: 'ROOM1',
+}
+
+/** A host-side DataConnection stub; fire its handlers via `on.mock.calls`. */
+function mockConn(peer: string) {
+  return {
+    peer,
+    connectionId: `dc_${peer}`,
+    open: true,
+    send: vi.fn(),
+    on: vi.fn(),
+    close: vi.fn(),
+  }
 }
 
 describe('PeerJSTransport', () => {
@@ -168,8 +182,8 @@ describe('PeerJSTransport', () => {
     await connectPromise
 
     // Simulate two player connections arriving
-    const conn1 = { peer: 'p1', open: true, send: vi.fn(), on: vi.fn(), close: vi.fn() }
-    const conn2 = { peer: 'p2', open: true, send: vi.fn(), on: vi.fn(), close: vi.fn() }
+    const conn1 = mockConn('p1')
+    const conn2 = mockConn('p2')
 
     // Trigger connection handler for each
     const peer = MockPeer.lastInstance as unknown as { emit(e: string, ...a: unknown[]): void }
@@ -212,7 +226,7 @@ describe('PeerJSTransport', () => {
     const received: TransportEvent[] = []
     t.onEvent(e => received.push(e))
 
-    const conn = { peer: 'p1', open: true, send: vi.fn(), on: vi.fn(), close: vi.fn() }
+    const conn = mockConn('p1')
     const peer = MockPeer.lastInstance as unknown as { emit(e: string, ...a: unknown[]): void }
     peer.emit('connection', conn)
 
@@ -226,6 +240,62 @@ describe('PeerJSTransport', () => {
     expect(received[0]).toEqual(event)
   })
 
+  it('host: passes the connection id and sendTo reaches only that connection', async () => {
+    const { PeerJSTransport } = await import('@/transport/PeerJSTransport')
+    const t = new PeerJSTransport()
+
+    const connectPromise = t.connect(PEER_HOST_CONFIG)
+    MockPeer.lastInstance.emit('open')
+    await connectPromise
+
+    const froms: string[] = []
+    t.onEvent((_e, from) => froms.push(from))
+
+    const conn1 = mockConn('p1')
+    const conn2 = mockConn('p2')
+    const peer = MockPeer.lastInstance as unknown as { emit(e: string, ...a: unknown[]): void }
+    const fire = (c: ReturnType<typeof mockConn>, name: string, ...a: unknown[]) =>
+      c.on.mock.calls.find((args: unknown[]) => args[0] === name)?.[1]?.(...a)
+    peer.emit('connection', conn1)
+    fire(conn1, 'open')
+    peer.emit('connection', conn2)
+    fire(conn2, 'open')
+
+    fire(conn2, 'data', { type: 'LEAVE' })
+    expect(froms).toEqual(['dc_p2'])
+
+    const event: TransportEvent = { type: 'JOIN_ACCEPTED', playerId: 'x', teamId: null }
+    t.sendTo('dc_p2', event)
+    expect(conn2.send).toHaveBeenCalledWith(event)
+    expect(conn1.send).not.toHaveBeenCalled()
+
+    t.sendTo('unknown', event)
+    expect(conn1.send).not.toHaveBeenCalled()
+  })
+
+  it('host: notifies close handlers with the connection id', async () => {
+    const { PeerJSTransport } = await import('@/transport/PeerJSTransport')
+    const t = new PeerJSTransport()
+
+    const connectPromise = t.connect(PEER_HOST_CONFIG)
+    MockPeer.lastInstance.emit('open')
+    await connectPromise
+
+    const closed: string[] = []
+    const unsub = t.onPeerClose(id => closed.push(id))
+
+    const conn = mockConn('p1')
+    const peer = MockPeer.lastInstance as unknown as { emit(e: string, ...a: unknown[]): void }
+    peer.emit('connection', conn)
+    conn.on.mock.calls.find((args: unknown[]) => args[0] === 'open')?.[1]?.()
+    conn.on.mock.calls.find((args: unknown[]) => args[0] === 'close')?.[1]?.()
+    expect(closed).toEqual(['dc_p1'])
+
+    unsub()
+    conn.on.mock.calls.find((args: unknown[]) => args[0] === 'close')?.[1]?.()
+    expect(closed).toEqual(['dc_p1'])
+  })
+
   it('connection: close event removes connection from map', async () => {
     const { PeerJSTransport } = await import('@/transport/PeerJSTransport')
     const t = new PeerJSTransport()
@@ -234,7 +304,7 @@ describe('PeerJSTransport', () => {
     MockPeer.lastInstance.emit('open')
     await connectPromise
 
-    const conn = { peer: 'p1', open: true, send: vi.fn(), on: vi.fn(), close: vi.fn() }
+    const conn = mockConn('p1')
     const peer = MockPeer.lastInstance as unknown as { emit(e: string, ...a: unknown[]): void }
     peer.emit('connection', conn)
     conn.on.mock.calls.find((args: unknown[]) => args[0] === 'open')?.[1]?.()

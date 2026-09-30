@@ -1,7 +1,8 @@
 // ── Shared event types ────────────────────────────────────────────────────────
 
 /**
- * Events broadcast by the GameMaster to all connected players.
+ * Events sent by the GameMaster to players: broadcast with `send`, or to one
+ * connection with `sendTo` (join replies, per-player content).
  *
  * @remarks
  * All variants are discriminated by `type`. Consumers should switch on `type`
@@ -37,27 +38,80 @@ export type GameEvent =
   | { type: 'TIMER_EXPIRED'; id: string; label: string }
   /** Full game-state snapshot sent to newly connected players. */
   | { type: 'GAME_STATE'; state: SerializedGameState }
-  /** Toggles which parts of the current question are revealed to players. */
-  | { type: 'VISIBILITY'; showQuestion: boolean; showAnswers: boolean; showMedia: boolean }
+  /** Toggles which parts of the current question are revealed on one target. */
+  | {
+      type: 'VISIBILITY'
+      target: VisibilityTarget
+      showQuestion: boolean
+      showAnswers: boolean
+      showMedia: boolean
+    }
   /** Lifecycle status of the game session. */
   | { type: 'GAME_STATUS'; status: 'active' | 'paused' | 'ended' }
+  /** Sent to a connection before it joins: what it may choose on the join screen. */
+  | {
+      type: 'LOBBY_INFO'
+      teams: LobbyTeam[]
+      allowIndividual: boolean
+      allowPlayerTeams: boolean
+    }
+  /** The JOIN is waiting for host approval. */
+  | { type: 'JOIN_PENDING' }
+  /** The JOIN was accepted; `playerId` is assigned by the host. */
+  | { type: 'JOIN_ACCEPTED'; playerId: string; teamId: string | null }
+  /** The JOIN was refused. */
+  | { type: 'JOIN_REJECTED'; reason: string }
+  /**
+   * Content of the current question for one target. Fields the GM has hidden on that
+   * target are `null`.
+   */
+  | {
+      type: 'QUESTION_CONTENT'
+      target: VisibilityTarget
+      questionId: string
+      title: string | null
+      description: string | null
+      options: string[] | null
+      answer: string | null
+      media: string | null
+      mediaType: 'image' | 'audio' | 'video' | null
+    }
+
+/** Where question content is shown: the projector/screen or player phones. */
+export type VisibilityTarget = 'players' | 'screen'
+
+/** A team a joining player can pick, as listed in `LOBBY_INFO`. */
+export interface LobbyTeam {
+  id: string
+  name: string
+}
 
 /**
  * Events sent by players to the GameMaster.
  *
  * @remarks
- * The host listens for these via `transportManager.onEvent()` and dispatches
- * them to the appropriate hook (e.g. `useBuzzer.handleIncomingBuzz`).
+ * Players never name themselves: the host maps each connection to a player on
+ * JOIN and derives the player for every later event from the connection it
+ * arrived on (see `TransportManager.onEvent`'s `from` argument).
  */
 export type PlayerEvent =
   /** Player pressed the buzzer. `timestamp` is a `performance.now()` value for ordering. */
-  | { type: 'BUZZ'; playerId: string; playerName: string; timestamp: number }
-  /** Player joined the lobby. `deviceId` is a stable browser-local UUID. */
-  | { type: 'JOIN'; playerId: string; playerName: string; teamId: string | null; deviceId: string }
-  /** Player disconnected or left the game. */
-  | { type: 'LEAVE'; playerId: string }
+  | { type: 'BUZZ'; timestamp: number }
+  /**
+   * Player asks to join. `deviceId` is a stable browser-local UUID, used only to match
+   * rejoins. Either pick an existing `teamId`, ask for `newTeamName`, or neither.
+   */
+  | {
+      type: 'JOIN'
+      playerName: string
+      deviceId: string
+      teamId: string | null
+      newTeamName: string | null
+    }
+  /** Player left the game. */
+  | { type: 'LEAVE' }
   /** Player's tab visibility changed — used to flag distracted players. */
-  | { type: 'FOCUS_CHANGE'; playerId: string; away: boolean }
+  | { type: 'FOCUS_CHANGE'; away: boolean }
 
 /** Union of all events that flow through the transport layer. */
 export type TransportEvent = GameEvent | PlayerEvent
@@ -124,15 +178,31 @@ export interface ITransport {
   disconnect(): void
 
   /**
-   * Send an event to the other side of the connection.
+   * Send an event to the other side: the host broadcasts to every player, a player
+   * sends to the host.
    * @param event - Any {@link TransportEvent} variant.
    */
   send(event: TransportEvent): void
 
   /**
+   * Send an event to one connection only (host side).
+   * @param connId - The `from` value passed to {@link ITransport.onEvent} handlers.
+   * @param event - Any {@link TransportEvent} variant.
+   */
+  sendTo(connId: string, event: TransportEvent): void
+
+  /**
    * Subscribe to incoming events.
-   * @param handler - Called for every event received.
+   * @param handler - Called for every event received, with the id of the connection
+   *   it arrived on.
    * @returns An unsubscribe function — call it to stop receiving events.
    */
-  onEvent(handler: (event: TransportEvent) => void): () => void
+  onEvent(handler: (event: TransportEvent, from: string) => void): () => void
+
+  /**
+   * Subscribe to connections closing.
+   * @param handler - Called with the id of the closed connection.
+   * @returns An unsubscribe function.
+   */
+  onPeerClose(handler: (connId: string) => void): () => void
 }

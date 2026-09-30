@@ -171,6 +171,7 @@ describe('HostQuestionPanel — visibility toggles', () => {
     await userEvent.click(screen.getByRole('switch', { name: 'Show answers' }))
     expect(transportManager.send).toHaveBeenCalledWith({
       type: 'VISIBILITY',
+      target: 'players',
       showQuestion: true,
       showAnswers: true,
       showMedia: true,

@@ -26,6 +26,7 @@ import { useBuzzer } from '@/hooks/useBuzzer'
 import { useTimerList } from '@/hooks/useTimer'
 import { useGameLifecycle } from '@/hooks/useGameLifecycle'
 import { readScores } from '@/hooks/useScoreboard'
+import { PlayerConnections, resolveJoin } from '@/pages/admin/player-connections'
 import { TimerPanel } from '@/components/timer/TimerPanel'
 import type { Game, Player, Team } from '@/db'
 import type { TransportStatus, TransportType, TransportEvent } from '@/transport/types'
@@ -457,6 +458,7 @@ export default function GameMaster() {
 
   const gameRef = useRef<Game | null>(null)
   const buzzHandlerRef = useRef<BuzzHandler | null>(null)
+  const connectionsRef = useRef(new PlayerConnections())
 
   useEffect(() => {
     gameRef.current = game
@@ -519,51 +521,56 @@ export default function GameMaster() {
     }
   }, [game?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Subscribe to player JOIN / LEAVE / BUZZ events
+  // Subscribe to player JOIN / LEAVE / FOCUS_CHANGE / BUZZ events. The sending player is
+  // derived from the connection (`from`), never from the payload.
   const handleEvent = useCallback(
-    async (event: TransportEvent) => {
+    async (event: TransportEvent, from: string) => {
       const g = gameRef.current
       if (!g) return
 
       if (event.type === 'JOIN') {
-        const record = {
-          id: event.playerId,
-          gameId: g.id,
-          name: event.playerName,
-          teamId: event.teamId,
-          deviceId: event.deviceId,
-        }
-        // Preserve existing score / joinedAt via upsert
-        const existing = await db.players.get(event.playerId)
-        const player: Player = {
-          ...record,
-          score: existing?.score ?? 0,
-          isAway: false,
-          joinedAt: existing?.joinedAt ?? Date.now(),
-        }
+        const player = await resolveJoin(g.id, event)
         await db.players.put(player)
-        setPlayers(prev => upsertPlayer(prev, record))
-        addToast(`${event.playerName} joined the lobby`, { variant: 'info', durationMs: 4000 })
+        connectionsRef.current.bind(from, player.id)
+        setPlayers(prev => upsertPlayer(prev, player))
+        transportManager.sendTo(from, {
+          type: 'JOIN_ACCEPTED',
+          playerId: player.id,
+          teamId: player.teamId,
+        })
+        const scores = await readScores(g.id)
+        transportManager.sendTo(from, {
+          type: 'GAME_STATE',
+          state: serialiseGameState(gameRef.current ?? g, scores),
+        })
+        addToast(`${player.name} joined the lobby`, { variant: 'info', durationMs: 4000 })
+        return
       }
 
+      // Everything else must come from a joined connection
+      const playerId = connectionsRef.current.playerFor(from)
+      if (!playerId) return
+
       if (event.type === 'LEAVE') {
-        await db.players.update(event.playerId, { isAway: true })
-        setPlayers(prev => markPlayerAway(prev, event.playerId))
+        connectionsRef.current.unbindConnection(from)
+        await db.players.update(playerId, { isAway: true })
+        setPlayers(prev => markPlayerAway(prev, playerId))
       }
 
       if (event.type === 'FOCUS_CHANGE') {
-        await db.players.update(event.playerId, { isAway: event.away })
-        setPlayers(prev => setPlayerAway(prev, event.playerId, event.away))
+        await db.players.update(playerId, { isAway: event.away })
+        setPlayers(prev => setPlayerAway(prev, playerId, event.away))
       }
 
       if (event.type === 'BUZZ') {
         // Delegate to the mounted ActiveGame's useBuzzer
         const handler = buzzHandlerRef.current
-        if (handler) {
+        const player = handler ? await db.players.get(playerId) : undefined
+        if (handler && player) {
           void handler({
-            playerId: event.playerId,
-            playerName: event.playerName,
-            teamId: null, // transport doesn't carry teamId yet; looked up in useBuzzer
+            playerId,
+            playerName: player.name,
+            teamId: null, // looked up in useBuzzer
             timestamp: event.timestamp,
           })
         }
@@ -576,10 +583,23 @@ export default function GameMaster() {
     return transportManager.onEvent(handleEvent)
   }, [handleEvent])
 
+  // A dropped connection marks its player away; they can rejoin from the same device
+  useEffect(() => {
+    return transportManager.onPeerClose(connId => {
+      const playerId = connectionsRef.current.unbindConnection(connId)
+      if (!playerId) return
+      setPlayers(prev => markPlayerAway(prev, playerId))
+      db.players
+        .update(playerId, { isAway: true })
+        .catch(err => console.error('[GameMaster] Marking player away failed:', err))
+    })
+  }, [])
+
   // Kick player — mark as away in DB + state, broadcast updated game state
   const handleKick = useCallback(async (playerId: string) => {
     const g = gameRef.current
     if (!g) return
+    connectionsRef.current.unbindPlayer(playerId)
     await db.players.update(playerId, { isAway: true })
     setPlayers(prev => markPlayerAway(prev, playerId))
     const scores = await readScores(g.id)

@@ -116,6 +116,7 @@ describe('useGameVisibility', () => {
 
     expect(mockSend).toHaveBeenCalledWith({
       type: 'VISIBILITY',
+      target: 'players',
       showQuestion: true,
       showAnswers: false,
       showMedia: false,

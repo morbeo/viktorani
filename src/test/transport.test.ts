@@ -43,10 +43,12 @@ function makeMockTransport(type: 'peer', fails = false): ITransport {
     }),
     disconnect: vi.fn(),
     send: vi.fn(),
+    sendTo: vi.fn(),
     onEvent: vi.fn(h => {
       handlers.push(h)
       return () => {}
     }),
+    onPeerClose: vi.fn(() => () => {}),
     // expose for testing
     _emit: (e: TransportEvent) => handlers.forEach(h => h(e)),
   } as unknown as ITransport
@@ -150,6 +152,39 @@ describe('TransportManager', () => {
     })
   })
 
+  describe('sendTo', () => {
+    it('delegates to the active transport with the connection id', () => {
+      const mock = makeMockTransport('peer')
+      internals(manager).transport = mock
+      const event: TransportEvent = { type: 'JOIN_PENDING' }
+      manager.sendTo('dc_1', event)
+      expect(mock.sendTo).toHaveBeenCalledWith('dc_1', event)
+    })
+
+    it('is a no-op when not connected', () => {
+      expect(() => manager.sendTo('dc_1', { type: 'JOIN_PENDING' })).not.toThrow()
+    })
+  })
+
+  describe('onPeerClose', () => {
+    it('forwards connection closes from the transport', async () => {
+      const mock = makeMockTransport('peer')
+      vi.spyOn(internals(manager), 'tryTransport').mockImplementation(async () => {
+        internals(manager).transport = mock
+      })
+      await manager.connect(BASE_CONFIG)
+
+      const closed: string[] = []
+      const unsub = manager.onPeerClose(id => closed.push(id))
+      const captured = (mock.onPeerClose as ReturnType<typeof vi.fn>).mock.calls[0][0]
+      captured('dc_1')
+      unsub()
+      captured('dc_2')
+
+      expect(closed).toEqual(['dc_1'])
+    })
+  })
+
   describe('onEvent', () => {
     it('receives events forwarded from the transport', async () => {
       const mock = makeMockTransport('peer')
@@ -168,6 +203,21 @@ describe('TransportManager', () => {
 
       expect(received).toHaveLength(1)
       expect(received[0]).toEqual(event)
+    })
+
+    it('passes the sending connection id to handlers', async () => {
+      const mock = makeMockTransport('peer')
+      vi.spyOn(internals(manager), 'tryTransport').mockImplementation(async () => {
+        internals(manager).transport = mock
+      })
+      await manager.connect(BASE_CONFIG)
+
+      const handler = vi.fn()
+      manager.onEvent(handler)
+      const capturedHandler = (mock.onEvent as ReturnType<typeof vi.fn>).mock.calls[0][0]
+      capturedHandler({ type: 'BUZZ', timestamp: 1 }, 'dc_7')
+
+      expect(handler).toHaveBeenCalledWith({ type: 'BUZZ', timestamp: 1 }, 'dc_7')
     })
 
     it('drops events that fail the message contract in production', async () => {
