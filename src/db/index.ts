@@ -313,7 +313,7 @@ export interface GameQuestion {
   gameId: string
   questionId: string
   roundId: string
-  /** Position within the round (zero-based). */
+  /** Zero-based position across all rounds of the game. */
   order: number
   status: 'pending' | 'correct' | 'incorrect' | 'skipped'
 }
