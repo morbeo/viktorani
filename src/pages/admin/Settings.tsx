@@ -2,6 +2,7 @@ import AdminLayout from '@/components/AdminLayout'
 import ManageTags from '@/components/settings/ManageTags'
 import ManageDifficulties from '@/components/settings/ManageDifficulties'
 import ManageLabels from '@/components/players-teams/ManageLabels'
+import DebugInfo from '@/components/settings/DebugInfo'
 import { exportDatabase, importDatabase } from '@/db/snapshot'
 import { purgeDatabase, seedDefaults } from '@/db'
 import { useState } from 'react'
@@ -196,6 +197,9 @@ export default function Settings() {
             </Button>
           </div>
         </section>
+
+        {/* ── Debug (hidden unless ?debug=1) ───────────────────── */}
+        <DebugInfo />
       </div>
 
       {/* ── Purge confirm modal ───────────────────────────────── */}
