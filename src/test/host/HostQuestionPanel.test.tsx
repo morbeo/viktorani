@@ -127,7 +127,13 @@ describe('HostQuestionPanel — answers', () => {
     expect(screen.getByText('Expected answer')).toBeInTheDocument()
   })
   it('host always sees answers regardless of showAnswers flag', () => {
-    rp(makeQ(), BASE_GQ, { ...BASE_GAME, showAnswers: false })
+    rp(makeQ(), BASE_GQ, {
+      ...BASE_GAME,
+      visibility: {
+        players: { showQuestion: true, showAnswers: false, showMedia: false },
+        screen: { showQuestion: true, showAnswers: false, showMedia: false },
+      },
+    })
     expect(screen.getByText('Paris')).toBeInTheDocument()
     expect(screen.getByText('✓ Correct')).toBeInTheDocument()
   })
@@ -149,7 +155,10 @@ describe('HostQuestionPanel — media', () => {
   it('host always sees media regardless of showMedia flag', () => {
     rp(makeQ({ media: 'https://example.com/img.jpg', mediaType: 'image' }), BASE_GQ, {
       ...BASE_GAME,
-      showMedia: false,
+      visibility: {
+        players: { showQuestion: true, showAnswers: false, showMedia: false },
+        screen: { showQuestion: true, showAnswers: false, showMedia: false },
+      },
     })
     expect(screen.getByRole('img')).toBeInTheDocument()
   })
