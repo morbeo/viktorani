@@ -85,13 +85,10 @@ export function useBuzzer(
 
   // Load stored buzzes whenever the question changes, so history survives navigation and reloads
   useEffect(() => {
-    if (!questionId) {
-      setBuzzes([])
-      return
-    }
     let cancelled = false
-    void loadBuzzesForQuestion(game.id, questionId).then(rows => {
-      if (!cancelled) setBuzzes(rows)
+    const rows = questionId ? loadBuzzesForQuestion(game.id, questionId) : Promise.resolve([])
+    void rows.then(r => {
+      if (!cancelled) setBuzzes(r)
     })
     return () => {
       cancelled = true
