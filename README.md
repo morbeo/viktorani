@@ -1,6 +1,6 @@
 # Viktorani
 
-Bar trivia PWA with WebRTC multiplayer, Reveal.js slides, and buzzer gameplay.
+Bar trivia PWA with WebRTC multiplayer and buzzer gameplay.
 No backend — runs entirely in the browser.
 
 **Live:** https://morbeo.github.io/viktorani/
@@ -24,17 +24,15 @@ No backend — runs entirely in the browser.
 
 ## Tech stack
 
-| Layer         | Library                      |
-| ------------- | ---------------------------- |
-| UI            | React 19 + TypeScript        |
-| Styling       | Tailwind CSS v4              |
-| Build         | Vite 8                       |
-| PWA           | vite-plugin-pwa              |
-| Presentation  | Reveal.js                    |
-| Storage       | Dexie.js (IndexedDB)         |
-| Multiplayer A | PeerJS (WebRTC)              |
-| Multiplayer B | Gun.js + SEA encryption      |
-| Routing       | React Router v7 (HashRouter) |
+| Layer       | Library                      |
+| ----------- | ---------------------------- |
+| UI          | React 19 + TypeScript        |
+| Styling     | Tailwind CSS v4              |
+| Build       | Vite 8                       |
+| PWA         | vite-plugin-pwa              |
+| Storage     | Dexie.js (IndexedDB)         |
+| Multiplayer | PeerJS (WebRTC)              |
+| Routing     | React Router v7 (HashRouter) |
 
 ---
 
@@ -143,24 +141,9 @@ public/
 
 ## Multiplayer
 
-No backend server. Two transport options, selectable per game:
-
-| Mode       | Mechanism                                        | Internet required      |
-| ---------- | ------------------------------------------------ | ---------------------- |
-| **PeerJS** | WebRTC via PeerJS signaling                      | Initial handshake only |
-| **Gun.js** | Decentralised relay + SEA encryption             | Initial handshake only |
-| **Auto**   | Tries PeerJS (8s timeout) → falls back to Gun.js | Initial handshake only |
-
-The host generates a **Room ID** and (for Gun.js) a **4-word passphrase**. Both are embedded
-in the QR code that players scan. After the initial connection, all game state flows
-browser-to-browser with no server involvement.
-
-### Gun.js encryption
-
-Data on public Gun.js relays is encrypted using
-[SEA](https://gun.eco/docs/SEA) (Security, Encryption, Authorization) with a
-shared secret derived from the passphrase + Room ID. The passphrase is displayed
-large on the Game Master screen so the host can read it aloud if QR scanning fails.
+No backend server. The host generates a **Room ID** which is embedded in a QR code
+that players scan. After the initial WebRTC handshake via PeerJS signaling,
+all game state flows browser-to-browser with no server involvement.
 
 ---
 
