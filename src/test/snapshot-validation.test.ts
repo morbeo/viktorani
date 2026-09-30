@@ -54,7 +54,14 @@ function snapshot(overrides: Record<string, unknown> = {}) {
 }
 
 beforeEach(async () => {
-  await Promise.all([db.difficulties.clear(), db.games.clear(), db.questions.clear()])
+  await Promise.all([
+    db.difficulties.clear(),
+    db.tags.clear(),
+    db.questions.clear(),
+    db.rounds.clear(),
+    db.games.clear(),
+    db.notes.clear(),
+  ])
 })
 
 describe('importDatabase — validation', () => {
@@ -109,6 +116,24 @@ describe('importDatabase — validation', () => {
     spy.mockRestore()
   })
 
+  it('defaults buzzer fields missing from v1 games', async () => {
+    const {
+      autoLockOnFirstCorrect: _a,
+      allowFalseStarts: _b,
+      buzzDeduplication: _c,
+      tiebreakerMode: _d,
+      ...legacy
+    } = GAME
+    void [_a, _b, _c, _d]
+    await importDatabase(jsonFile(snapshot({ version: 1, categories: [], games: [legacy] })))
+    expect(await db.games.get('g1')).toMatchObject({
+      autoLockOnFirstCorrect: false,
+      allowFalseStarts: false,
+      buzzDeduplication: 'firstOnly',
+      tiebreakerMode: 'serverOrder',
+    })
+  })
+
   it('imports a valid snapshot', async () => {
     await importDatabase(jsonFile(snapshot()))
     expect(await db.difficulties.get('d1')).toEqual(DIFFICULTY)
@@ -140,6 +165,15 @@ describe('importQuestions — validation', () => {
       errors: ['Row 1: expected an object', 'Row 2: invalid type'],
     })
     expect((await db.questions.toArray()).map(q => q.title)).toEqual(['Good'])
+  })
+
+  it('coerces numeric title, answer and options to strings', async () => {
+    const result = await importQuestions(
+      jsonFile([{ title: 42, type: 'multiple_choice', options: [3, 4], answer: 4 }], 'q.json')
+    )
+    expect(result.imported).toBe(1)
+    const [q] = await db.questions.toArray()
+    expect(q).toMatchObject({ title: '42', options: ['3', '4'], answer: '4' })
   })
 
   it('reports all missing required fields for a row', async () => {

@@ -33,11 +33,11 @@ export const QuestionSchema = z.object({
   type: z.enum(QUESTION_TYPES),
   options: z.array(z.string()),
   answer: z.string(),
-  description: z.string(),
+  description: z.string().default(''),
   difficulty: z.string().nullable(),
   tags: z.array(z.string()),
-  media: z.string().nullable(),
-  mediaType: MediaTypeSchema,
+  media: z.string().nullable().default(null),
+  mediaType: MediaTypeSchema.default(null),
   createdAt: z.number(),
   updatedAt: z.number(),
 }) satisfies z.ZodType<Question>
@@ -59,19 +59,20 @@ export const GameSchema = z.object({
   passphrase: z.string().nullable(),
   showQuestion: z.boolean(),
   showAnswers: z.boolean(),
-  showMedia: z.boolean(),
-  maxTeams: z.number(),
-  maxPerTeam: z.number(),
-  allowIndividual: z.boolean(),
+  showMedia: z.boolean().default(true),
+  maxTeams: z.number().default(0),
+  maxPerTeam: z.number().default(0),
+  allowIndividual: z.boolean().default(true),
   roundIds: z.array(z.string()),
   currentRoundIdx: z.number(),
   currentQuestionIdx: z.number(),
   buzzerLocked: z.boolean(),
-  scoringEnabled: z.boolean(),
-  autoLockOnFirstCorrect: z.boolean(),
-  allowFalseStarts: z.boolean(),
-  buzzDeduplication: z.enum(['firstOnly', 'all']),
-  tiebreakerMode: z.literal('serverOrder'),
+  scoringEnabled: z.boolean().default(true),
+  // Buzzer config was added after v1 backups; defaults mirror the game wizard.
+  autoLockOnFirstCorrect: z.boolean().default(false),
+  allowFalseStarts: z.boolean().default(false),
+  buzzDeduplication: z.enum(['firstOnly', 'all']).default('firstOnly'),
+  tiebreakerMode: z.literal('serverOrder').default('serverOrder'),
   createdAt: z.number(),
   updatedAt: z.number(),
 }) satisfies z.ZodType<Game>
@@ -97,10 +98,16 @@ export const SnapshotSchema = z.object({
   notes: z.array(NoteSchema).default([]),
 })
 
+/** Accept numbers where strings are expected (e.g. `answer: 4`), as the old importer did. */
+const numberToString = (v: unknown) => (typeof v === 'number' ? String(v) : v)
+
 const requiredText = (field: string) =>
-  z
-    .string({ error: `missing ${field}` })
-    .refine(s => s.trim().length > 0, { error: `missing ${field}` })
+  z.preprocess(
+    numberToString,
+    z
+      .string({ error: `missing ${field}` })
+      .refine(s => s.trim().length > 0, { error: `missing ${field}` })
+  )
 
 const optionsError = 'options must be an array of strings'
 
@@ -116,7 +123,11 @@ export const QuestionImportRowSchema = z.object(
     type: z.enum(QUESTION_TYPES, {
       error: iss => (iss.input === undefined ? 'missing type' : 'invalid type'),
     }),
-    options: z.array(z.string({ error: optionsError }), { error: optionsError }).default([]),
+    options: z
+      .array(z.preprocess(numberToString, z.string({ error: optionsError })), {
+        error: optionsError,
+      })
+      .default([]),
     answer: requiredText('answer'),
     description: z.string().catch(''),
     difficulty: z.string().nullable().catch(null),
