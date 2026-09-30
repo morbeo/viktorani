@@ -56,6 +56,8 @@ export interface UseBuzzerResult {
  *
  * @param game - The active game record. Used for configuration flags and IDs.
  * @param questionId - ID of the currently displayed question, or `null` if none.
+ * @param onGameChange - Receives the updated game whenever the hook changes
+ *   `buzzerLocked`, so the caller's `game` state stays in sync with the DB.
  *
  * @example
  * ```tsx
@@ -68,7 +70,11 @@ export interface UseBuzzerResult {
  * }, [handleIncomingBuzz]))
  * ```
  */
-export function useBuzzer(game: Game, questionId: string | null): UseBuzzerResult {
+export function useBuzzer(
+  game: Game,
+  questionId: string | null,
+  onGameChange?: (updated: Game) => void
+): UseBuzzerResult {
   const [buzzes, setBuzzes] = useState<BuzzEvent[]>([])
   const gameRef = useRef(game)
   useEffect(() => {
@@ -77,12 +83,19 @@ export function useBuzzer(game: Game, questionId: string | null): UseBuzzerResul
 
   // ── Lock / Unlock ────────────────────────────────────────────────────────
 
-  const toggleLock = useCallback(async () => {
-    const g = gameRef.current
-    const next = !g.buzzerLocked
-    await db.games.update(g.id, { buzzerLocked: next, updatedAt: Date.now() })
-    transportManager.send(next ? { type: 'BUZZER_LOCK' } : { type: 'BUZZER_UNLOCK' })
-  }, [])
+  const setLocked = useCallback(
+    async (locked: boolean) => {
+      // Update the ref immediately so a second call before re-render sees the new state
+      const updated = { ...gameRef.current, buzzerLocked: locked, updatedAt: Date.now() }
+      gameRef.current = updated
+      await db.games.update(updated.id, { buzzerLocked: locked, updatedAt: updated.updatedAt })
+      onGameChange?.(updated)
+      transportManager.send(locked ? { type: 'BUZZER_LOCK' } : { type: 'BUZZER_UNLOCK' })
+    },
+    [onGameChange]
+  )
+
+  const toggleLock = useCallback(() => setLocked(!gameRef.current.buzzerLocked), [setLocked])
 
   // ── Incoming buzz ────────────────────────────────────────────────────────
 
@@ -140,16 +153,10 @@ export function useBuzzer(game: Game, questionId: string | null): UseBuzzerResul
           if (player) {
             // Resolve score increment from question difficulty; fall back to 1
             let increment = 1
-            const qId = questionId
-            if (qId) {
-              const gq = await db.gameQuestions.where('questionId').equals(qId).first()
-              if (gq) {
-                const question = await db.questions.get(gq.questionId)
-                if (question?.difficulty) {
-                  const diff = await db.difficulties.get(question.difficulty)
-                  if (diff) increment = diff.score
-                }
-              }
+            const question = questionId ? await db.questions.get(questionId) : undefined
+            if (question?.difficulty) {
+              const diff = await db.difficulties.get(question.difficulty)
+              if (diff) increment = diff.score
             }
             const newScore = player.score + increment
             await db.players.update(buzz.playerId, { score: newScore })
@@ -162,13 +169,12 @@ export function useBuzzer(game: Game, questionId: string | null): UseBuzzerResul
         }
 
         // Auto-lock if configured
-        if (g.autoLockOnFirstCorrect && !g.buzzerLocked) {
-          await db.games.update(g.id, { buzzerLocked: true, updatedAt: now })
-          transportManager.send({ type: 'BUZZER_LOCK' })
+        if (g.autoLockOnFirstCorrect && !gameRef.current.buzzerLocked) {
+          await setLocked(true)
         }
       }
     },
-    [questionId]
+    [questionId, setLocked]
   )
 
   // ── Clear ────────────────────────────────────────────────────────────────
