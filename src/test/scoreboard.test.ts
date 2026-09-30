@@ -181,34 +181,6 @@ describe('SCORE_UPDATE broadcast', () => {
   })
 })
 
-// ── Tests: team score aggregation ────────────────────────────────────────────
-
-describe('team score aggregation', () => {
-  beforeEach(clearAll)
-
-  it('sums player scores for team total', async () => {
-    const game = makeGame()
-    await db.games.add(game)
-
-    const team = makeTeam({ id: 't1', score: 0 })
-    await db.teams.add(team)
-
-    const p1 = makePlayer({ id: 'p1', teamId: 't1', score: 5 })
-    const p2 = makePlayer({ id: 'p2', name: 'Bob', teamId: 't1', score: 10, deviceId: 'd2' })
-    await db.players.bulkAdd([p1, p2])
-
-    // Simulate team score re-computation after player adjust
-    const teamPlayers = await db.players.where('gameId').equals(game.id).toArray()
-    const teamTotal = teamPlayers
-      .filter(p => p.teamId === 't1')
-      .reduce((sum, p) => sum + p.score, 0)
-    await db.teams.update('t1', { score: teamTotal })
-
-    const updatedTeam = await db.teams.get('t1')
-    expect(updatedTeam?.score).toBe(15)
-  })
-})
-
 // ── Tests: defaultIncrement ───────────────────────────────────────────────────
 
 describe('defaultIncrement derivation', () => {

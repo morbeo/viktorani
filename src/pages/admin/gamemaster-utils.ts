@@ -199,15 +199,6 @@ export function applyScoreDelta(score: number, delta: number): number {
   return Math.max(0, score + delta)
 }
 
-/**
- * Aggregate team score: the sum of its members' individual scores.
- *
- * Pure function — no DB access.
- */
-export function teamScore(players: Pick<Player, 'teamId' | 'score'>[], teamId: string): number {
-  return players.filter(p => p.teamId === teamId).reduce((sum, p) => sum + p.score, 0)
-}
-
 // ── Navigation position ───────────────────────────────────────────────────────
 
 export interface NavPosition {

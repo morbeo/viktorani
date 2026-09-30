@@ -102,6 +102,7 @@ beforeEach(async () => {
   await Promise.all([
     db.games.clear(),
     db.players.clear(),
+    db.teams.clear(),
     db.buzzEvents.clear(),
     db.questions.clear(),
     db.difficulties.clear(),
@@ -239,5 +240,22 @@ describe('useBuzzer scoring (#246)', () => {
     expect((await db.buzzEvents.get(id))?.gmDecision).toBe('Incorrect')
     expect(result.current.buzzes[0].gmDecision).toBe('Incorrect')
     expect((await db.players.get('p1'))?.score).toBe(0)
+  })
+
+  it("adds the points to the player's team as well", async () => {
+    const game = makeGame({ buzzerLocked: false })
+    await Promise.all([
+      db.games.add(game),
+      db.players.add({ ...player, teamId: 't1' }),
+      db.teams.add({ id: 't1', gameId: 'g1', name: 'Owls', color: '#000', icon: 'Zap', score: 4 }),
+      db.questions.add({ ...question, difficulty: null }),
+    ])
+    const { result } = renderBuzzer(game)
+
+    await buzz(result)
+    await act(() => result.current.adjudicate(result.current.buzzes[0].id, 'Correct'))
+
+    expect((await db.teams.get('t1'))?.score).toBe(5)
+    expect(mockSend).toHaveBeenCalledWith({ type: 'SCORE_UPDATE', scores: { p1: 1, t1: 5 } })
   })
 })
