@@ -110,7 +110,7 @@ describe('loadBuzzesForQuestion', () => {
     const b2 = makeBuzz({ id: 'b2', timestamp: 100 })
     const b3 = makeBuzz({ id: 'b3', timestamp: 200 })
     await db.buzzEvents.bulkAdd([b1, b2, b3])
-    const result = await loadBuzzesForQuestion('q1')
+    const result = await loadBuzzesForQuestion('g1', 'q1')
     expect(result.map(b => b.id)).toEqual(['b2', 'b3', 'b1'])
   })
 
@@ -120,13 +120,13 @@ describe('loadBuzzesForQuestion', () => {
       makeBuzz({ id: 'b2', questionId: 'q2' }),
       makeBuzz({ id: 'b3', questionId: 'q1' }),
     ])
-    const result = await loadBuzzesForQuestion('q1')
+    const result = await loadBuzzesForQuestion('g1', 'q1')
     expect(result).toHaveLength(2)
     expect(result.every(b => b.questionId === 'q1')).toBe(true)
   })
 
   it('returns empty array when no buzzes exist', async () => {
-    const result = await loadBuzzesForQuestion('q-none')
+    const result = await loadBuzzesForQuestion('g1', 'q-none')
     expect(result).toHaveLength(0)
   })
 })

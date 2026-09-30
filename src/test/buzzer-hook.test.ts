@@ -1,6 +1,6 @@
 // @vitest-pool vmForks
 import { describe, it, expect, beforeEach, vi, type MockedFunction } from 'vitest'
-import { act, renderHook } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -11,7 +11,7 @@ vi.mock('@/transport', () => ({
 import { db } from '@/db'
 import { transportManager } from '@/transport'
 import { useBuzzer } from '@/hooks/useBuzzer'
-import type { Game, Player, Question } from '@/db'
+import type { BuzzEvent, Game, Player, Question } from '@/db'
 
 const mockSend = transportManager.send as MockedFunction<typeof transportManager.send>
 
@@ -257,5 +257,54 @@ describe('useBuzzer scoring (#246)', () => {
 
     expect((await db.teams.get('t1'))?.score).toBe(5)
     expect(mockSend).toHaveBeenCalledWith({ type: 'SCORE_UPDATE', scores: { p1: 1, t1: 5 } })
+  })
+})
+
+// ── Buzz history (#251) ───────────────────────────────────────────────────────
+
+describe('useBuzzer buzz history (#251)', () => {
+  const stored = (overrides: Partial<BuzzEvent>): BuzzEvent => ({
+    id: 'b1',
+    gameId: 'g1',
+    questionId: 'q1',
+    playerId: 'p1',
+    playerName: 'Alice',
+    teamId: null,
+    timestamp: 1,
+    isFalseStart: false,
+    gmDecision: null,
+    decidedAt: null,
+    ...overrides,
+  })
+
+  it('loads stored buzzes for the current game and question, including after navigating back', async () => {
+    await db.buzzEvents.bulkAdd([
+      stored({ id: 'b1' }),
+      stored({ id: 'b2', questionId: 'q2' }),
+      stored({ id: 'other-game', gameId: 'g2' }),
+    ])
+    const game = makeGame()
+    const { result, rerender } = renderHook(({ q }: { q: string }) => useBuzzer(game, q), {
+      initialProps: { q: 'q1' },
+    })
+    await waitFor(() => expect(result.current.buzzes.map(b => b.id)).toEqual(['b1']))
+
+    rerender({ q: 'q2' })
+    await waitFor(() => expect(result.current.buzzes.map(b => b.id)).toEqual(['b2']))
+
+    rerender({ q: 'q1' })
+    await waitFor(() => expect(result.current.buzzes.map(b => b.id)).toEqual(['b1']))
+  })
+
+  it("clearBuzzes only deletes the current game's buzzes", async () => {
+    await db.buzzEvents.bulkAdd([stored({ id: 'b1' }), stored({ id: 'other-game', gameId: 'g2' })])
+    const { result } = renderHook(() => useBuzzer(makeGame(), 'q1'))
+    await waitFor(() => expect(result.current.buzzes).toHaveLength(1))
+
+    await act(() => result.current.clearBuzzes('q1'))
+
+    expect(result.current.buzzes).toHaveLength(0)
+    expect(await db.buzzEvents.get('b1')).toBeUndefined()
+    expect(await db.buzzEvents.get('other-game')).toBeDefined()
   })
 })
