@@ -9,7 +9,8 @@ import type { UseGameLifecycleResult } from '@/hooks/useGameLifecycle'
 interface GameControlsProps {
   game: Game
   players: Player[]
-  onGameChange: (updated: Game) => void
+  /** Receives only the changed fields; the caller merges them into its current game. */
+  onGameChange: (patch: Partial<Game>) => void
   lifecycle: UseGameLifecycleResult
 }
 
@@ -32,10 +33,8 @@ export function GameControls({ game, players, onGameChange, lifecycle }: GameCon
   async function handlePauseResume() {
     setBusy(true)
     try {
-      const updated = isPaused
-        ? await lifecycle.resumeGame(game)
-        : await lifecycle.pauseGame(game)
-      onGameChange(updated)
+      const patch = isPaused ? await lifecycle.resumeGame(game) : await lifecycle.pauseGame(game)
+      onGameChange(patch)
     } finally {
       setBusy(false)
     }
@@ -44,8 +43,7 @@ export function GameControls({ game, players, onGameChange, lifecycle }: GameCon
   async function handleEnd() {
     setBusy(true)
     try {
-      const updated = await lifecycle.endGame(game, players)
-      onGameChange(updated)
+      onGameChange(await lifecycle.endGame(game, players))
       setEndModalOpen(false)
     } finally {
       setBusy(false)

@@ -286,7 +286,7 @@ function Lobby({
 interface ActiveGameProps {
   game: Game
   players: Player[]
-  onGameChange: (updated: Game) => void
+  onGameChange: (patch: Partial<Game>) => void
   lifecycle: import('@/hooks/useGameLifecycle').UseGameLifecycleResult
   buzzHandlerRef: RefObject<BuzzHandler | null>
 }
@@ -471,6 +471,12 @@ export default function GameMaster() {
   const [notFound, setNotFound] = useState(false)
 
   const lifecycle = useGameLifecycle()
+
+  // Merge patches into the latest state so overlapping updates (lock toggle, pause) don't
+  // revert each other's fields
+  const applyGamePatch = useCallback((patch: Partial<Game>) => {
+    setGame(g => g && { ...g, ...patch })
+  }, [])
 
   const gameRef = useRef<Game | null>(null)
   const playersRef = useRef<Player[]>([])
@@ -761,7 +767,7 @@ export default function GameMaster() {
       <ActiveGame
         game={game}
         players={players}
-        onGameChange={setGame}
+        onGameChange={applyGamePatch}
         lifecycle={lifecycle}
         buzzHandlerRef={buzzHandlerRef}
       />
