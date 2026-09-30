@@ -74,9 +74,7 @@ jobs:
         id: changelog
         run: |
           npx git-cliff --tag ${{ steps.bump.outputs.version }} -o CHANGELOG.md
-          echo "notes<<EOF" >> "$GITHUB_OUTPUT"
-          npx git-cliff --latest --strip all >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+          npx git-cliff --latest --strip all > /tmp/release-notes.md
 
       - name: Commit, tag, push
         run: |
@@ -89,7 +87,7 @@ jobs:
         run: |
           gh release create ${{ steps.bump.outputs.version }} \
             --title "${{ steps.bump.outputs.version }}" \
-            --notes "${{ steps.changelog.outputs.notes }}" 
+            --notes-file /tmp/release-notes.md \
             ${{ inputs.prerelease == 'true' && '--prerelease' || '' }}
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PAT }}

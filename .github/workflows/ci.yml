@@ -32,7 +32,9 @@ jobs:
         run: npm install --no-save --legacy-peer-deps @commitlint/cli @commitlint/config-conventional
 
       - name: Lint PR title
-        run: echo "${{ github.event.pull_request.title }}" | npx --yes commitlint
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: echo "$PR_TITLE" | npx --yes commitlint
 
   detect:
     runs-on: ubuntu-latest
@@ -43,7 +45,9 @@ jobs:
 
       - name: Detect code changes
         id: changes
-        run: bash scripts/detect-code-changes.sh "${{ github.event.pull_request.base.sha }}"
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: bash scripts/detect-code-changes.sh "$BASE_SHA"
 
   ci:
     runs-on: ubuntu-latest
