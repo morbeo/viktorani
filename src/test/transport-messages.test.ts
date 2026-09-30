@@ -83,7 +83,8 @@ describe.each(CASES)('%s', (_type, fixture) => {
   if (fields.length === 0) return
 
   it.each(fields)('rejects a payload missing "%s"', field => {
-    const { [field]: _omitted, ...rest } = fixture as Record<string, unknown>
+    const rest: Record<string, unknown> = { ...fixture }
+    delete rest[field]
     expect(TransportEventSchema.safeParse(rest).success).toBe(false)
   })
 
