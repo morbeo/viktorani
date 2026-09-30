@@ -11,6 +11,8 @@ export interface UseNavigationResult {
   goNext: () => Promise<void>
   goPrev: () => Promise<void>
   isReady: boolean
+  /** Loaded, but the game has no questions. */
+  isEmpty: boolean
 }
 
 /**
@@ -97,5 +99,12 @@ export function useNavigation(
   const goNext = useCallback(() => navigate(1), [navigate])
   const goPrev = useCallback(() => navigate(-1), [navigate])
 
-  return { seq, pos, goNext, goPrev, isReady: loaded && seq.length > 0 }
+  return {
+    seq,
+    pos,
+    goNext,
+    goPrev,
+    isReady: loaded && seq.length > 0,
+    isEmpty: loaded && seq.length === 0,
+  }
 }
