@@ -30,6 +30,7 @@ const FIXTURES: { [K in TransportEvent['type']]: Extract<TransportEvent, { type:
   TIMER_START: { type: 'TIMER_START', id: 't1', duration: 60, label: 'Round' },
   TIMER_PAUSE: { type: 'TIMER_PAUSE', id: 't1' },
   TIMER_RESUME: { type: 'TIMER_RESUME', id: 't1' },
+  TIMER_RESET: { type: 'TIMER_RESET', id: 't1', duration: 60 },
   TIMER_EXPIRED: { type: 'TIMER_EXPIRED', id: 't1', label: 'Round' },
   GAME_STATE: {
     type: 'GAME_STATE',
@@ -159,6 +160,7 @@ describe('size limits', () => {
     ['TIMER_START.label', FIXTURES.TIMER_START, 'label', MAX_LABEL_LENGTH],
     ['TIMER_PAUSE.id', FIXTURES.TIMER_PAUSE, 'id', MAX_ID_LENGTH],
     ['TIMER_RESUME.id', FIXTURES.TIMER_RESUME, 'id', MAX_ID_LENGTH],
+    ['TIMER_RESET.id', FIXTURES.TIMER_RESET, 'id', MAX_ID_LENGTH],
     ['TIMER_EXPIRED.id', FIXTURES.TIMER_EXPIRED, 'id', MAX_ID_LENGTH],
     ['TIMER_EXPIRED.label', FIXTURES.TIMER_EXPIRED, 'label', MAX_LABEL_LENGTH],
   ] as const)('%s accepts max length and rejects one more', (_name, fixture, field, max) => {
@@ -205,6 +207,7 @@ describe('number constraints', () => {
     expect(accepts({ ...FIXTURES.SCORE_UPDATE, scores: { p1: n } })).toBe(false)
     expect(accepts({ ...FIXTURES.BUZZ, timestamp: n })).toBe(false)
     expect(accepts({ ...FIXTURES.TIMER_START, duration: n })).toBe(false)
+    expect(accepts({ ...FIXTURES.TIMER_RESET, duration: n })).toBe(false)
     expect(accepts({ ...FIXTURES.SLIDE_CHANGE, index: n })).toBe(false)
     expect(accepts({ ...FIXTURES.SLIDE_CHANGE, roundIndex: n })).toBe(false)
     const state = { ...FIXTURES.GAME_STATE.state, currentRoundIdx: n }
@@ -222,6 +225,7 @@ describe('number constraints', () => {
 
   it('rejects negative durations and timestamps', () => {
     expect(accepts({ ...FIXTURES.TIMER_START, duration: -1 })).toBe(false)
+    expect(accepts({ ...FIXTURES.TIMER_RESET, duration: -1 })).toBe(false)
     expect(accepts({ ...FIXTURES.BUZZ, timestamp: -1 })).toBe(false)
   })
 

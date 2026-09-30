@@ -31,6 +31,8 @@ export type GameEvent =
   | { type: 'TIMER_PAUSE'; id: string }
   /** Resumes the named timer from its paused position. */
   | { type: 'TIMER_RESUME'; id: string }
+  /** Resets the named timer to its full duration, paused. */
+  | { type: 'TIMER_RESET'; id: string; duration: number }
   /** Notifies players that a timer has reached zero. */
   | { type: 'TIMER_EXPIRED'; id: string; label: string }
   /** Full game-state snapshot sent to newly connected players. */

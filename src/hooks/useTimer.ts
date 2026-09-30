@@ -318,7 +318,7 @@ export async function applyAutoReset(
     const patch = { paused: true, remaining: t.duration, startedAt: null } as Partial<Timer>
     await db.timers.update(t.id, patch)
     onReset?.(t.id, patch)
-    transportManager.send({ type: 'TIMER_PAUSE', id: t.id })
+    transportManager.send({ type: 'TIMER_RESET', id: t.id, duration: t.duration })
   }
 }
 
