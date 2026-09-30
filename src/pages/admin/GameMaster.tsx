@@ -23,7 +23,7 @@ import {
 import { useNavigation } from '@/hooks/useNavigation'
 import { useKeyNav } from '@/hooks/useKeyNav'
 import { useBuzzer } from '@/hooks/useBuzzer'
-import { useTimerList, applyAutoReset } from '@/hooks/useTimer'
+import { useTimerList } from '@/hooks/useTimer'
 import { useGameLifecycle } from '@/hooks/useGameLifecycle'
 import { TimerPanel } from '@/components/timer/TimerPanel'
 import type { Game, Player, Team } from '@/db'
@@ -326,12 +326,7 @@ function ActiveGame({ game, players, onGameChange, lifecycle }: ActiveGameProps)
     const prev = prevPos.current
     prevPos.current = pos
     const changeType = pos.roundIdx !== prev.roundIdx ? 'round' : 'question'
-    void applyAutoReset(timerHookRef.current.timers, changeType).then(() => {
-      // Sync local state after DB writes
-      timerHookRef.current.timers
-        .filter(t => t.autoReset !== 'none')
-        .forEach(t => timerHookRef.current.pauseTimer(t.id).catch(() => {}))
-    })
+    void timerHookRef.current.autoReset(changeType)
   }, [pos])
 
   // Expose handleIncomingBuzz upward via the onBuzz prop bridge
