@@ -85,11 +85,12 @@ export function useBuzzer(
 
   const setLocked = useCallback(
     async (locked: boolean) => {
-      // Update the ref immediately so a second call before re-render sees the new state
+      // Update the ref and parent state before the DB write so neither a second call nor
+      // a re-render during the await (which resyncs gameRef from props) sees the old state
       const updated = { ...gameRef.current, buzzerLocked: locked, updatedAt: Date.now() }
       gameRef.current = updated
-      await db.games.update(updated.id, { buzzerLocked: locked, updatedAt: updated.updatedAt })
       onGameChange?.(updated)
+      await db.games.update(updated.id, { buzzerLocked: locked, updatedAt: updated.updatedAt })
       transportManager.send(locked ? { type: 'BUZZER_LOCK' } : { type: 'BUZZER_UNLOCK' })
     },
     [onGameChange]
