@@ -10,9 +10,13 @@ import {
 import {
   MAX_ID_LENGTH,
   MAX_LABEL_LENGTH,
+  MAX_LOBBY_TEAMS,
+  MAX_MEDIA_LENGTH,
   MAX_NAME_LENGTH,
+  MAX_OPTIONS,
   MAX_SCORE_ENTRIES,
   MAX_STATUS_LENGTH,
+  MAX_TEXT_LENGTH,
 } from '@/transport/messages'
 import type { SerializedGameState, TransportEvent } from '@/transport/types'
 import { serialiseGameState } from '@/pages/admin/gamemaster-utils'
@@ -46,12 +50,45 @@ const FIXTURES: { [K in TransportEvent['type']]: Extract<TransportEvent, { type:
       scores: { p1: 10, t1: 4 },
     },
   },
-  VISIBILITY: { type: 'VISIBILITY', showQuestion: true, showAnswers: false, showMedia: true },
+  VISIBILITY: {
+    type: 'VISIBILITY',
+    target: 'players',
+    showQuestion: true,
+    showAnswers: false,
+    showMedia: true,
+  },
   GAME_STATUS: { type: 'GAME_STATUS', status: 'paused' },
-  BUZZ: { type: 'BUZZ', playerId: 'p1', playerName: 'Alice', timestamp: 1234.5 },
-  JOIN: { type: 'JOIN', playerId: 'p1', playerName: 'Alice', teamId: 'team1', deviceId: 'd1' },
-  LEAVE: { type: 'LEAVE', playerId: 'p1' },
-  FOCUS_CHANGE: { type: 'FOCUS_CHANGE', playerId: 'p1', away: true },
+  LOBBY_INFO: {
+    type: 'LOBBY_INFO',
+    teams: [{ id: 'team1', name: 'Owls' }],
+    allowIndividual: true,
+    allowPlayerTeams: false,
+  },
+  JOIN_PENDING: { type: 'JOIN_PENDING' },
+  JOIN_ACCEPTED: { type: 'JOIN_ACCEPTED', playerId: 'p1', teamId: 'team1' },
+  JOIN_REJECTED: { type: 'JOIN_REJECTED', reason: 'Late join is closed' },
+  // Nullable fields carry values here so the wrong-type checks below are meaningful
+  QUESTION_CONTENT: {
+    type: 'QUESTION_CONTENT',
+    target: 'screen',
+    questionId: 'q1',
+    title: 'Capital of France?',
+    description: 'Pick one',
+    options: ['Paris', 'Lyon'],
+    answer: 'Paris',
+    media: 'https://example.com/a.png',
+    mediaType: 'image',
+  },
+  BUZZ: { type: 'BUZZ', timestamp: 1234.5 },
+  JOIN: {
+    type: 'JOIN',
+    playerName: 'Alice',
+    deviceId: 'd1',
+    teamId: 'team1',
+    newTeamName: 'Owls',
+  },
+  LEAVE: { type: 'LEAVE' },
+  FOCUS_CHANGE: { type: 'FOCUS_CHANGE', away: true },
 }
 
 const CASES = Object.values(FIXTURES).map(f => [f.type, f] as const)
@@ -132,8 +169,43 @@ describe('TransportEventSchema', () => {
     )
   })
 
-  it('accepts a JOIN with a null teamId', () => {
-    expect(TransportEventSchema.safeParse({ ...FIXTURES.JOIN, teamId: null }).success).toBe(true)
+  it('accepts a JOIN with a null teamId and newTeamName', () => {
+    const join = { ...FIXTURES.JOIN, teamId: null, newTeamName: null }
+    expect(TransportEventSchema.safeParse(join).success).toBe(true)
+  })
+
+  it.each(['BUZZ', 'LEAVE', 'FOCUS_CHANGE'] as const)(
+    'rejects a self-claimed playerId on %s',
+    type => {
+      expect(accepts({ ...FIXTURES[type], playerId: 'someone-else' })).toBe(false)
+    }
+  )
+
+  it('rejects a self-claimed playerId on JOIN', () => {
+    expect(accepts({ ...FIXTURES.JOIN, playerId: 'p1' })).toBe(false)
+  })
+
+  it('accepts QUESTION_CONTENT with every hidden field null', () => {
+    const hidden = {
+      ...FIXTURES.QUESTION_CONTENT,
+      title: null,
+      description: null,
+      options: null,
+      answer: null,
+      media: null,
+      mediaType: null,
+    }
+    expect(accepts(hidden)).toBe(true)
+  })
+
+  it('rejects an unknown visibility target', () => {
+    expect(accepts({ ...FIXTURES.VISIBILITY, target: 'everyone' })).toBe(false)
+    expect(accepts({ ...FIXTURES.QUESTION_CONTENT, target: 'everyone' })).toBe(false)
+  })
+
+  it('rejects extra fields on a LOBBY_INFO team', () => {
+    const teams = [{ id: 'team1', name: 'Owls', score: 3 }]
+    expect(accepts({ ...FIXTURES.LOBBY_INFO, teams })).toBe(false)
   })
 })
 
@@ -148,14 +220,17 @@ const accepts = (raw: unknown) => TransportEventSchema.safeParse(raw).success
 
 describe('size limits', () => {
   it.each([
-    ['BUZZ.playerName', FIXTURES.BUZZ, 'playerName', MAX_NAME_LENGTH],
     ['JOIN.playerName', FIXTURES.JOIN, 'playerName', MAX_NAME_LENGTH],
-    ['BUZZ.playerId', FIXTURES.BUZZ, 'playerId', MAX_ID_LENGTH],
-    ['JOIN.playerId', FIXTURES.JOIN, 'playerId', MAX_ID_LENGTH],
+    ['JOIN.newTeamName', FIXTURES.JOIN, 'newTeamName', MAX_NAME_LENGTH],
     ['JOIN.teamId', FIXTURES.JOIN, 'teamId', MAX_ID_LENGTH],
     ['JOIN.deviceId', FIXTURES.JOIN, 'deviceId', MAX_ID_LENGTH],
-    ['LEAVE.playerId', FIXTURES.LEAVE, 'playerId', MAX_ID_LENGTH],
-    ['FOCUS_CHANGE.playerId', FIXTURES.FOCUS_CHANGE, 'playerId', MAX_ID_LENGTH],
+    ['JOIN_ACCEPTED.playerId', FIXTURES.JOIN_ACCEPTED, 'playerId', MAX_ID_LENGTH],
+    ['JOIN_ACCEPTED.teamId', FIXTURES.JOIN_ACCEPTED, 'teamId', MAX_ID_LENGTH],
+    ['JOIN_REJECTED.reason', FIXTURES.JOIN_REJECTED, 'reason', MAX_TEXT_LENGTH],
+    ['QUESTION_CONTENT.questionId', FIXTURES.QUESTION_CONTENT, 'questionId', MAX_ID_LENGTH],
+    ['QUESTION_CONTENT.title', FIXTURES.QUESTION_CONTENT, 'title', MAX_TEXT_LENGTH],
+    ['QUESTION_CONTENT.description', FIXTURES.QUESTION_CONTENT, 'description', MAX_TEXT_LENGTH],
+    ['QUESTION_CONTENT.answer', FIXTURES.QUESTION_CONTENT, 'answer', MAX_TEXT_LENGTH],
     ['TIMER_START.id', FIXTURES.TIMER_START, 'id', MAX_ID_LENGTH],
     ['TIMER_START.label', FIXTURES.TIMER_START, 'label', MAX_LABEL_LENGTH],
     ['TIMER_PAUSE.id', FIXTURES.TIMER_PAUSE, 'id', MAX_ID_LENGTH],
@@ -166,6 +241,33 @@ describe('size limits', () => {
   ] as const)('%s accepts max length and rejects one more', (_name, fixture, field, max) => {
     expect(accepts({ ...fixture, [field]: 'a'.repeat(max) })).toBe(true)
     expect(accepts({ ...fixture, [field]: 'a'.repeat(max + 1) })).toBe(false)
+  })
+
+  it('bounds QUESTION_CONTENT options: count and length', () => {
+    const q = FIXTURES.QUESTION_CONTENT
+    expect(accepts({ ...q, options: Array(MAX_OPTIONS).fill('a') })).toBe(true)
+    expect(accepts({ ...q, options: Array(MAX_OPTIONS + 1).fill('a') })).toBe(false)
+    expect(accepts({ ...q, options: ['a'.repeat(MAX_TEXT_LENGTH + 1)] })).toBe(false)
+  })
+
+  it('bounds QUESTION_CONTENT media', () => {
+    const q = FIXTURES.QUESTION_CONTENT
+    expect(accepts({ ...q, media: 'a'.repeat(MAX_MEDIA_LENGTH) })).toBe(true)
+    expect(accepts({ ...q, media: 'a'.repeat(MAX_MEDIA_LENGTH + 1) })).toBe(false)
+  })
+
+  it('bounds LOBBY_INFO teams: count, id and name', () => {
+    const team = (i: number) => ({ id: `t${i}`, name: `Team ${i}` })
+    const info = FIXTURES.LOBBY_INFO
+    const many = (n: number) => Array.from({ length: n }, (_, i) => team(i))
+    expect(accepts({ ...info, teams: many(MAX_LOBBY_TEAMS) })).toBe(true)
+    expect(accepts({ ...info, teams: many(MAX_LOBBY_TEAMS + 1) })).toBe(false)
+    expect(accepts({ ...info, teams: [{ id: 'x'.repeat(MAX_ID_LENGTH + 1), name: 'A' }] })).toBe(
+      false
+    )
+    expect(accepts({ ...info, teams: [{ id: 't', name: 'x'.repeat(MAX_NAME_LENGTH + 1) }] })).toBe(
+      false
+    )
   })
 
   it('rejects an oversized playerName (1 MB)', () => {
@@ -280,6 +382,6 @@ describe('parseTransportEvent', () => {
   it('drops an oversized payload in production', () => {
     vi.stubEnv('DEV', false)
     vi.spyOn(console, 'warn').mockImplementation(() => {})
-    expect(parseTransportEvent({ ...FIXTURES.BUZZ, playerName: 'x'.repeat(10_000) })).toBeNull()
+    expect(parseTransportEvent({ ...FIXTURES.JOIN, playerName: 'x'.repeat(10_000) })).toBeNull()
   })
 })

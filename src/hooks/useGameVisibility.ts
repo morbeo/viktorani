@@ -76,8 +76,10 @@ export function useGameVisibility(game: Game): UseGameVisibilityResult {
           updatedAt: Date.now(),
         })
 
+        // Single set of flags until per-target visibility lands (#268): it drives phones
         transportManager.send({
           type: 'VISIBILITY',
+          target: 'players',
           showQuestion: next.showQuestion,
           showAnswers: next.showAnswers,
           showMedia: next.showMedia,
