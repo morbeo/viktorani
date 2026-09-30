@@ -1,6 +1,6 @@
 // @vitest-pool vmForks
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { ToastProvider } from '@/components/ui'
 import DebugInfo from '@/components/settings/DebugInfo'
@@ -15,6 +15,9 @@ vi.mock('@/buildInfo', () => ({
     ref: 'master',
   },
 }))
+
+const seedDemo = vi.fn(async () => {})
+vi.mock('@/db/demo', () => ({ seedDemo: () => seedDemo(), DEMO_GAME_NAME: 'Demo Night' }))
 
 function renderAt(url: string) {
   return render(
@@ -62,5 +65,12 @@ describe('DebugInfo', () => {
       'href',
       'https://github.com/morbeo/viktorani/actions/runs/424242'
     )
+  })
+
+  it('loads demo data from the panel', async () => {
+    renderAt('/admin/settings?debug=1')
+    fireEvent.click(screen.getByRole('button', { name: /load demo data/i }))
+    await waitFor(() => expect(seedDemo).toHaveBeenCalledOnce())
+    expect(await screen.findByText(/Demo data loaded/)).toBeInTheDocument()
   })
 })

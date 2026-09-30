@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Copy } from 'lucide-react'
+import { Copy, Database } from 'lucide-react'
 import { Button, Icon, useToast } from '@/components/ui'
 import { db } from '@/db'
 import { buildInfo } from '@/buildInfo'
@@ -62,6 +62,7 @@ export default function DebugInfo() {
 function DebugPanel() {
   const { addToast } = useToast()
   const [asyncInfo, setAsyncInfo] = useState<AsyncInfo | null>(null)
+  const [loadingDemo, setLoadingDemo] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -104,6 +105,19 @@ function DebugPanel() {
     { label: 'User agent', value: navigator.userAgent },
   ]
 
+  async function handleLoadDemo() {
+    setLoadingDemo(true)
+    try {
+      const { seedDemo, DEMO_GAME_NAME } = await import('@/db/demo')
+      await seedDemo()
+      addToast(`Demo data loaded: open "${DEMO_GAME_NAME}" in Games`)
+    } catch {
+      addToast('Could not load demo data', { variant: 'error' })
+    } finally {
+      setLoadingDemo(false)
+    }
+  }
+
   async function handleCopy() {
     const text = rows.map(r => `${r.label}: ${r.value}${r.href ? ` (${r.href})` : ''}`).join('\n')
     try {
@@ -122,13 +136,20 @@ function DebugPanel() {
             Debug
           </h2>
           <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
-            Build and runtime info for bug reports. Hide with ?debug=0
+            Build and runtime info for bug reports. Demo data adds sample questions, rounds,
+            teams and a ready-to-run game; loading it twice adds nothing. Hide with ?debug=0
           </p>
         </div>
-        <Button variant="secondary" size="sm" onClick={handleCopy}>
-          <Icon icon={Copy} size="sm" />
-          Copy
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" size="sm" onClick={handleLoadDemo} disabled={loadingDemo}>
+            <Icon icon={Database} size="sm" />
+            Load demo data
+          </Button>
+          <Button variant="secondary" size="sm" onClick={handleCopy}>
+            <Icon icon={Copy} size="sm" />
+            Copy
+          </Button>
+        </div>
       </div>
 
       <dl
