@@ -7,15 +7,39 @@ import type { TransportEvent } from './types'
 // unknown fields are rejected so host/player payload drift fails loudly.
 // Keep in sync with `./types` — the contract tests assert the inferred types
 // match exactly.
+//
+// Payloads come from untrusted peers, so every string, record and number is
+// bounded: oversized or non-finite values are rejected before they reach the
+// host's state or UI. Note: in zod 4 `z.number()` already rejects `NaN` and
+// `±Infinity`, so no explicit `.finite()` is needed.
 
-const scores = z.record(z.string(), z.number())
+// ── Limits ────────────────────────────────────────────────────────────────────
+
+/** Max length of any entity id (player, team, device, game, timer). */
+export const MAX_ID_LENGTH = 64
+/** Max length of a player name. */
+export const MAX_NAME_LENGTH = 64
+/** Max length of a timer label. */
+export const MAX_LABEL_LENGTH = 200
+/** Max length of a game status string. */
+export const MAX_STATUS_LENGTH = 32
+/** Max number of entries in a scores record. */
+export const MAX_SCORE_ENTRIES = 500
+
+const id = z.string().max(MAX_ID_LENGTH)
+const name = z.string().max(MAX_NAME_LENGTH)
+const label = z.string().max(MAX_LABEL_LENGTH)
+const index = z.number().int().nonnegative()
+
+const scoreCountOk = (r: object) => Object.keys(r).length <= MAX_SCORE_ENTRIES
+const scores = z.record(id, z.number()).refine(scoreCountOk, 'Too many score entries')
 
 /** Schema for {@link SerializedGameState}. */
 export const SerializedGameStateSchema = z.strictObject({
-  gameId: z.string(),
-  status: z.string(),
-  currentRoundIdx: z.number(),
-  currentQuestionIdx: z.number(),
+  gameId: id,
+  status: z.string().max(MAX_STATUS_LENGTH),
+  currentRoundIdx: index,
+  currentQuestionIdx: index,
   buzzerLocked: z.boolean(),
   showQuestion: z.boolean(),
   showAnswers: z.boolean(),
@@ -27,24 +51,24 @@ export const SerializedGameStateSchema = z.strictObject({
 export const GameEventSchemas = {
   SLIDE_CHANGE: z.strictObject({
     type: z.literal('SLIDE_CHANGE'),
-    index: z.number(),
-    roundIndex: z.number(),
+    index,
+    roundIndex: index,
   }),
   BUZZER_LOCK: z.strictObject({ type: z.literal('BUZZER_LOCK') }),
   BUZZER_UNLOCK: z.strictObject({ type: z.literal('BUZZER_UNLOCK') }),
   SCORE_UPDATE: z.strictObject({ type: z.literal('SCORE_UPDATE'), scores }),
   TIMER_START: z.strictObject({
     type: z.literal('TIMER_START'),
-    id: z.string(),
-    duration: z.number(),
-    label: z.string(),
+    id,
+    duration: z.number().nonnegative(),
+    label,
   }),
-  TIMER_PAUSE: z.strictObject({ type: z.literal('TIMER_PAUSE'), id: z.string() }),
-  TIMER_RESUME: z.strictObject({ type: z.literal('TIMER_RESUME'), id: z.string() }),
+  TIMER_PAUSE: z.strictObject({ type: z.literal('TIMER_PAUSE'), id }),
+  TIMER_RESUME: z.strictObject({ type: z.literal('TIMER_RESUME'), id }),
   TIMER_EXPIRED: z.strictObject({
     type: z.literal('TIMER_EXPIRED'),
-    id: z.string(),
-    label: z.string(),
+    id,
+    label,
   }),
   GAME_STATE: z.strictObject({ type: z.literal('GAME_STATE'), state: SerializedGameStateSchema }),
   VISIBILITY: z.strictObject({
@@ -63,21 +87,21 @@ export const GameEventSchemas = {
 export const PlayerEventSchemas = {
   BUZZ: z.strictObject({
     type: z.literal('BUZZ'),
-    playerId: z.string(),
-    playerName: z.string(),
-    timestamp: z.number(),
+    playerId: id,
+    playerName: name,
+    timestamp: z.number().nonnegative(),
   }),
   JOIN: z.strictObject({
     type: z.literal('JOIN'),
-    playerId: z.string(),
-    playerName: z.string(),
-    teamId: z.string().nullable(),
-    deviceId: z.string(),
+    playerId: id,
+    playerName: name,
+    teamId: id.nullable(),
+    deviceId: id,
   }),
-  LEAVE: z.strictObject({ type: z.literal('LEAVE'), playerId: z.string() }),
+  LEAVE: z.strictObject({ type: z.literal('LEAVE'), playerId: id }),
   FOCUS_CHANGE: z.strictObject({
     type: z.literal('FOCUS_CHANGE'),
-    playerId: z.string(),
+    playerId: id,
     away: z.boolean(),
   }),
 }
