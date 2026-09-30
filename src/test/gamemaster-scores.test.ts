@@ -238,7 +238,7 @@ describe('loadBuzzesForQuestion', () => {
   })
 
   it('returns an empty array when no buzzes exist for a question', async () => {
-    const buzzes = await loadBuzzesForQuestion('q1')
+    const buzzes = await loadBuzzesForQuestion('g1', 'q1')
     expect(buzzes).toHaveLength(0)
   })
 
@@ -247,7 +247,7 @@ describe('loadBuzzesForQuestion', () => {
       makeBuzz({ id: 'b1', questionId: 'q1', timestamp: 100 }),
       makeBuzz({ id: 'b2', questionId: 'q2', timestamp: 200 }),
     ])
-    const buzzes = await loadBuzzesForQuestion('q1')
+    const buzzes = await loadBuzzesForQuestion('g1', 'q1')
     expect(buzzes).toHaveLength(1)
     expect(buzzes[0].id).toBe('b1')
   })
@@ -258,7 +258,7 @@ describe('loadBuzzesForQuestion', () => {
       makeBuzz({ id: 'b1', questionId: 'q1', playerId: 'p1', timestamp: 100 }),
       makeBuzz({ id: 'b3', questionId: 'q1', playerId: 'p3', timestamp: 200 }),
     ])
-    const buzzes = await loadBuzzesForQuestion('q1')
+    const buzzes = await loadBuzzesForQuestion('g1', 'q1')
     expect(buzzes.map(b => b.id)).toEqual(['b1', 'b3', 'b2'])
   })
 })

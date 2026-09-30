@@ -33,7 +33,7 @@ export interface UseBuzzerResult {
    * No-op if the buzz is already decided or no longer exists.
    */
   adjudicate: (buzzId: string, decision: GmDecision) => Promise<void>
-  /** Delete all buzz records for a question (e.g. when moving to the next question). */
+  /** Delete this game's buzz records for a question. */
   clearBuzzes: (questionId: string) => Promise<void>
 }
 
@@ -82,6 +82,21 @@ export function useBuzzer(
   useEffect(() => {
     gameRef.current = game
   })
+
+  // Load stored buzzes whenever the question changes, so history survives navigation and reloads
+  useEffect(() => {
+    if (!questionId) {
+      setBuzzes([])
+      return
+    }
+    let cancelled = false
+    void loadBuzzesForQuestion(game.id, questionId).then(rows => {
+      if (!cancelled) setBuzzes(rows)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [game.id, questionId])
 
   // ── Lock / Unlock ────────────────────────────────────────────────────────
 
@@ -190,7 +205,11 @@ export function useBuzzer(
   // ── Clear ────────────────────────────────────────────────────────────────
 
   const clearBuzzes = useCallback(async (qId: string) => {
-    await db.buzzEvents.where('questionId').equals(qId).delete()
+    await db.buzzEvents
+      .where('gameId')
+      .equals(gameRef.current.id)
+      .and(b => b.questionId === qId)
+      .delete()
     setBuzzes([])
   }, [])
 
@@ -216,12 +235,20 @@ export function useBuzzer(
  * Load existing buzz events for a question from IndexedDB.
  *
  * @remarks
- * Call this when the current question changes to hydrate `useBuzzer`'s local state.
+ * `useBuzzer` calls this whenever the current question changes to hydrate its local state.
  * Results are sorted by timestamp ascending so the display order matches arrival order.
  *
+ * @param gameId - The game the buzzes belong to (questions can be shared between games).
  * @param questionId - The question whose buzz history to load.
  * @returns Array of {@link BuzzEvent} records sorted by timestamp.
  */
-export async function loadBuzzesForQuestion(questionId: string): Promise<BuzzEvent[]> {
-  return db.buzzEvents.where('questionId').equals(questionId).sortBy('timestamp')
+export async function loadBuzzesForQuestion(
+  gameId: string,
+  questionId: string
+): Promise<BuzzEvent[]> {
+  return db.buzzEvents
+    .where('gameId')
+    .equals(gameId)
+    .and(b => b.questionId === questionId)
+    .sortBy('timestamp')
 }
