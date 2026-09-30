@@ -305,6 +305,67 @@ describe('applyAutoReset', () => {
   })
 })
 
+// ── useTimerList.autoReset ────────────────────────────────────────────────────
+
+describe('useTimerList.autoReset', () => {
+  beforeEach(async () => {
+    await db.timers.where('gameId').equals(GAME_ID).delete()
+    vi.mocked(transportManager.send).mockClear()
+  })
+
+  it('shows full duration in local state and DB after a question change (#248)', async () => {
+    const q = makeTimer({ autoReset: 'question', paused: false, startedAt: Date.now() - 10_000 })
+    const r = makeTimer({ autoReset: 'round', paused: false, startedAt: Date.now() - 10_000 })
+    await db.timers.bulkAdd([q, r])
+    const { result } = renderHook(() => useTimerList(GAME_ID))
+    await flush()
+
+    await act(async () => {
+      await result.current.autoReset('question')
+    })
+
+    const local = result.current.timers.find(x => x.id === q.id)
+    expect(local).toMatchObject({ paused: true, remaining: 60, startedAt: null })
+    expect(await db.timers.get(q.id)).toMatchObject({
+      paused: true,
+      remaining: 60,
+      startedAt: null,
+    })
+    expect(result.current.remaining(q.id)).toBe(60)
+
+    // Round-reset timer is untouched by a question change
+    expect(result.current.timers.find(x => x.id === r.id)).toMatchObject({ paused: false })
+    expect(await db.timers.get(r.id)).toMatchObject({ paused: false, startedAt: r.startedAt })
+  })
+
+  it('resets a question timer that was paused mid-run', async () => {
+    const t = makeTimer({ autoReset: 'question', paused: true, startedAt: null, remaining: 42 })
+    await db.timers.add(t)
+    const { result } = renderHook(() => useTimerList(GAME_ID))
+    await flush()
+
+    await act(async () => {
+      await result.current.autoReset('question')
+    })
+
+    expect(result.current.timers[0].remaining).toBe(60)
+    expect((await db.timers.get(t.id))?.remaining).toBe(60)
+  })
+
+  it('resets question timers on a round change', async () => {
+    const t = makeTimer({ autoReset: 'question', paused: false, startedAt: Date.now() - 5_000 })
+    await db.timers.add(t)
+    const { result } = renderHook(() => useTimerList(GAME_ID))
+    await flush()
+
+    await act(async () => {
+      await result.current.autoReset('round')
+    })
+
+    expect(result.current.timers[0]).toMatchObject({ paused: true, remaining: 60 })
+  })
+})
+
 // ── EditTimerModal ────────────────────────────────────────────────────────────
 
 const noop = () => {}

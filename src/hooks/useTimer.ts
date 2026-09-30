@@ -21,6 +21,7 @@ export interface UseTimerListResult {
   resumeAll: () => Promise<void>
   restartAll: () => Promise<void>
   deleteAll: () => Promise<void>
+  autoReset: (changeType: NavChangeType) => Promise<void>
   remaining: (id: string) => number
 }
 
@@ -184,6 +185,11 @@ export function useTimerList(gameId: string): UseTimerListResult {
     setTimers([])
   }, [])
 
+  const autoReset = useCallback(
+    (changeType: NavChangeType) => applyAutoReset(timersRef.current, changeType, updateLocal),
+    [updateLocal]
+  )
+
   return {
     timers,
     createTimer,
@@ -197,6 +203,7 @@ export function useTimerList(gameId: string): UseTimerListResult {
     resumeAll,
     restartAll,
     deleteAll,
+    autoReset,
     remaining,
   }
 }
@@ -294,18 +301,23 @@ export type NavChangeType = 'question' | 'round'
 
 /**
  * Pauses and restores timers whose autoReset matches the navigation change.
- * Call from ActiveGame whenever pos changes.
+ * Prefer `useTimerList().autoReset`, which also updates the hook's local state via `onReset`.
  */
-export async function applyAutoReset(timers: Timer[], changeType: NavChangeType) {
+export async function applyAutoReset(
+  timers: Timer[],
+  changeType: NavChangeType,
+  onReset?: (id: string, patch: Partial<Timer>) => void
+) {
   for (const t of timers) {
     if (t.autoReset === 'none') continue
+    // A round change also moves to a new question
     const matches =
-      t.autoReset === 'any' ||
-      t.autoReset === changeType ||
-      (t.autoReset === 'round' && changeType === 'round')
-    if (!matches || (t.paused && t.startedAt === null)) continue
+      t.autoReset === 'any' || t.autoReset === changeType || t.autoReset === 'question'
+    const atRest = t.paused && t.startedAt === null && t.remaining === t.duration
+    if (!matches || atRest) continue
     const patch = { paused: true, remaining: t.duration, startedAt: null } as Partial<Timer>
     await db.timers.update(t.id, patch)
+    onReset?.(t.id, patch)
     transportManager.send({ type: 'TIMER_PAUSE', id: t.id })
   }
 }
