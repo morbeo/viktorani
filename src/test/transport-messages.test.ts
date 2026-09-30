@@ -16,7 +16,7 @@ import {
 } from '@/transport/messages'
 import type { SerializedGameState, TransportEvent } from '@/transport/types'
 import { serialiseGameState } from '@/pages/admin/gamemaster-utils'
-import type { Game, Player } from '@/db'
+import type { Game } from '@/db'
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -43,7 +43,7 @@ const FIXTURES: { [K in TransportEvent['type']]: Extract<TransportEvent, { type:
       showQuestion: true,
       showAnswers: false,
       showMedia: true,
-      scores: { p1: 10 },
+      scores: { p1: 10, t1: 4 },
     },
   },
   VISIBILITY: { type: 'VISIBILITY', showQuestion: true, showAnswers: false, showMedia: true },
@@ -248,8 +248,7 @@ describe('production payload builders', () => {
       showAnswers: false,
       showMedia: true,
     } as Game
-    const players = [{ id: 'p1', score: 7 } as Player, { id: 'p2', score: 0 } as Player]
-    const event = { type: 'GAME_STATE', state: serialiseGameState(game, players) }
+    const event = { type: 'GAME_STATE', state: serialiseGameState(game, { p1: 7, p2: 0, t1: 3 }) }
     expect(TransportEventSchema.safeParse(event).success).toBe(true)
   })
 })

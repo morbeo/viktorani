@@ -14,22 +14,6 @@ vi.mock('@/transport', () => ({
   },
 }))
 
-vi.mock('@/db', () => {
-  const games = new Map<string, Game>()
-  return {
-    db: {
-      games: {
-        update: vi.fn(async (id: string, patch: Partial<Game>) => {
-          const existing = games.get(id)
-          if (existing) games.set(id, { ...existing, ...patch })
-          return 1
-        }),
-        _store: games,
-      },
-    },
-  }
-})
-
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
 function makeGame(overrides: Partial<Game> = {}): Game {
@@ -81,11 +65,13 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
 // calling it outside React. The hook returns stable callbacks (useCallback
 // with no closing-over state) so this is safe.
 import { renderHook } from '@testing-library/react'
+import { db } from '@/db'
 import { useGameLifecycle } from '@/hooks/useGameLifecycle'
 
-beforeEach(() => {
+beforeEach(async () => {
   mockSend.mockClear()
   mockDisconnect.mockClear()
+  await Promise.all([db.games.clear(), db.players.clear(), db.teams.clear()])
 })
 
 describe('useGameLifecycle — pauseGame', () => {
@@ -140,20 +126,23 @@ describe('useGameLifecycle — resumeGame', () => {
 describe('useGameLifecycle — endGame', () => {
   it('returns a game with status="ended"', async () => {
     const { result } = renderHook(() => useGameLifecycle())
-    const updated = await result.current.endGame(makeGame(), [])
+    const updated = await result.current.endGame(makeGame())
     expect(updated.status).toBe('ended')
   })
 
   it('emits GAME_STATUS { status: "ended" }', async () => {
     const { result } = renderHook(() => useGameLifecycle())
-    await result.current.endGame(makeGame(), [])
+    await result.current.endGame(makeGame())
     expect(mockSend).toHaveBeenCalledWith({ type: 'GAME_STATUS', status: 'ended' })
   })
 
-  it('emits GAME_STATE snapshot before disconnecting', async () => {
+  it('emits GAME_STATE snapshot with player and team scores from the DB', async () => {
+    await Promise.all([
+      db.players.add(makePlayer({ score: 42, teamId: 't1' })),
+      db.teams.add({ id: 't1', gameId: 'g1', name: 'Owls', color: '#000', icon: 'Zap', score: 9 }),
+    ])
     const { result } = renderHook(() => useGameLifecycle())
-    const players = [makePlayer({ score: 42 })]
-    await result.current.endGame(makeGame(), players)
+    await result.current.endGame(makeGame())
 
     const stateCall = mockSend.mock.calls.find(
       (args: unknown[]) => (args[0] as { type: string }).type === 'GAME_STATE'
@@ -161,12 +150,12 @@ describe('useGameLifecycle — endGame', () => {
     expect(stateCall).toBeDefined()
     const stateEvent = stateCall![0] as { type: string; state: { status: string; scores: Record<string, number> } }
     expect(stateEvent.state.status).toBe('ended')
-    expect(stateEvent.state.scores['p1']).toBe(42)
+    expect(stateEvent.state.scores).toEqual({ p1: 42, t1: 9 })
   })
 
   it('disconnects transport after emitting', async () => {
     const { result } = renderHook(() => useGameLifecycle())
-    await result.current.endGame(makeGame(), [])
+    await result.current.endGame(makeGame())
     expect(mockDisconnect).toHaveBeenCalledOnce()
   })
 
@@ -176,7 +165,7 @@ describe('useGameLifecycle — endGame', () => {
     mockDisconnect.mockImplementation(() => callOrder.push('disconnect'))
 
     const { result } = renderHook(() => useGameLifecycle())
-    await result.current.endGame(makeGame(), [])
+    await result.current.endGame(makeGame())
 
     const stateIdx = callOrder.indexOf('GAME_STATE')
     const disconnectIdx = callOrder.indexOf('disconnect')
