@@ -224,6 +224,39 @@ describe('TransportManager', () => {
       expect(received[0]).toEqual(event)
     })
 
+    it('drops events that fail the message contract in production', async () => {
+      vi.stubEnv('DEV', false)
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const mock = makeMockTransport('peer')
+      vi.spyOn(internals(manager), 'tryTransport').mockImplementation(async () => {
+        internals(manager).transport = mock
+      })
+      await manager.connect(BASE_CONFIG)
+
+      const handler = vi.fn()
+      manager.onEvent(handler)
+      const capturedHandler = (mock.onEvent as ReturnType<typeof vi.fn>).mock.calls[0][0]
+      capturedHandler({ type: 'SLIDE_CHANGE', idx: 2, roundIndex: 0 })
+
+      expect(handler).not.toHaveBeenCalled()
+      expect(warn).toHaveBeenCalledOnce()
+      vi.unstubAllEnvs()
+      warn.mockRestore()
+    })
+
+    it('throws on events that fail the message contract in development', async () => {
+      vi.stubEnv('DEV', true)
+      const mock = makeMockTransport('peer')
+      vi.spyOn(internals(manager), 'tryTransport').mockImplementation(async () => {
+        internals(manager).transport = mock
+      })
+      await manager.connect(BASE_CONFIG)
+
+      const capturedHandler = (mock.onEvent as ReturnType<typeof vi.fn>).mock.calls[0][0]
+      expect(() => capturedHandler({ type: 'BUZZ', playerId: 'p1' })).toThrow(/invalid event/i)
+      vi.unstubAllEnvs()
+    })
+
     it('returns an unsubscribe function', () => {
       const handler = vi.fn()
       const unsub = manager.onEvent(handler)

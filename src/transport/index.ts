@@ -1,3 +1,4 @@
+import { parseTransportEvent } from './messages'
 import type {
   ITransport,
   TransportConfig,
@@ -8,6 +9,13 @@ import type {
 
 export type { TransportConfig, TransportEvent, TransportStatus, TransportType }
 export type { GameEvent, PlayerEvent, SerializedGameState } from './types'
+export {
+  GameEventSchemas,
+  PlayerEventSchemas,
+  SerializedGameStateSchema,
+  TransportEventSchema,
+  parseTransportEvent,
+} from './messages'
 
 // ── Secure random helper ──────────────────────────────────────────────────────
 
@@ -183,9 +191,10 @@ export class TransportManager {
       }
     }
 
-    // Forward all events to registered handlers
-    this.transport!.onEvent(event => {
-      this.eventHandlers.forEach(h => h(event))
+    // Validate against the message contract, then forward to registered handlers
+    this.transport!.onEvent(raw => {
+      const event = parseTransportEvent(raw)
+      if (event) this.eventHandlers.forEach(h => h(event))
     })
 
     this.notifyStatus()
