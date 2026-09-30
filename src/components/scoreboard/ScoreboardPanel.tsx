@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { Plus, Minus, ChevronDown, ChevronRight, Medal } from 'lucide-react'
 import { useScoreboard } from '@/hooks/useScoreboard'
-import { Icon } from '@/components/ui'
+import { Icon, useControlSizeStep, pickBySize } from '@/components/ui'
 import type { Game } from '@/db'
 
 interface FlashState {
@@ -26,6 +26,9 @@ export function ScoreboardPanel({ game }: ScoreboardPanelProps) {
   const { entries, adjust, defaultIncrement } = useScoreboard(game)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [flash, setFlash] = useState<FlashState | null>(null)
+  const step = useControlSizeStep()
+  const adjustSize = pickBySize(step, ['w-6 h-6', 'w-7 h-7', 'w-9 h-9'] as const)
+  const memberAdjustSize = pickBySize(step, ['w-5 h-5', 'w-6 h-6', 'w-8 h-8'] as const)
 
   const triggerFlash = useCallback((id: string, delta: number) => {
     setFlash({ id, delta })
@@ -174,7 +177,7 @@ export function ScoreboardPanel({ game }: ScoreboardPanelProps) {
                   {/* Adjust buttons */}
                   <div className="flex items-center gap-1 shrink-0">
                     <button
-                      className="w-7 h-7 rounded flex items-center justify-center transition-colors"
+                      className={`${adjustSize} rounded flex items-center justify-center transition-colors`}
                       style={{
                         background: 'var(--color-red)18',
                         color: 'var(--color-red)',
@@ -185,7 +188,7 @@ export function ScoreboardPanel({ game }: ScoreboardPanelProps) {
                       <Icon icon={Minus} size="sm" />
                     </button>
                     <button
-                      className="w-7 h-7 rounded flex items-center justify-center transition-colors"
+                      className={`${adjustSize} rounded flex items-center justify-center transition-colors`}
                       style={{
                         background: 'var(--color-green)18',
                         color: 'var(--color-green)',
@@ -245,7 +248,7 @@ export function ScoreboardPanel({ game }: ScoreboardPanelProps) {
                           </span>
                           <div className="flex items-center gap-1 shrink-0">
                             <button
-                              className="w-6 h-6 rounded flex items-center justify-center"
+                              className={`${memberAdjustSize} rounded flex items-center justify-center`}
                               style={{
                                 background: 'var(--color-red)18',
                                 color: 'var(--color-red)',
@@ -258,7 +261,7 @@ export function ScoreboardPanel({ game }: ScoreboardPanelProps) {
                               <Icon icon={Minus} size="sm" />
                             </button>
                             <button
-                              className="w-6 h-6 rounded flex items-center justify-center"
+                              className={`${memberAdjustSize} rounded flex items-center justify-center`}
                               style={{
                                 background: 'var(--color-green)18',
                                 color: 'var(--color-green)',

@@ -3,7 +3,15 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import { QrCode, Rocket, Copy, Check } from 'lucide-react'
 import AdminLayout from '@/components/AdminLayout'
-import { Button, TransportPill, Icon, useToast } from '@/components/ui'
+import {
+  Button,
+  TransportPill,
+  Icon,
+  useToast,
+  ControlSizeContext,
+  ControlSizePicker,
+} from '@/components/ui'
+import type { ControlSize } from '@/components/ui'
 import { NavHeader } from '@/components/NavHeader'
 import { RoundBoundary } from '@/components/RoundBoundary'
 import { BuzzerPanel } from '@/components/buzzer/BuzzerPanel'
@@ -23,6 +31,7 @@ import {
 } from '@/pages/admin/gamemaster-utils'
 import { useNavigation } from '@/hooks/useNavigation'
 import { useKeyNav } from '@/hooks/useKeyNav'
+import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { useBuzzer } from '@/hooks/useBuzzer'
 import { useTimerList } from '@/hooks/useTimer'
 import { useGameLifecycle } from '@/hooks/useGameLifecycle'
@@ -107,7 +116,10 @@ function Lobby({
             Lobby · waiting for players
           </p>
         </div>
-        <TransportPill status={status} type={type} />
+        <div className="flex items-center gap-2">
+          <ControlSizePicker />
+          <TransportPill status={status} type={type} />
+        </div>
       </div>
 
       {/* Error banner */}
@@ -454,6 +466,7 @@ export default function GameMaster() {
   const [soloBypass, setSoloBypass] = useState(false)
   const [starting, setStarting] = useState(false)
   const [notFound, setNotFound] = useState(false)
+  const [controlSize, setControlSize] = useLocalStorage<ControlSize>('gm-control-size', 'sm')
 
   const lifecycle = useGameLifecycle()
 
@@ -739,22 +752,24 @@ export default function GameMaster() {
   if (game.status === 'waiting') {
     return (
       <AdminLayout>
-        <Lobby
-          game={game}
-          players={players}
-          teams={teams}
-          status={status}
-          type={type}
-          soloBypass={soloBypass}
-          onToggleSolo={() => setSoloBypass(s => !s)}
-          onStart={handleStart}
-          starting={starting}
-          onKick={handleKick}
-          onCreateTeam={handleCreateTeam}
-          onAssignPlayer={handleAssignPlayer}
-          onImportFromManaged={handleImportFromManaged}
-          onGameChange={applyGamePatch}
-        />
+        <ControlSizeContext.Provider value={{ size: controlSize, setSize: setControlSize }}>
+          <Lobby
+            game={game}
+            players={players}
+            teams={teams}
+            status={status}
+            type={type}
+            soloBypass={soloBypass}
+            onToggleSolo={() => setSoloBypass(s => !s)}
+            onStart={handleStart}
+            starting={starting}
+            onKick={handleKick}
+            onCreateTeam={handleCreateTeam}
+            onAssignPlayer={handleAssignPlayer}
+            onImportFromManaged={handleImportFromManaged}
+            onGameChange={applyGamePatch}
+          />
+        </ControlSizeContext.Provider>
       </AdminLayout>
     )
   }
@@ -762,12 +777,14 @@ export default function GameMaster() {
   // Active / paused / ended — navigation view
   return (
     <AdminLayout>
-      <ActiveGame
-        game={game}
-        onGameChange={applyGamePatch}
-        lifecycle={lifecycle}
-        buzzHandlerRef={buzzHandlerRef}
-      />
+      <ControlSizeContext.Provider value={{ size: controlSize, setSize: setControlSize }}>
+        <ActiveGame
+          game={game}
+          onGameChange={applyGamePatch}
+          lifecycle={lifecycle}
+          buzzHandlerRef={buzzHandlerRef}
+        />
+      </ControlSizeContext.Provider>
     </AdminLayout>
   )
 }
