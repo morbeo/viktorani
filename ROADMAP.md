@@ -34,20 +34,22 @@ Epic: #243
 
 Epic: #244
 
-Blocked on decisions (see below).
-
+- [ ] Remove the Gun transport: `GunTransport`, passphrase, `auto` mode, Gun settings/UI, README section
 - [ ] Join flow (`Join.tsx` is a stub): room code/QR → name → team
 - [ ] Play screen connects and sends JOIN / BUZZ / LEAVE / FOCUS_CHANGE
-- [ ] Host sends question content per visibility settings
-- [ ] Host validates the player identity instead of trusting self-claimed `playerId`
+- [ ] Host binds players to their PeerJS connection instead of trusting self-claimed `playerId`
+- [ ] Late join / rejoin / host approval: three independent game settings
+- [ ] Per-target visibility (projector vs. phones) for question / answers / media; host sends content accordingly
 - [ ] Buzz ordering by host receive time (`tiebreakerMode: 'serverOrder'`)
 - [ ] Projector/screen route (Layouts)
 - [ ] Align or trim the e2e specs with the real UI
 
-## Decisions needed
+## Decisions (2026-09-30)
 
-- Where do questions appear: player phones, projector, or both?
-- Include the passphrase in the join QR code?
-- Player identity model (device id vs. host-issued token)
-- Keep the Gun transport (currently broken: globals never loaded) or drop it?
-- Late join / rejoin policy
+Full text in #244.
+
+- **Gun transport:** dropped; PeerJS only.
+- **QR contents:** room code only (no passphrase without Gun).
+- **Question display:** the game master sets visibility per target (projector, phones).
+- **Player identity:** bound to the PeerJS connection; the device id only matches rejoins.
+- **Late join / rejoin:** separate host toggles for late join, rejoin, and host approval.
