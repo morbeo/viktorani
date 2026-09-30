@@ -2,15 +2,14 @@ import type { Game, Player, Team } from '@/db'
 import type { SerializedGameState } from '@/transport/types'
 
 /**
- * Serialises a Game + player list into the wire format broadcast to players
- * on GAME_STATE events. Pure function — no DB access, easy to test.
+ * Serialises a Game + score map into the wire format broadcast to players
+ * on GAME_STATE events. Pass the scores from `readScores` so they match the
+ * latest SCORE_UPDATE. Pure function — no DB access, easy to test.
  */
-export function serialiseGameState(game: Game, players: Player[]): SerializedGameState {
-  const scores: Record<string, number> = {}
-  for (const p of players) {
-    scores[p.id] = p.score
-  }
-
+export function serialiseGameState(
+  game: Game,
+  scores: Record<string, number>
+): SerializedGameState {
   return {
     gameId: game.id,
     status: game.status,

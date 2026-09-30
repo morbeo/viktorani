@@ -31,10 +31,10 @@ export interface UseScoreboardResult {
 }
 
 /**
- * Broadcast every player and team score of a game as one `SCORE_UPDATE`.
- * The single emitter for score changes (manual adjustments and adjudication).
+ * Read every player and team score of a game from the DB, keyed by player or team id.
+ * The one source for the scores sent in `SCORE_UPDATE` and `GAME_STATE`.
  */
-export async function broadcastScores(gameId: string): Promise<void> {
+export async function readScores(gameId: string): Promise<Record<string, number>> {
   const [players, teams] = await Promise.all([
     db.players.where('gameId').equals(gameId).toArray(),
     db.teams.where('gameId').equals(gameId).toArray(),
@@ -42,7 +42,15 @@ export async function broadcastScores(gameId: string): Promise<void> {
   const scores: Record<string, number> = {}
   for (const p of players) scores[p.id] = p.score
   for (const t of teams) scores[t.id] = t.score
-  transportManager.send({ type: 'SCORE_UPDATE', scores })
+  return scores
+}
+
+/**
+ * Broadcast every player and team score of a game as one `SCORE_UPDATE`.
+ * The single emitter for score changes (manual adjustments and adjudication).
+ */
+export async function broadcastScores(gameId: string): Promise<void> {
+  transportManager.send({ type: 'SCORE_UPDATE', scores: await readScores(gameId) })
 }
 
 /**

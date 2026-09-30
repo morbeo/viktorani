@@ -75,6 +75,7 @@ export interface SerializedGameState {
   showQuestion: boolean
   showAnswers: boolean
   showMedia: boolean
+  /** Current player and team scores keyed by player or team ID, as in `SCORE_UPDATE`. */
   scores: Record<string, number>
 }
 

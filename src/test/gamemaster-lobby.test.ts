@@ -54,7 +54,7 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
 
 describe('serialiseGameState', () => {
   it('maps all game fields correctly', () => {
-    const state = serialiseGameState(BASE_GAME, [])
+    const state = serialiseGameState(BASE_GAME, {})
     expect(state.gameId).toBe('g1')
     expect(state.status).toBe('waiting')
     expect(state.currentRoundIdx).toBe(0)
@@ -65,26 +65,19 @@ describe('serialiseGameState', () => {
     expect(state.showMedia).toBe(true)
   })
 
-  it('builds scores map from players', () => {
-    const players = [makePlayer({ id: 'p1', score: 10 }), makePlayer({ id: 'p2', score: 25 })]
-    const state = serialiseGameState(BASE_GAME, players)
-    expect(state.scores).toEqual({ p1: 10, p2: 25 })
+  it('passes the player and team score map through', () => {
+    const state = serialiseGameState(BASE_GAME, { p1: 10, p2: 25, t1: 30 })
+    expect(state.scores).toEqual({ p1: 10, p2: 25, t1: 30 })
   })
 
-  it('returns empty scores when no players', () => {
-    const state = serialiseGameState(BASE_GAME, [])
+  it('returns empty scores when there are none', () => {
+    const state = serialiseGameState(BASE_GAME, {})
     expect(state.scores).toEqual({})
-  })
-
-  it('includes away players in scores', () => {
-    const players = [makePlayer({ id: 'p1', score: 5, isAway: true })]
-    const state = serialiseGameState(BASE_GAME, players)
-    expect(state.scores['p1']).toBe(5)
   })
 
   it('reflects updated game status after start', () => {
     const active = { ...BASE_GAME, status: 'active' as const }
-    expect(serialiseGameState(active, []).status).toBe('active')
+    expect(serialiseGameState(active, {}).status).toBe('active')
   })
 })
 
