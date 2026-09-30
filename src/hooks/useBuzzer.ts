@@ -29,6 +29,7 @@ export interface UseBuzzerResult {
   /**
    * Record the GM's ruling on a specific buzz.
    * On `'Correct'`, awards points (if scoring is enabled) and optionally auto-locks.
+   * No-op if the buzz is already decided or no longer exists.
    */
   adjudicate: (buzzId: string, decision: GmDecision) => Promise<void>
   /** Delete all buzz records for a question (e.g. when moving to the next question). */
