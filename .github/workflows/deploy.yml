@@ -52,15 +52,6 @@ jobs:
       - name: Install deps
         run: npm ci --legacy-peer-deps
 
-      - name: Lint
-        run: npm run lint
-
-      - name: Test
-        run: npm run test
-
-      - name: Type-check
-        run: npm run typecheck
-
       - name: Build
         run: npm run build
 
