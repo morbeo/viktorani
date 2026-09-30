@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, type RefObject } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import { QrCode, Rocket, Copy, Check } from 'lucide-react'
@@ -288,9 +288,12 @@ interface ActiveGameProps {
   players: Player[]
   onGameChange: (updated: Game) => void
   lifecycle: import('@/hooks/useGameLifecycle').UseGameLifecycleResult
+  buzzHandlerRef: RefObject<BuzzHandler | null>
 }
 
-function ActiveGame({ game, players, onGameChange, lifecycle }: ActiveGameProps) {
+type BuzzHandler = ReturnType<typeof useBuzzer>['handleIncomingBuzz']
+
+function ActiveGame({ game, players, onGameChange, lifecycle, buzzHandlerRef }: ActiveGameProps) {
   const [showBoundary, setShowBoundary] = useState(false)
   const [boundaryEntry, setBoundaryEntry] = useState<
     import('@/pages/admin/gamemaster-utils').NavEntry | null
@@ -329,12 +332,14 @@ function ActiveGame({ game, players, onGameChange, lifecycle }: ActiveGameProps)
     void timerHookRef.current.autoReset(changeType)
   }, [pos])
 
-  // Expose handleIncomingBuzz upward via the onBuzz prop bridge
+  // Hand handleIncomingBuzz to the parent's transport listener; cleared on unmount
+  // so buzzes are never recorded against a game that is no longer open
   useEffect(() => {
-    // Re-register whenever handleIncomingBuzz identity changes (questionId changed)
-    // The parent GameMaster calls onBuzz which delegates here
-    ;(window as unknown as Record<string, unknown>)['__vkt_handleBuzz'] = handleIncomingBuzz
-  }, [handleIncomingBuzz])
+    buzzHandlerRef.current = handleIncomingBuzz
+    return () => {
+      buzzHandlerRef.current = null
+    }
+  }, [buzzHandlerRef, handleIncomingBuzz])
 
   // Space = toggle buzzer lock (only when no modal open)
   useEffect(() => {
@@ -470,6 +475,7 @@ export default function GameMaster() {
 
   const gameRef = useRef<Game | null>(null)
   const playersRef = useRef<Player[]>([])
+  const buzzHandlerRef = useRef<BuzzHandler | null>(null)
 
   useEffect(() => {
     gameRef.current = game
@@ -573,15 +579,8 @@ export default function GameMaster() {
       }
 
       if (event.type === 'BUZZ') {
-        // Delegate to the ActiveGame's useBuzzer via window bridge
-        const handler = (window as unknown as Record<string, unknown>)['__vkt_handleBuzz'] as
-          | ((p: {
-              playerId: string
-              playerName: string
-              teamId: string | null
-              timestamp: number
-            }) => Promise<void>)
-          | undefined
+        // Delegate to the mounted ActiveGame's useBuzzer
+        const handler = buzzHandlerRef.current
         if (handler) {
           void handler({
             playerId: event.playerId,
@@ -760,7 +759,13 @@ export default function GameMaster() {
   // Active / paused / ended — navigation view
   return (
     <AdminLayout>
-      <ActiveGame game={game} players={players} onGameChange={setGame} lifecycle={lifecycle} />
+      <ActiveGame
+        game={game}
+        players={players}
+        onGameChange={setGame}
+        lifecycle={lifecycle}
+        buzzHandlerRef={buzzHandlerRef}
+      />
     </AdminLayout>
   )
 }
