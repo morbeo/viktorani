@@ -68,6 +68,8 @@ describe('deleteGame', () => {
     await createGame({ ...game, id: 'g2' }, rounds)
     for (const gameId of ['g1', 'g2']) {
       await db.teams.add({ id: `t-${gameId}`, gameId, name: 'T', color: '', icon: '', score: 0 })
+      await db.players.add({ id: `p-${gameId}`, gameId } as never)
+      await db.buzzEvents.add({ id: `b-${gameId}`, gameId } as never)
       await db.timers.add({ id: `tm-${gameId}`, gameId } as never)
       await db.layouts.add({ id: `l-${gameId}`, gameId } as never)
       await db.widgets.add({ id: `w-${gameId}`, layoutId: `l-${gameId}` } as never)
@@ -78,6 +80,8 @@ describe('deleteGame', () => {
     expect(await db.games.get('g1')).toBeUndefined()
     expect(await db.gameQuestions.where('gameId').equals('g1').count()).toBe(0)
     expect(await db.teams.get('t-g1')).toBeUndefined()
+    expect(await db.players.get('p-g1')).toBeUndefined()
+    expect(await db.buzzEvents.get('b-g1')).toBeUndefined()
     expect(await db.timers.get('tm-g1')).toBeUndefined()
     expect(await db.layouts.get('l-g1')).toBeUndefined()
     expect(await db.widgets.get('w-g1')).toBeUndefined()

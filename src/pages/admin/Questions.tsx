@@ -633,7 +633,7 @@ export default function Questions() {
           })
         }
       }
-      // gameQuestions has no questionId index
+      // gameQuestions has no questionId index. Buzz history for these questions is kept.
       await db.gameQuestions.filter(gq => ids.includes(gq.questionId)).delete()
     })
     setSelected(new Set())
