@@ -2,12 +2,45 @@ import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import type { Plugin } from 'vite'
+
+// GitHub Pages can't send headers, so the CSP ships as a <meta> tag. It is
+// injected only into production builds: the dev server relies on inline
+// scripts (React Refresh preamble), inline <style> tags and ws: for HMR.
+// Note: frame-ancestors is ignored in meta CSP, so it is omitted.
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com",
+  "img-src 'self' data: blob: https:",
+  "media-src 'self' data: blob: https:",
+  "connect-src 'self' https://0.peerjs.com wss://0.peerjs.com",
+  "worker-src 'self'",
+  "manifest-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+].join('; ')
+
+const cspMeta = (): Plugin => ({
+  name: 'csp-meta',
+  apply: 'build',
+  transformIndexHtml: () => [
+    {
+      tag: 'meta',
+      attrs: { 'http-equiv': 'Content-Security-Policy', content: CSP },
+      injectTo: 'head-prepend',
+    },
+  ],
+})
 
 export default defineConfig({
   base: '/viktorani/',
   plugins: [
     react(),
     tailwindcss(),
+    cspMeta(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icon-192.png', 'icon-512.png'],
