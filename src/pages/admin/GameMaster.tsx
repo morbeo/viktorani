@@ -11,6 +11,7 @@ import { ScoreboardPanel } from '@/components/scoreboard/ScoreboardPanel'
 import { RosterPanel } from '@/components/gamemaster/RosterPanel'
 import { TeamManagerPanel } from '@/components/gamemaster/TeamManagerPanel'
 import { GameControls } from '@/components/gamemaster/GameControls'
+import { JoinPolicyPanel } from '@/components/gamemaster/JoinPolicyPanel'
 import { db } from '@/db'
 import { transportManager } from '@/transport'
 import {
@@ -61,6 +62,7 @@ interface LobbyProps {
   onCreateTeam: (name: string, color: string, icon: string) => Promise<void>
   onAssignPlayer: (playerId: string, teamId: string | null) => Promise<void>
   onImportFromManaged: () => Promise<void>
+  onGameChange: (patch: Partial<Game>) => void
 }
 
 function Lobby({
@@ -77,6 +79,7 @@ function Lobby({
   onCreateTeam,
   onAssignPlayer,
   onImportFromManaged,
+  onGameChange,
 }: LobbyProps) {
   const activePlayers = players.filter(p => !p.isAway)
   const canStart = soloBypass || (status === 'connected' && activePlayers.length > 0)
@@ -201,6 +204,7 @@ function Lobby({
             onAssignPlayer={onAssignPlayer}
             onImportFromManaged={onImportFromManaged}
           />
+          <JoinPolicyPanel game={game} onGameChange={onGameChange} />
         </div>
       </div>
 
@@ -422,6 +426,9 @@ function ActiveGame({ game, onGameChange, lifecycle, buzzHandlerRef }: ActiveGam
 
           {/* Timers — hidden when ended */}
           {!isEnded && <TimerPanel gameId={game.id} hook={timerHook} />}
+
+          {/* Join policy — hidden when ended */}
+          {!isEnded && <JoinPolicyPanel game={game} onGameChange={onGameChange} />}
 
           {/* Scoreboard — always visible; ScoreboardPanel itself gates on scoringEnabled */}
           <ScoreboardPanel game={game} />
@@ -726,6 +733,7 @@ export default function GameMaster() {
           onCreateTeam={handleCreateTeam}
           onAssignPlayer={handleAssignPlayer}
           onImportFromManaged={handleImportFromManaged}
+          onGameChange={applyGamePatch}
         />
       </AdminLayout>
     )
