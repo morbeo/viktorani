@@ -1,10 +1,15 @@
 import type { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes } from 'react'
+import { useControlSizeStep } from './controlSize'
 import { X, Network, CircleDot, CircleOff } from 'lucide-react'
 import { Icon } from './Icon'
 import type { TransportStatus, TransportType } from '@/transport/types'
 
 export { Icon } from './Icon'
 export { Steps } from './Steps'
+export { ControlSizePicker } from './ControlSizePicker'
+// eslint-disable-next-line react-refresh/only-export-components
+export { ControlSizeContext, useControlSizeStep, pickBySize } from './controlSize'
+export type { ControlSize, ControlSizeContextValue } from './controlSize'
 export type { StepConfig } from './Steps'
 export { ToastProvider } from './Toast'
 // eslint-disable-next-line react-refresh/only-export-components
@@ -41,6 +46,16 @@ const btnSizes: Record<BtnSize, string> = {
   lg: 'px-6 py-3 text-base',
 }
 
+// Ladder used when a game master control size shifts a button up or down a step
+const btnLadder = [
+  'px-2 py-1 text-xs',
+  btnSizes.sm,
+  btnSizes.md,
+  btnSizes.lg,
+  'px-7 py-3.5 text-lg',
+]
+const btnLadderIdx: Record<BtnSize, number> = { sm: 1, md: 2, lg: 3 }
+
 const btnStyles: Record<BtnVariant, React.CSSProperties> = {
   primary: { background: 'var(--color-ink)', color: 'var(--color-cream)' },
   secondary: {
@@ -59,9 +74,11 @@ export function Button({
   style,
   ...props
 }: ButtonProps) {
+  const step = useControlSizeStep()
+  const sizeClass = btnLadder[btnLadderIdx[size] + step]
   return (
     <button
-      className={`${btnBase} ${btnVariants[variant]} ${btnSizes[size]}`}
+      className={`${btnBase} ${btnVariants[variant]} ${sizeClass}`}
       style={{ ...btnStyles[variant], ...style }}
       {...props}
     >

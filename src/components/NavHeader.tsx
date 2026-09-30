@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { Icon } from '@/components/ui'
+import { Icon, useControlSizeStep, pickBySize } from '@/components/ui'
 import type { NavEntry, NavPosition } from '@/pages/admin/gamemaster-utils'
 
 interface NavHeaderProps {
@@ -26,6 +26,7 @@ interface NavHeaderProps {
  * indicator respects any future theme without component changes.
  */
 export function NavHeader({ pos, seq, onPrev, onNext }: NavHeaderProps) {
+  const arrowSize = pickBySize(useControlSizeStep(), ['w-6 h-6', 'w-8 h-8', 'w-10 h-10'] as const)
   // Build per-round summaries from the flat sequence
   const rounds = buildRoundSummaries(seq)
 
@@ -39,7 +40,7 @@ export function NavHeader({ pos, seq, onPrev, onNext }: NavHeaderProps) {
         onClick={onPrev}
         disabled={pos.isFirst}
         aria-label="Previous question"
-        className="w-8 h-8 rounded flex items-center justify-center transition-all hover:bg-black/5 disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+        className={`${arrowSize} rounded flex items-center justify-center transition-all hover:bg-black/5 disabled:opacity-30 disabled:cursor-not-allowed shrink-0`}
         style={{ color: 'var(--color-ink)' }}
       >
         <Icon icon={ChevronLeft} size="md" />
@@ -85,7 +86,7 @@ export function NavHeader({ pos, seq, onPrev, onNext }: NavHeaderProps) {
         onClick={onNext}
         disabled={pos.isLast}
         aria-label="Next question"
-        className="w-8 h-8 rounded flex items-center justify-center transition-all hover:bg-black/5 disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+        className={`${arrowSize} rounded flex items-center justify-center transition-all hover:bg-black/5 disabled:opacity-30 disabled:cursor-not-allowed shrink-0`}
         style={{ color: 'var(--color-ink)' }}
       >
         <Icon icon={ChevronRight} size="md" />
