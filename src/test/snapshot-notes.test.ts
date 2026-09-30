@@ -29,10 +29,10 @@ describe('importNoteFile', () => {
     expect(name).toBe('session prep')
   })
 
-  it('strips HTML tags from content', async () => {
-    const file = makeFile('<b>bold</b> and <em>italic</em>', 'note.md')
+  it('preserves angle brackets in content', async () => {
+    const file = makeFile('a < b > c', 'note.md')
     const { content } = await importNoteFile(file)
-    expect(content).toBe('bold and italic')
+    expect(content).toBe('a < b > c')
   })
 
   it('falls back to "Imported note" when filename is empty after sanitizing', async () => {

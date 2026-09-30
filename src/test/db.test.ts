@@ -562,6 +562,33 @@ describe('importDatabase', () => {
     expect(await db.tags.get('t1')).toBeDefined()
     expect(await db.questions.get('q1')).toBeDefined()
   })
+
+  it('preserves angle brackets in note content', async () => {
+    const { importDatabase } = await import('@/db/snapshot')
+    const now = Date.now()
+    await importDatabase(
+      await makeFile({
+        version: 2,
+        exportedAt: now,
+        difficulties: [],
+        tags: [],
+        questions: [],
+        rounds: [],
+        games: [],
+        notes: [
+          {
+            id: 'n1',
+            name: 'Test Note',
+            content: 'a < b > c',
+            createdAt: now,
+            updatedAt: now,
+          },
+        ],
+      })
+    )
+    const note = await db.notes.get('n1')
+    expect(note?.content).toBe('a < b > c')
+  })
 })
 
 // ── exportDatabase ────────────────────────────────────────────────────────────
