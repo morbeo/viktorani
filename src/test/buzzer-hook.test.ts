@@ -203,4 +203,41 @@ describe('useBuzzer scoring (#246)', () => {
 
     expect((await db.players.get('p1'))?.score).toBe(1)
   })
+
+  it('awards points only once when Correct is clicked twice (#247)', async () => {
+    const game = makeGame({ buzzerLocked: false })
+    await Promise.all([
+      db.games.add(game),
+      db.players.add(player),
+      db.questions.add({ ...question, difficulty: null }),
+    ])
+    const { result } = renderBuzzer(game)
+
+    await buzz(result)
+    const id = result.current.buzzes[0].id
+    await act(() =>
+      Promise.all([
+        result.current.adjudicate(id, 'Correct'),
+        result.current.adjudicate(id, 'Correct'),
+      ])
+    )
+
+    expect((await db.players.get('p1'))?.score).toBe(1)
+    expect(mockSend.mock.calls.filter(([m]) => m.type === 'SCORE_UPDATE')).toHaveLength(1)
+  })
+
+  it('ignores a second decision on an already decided buzz', async () => {
+    const game = makeGame({ buzzerLocked: false })
+    await Promise.all([db.games.add(game), db.players.add(player), db.questions.add(question)])
+    const { result } = renderBuzzer(game)
+
+    await buzz(result)
+    const id = result.current.buzzes[0].id
+    await act(() => result.current.adjudicate(id, 'Incorrect'))
+    await act(() => result.current.adjudicate(id, 'Correct'))
+
+    expect((await db.buzzEvents.get(id))?.gmDecision).toBe('Incorrect')
+    expect(result.current.buzzes[0].gmDecision).toBe('Incorrect')
+    expect((await db.players.get('p1'))?.score).toBe(0)
+  })
 })
