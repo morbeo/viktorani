@@ -90,10 +90,15 @@ export function useScoreboard(game: Game): UseScoreboardResult {
     const g = gameRef.current
 
     // Player and team scores are independent; the UI updates via the live queries
-    const table = kind === 'player' ? db.players : db.teams
-    const row = await table.get(id)
-    if (!row) return
-    await table.update(id, { score: applyScoreDelta(row.score, delta) })
+    // modify() is an atomic read-modify-write, so a concurrent adjudication isn't overwritten
+    const bump = (r: { score: number }) => {
+      r.score = applyScoreDelta(r.score, delta)
+    }
+    const changed =
+      kind === 'player'
+        ? await db.players.where('id').equals(id).modify(bump)
+        : await db.teams.where('id').equals(id).modify(bump)
+    if (!changed) return
 
     await broadcastScores(g.id)
   }, [])
