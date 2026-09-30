@@ -4,6 +4,11 @@ import { db } from '@/db'
 import { applyAutoReset } from '@/hooks/useTimer'
 import type { Timer } from '@/db'
 
+// Suppress transportManager.send side-effects
+vi.mock('@/transport', () => ({
+  transportManager: { send: vi.fn() },
+}))
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 async function clearAll() {
@@ -75,10 +80,6 @@ describe('timer remaining calculation', () => {
 describe('applyAutoReset', () => {
   beforeEach(async () => {
     await clearAll()
-    // Suppress transportManager.send side-effects
-    vi.mock('@/transport', () => ({
-      transportManager: { send: vi.fn() },
-    }))
   })
 
   async function seedTimer(t: Timer) {
