@@ -11,6 +11,7 @@ vi.mock('@/transport', () => ({
 import { db } from '@/db'
 import { transportManager } from '@/transport'
 import { useBuzzer } from '@/hooks/useBuzzer'
+import { useGameLifecycle } from '@/hooks/useGameLifecycle'
 import type { BuzzEvent, Game, Player, Question } from '@/db'
 
 const mockSend = transportManager.send as MockedFunction<typeof transportManager.send>
@@ -72,18 +73,23 @@ const question: Question = {
   updatedAt: 0,
 }
 
-/** Renders useBuzzer with `game` held in state, as GameMaster does. */
+/** Renders useBuzzer with `game` held in state, merging patches as GameMaster does. */
 function renderBuzzer(initial: Game) {
   const onGameChange = vi.fn()
+  let game = initial
+  const applyPatch = (patch: Partial<Game>) => {
+    game = { ...game, ...patch }
+    hook.rerender({ game })
+  }
   const hook = renderHook(
     ({ game }: { game: Game }) =>
-      useBuzzer(game, 'q1', updated => {
-        onGameChange(updated)
-        hook.rerender({ game: updated })
+      useBuzzer(game, 'q1', patch => {
+        onGameChange(patch)
+        applyPatch(patch)
       }),
     { initialProps: { game: initial } }
   )
-  return { ...hook, onGameChange }
+  return { ...hook, onGameChange, applyPatch, getGame: () => game }
 }
 
 async function buzz(result: { current: ReturnType<typeof useBuzzer> }) {
@@ -171,6 +177,43 @@ describe('useBuzzer lock state (#245)', () => {
 })
 
 // ── Scoring ───────────────────────────────────────────────────────────────────
+
+describe('overlapping lock and pause (#282)', () => {
+  it('a lock toggle while a pause is being written does not revert the pause', async () => {
+    const game = makeGame({ buzzerLocked: true, status: 'active' })
+    await db.games.add(game)
+    const { result, applyPatch, getGame } = renderBuzzer(game)
+    const lifecycle = renderHook(() => useGameLifecycle()).result.current
+
+    await act(async () => {
+      const pausing = lifecycle.pauseGame(getGame())
+      await result.current.toggleLock()
+      applyPatch(await pausing)
+    })
+
+    expect(getGame()).toMatchObject({ status: 'paused', buzzerLocked: false })
+    expect(result.current.isLocked).toBe(false)
+    expect(await db.games.get('g1')).toMatchObject({ status: 'paused', buzzerLocked: false })
+  })
+
+  it('a pause landing while a lock toggle is being written does not revert the lock', async () => {
+    const game = makeGame({ buzzerLocked: false, status: 'active' })
+    await db.games.add(game)
+    const { result, applyPatch, getGame } = renderBuzzer(game)
+    const lifecycle = renderHook(() => useGameLifecycle()).result.current
+    const before = getGame()
+
+    await act(async () => {
+      const locking = result.current.toggleLock()
+      applyPatch(await lifecycle.pauseGame(before))
+      await locking
+    })
+
+    expect(getGame()).toMatchObject({ status: 'paused', buzzerLocked: true })
+    expect(result.current.isLocked).toBe(true)
+    expect(await db.games.get('g1')).toMatchObject({ status: 'paused', buzzerLocked: true })
+  })
+})
 
 describe('useBuzzer scoring (#246)', () => {
   it("awards the question's difficulty points on a correct answer", async () => {

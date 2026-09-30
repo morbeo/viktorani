@@ -58,8 +58,9 @@ export interface UseBuzzerResult {
  *
  * @param game - The active game record. Used for configuration flags and IDs.
  * @param questionId - ID of the currently displayed question, or `null` if none.
- * @param onGameChange - Receives the updated game whenever the hook changes
- *   `buzzerLocked`, so the caller's `game` state stays in sync with the DB.
+ * @param onGameChange - Receives a patch (`buzzerLocked`, `updatedAt`) whenever the hook
+ *   changes the lock. The caller should merge it into its current `game` state rather than
+ *   replace the whole object, so concurrent updates to other fields are not reverted.
  *
  * @example
  * ```tsx
@@ -75,7 +76,7 @@ export interface UseBuzzerResult {
 export function useBuzzer(
   game: Game,
   questionId: string | null,
-  onGameChange?: (updated: Game) => void
+  onGameChange?: (patch: Partial<Game>) => void
 ): UseBuzzerResult {
   const [buzzes, setBuzzes] = useState<BuzzEvent[]>([])
   const gameRef = useRef(game)
@@ -101,10 +102,10 @@ export function useBuzzer(
     async (locked: boolean) => {
       // Update the ref and parent state before the DB write so neither a second call nor
       // a re-render during the await (which resyncs gameRef from props) sees the old state
-      const updated = { ...gameRef.current, buzzerLocked: locked, updatedAt: Date.now() }
-      gameRef.current = updated
-      onGameChange?.(updated)
-      await db.games.update(updated.id, { buzzerLocked: locked, updatedAt: updated.updatedAt })
+      const patch = { buzzerLocked: locked, updatedAt: Date.now() }
+      gameRef.current = { ...gameRef.current, ...patch }
+      onGameChange?.(patch)
+      await db.games.update(gameRef.current.id, patch)
       transportManager.send(locked ? { type: 'BUZZER_LOCK' } : { type: 'BUZZER_UNLOCK' })
     },
     [onGameChange]
