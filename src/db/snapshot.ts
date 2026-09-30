@@ -220,12 +220,11 @@ export function exportNote(note: Note): void {
 }
 
 /**
- * Read a `.md` file as sanitized plaintext for use as note content.
- * HTML tags are stripped so only plain markdown syntax is retained.
+ * Read a `.md` file as plaintext for use as note content.
  */
 export async function importNoteFile(file: File): Promise<{ name: string; content: string }> {
   const raw = await file.text()
-  const content = raw.replace(/<[^>]*>/g, '')
+  const content = raw
   const name = file.name.replace(/\.md$/i, '').replace(/[-_]/g, ' ').trim() || 'Imported note'
   return { name, content }
 }
