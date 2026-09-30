@@ -65,6 +65,11 @@ export const GameEventSchemas = {
   }),
   TIMER_PAUSE: z.strictObject({ type: z.literal('TIMER_PAUSE'), id }),
   TIMER_RESUME: z.strictObject({ type: z.literal('TIMER_RESUME'), id }),
+  TIMER_RESET: z.strictObject({
+    type: z.literal('TIMER_RESET'),
+    id,
+    duration: z.number().nonnegative(),
+  }),
   TIMER_EXPIRED: z.strictObject({
     type: z.literal('TIMER_EXPIRED'),
     id,
@@ -115,6 +120,7 @@ export const TransportEventSchema = z.discriminatedUnion('type', [
   GameEventSchemas.TIMER_START,
   GameEventSchemas.TIMER_PAUSE,
   GameEventSchemas.TIMER_RESUME,
+  GameEventSchemas.TIMER_RESET,
   GameEventSchemas.TIMER_EXPIRED,
   GameEventSchemas.GAME_STATE,
   GameEventSchemas.VISIBILITY,

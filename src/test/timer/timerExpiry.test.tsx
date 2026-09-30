@@ -289,7 +289,7 @@ describe('applyAutoReset', () => {
     await db.timers.delete(t.id)
   })
 
-  it('emits TIMER_PAUSE for reset timers', async () => {
+  it('emits TIMER_RESET with the full duration for reset timers (#285)', async () => {
     const t = makeTimer({
       autoReset: 'question',
       paused: false,
@@ -299,7 +299,7 @@ describe('applyAutoReset', () => {
     await db.timers.add(t)
     await applyAutoReset([t], 'question')
     expect(transportManager.send).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'TIMER_PAUSE', id: t.id })
+      expect.objectContaining({ type: 'TIMER_RESET', id: t.id, duration: t.duration })
     )
     await db.timers.delete(t.id)
   })

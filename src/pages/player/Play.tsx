@@ -93,6 +93,14 @@ function usePlayerTimers() {
         prev.map(t => (t.id === event.id ? { ...t, paused: false, startedAt: Date.now() } : t))
       )
     }
+    if (event.type === 'TIMER_RESET') {
+      const { id, duration } = event
+      setTimers(prev =>
+        prev.map(t =>
+          t.id === id ? { ...t, duration, remaining: duration, startedAt: null, paused: true } : t
+        )
+      )
+    }
     if (event.type === 'TIMER_EXPIRED') {
       // Host controls audio/visual flags via transport; players always get both
       // (the host already filtered — if this event arrived, players should react)
@@ -179,6 +187,7 @@ export default function Play() {
           event.type === 'TIMER_START' ||
           event.type === 'TIMER_PAUSE' ||
           event.type === 'TIMER_RESUME' ||
+          event.type === 'TIMER_RESET' ||
           event.type === 'TIMER_EXPIRED'
         ) {
           handleEvent(event as GameEvent)
