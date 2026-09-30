@@ -210,29 +210,11 @@ function Lobby({
         style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
       >
         <span style={{ color: 'var(--color-muted)' }}>
-          Transport:{' '}
-          <strong style={{ color: 'var(--color-ink)' }}>
-            {game.transportMode === 'auto'
-              ? 'Auto'
-              : game.transportMode === 'peer'
-                ? 'PeerJS'
-                : 'Gun.js'}
-          </strong>
-        </span>
-        <span style={{ color: 'var(--color-muted)' }}>
           Rounds: <strong style={{ color: 'var(--color-ink)' }}>{game.roundIds.length}</strong>
         </span>
         {game.scoringEnabled && (
           <span style={{ color: 'var(--color-muted)' }}>
             Scoring: <strong style={{ color: 'var(--color-ink)' }}>on</strong>
-          </span>
-        )}
-        {(game.transportMode === 'gun' || game.transportMode === 'auto') && game.passphrase && (
-          <span style={{ color: 'var(--color-muted)' }}>
-            Passphrase:{' '}
-            <span className="mono" style={{ color: 'var(--color-ink)' }}>
-              {game.passphrase}
-            </span>
           </span>
         )}
       </div>
@@ -524,10 +506,8 @@ export default function GameMaster() {
 
     transportManager
       .connect({
-        mode: game.transportMode,
         role: 'host',
         roomId: game.roomId ?? '',
-        passphrase: game.passphrase ?? '',
       })
       .catch(err => {
         console.error('[GameMaster] Transport connect failed:', err)

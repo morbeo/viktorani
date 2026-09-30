@@ -29,8 +29,7 @@ Your host will display a QR code or read out a room code at the start of the gam
 1. Open **https://morbeo.github.io/viktorani/** in your browser.
 2. Tap **Join Game**.
 3. Enter the six-character room code (e.g. `XK7RQZ`) — it's not case-sensitive.
-4. Enter the passphrase shown by your host (e.g. `tiger-lamp-cloud-seven`).
-5. Enter your name and tap **Join**.
+4. Enter your name and tap **Join**.
 
 > **Teams:** If your host has configured team play, you'll be assigned to a team
 > during the lobby phase. Your host will tell you which team you're on.
@@ -114,15 +113,12 @@ where some guests prefer not to install anything.
 
 - Double-check the room code — the character set avoids `0`, `1`, `I`, and `O`
   to prevent confusion, so `0` and `O` are never valid characters.
-- Make sure the passphrase matches exactly, including hyphens (e.g. `tiger-lamp-cloud-seven`).
 - Ask your host to confirm the game has started (not still in lobby setup).
 
 ### My connection dropped mid-game
 
-- Refresh the page and re-join using the same room code and passphrase.
+- Refresh the page and re-join using the same room code.
 - Your name and score are preserved in the host's session.
-- If the host's transport mode is `Gun.js`, the connection will re-establish automatically
-  within a few seconds without needing to re-join.
 
 ### I can't hear the timer / media
 
@@ -130,9 +126,3 @@ where some guests prefer not to install anything.
 - Some browsers block autoplay of audio until the user has interacted with the page.
   Tap anywhere on the screen once and the audio should start.
 
-### The wrong passphrase error
-
-- Passphrases are case-insensitive but must include the hyphens between words.
-- If you're on the Gun.js transport, the passphrase is used for encryption —
-  a mismatch means you won't receive any events, not that connection fails outright.
-  Ask your host to confirm the passphrase and re-join.

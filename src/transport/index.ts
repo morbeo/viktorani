@@ -25,7 +25,7 @@ export {
  * @remarks
  * Uses `crypto.getRandomValues()` — available in all modern browsers and Node >= 15.
  * Unlike `Math.random()`, the output is suitable for security-sensitive operations
- * such as passphrase generation.
+ * such as room ID generation.
  *
  * @param max - Upper bound (exclusive).
  * @returns A random integer in the range `[0, max)`.
@@ -36,60 +36,7 @@ function secureRandomInt(max: number): number {
   return array[0] % max
 }
 
-// ── Passphrase generator ──────────────────────────────────────────────────────
-
-const WORDS = [
-  'tiger',
-  'lamp',
-  'cloud',
-  'seven',
-  'river',
-  'amber',
-  'frost',
-  'dune',
-  'coral',
-  'echo',
-  'pixel',
-  'flint',
-  'grove',
-  'jade',
-  'blaze',
-  'cedar',
-  'drift',
-  'ember',
-  'flare',
-  'gust',
-  'haven',
-  'iris',
-  'joker',
-  'kite',
-  'lemon',
-  'maple',
-  'noble',
-  'opal',
-  'prism',
-  'quill',
-]
-
-/**
- * Generate a human-readable passphrase from random dictionary words.
- *
- * @remarks
- * Used as the Gun.js SEA encryption key displayed to players via QR code
- * so they don't need to type a hex string.
- *
- * @param wordCount - Number of words to include (default `4`).
- * @returns A hyphen-separated passphrase, e.g. `'tiger-lamp-cloud-seven'`.
- *
- * @example
- * ```ts
- * const passphrase = generatePassphrase()   // 'ember-kite-coral-prism'
- * const short = generatePassphrase(2)       // 'jade-drift'
- * ```
- */
-export function generatePassphrase(wordCount = 4): string {
-  return Array.from({ length: wordCount }, () => WORDS[secureRandomInt(WORDS.length)]).join('-')
-}
+// ── Room ID generator ─────────────────────────────────────────────────────────
 
 /**
  * Generate a random 6-character room ID using an unambiguous character set.
@@ -116,25 +63,20 @@ export function generateRoomId(): string {
 export type StatusListener = (status: TransportStatus, type: TransportType) => void
 
 /**
- * Facade over {@link PeerJSTransport} and {@link GunTransport} that handles
- * mode selection, automatic fallback, and event fan-out.
+ * Facade over {@link PeerJSTransport} that handles connection lifecycle and
+ * event fan-out.
  *
  * @remarks
  * Instantiated as a module-level singleton (`transportManager`). Components
  * and hooks interact with the transport exclusively through this class --
  * never by constructing transport instances directly.
  *
- * **Mode selection** (`config.mode`):
- * - `'peer'` -- use PeerJS only.
- * - `'gun'`  -- use Gun.js only.
- * - `'auto'` -- try PeerJS; if it fails within the timeout, fall back to Gun.js.
- *
- * PeerJS and GunTransport are dynamically imported inside `connect()` so
- * neither appears in the initial bundle.
+ * PeerJS is dynamically imported inside `connect()` so it does not appear in
+ * the initial bundle.
  *
  * @example
  * ```ts
- * await transportManager.connect({ mode: 'auto', role: 'host', roomId, passphrase })
+ * await transportManager.connect({ role: 'host', roomId })
  * const unsub = transportManager.onEvent(event => console.log(event))
  * transportManager.send({ type: 'BUZZER_LOCK' })
  * unsub()
@@ -164,32 +106,17 @@ export class TransportManager {
    * All previously registered event handlers are preserved -- they will receive
    * events from the new connection without needing to re-subscribe.
    *
-   * PeerJS and GunTransport are imported dynamically per branch so they are
-   * excluded from the initial bundle and loaded only when a connection is made.
+   * PeerJS is imported dynamically so it is excluded from the initial bundle
+   * and loaded only when a connection is made.
    *
-   * @param config - Room credentials and transport mode.
-   * @throws If the selected transport fails to connect (non-`'auto'` modes only).
+   * @param config - Room role and code.
+   * @throws If PeerJS fails to connect.
    */
   async connect(config: TransportConfig): Promise<void> {
     await this.disconnect()
 
-    if (config.mode === 'peer') {
-      const { PeerJSTransport } = await import('./PeerJSTransport')
-      await this.tryTransport(new PeerJSTransport(), config)
-    } else if (config.mode === 'gun') {
-      const { GunTransport } = await import('./GunTransport')
-      await this.tryTransport(new GunTransport(), config)
-    } else {
-      // Auto: try PeerJS first, fall back to Gun.js
-      try {
-        const { PeerJSTransport } = await import('./PeerJSTransport')
-        await this.tryTransport(new PeerJSTransport(), config)
-      } catch {
-        console.info('[Transport] PeerJS failed, falling back to Gun.js')
-        const { GunTransport } = await import('./GunTransport')
-        await this.tryTransport(new GunTransport(), config)
-      }
-    }
+    const { PeerJSTransport } = await import('./PeerJSTransport')
+    await this.tryTransport(new PeerJSTransport(), config)
 
     // Validate against the message contract, then forward to registered handlers
     this.transport!.onEvent(raw => {

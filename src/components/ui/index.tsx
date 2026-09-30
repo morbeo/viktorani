@@ -1,5 +1,5 @@
 import type { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes } from 'react'
-import { X, Network, Radio, CircleDot, CircleOff } from 'lucide-react'
+import { X, Network, CircleDot, CircleOff } from 'lucide-react'
 import { Icon } from './Icon'
 import type { TransportStatus, TransportType } from '@/transport/types'
 
@@ -283,7 +283,6 @@ const TRANSPORT_ICON: Record<TransportStatus, typeof Network> = {
 
 function transportTypeIcon(type: TransportType): typeof Network {
   if (type === 'peer') return Network
-  if (type === 'gun') return Radio
   return CircleOff
 }
 
@@ -297,9 +296,7 @@ export function TransportPill({ status, type }: { status: TransportStatus; type:
 
   const label =
     status === 'connected'
-      ? type === 'peer'
-        ? 'PeerJS'
-        : 'Gun.js'
+      ? 'PeerJS'
       : status === 'connecting'
         ? 'Connecting…'
         : 'Offline'

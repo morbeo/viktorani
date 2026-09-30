@@ -13,6 +13,5 @@ labels: bug
 
 ## Environment
 - Browser / Device:
-- Transport (PeerJS / Gun.js / Auto):
 
 <!-- Screenshots or console errors welcome -->

@@ -13,9 +13,7 @@ const GAME = {
   id: 'g1',
   name: 'G',
   status: 'waiting',
-  transportMode: 'auto',
   roomId: null,
-  passphrase: null,
   showQuestion: true,
   showAnswers: false,
   showMedia: true,
@@ -132,6 +130,14 @@ describe('importDatabase — validation', () => {
       buzzDeduplication: 'firstOnly',
       tiebreakerMode: 'serverOrder',
     })
+  })
+
+  it('accepts pre-#265 games with Gun transport fields and drops them', async () => {
+    for (const transportMode of ['auto', 'peer', 'gun']) {
+      const legacy = { ...GAME, transportMode, passphrase: 'a-b-c-d' }
+      await importDatabase(jsonFile(snapshot({ games: [legacy] })))
+      expect(await db.games.get('g1')).toEqual(GAME)
+    }
   })
 
   it('imports a valid snapshot', async () => {

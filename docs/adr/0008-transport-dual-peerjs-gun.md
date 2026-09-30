@@ -1,7 +1,7 @@
 # ADR-0008 — Transport layer: dual PeerJS + Gun.js with auto-fallback
 
 **Date:** 2026-04-10
-**Status:** Accepted
+**Status:** Superseded by ADR-0015
 
 ## Context
 

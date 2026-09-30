@@ -3,7 +3,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 vi.mock('@/transport', () => ({
   generateRoomId: () => 'ROOM2',
-  generatePassphrase: () => 'pass',
 }))
 
 import { db } from '@/db'
@@ -14,7 +13,6 @@ const game = {
   id: 'g1',
   name: 'Quiz',
   status: 'ended',
-  transportMode: 'peer',
   roundIds: ['r1', 'r2'],
 } as Game
 
