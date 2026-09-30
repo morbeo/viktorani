@@ -323,7 +323,17 @@ export interface GameQuestion {
 /**
  * Main Dexie database class. Exported as the {@link db} singleton.
  *
- * Schema version: 1 (no migration history — WIP, no production databases yet).
+ * Schema version history — RULE: the number passed to `this.version()` only ever increases.
+ * Never lower it or reuse an old number, even when collapsing history: browsers keep the
+ * highest version they have seen, and a lower declared version cannot run upgrades on them.
+ *
+ * - 1–4: early development (tables added, `categories` dropped, buzzer fields back-filled).
+ * - 5: current schema. Stores match the collapsed v1 schema; the bump moves past the v4
+ *   that was deployed before history was collapsed back to 1. Dexie reads the installed
+ *   schema from IndexedDB, so a v1 or v4 database upgrades in place (missing tables are
+ *   created) without declaring the older versions here.
+ *
+ * To change the schema, add a new `this.version(N + 1)` block below; keep existing blocks.
  */
 export class ViktoraniDB extends Dexie {
   difficulties!: EntityTable<DifficultyLevel, 'id'>
@@ -346,7 +356,7 @@ export class ViktoraniDB extends Dexie {
   constructor() {
     super('viktorani')
 
-    this.version(1).stores({
+    this.version(5).stores({
       difficulties: 'id, name, order',
       tags: 'id, name',
       questions: 'id, difficulty, type, createdAt',
@@ -369,6 +379,12 @@ export class ViktoraniDB extends Dexie {
 
 /** Module-level singleton. Import and use this in all hooks and pages. */
 export const db = new ViktoraniDB()
+
+// Another tab (a newer deploy) is upgrading the schema. Dexie closes this connection so the
+// upgrade can proceed; reload so this tab runs the new code against the new schema.
+db.on('versionchange', ev => {
+  if (ev.newVersion) location.reload()
+})
 
 // ── Seed defaults ─────────────────────────────────────────────────────────────
 
