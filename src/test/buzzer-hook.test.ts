@@ -5,7 +5,7 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
 vi.mock('@/transport', () => ({
-  transportManager: { send: vi.fn() },
+  transportManager: { send: vi.fn(), disconnect: vi.fn() },
 }))
 
 import { db } from '@/db'
@@ -300,6 +300,32 @@ describe('useBuzzer scoring (#246)', () => {
 
     expect((await db.teams.get('t1'))?.score).toBe(5)
     expect(mockSend).toHaveBeenCalledWith({ type: 'SCORE_UPDATE', scores: { p1: 1, t1: 5 } })
+  })
+
+  it('GAME_STATE after a correct answer has the new player and team scores (#292)', async () => {
+    const game = makeGame({ buzzerLocked: false })
+    await Promise.all([
+      db.games.add(game),
+      db.players.add({ ...player, teamId: 't1' }),
+      db.teams.add({ id: 't1', gameId: 'g1', name: 'Owls', color: '#000', icon: 'Zap', score: 4 }),
+      db.questions.add({ ...question, difficulty: null }),
+    ])
+    const { result } = renderBuzzer(game)
+    const lifecycle = renderHook(() => useGameLifecycle()).result.current
+
+    await buzz(result)
+    await act(() => result.current.adjudicate(result.current.buzzes[0].id, 'Correct'))
+    await act(() => lifecycle.endGame(game))
+
+    const sent = mockSend.mock.calls.map(([m]) => m)
+    // The snapshot matches the latest SCORE_UPDATE, teams included
+    expect(sent.findLast(m => m.type === 'SCORE_UPDATE')).toEqual({
+      type: 'SCORE_UPDATE',
+      scores: { p1: 1, t1: 5 },
+    })
+    expect(sent.find(m => m.type === 'GAME_STATE')).toMatchObject({
+      state: { status: 'ended', scores: { p1: 1, t1: 5 } },
+    })
   })
 })
 

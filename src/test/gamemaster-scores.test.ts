@@ -10,6 +10,7 @@ vi.mock('@/transport', () => ({
 import { db } from '@/db'
 import { transportManager } from '@/transport'
 import { serialiseGameState } from '@/pages/admin/gamemaster-utils'
+import { readScores } from '@/hooks/useScoreboard'
 import { loadBuzzesForQuestion } from '@/hooks/useBuzzer'
 import type { Game, Player, BuzzEvent, GameQuestion, Question, DifficultyLevel } from '@/db'
 
@@ -21,6 +22,7 @@ async function clearAll() {
   await Promise.all([
     db.games.clear(),
     db.players.clear(),
+    db.teams.clear(),
     db.buzzEvents.clear(),
     db.gameQuestions.clear(),
     db.questions.clear(),
@@ -90,34 +92,41 @@ function makeBuzz(overrides: Partial<BuzzEvent> = {}): BuzzEvent {
 // ── serialiseGameState score map ──────────────────────────────────────────────
 
 describe('serialiseGameState — score map', () => {
-  it('produces an empty score map when there are no players', () => {
-    const state = serialiseGameState(makeGame(), [])
+  beforeEach(clearAll)
+
+  it('produces an empty score map when there are no players', async () => {
+    const state = serialiseGameState(makeGame(), await readScores('g1'))
     expect(state.scores).toEqual({})
   })
 
-  it('maps each player id to their score', () => {
-    const players = [makePlayer({ id: 'p1', score: 10 }), makePlayer({ id: 'p2', score: 5 })]
-    const state = serialiseGameState(makeGame(), players)
-    expect(state.scores).toEqual({ p1: 10, p2: 5 })
-  })
-
-  it('includes players with score 0', () => {
-    const players = [makePlayer({ id: 'p1', score: 0 })]
-    const state = serialiseGameState(makeGame(), players)
-    expect(state.scores).toHaveProperty('p1', 0)
+  it('maps each player and team id to its stored score, scoped to the game', async () => {
+    await db.players.bulkAdd([
+      makePlayer({ id: 'p1', score: 10, teamId: 't1' }),
+      makePlayer({ id: 'p2', score: 0 }),
+      makePlayer({ id: 'other', gameId: 'g2', score: 99 }),
+    ])
+    await db.teams.add({
+      id: 't1',
+      gameId: 'g1',
+      name: 'Owls',
+      color: '#000',
+      icon: 'Zap',
+      score: 7,
+    })
+    const state = serialiseGameState(makeGame(), await readScores('g1'))
+    expect(state.scores).toEqual({ p1: 10, p2: 0, t1: 7 })
   })
 
   it('does not include scoring when game has scoringEnabled false — state still emits', () => {
     // serialiseGameState always emits scores regardless of the flag;
     // the ScoreboardPanel is responsible for hiding the UI.
-    const players = [makePlayer({ id: 'p1', score: 3 })]
-    const state = serialiseGameState(makeGame({ scoringEnabled: false }), players)
+    const state = serialiseGameState(makeGame({ scoringEnabled: false }), { p1: 3 })
     expect(state.scores).toHaveProperty('p1', 3)
   })
 
   it('includes all required GAME_STATE fields', () => {
     const game = makeGame({ buzzerLocked: true, showQuestion: false, showAnswers: true })
-    const state = serialiseGameState(game, [])
+    const state = serialiseGameState(game, {})
     expect(state).toMatchObject({
       gameId: 'g1',
       status: 'active',

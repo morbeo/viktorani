@@ -25,6 +25,7 @@ import { useKeyNav } from '@/hooks/useKeyNav'
 import { useBuzzer } from '@/hooks/useBuzzer'
 import { useTimerList } from '@/hooks/useTimer'
 import { useGameLifecycle } from '@/hooks/useGameLifecycle'
+import { readScores } from '@/hooks/useScoreboard'
 import { TimerPanel } from '@/components/timer/TimerPanel'
 import type { Game, Player, Team } from '@/db'
 import type { TransportStatus, TransportType, TransportEvent } from '@/transport/types'
@@ -285,7 +286,6 @@ function Lobby({
 
 interface ActiveGameProps {
   game: Game
-  players: Player[]
   onGameChange: (patch: Partial<Game>) => void
   lifecycle: import('@/hooks/useGameLifecycle').UseGameLifecycleResult
   buzzHandlerRef: RefObject<BuzzHandler | null>
@@ -293,7 +293,7 @@ interface ActiveGameProps {
 
 type BuzzHandler = ReturnType<typeof useBuzzer>['handleIncomingBuzz']
 
-function ActiveGame({ game, players, onGameChange, lifecycle, buzzHandlerRef }: ActiveGameProps) {
+function ActiveGame({ game, onGameChange, lifecycle, buzzHandlerRef }: ActiveGameProps) {
   const [showBoundary, setShowBoundary] = useState(false)
   const [boundaryEntry, setBoundaryEntry] = useState<
     import('@/pages/admin/gamemaster-utils').NavEntry | null
@@ -397,12 +397,7 @@ function ActiveGame({ game, players, onGameChange, lifecycle, buzzHandlerRef }: 
         />
       )}
 
-      <GameControls
-        game={game}
-        players={players}
-        onGameChange={onGameChange}
-        lifecycle={lifecycle}
-      />
+      <GameControls game={game} onGameChange={onGameChange} lifecycle={lifecycle} />
 
       <NavHeader pos={pos} seq={seq} onPrev={goPrev} onNext={goNext} />
 
@@ -479,16 +474,11 @@ export default function GameMaster() {
   }, [])
 
   const gameRef = useRef<Game | null>(null)
-  const playersRef = useRef<Player[]>([])
   const buzzHandlerRef = useRef<BuzzHandler | null>(null)
 
   useEffect(() => {
     gameRef.current = game
   }, [game])
-
-  useEffect(() => {
-    playersRef.current = players
-  }, [players])
 
   // Load game + existing players + teams on mount
   useEffect(() => {
@@ -522,9 +512,10 @@ export default function GameMaster() {
       // Re-sync players when transport reconnects mid-game
       if (s === 'connected') {
         const g = gameRef.current
-        const ps = playersRef.current
         if (g && (g.status === 'active' || g.status === 'paused')) {
-          transportManager.send({ type: 'GAME_STATE', state: serialiseGameState(g, ps) })
+          void readScores(g.id).then(scores =>
+            transportManager.send({ type: 'GAME_STATE', state: serialiseGameState(g, scores) })
+          )
         }
       }
     })
@@ -608,11 +599,9 @@ export default function GameMaster() {
     const g = gameRef.current
     if (!g) return
     await db.players.update(playerId, { isAway: true })
-    setPlayers(prev => {
-      const updated = markPlayerAway(prev, playerId)
-      transportManager.send({ type: 'GAME_STATE', state: serialiseGameState(g, updated) })
-      return updated
-    })
+    setPlayers(prev => markPlayerAway(prev, playerId))
+    const scores = await readScores(g.id)
+    transportManager.send({ type: 'GAME_STATE', state: serialiseGameState(g, scores) })
   }, [])
 
   // Create a session team, persist to DB, broadcast GAME_STATE
@@ -691,11 +680,9 @@ export default function GameMaster() {
     const g = gameRef.current
     if (!g) return
     await db.players.update(playerId, { teamId })
-    setPlayers(prev => {
-      const updated = assignPlayerTeam(prev, playerId, teamId)
-      transportManager.send({ type: 'GAME_STATE', state: serialiseGameState(g, updated) })
-      return updated
-    })
+    setPlayers(prev => assignPlayerTeam(prev, playerId, teamId))
+    const scores = await readScores(g.id)
+    transportManager.send({ type: 'GAME_STATE', state: serialiseGameState(g, scores) })
   }, [])
 
   // Start the game
@@ -708,7 +695,8 @@ export default function GameMaster() {
       await db.games.update(game.id, { status: 'active', updatedAt: now })
       setGame(updated)
       transportManager.send({ type: 'GAME_STATUS', status: 'active' })
-      transportManager.send({ type: 'GAME_STATE', state: serialiseGameState(updated, players) })
+      const scores = await readScores(game.id)
+      transportManager.send({ type: 'GAME_STATE', state: serialiseGameState(updated, scores) })
     } finally {
       setStarting(false)
     }
@@ -766,7 +754,6 @@ export default function GameMaster() {
     <AdminLayout>
       <ActiveGame
         game={game}
-        players={players}
         onGameChange={applyGamePatch}
         lifecycle={lifecycle}
         buzzHandlerRef={buzzHandlerRef}

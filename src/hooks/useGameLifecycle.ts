@@ -2,7 +2,8 @@ import { useCallback } from 'react'
 import { db } from '@/db'
 import { transportManager } from '@/transport'
 import { serialiseGameState } from '@/pages/admin/gamemaster-utils'
-import type { Game, Player } from '@/db'
+import { readScores } from '@/hooks/useScoreboard'
+import type { Game } from '@/db'
 
 /** The fields a lifecycle transition changes; merge it into the current game state. */
 export type GameStatusPatch = Pick<Game, 'status' | 'updatedAt'>
@@ -10,7 +11,7 @@ export type GameStatusPatch = Pick<Game, 'status' | 'updatedAt'>
 export interface UseGameLifecycleResult {
   pauseGame: (game: Game) => Promise<GameStatusPatch>
   resumeGame: (game: Game) => Promise<GameStatusPatch>
-  endGame: (game: Game, players: Player[]) => Promise<GameStatusPatch>
+  endGame: (game: Game) => Promise<GameStatusPatch>
 }
 
 /**
@@ -25,7 +26,7 @@ export interface UseGameLifecycleResult {
  *    toggled while the write is in flight, are not reverted.
  *
  * All three functions are stable across renders (useCallback with no deps that
- * change — they read game/players through the closure args, not React state).
+ * change — they read the game through the closure args, not React state).
  */
 export function useGameLifecycle(): UseGameLifecycleResult {
   /** Pause an active game. No-op if the game is not active. */
@@ -48,14 +49,15 @@ export function useGameLifecycle(): UseGameLifecycleResult {
    * End the game. Emits `GAME_STATUS { status: 'ended' }`, disconnects
    * transport, and persists the status. After this the game is read-only.
    */
-  const endGame = useCallback(async (game: Game, players: Player[]): Promise<GameStatusPatch> => {
+  const endGame = useCallback(async (game: Game): Promise<GameStatusPatch> => {
     const patch: GameStatusPatch = { status: 'ended', updatedAt: Date.now() }
     await db.games.update(game.id, patch)
     transportManager.send({ type: 'GAME_STATUS', status: 'ended' })
     // Send final state snapshot before disconnecting
+    const scores = await readScores(game.id)
     transportManager.send({
       type: 'GAME_STATE',
-      state: serialiseGameState({ ...game, ...patch }, players),
+      state: serialiseGameState({ ...game, ...patch }, scores),
     })
     transportManager.disconnect()
     return patch

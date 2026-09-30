@@ -3,12 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { Pause, Play, Square, ChevronLeft } from 'lucide-react'
 import { Button, Icon } from '@/components/ui'
 import { EndGameModal } from '@/components/gamemaster/EndGameModal'
-import type { Game, Player } from '@/db'
+import type { Game } from '@/db'
 import type { UseGameLifecycleResult } from '@/hooks/useGameLifecycle'
 
 interface GameControlsProps {
   game: Game
-  players: Player[]
   /** Receives only the changed fields; the caller merges them into its current game. */
   onGameChange: (patch: Partial<Game>) => void
   lifecycle: UseGameLifecycleResult
@@ -22,7 +21,7 @@ interface GameControlsProps {
  * - End game button opens a confirmation modal.
  * - All controls are disabled when the game has ended.
  */
-export function GameControls({ game, players, onGameChange, lifecycle }: GameControlsProps) {
+export function GameControls({ game, onGameChange, lifecycle }: GameControlsProps) {
   const navigate = useNavigate()
   const [endModalOpen, setEndModalOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -43,7 +42,7 @@ export function GameControls({ game, players, onGameChange, lifecycle }: GameCon
   async function handleEnd() {
     setBusy(true)
     try {
-      onGameChange(await lifecycle.endGame(game, players))
+      onGameChange(await lifecycle.endGame(game))
       setEndModalOpen(false)
     } finally {
       setBusy(false)
