@@ -200,6 +200,13 @@ export interface ITransport {
   onEvent(handler: (event: TransportEvent, from: string) => void): () => void
 
   /**
+   * Subscribe to connections opening (host side: a player connected, before any JOIN).
+   * @param handler - Called with the id of the opened connection.
+   * @returns An unsubscribe function.
+   */
+  onPeerOpen(handler: (connId: string) => void): () => void
+
+  /**
    * Subscribe to connections closing.
    * @param handler - Called with the id of the closed connection.
    * @returns An unsubscribe function.

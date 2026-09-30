@@ -19,13 +19,15 @@ const PREFIX = 'vkt-'
  * - **Player**: one `Peer` instance with a random ID; a single outbound
  *   `DataConnection` to the host.
  *
- * `connect()` rejects after 8 seconds when the PeerJS signalling server is
- * unreachable.
+ * `connect()` resolves once the room can be used: for the host when it is
+ * registered, for a player when its data channel to the host is open. It rejects
+ * after 8 seconds when the PeerJS signalling server or the host is unreachable.
  */
 export class PeerJSTransport implements ITransport {
   private peer: Peer | null = null
   private connections: Map<string, DataConnection> = new Map()
   private handlers: Array<(e: TransportEvent, from: string) => void> = []
+  private openHandlers: Array<(connId: string) => void> = []
   private closeHandlers: Array<(connId: string) => void> = []
   private _status: TransportStatus = 'idle'
   private role: 'host' | 'player' = 'host'
@@ -50,17 +52,21 @@ export class PeerJSTransport implements ITransport {
         reject(new Error('PeerJS connection timeout'))
       }, 8000)
 
-      this.peer.on('open', () => {
+      const ready = () => {
         clearTimeout(timeout)
         this._status = 'connected'
-
-        if (config.role === 'player') {
-          // Player connects to host
-          const conn = this.peer!.connect(PREFIX + config.roomId, { reliable: true })
-          this.setupConnection(conn)
-        }
-
         resolve()
+      }
+
+      this.peer.on('open', () => {
+        if (config.role === 'host') {
+          ready()
+          return
+        }
+        // Player connects to host; sends are possible once the channel opens
+        const conn = this.peer!.connect(PREFIX + config.roomId, { reliable: true })
+        this.setupConnection(conn)
+        conn.on('open', ready)
       })
 
       this.peer.on('connection', conn => {
@@ -83,6 +89,7 @@ export class PeerJSTransport implements ITransport {
   private setupConnection(conn: DataConnection) {
     conn.on('open', () => {
       this.connections.set(conn.connectionId, conn)
+      this.openHandlers.forEach(h => h(conn.connectionId))
     })
 
     conn.on('data', data => {
@@ -126,6 +133,13 @@ export class PeerJSTransport implements ITransport {
     this.handlers.push(handler)
     return () => {
       this.handlers = this.handlers.filter(h => h !== handler)
+    }
+  }
+
+  onPeerOpen(handler: (connId: string) => void): () => void {
+    this.openHandlers.push(handler)
+    return () => {
+      this.openHandlers = this.openHandlers.filter(h => h !== handler)
     }
   }
 

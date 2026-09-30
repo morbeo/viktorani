@@ -15,6 +15,7 @@ import { JoinPolicyPanel } from '@/components/gamemaster/JoinPolicyPanel'
 import { db } from '@/db'
 import { transportManager } from '@/transport'
 import {
+  buildLobbyInfo,
   serialiseGameState,
   upsertPlayer,
   markPlayerAway,
@@ -589,6 +590,22 @@ export default function GameMaster() {
   useEffect(() => {
     return transportManager.onEvent(handleEvent)
   }, [handleEvent])
+
+  // Send join choices to each new connection, and to everyone whenever they change so
+  // open join screens follow the settings live (joined players ignore LOBBY_INFO)
+  const lobbyInfo = game ? JSON.stringify(buildLobbyInfo(game, teams, players)) : null
+  const lobbyInfoRef = useRef<string | null>(null)
+  useEffect(() => {
+    lobbyInfoRef.current = lobbyInfo
+    if (lobbyInfo) transportManager.send(JSON.parse(lobbyInfo) as TransportEvent)
+  }, [lobbyInfo])
+
+  useEffect(() => {
+    return transportManager.onPeerOpen(connId => {
+      const info = lobbyInfoRef.current
+      if (info) transportManager.sendTo(connId, JSON.parse(info) as TransportEvent)
+    })
+  }, [])
 
   // A dropped connection marks its player away; they can rejoin from the same device
   useEffect(() => {
