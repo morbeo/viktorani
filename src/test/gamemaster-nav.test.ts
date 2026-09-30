@@ -1,7 +1,7 @@
 // @vitest-pool vmForks
 import { describe, it, expect } from 'vitest'
 import type { GameQuestion, Round } from '@/db'
-import { buildNavSequence, getNavPosition, step } from '@/pages/admin/gamemaster-utils'
+import { buildNavSequence, getNavPosition, orderRounds, step } from '@/pages/admin/gamemaster-utils'
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -164,5 +164,42 @@ describe('step', () => {
     const single = buildNavSequence([makeGQ()], [makeRound()])
     expect(step(single, 0, 1)).toBe(0)
     expect(step(single, 0, -1)).toBe(0)
+  })
+})
+
+// ── orderRounds (#249) ────────────────────────────────────────────────────────
+
+describe('orderRounds', () => {
+  // DB returns rounds by primary key (UUID), not game order
+  const dbOrder = [
+    makeRound({ id: 'a', name: 'Third' }),
+    makeRound({ id: 'b', name: 'First' }),
+    makeRound({ id: 'c', name: 'Second' }),
+    makeRound({ id: 'z', name: 'Other game' }),
+  ]
+
+  it("follows the game's roundIds, not DB order", () => {
+    expect(orderRounds(['b', 'c', 'a'], dbOrder).map(r => r.name)).toEqual([
+      'First',
+      'Second',
+      'Third',
+    ])
+  })
+
+  it('keeps positions when a round was deleted', () => {
+    const rounds = orderRounds(['b', 'gone', 'a'], dbOrder)
+    expect(rounds.map(r => r.id)).toEqual(['b', 'gone', 'a'])
+    expect(rounds[1].name).toBe('Deleted round')
+  })
+
+  it('gives every round a distinct index in the nav sequence', () => {
+    const gqs = [
+      makeGQ({ id: 'g0', roundId: 'b', order: 0 }),
+      makeGQ({ id: 'g1', roundId: 'gone', order: 1 }),
+      makeGQ({ id: 'g2', roundId: 'a', order: 2 }),
+    ]
+    const seq = buildNavSequence(gqs, orderRounds(['b', 'gone', 'a'], dbOrder))
+    expect(seq.map(e => e.roundIdx)).toEqual([0, 1, 2])
+    expect(seq.map(e => e.roundName)).toEqual(['First', 'Deleted round', 'Third'])
   })
 })
