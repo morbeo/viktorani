@@ -1,6 +1,6 @@
 import { db } from './index'
 import type { Game, GameQuestion, Round } from './index'
-import { generateRoomId, generatePassphrase } from '@/transport'
+import { generateRoomId } from '@/transport'
 
 /**
  * Game create / clone / delete. Each runs in a single transaction so a failure
@@ -46,7 +46,6 @@ export async function cloneGame(game: Game): Promise<string> {
     name: `${game.name} (copy)`,
     status: 'waiting',
     roomId: generateRoomId(),
-    passphrase: game.transportMode !== 'peer' ? generatePassphrase() : null,
     currentRoundIdx: 0,
     currentQuestionIdx: 0,
     buzzerLocked: true,

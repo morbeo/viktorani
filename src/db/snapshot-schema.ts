@@ -54,9 +54,9 @@ export const GameSchema = z.object({
   id: z.string(),
   name: z.string(),
   status: z.enum(['waiting', 'active', 'paused', 'ended']),
-  transportMode: z.enum(['auto', 'peer', 'gun']),
+  // Pre-#265 backups also carry `transportMode` ('auto' | 'peer' | 'gun') and `passphrase`;
+  // PeerJS is now the only transport, so those keys are stripped on parse like any unknown key.
   roomId: z.string().nullable(),
-  passphrase: z.string().nullable(),
   showQuestion: z.boolean(),
   showAnswers: z.boolean(),
   showMedia: z.boolean().default(true),

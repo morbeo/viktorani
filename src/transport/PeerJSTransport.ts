@@ -18,9 +18,8 @@ const PREFIX = 'vkt-'
  * - **Player**: one `Peer` instance with a random ID; a single outbound
  *   `DataConnection` to the host.
  *
- * The 8-second timeout on `connect()` allows {@link transport.TransportManager} to fall
- * back to {@link transport/GunTransport.GunTransport} in `'auto'` mode when the PeerJS signalling
- * server is unreachable.
+ * `connect()` rejects after 8 seconds when the PeerJS signalling server is
+ * unreachable.
  */
 export class PeerJSTransport implements ITransport {
   private peer: Peer | null = null

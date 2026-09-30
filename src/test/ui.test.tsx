@@ -259,11 +259,6 @@ describe('TransportPill', () => {
     expect(screen.getByText('PeerJS')).toBeInTheDocument()
   })
 
-  it('shows Gun.js label when connected via gun', () => {
-    render(<TransportPill status="connected" type="gun" />)
-    expect(screen.getByText('Gun.js')).toBeInTheDocument()
-  })
-
   it('shows Connecting… during connecting state', () => {
     render(<TransportPill status="connecting" type={null} />)
     expect(screen.getByText('Connecting…')).toBeInTheDocument()

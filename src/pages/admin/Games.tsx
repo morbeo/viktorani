@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AdminLayout from '@/components/AdminLayout'
-import { Button, Badge, Input, Select, Modal, Empty } from '@/components/ui'
+import { Button, Badge, Input, Modal, Empty } from '@/components/ui'
 import { db } from '@/db'
-import type { Game, Round, TransportMode } from '@/db'
-import { generateRoomId, generatePassphrase } from '@/transport'
+import type { Game, Round } from '@/db'
+import { generateRoomId } from '@/transport'
 import { createGame, cloneGame, deleteGame } from '@/db/games'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -14,7 +14,6 @@ import { createGame, cloneGame, deleteGame } from '@/db/games'
 interface WizardState {
   // Step 1
   name: string
-  transportMode: TransportMode
   scoringEnabled: boolean
   showQuestion: boolean
   showAnswers: boolean
@@ -22,7 +21,6 @@ interface WizardState {
   maxTeams: number
   maxPerTeam: number
   allowIndividual: boolean
-  passphrase: string
   // Buzzer config
   autoLockOnFirstCorrect: boolean
   allowFalseStarts: boolean
@@ -36,7 +34,6 @@ interface WizardState {
 function defaultWizard(): WizardState {
   return {
     name: '',
-    transportMode: 'auto',
     scoringEnabled: true,
     showQuestion: true,
     showAnswers: false,
@@ -44,7 +41,6 @@ function defaultWizard(): WizardState {
     maxTeams: 0,
     maxPerTeam: 0,
     allowIndividual: true,
-    passphrase: generatePassphrase(),
     autoLockOnFirstCorrect: false,
     allowFalseStarts: false,
     buzzDeduplication: 'firstOnly',
@@ -105,11 +101,6 @@ function Step1({
   set: (k: keyof WizardState, v: unknown) => void
 }) {
   const [showAdvanced, setShowAdvanced] = useState(false)
-  const transportOpts = [
-    { value: 'auto', label: 'Auto (PeerJS → Gun.js)' },
-    { value: 'peer', label: 'PeerJS (WebRTC)' },
-    { value: 'gun', label: 'Gun.js (encrypted relay)' },
-  ]
 
   return (
     <div className="flex flex-col gap-4">
@@ -121,46 +112,11 @@ function Step1({
         placeholder="e.g. Friday Night Trivia"
       />
 
-      {/* Two-column row: transport + scoring */}
-      <div className="grid grid-cols-2 gap-3">
-        <Select
-          label="Transport"
-          value={state.transportMode}
-          options={transportOpts}
-          onChange={e => set('transportMode', e.target.value as TransportMode)}
-        />
-        <div className="flex flex-col gap-1 justify-end">
-          <Toggle
-            label="Scoring"
-            checked={state.scoringEnabled}
-            onChange={v => set('scoringEnabled', v)}
-          />
-        </div>
-      </div>
-
-      {/* Passphrase — only shown when relevant */}
-      {(state.transportMode === 'gun' || state.transportMode === 'auto') && (
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium" style={{ color: 'var(--color-muted)' }}>
-            Gun.js passphrase
-          </label>
-          <div className="flex gap-2">
-            <input
-              className="flex-1 px-3 py-2 rounded border text-sm outline-none mono"
-              style={{ borderColor: 'var(--color-border)', background: 'var(--color-cream)' }}
-              value={state.passphrase}
-              onChange={e => set('passphrase', e.target.value)}
-            />
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => set('passphrase', generatePassphrase())}
-            >
-              ↺
-            </Button>
-          </div>
-        </div>
-      )}
+      <Toggle
+        label="Scoring"
+        checked={state.scoringEnabled}
+        onChange={v => set('scoringEnabled', v)}
+      />
 
       {/* Visibility toggles — inline, no card wrapper */}
       <div
@@ -466,14 +422,6 @@ function Step3({ state, rounds }: { state: WizardState; rounds: Round[] }) {
 
   const rows = [
     ['Game name', state.name],
-    [
-      'Transport',
-      state.transportMode === 'auto'
-        ? 'Auto (PeerJS → Gun.js)'
-        : state.transportMode === 'peer'
-          ? 'PeerJS'
-          : 'Gun.js',
-    ],
     ['Scoring', state.scoringEnabled ? 'Enabled' : 'Disabled'],
     ['Show question', state.showQuestion ? 'Yes' : 'No'],
     ['Show answers', state.showAnswers ? 'Yes' : 'No'],
@@ -484,10 +432,6 @@ function Step3({ state, rounds }: { state: WizardState; rounds: Round[] }) {
     ['Rounds', `${selectedRounds.length} round${selectedRounds.length !== 1 ? 's' : ''}`],
     ['Questions', `${totalQ} total`],
   ]
-
-  if (state.transportMode !== 'peer') {
-    rows.splice(2, 0, ['Passphrase', state.passphrase])
-  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -573,9 +517,7 @@ function GameWizard({
         id: crypto.randomUUID(),
         name: state.name.trim(),
         status: 'waiting',
-        transportMode: state.transportMode,
         roomId: generateRoomId(),
-        passphrase: state.transportMode !== 'peer' ? state.passphrase : null,
         showQuestion: state.showQuestion,
         showAnswers: state.showAnswers,
         showMedia: state.showMedia,
@@ -784,14 +726,6 @@ export default function Games() {
                             <span>·</span>
                             <span>
                               {game.roundIds.length} round{game.roundIds.length !== 1 ? 's' : ''}
-                            </span>
-                            <span>·</span>
-                            <span>
-                              {game.transportMode === 'auto'
-                                ? 'Auto'
-                                : game.transportMode === 'peer'
-                                  ? 'PeerJS'
-                                  : 'Gun.js'}
                             </span>
                             <span>·</span>
                             <span>{new Date(game.createdAt).toLocaleDateString()}</span>

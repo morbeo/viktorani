@@ -1,7 +1,7 @@
 # ADR-0003 — Dual multiplayer transport: PeerJS (WebRTC) and Gun.js
 
 **Date:** 2025-04-05
-**Status:** Accepted
+**Status:** Superseded by ADR-0015
 
 ## Context
 

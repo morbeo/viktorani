@@ -16,9 +16,6 @@ export type Difficulty = 'easy' | 'medium' | 'hard' | string
 /** Lifecycle state of a {@link Game} session. */
 export type GameStatus = 'waiting' | 'active' | 'paused' | 'ended'
 
-/** Which underlying transport a game uses for real-time communication. */
-export type TransportMode = 'auto' | 'peer' | 'gun'
-
 /** The GameMaster's ruling on a single buzz. */
 export type GmDecision = 'Correct' | 'Incorrect' | 'Skip'
 
@@ -148,11 +145,8 @@ export interface Game {
   id: string
   name: string
   status: GameStatus
-  transportMode: TransportMode
   /** Six-character room code shared with players (e.g. `'XK7RQZ'`). `null` before the game starts. */
   roomId: string | null
-  /** Four-word Gun.js SEA passphrase. `null` before the game starts. */
-  passphrase: string | null
   // Visibility
   showQuestion: boolean
   showAnswers: boolean
