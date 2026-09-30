@@ -358,17 +358,6 @@ function ActiveGame({ game, players, onGameChange, lifecycle, buzzHandlerRef }: 
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [modalOpen, toggleLock])
 
-  // Clear buzzes when question changes
-  const prevQuestionId = useRef<string | null>(null)
-  useEffect(() => {
-    if (prevQuestionId.current && prevQuestionId.current !== currentQuestionId) {
-      void clearBuzzes(prevQuestionId.current)
-    }
-    prevQuestionId.current = currentQuestionId
-  }, [currentQuestionId, clearBuzzes])
-
-  // Load existing buzzes when question changes is handled inside useBuzzer via questionId dep
-
   useKeyNav({
     onNext: goNext,
     onPrev: goPrev,
