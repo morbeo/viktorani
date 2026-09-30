@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import AdminLayout from '@/components/AdminLayout'
 import { Button, Badge, Input, Modal, Empty } from '@/components/ui'
 import { db } from '@/db'
-import type { Game, Round } from '@/db'
+import type { Game, GameVisibility, Round, TargetVisibility } from '@/db'
 import { generateRoomId } from '@/transport'
 import { createGame, cloneGame, deleteGame } from '@/db/games'
 
@@ -15,9 +15,7 @@ interface WizardState {
   // Step 1
   name: string
   scoringEnabled: boolean
-  showQuestion: boolean
-  showAnswers: boolean
-  showMedia: boolean
+  visibility: GameVisibility
   maxTeams: number
   maxPerTeam: number
   allowIndividual: boolean
@@ -35,13 +33,30 @@ interface WizardState {
   customRounds: { name: string; questionIds: string[] }[]
 }
 
+const VISIBILITY_TARGETS = [
+  { target: 'players', title: 'Players see' },
+  { target: 'screen', title: 'Screen shows' },
+] as const
+
+const VISIBILITY_FLAGS: Array<{ key: keyof TargetVisibility; label: string }> = [
+  { key: 'showQuestion', label: 'Question text' },
+  { key: 'showAnswers', label: 'Answers' },
+  { key: 'showMedia', label: 'Media' },
+]
+
+function describeVisibility(v: TargetVisibility): string {
+  const shown = VISIBILITY_FLAGS.filter(f => v[f.key]).map(f => f.label.toLowerCase())
+  return shown.length ? shown.join(', ') : 'Nothing'
+}
+
 function defaultWizard(): WizardState {
   return {
     name: '',
     scoringEnabled: true,
-    showQuestion: true,
-    showAnswers: false,
-    showMedia: true,
+    visibility: {
+      players: { showQuestion: true, showAnswers: false, showMedia: true },
+      screen: { showQuestion: true, showAnswers: false, showMedia: true },
+    },
     maxTeams: 0,
     maxPerTeam: 0,
     allowIndividual: true,
@@ -126,35 +141,42 @@ function Step1({
         onChange={v => set('scoringEnabled', v)}
       />
 
-      {/* Visibility toggles — inline, no card wrapper */}
-      <div
-        className="flex flex-col gap-0 rounded-lg border overflow-hidden"
-        style={{ borderColor: 'var(--color-border)' }}
-      >
-        <div
-          className="px-3 py-1.5 border-b"
-          style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-        >
-          <p
-            className="text-xs font-semibold uppercase tracking-wider"
-            style={{ color: 'var(--color-muted)' }}
+      {/* Visibility toggles — one block per target */}
+      <div className="grid grid-cols-2 gap-3">
+        {VISIBILITY_TARGETS.map(({ target, title }) => (
+          <div
+            key={target}
+            className="flex flex-col gap-0 rounded-lg border overflow-hidden"
+            style={{ borderColor: 'var(--color-border)' }}
           >
-            Players see
-          </p>
-        </div>
-        <div className="px-3 py-2 flex flex-col gap-2">
-          <Toggle
-            label="Question text"
-            checked={state.showQuestion}
-            onChange={v => set('showQuestion', v)}
-          />
-          <Toggle
-            label="Answers"
-            checked={state.showAnswers}
-            onChange={v => set('showAnswers', v)}
-          />
-          <Toggle label="Media" checked={state.showMedia} onChange={v => set('showMedia', v)} />
-        </div>
+            <div
+              className="px-3 py-1.5 border-b"
+              style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
+            >
+              <p
+                className="text-xs font-semibold uppercase tracking-wider"
+                style={{ color: 'var(--color-muted)' }}
+              >
+                {title}
+              </p>
+            </div>
+            <div className="px-3 py-2 flex flex-col gap-2">
+              {VISIBILITY_FLAGS.map(({ key, label }) => (
+                <Toggle
+                  key={key}
+                  label={label}
+                  checked={state.visibility[target][key]}
+                  onChange={v =>
+                    set('visibility', {
+                      ...state.visibility,
+                      [target]: { ...state.visibility[target], [key]: v },
+                    })
+                  }
+                />
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Advanced — collapsed by default */}
@@ -451,9 +473,8 @@ function Step3({ state, rounds }: { state: WizardState; rounds: Round[] }) {
   const rows = [
     ['Game name', state.name],
     ['Scoring', state.scoringEnabled ? 'Enabled' : 'Disabled'],
-    ['Show question', state.showQuestion ? 'Yes' : 'No'],
-    ['Show answers', state.showAnswers ? 'Yes' : 'No'],
-    ['Show media', state.showMedia ? 'Yes' : 'No'],
+    ['Players see', describeVisibility(state.visibility.players)],
+    ['Screen shows', describeVisibility(state.visibility.screen)],
     ['Individual play', state.allowIndividual ? 'Allowed' : 'Teams only'],
     ['Max teams', state.maxTeams === 0 ? 'Unlimited' : String(state.maxTeams)],
     ['Max per team', state.maxPerTeam === 0 ? 'Unlimited' : String(state.maxPerTeam)],
@@ -550,9 +571,7 @@ function GameWizard({
         name: state.name.trim(),
         status: 'waiting',
         roomId: generateRoomId(),
-        showQuestion: state.showQuestion,
-        showAnswers: state.showAnswers,
-        showMedia: state.showMedia,
+        visibility: state.visibility,
         maxTeams: state.maxTeams,
         maxPerTeam: state.maxPerTeam,
         allowIndividual: state.allowIndividual,

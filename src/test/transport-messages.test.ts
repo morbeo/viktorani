@@ -44,9 +44,10 @@ const FIXTURES: { [K in TransportEvent['type']]: Extract<TransportEvent, { type:
       currentRoundIdx: 0,
       currentQuestionIdx: 2,
       buzzerLocked: false,
-      showQuestion: true,
-      showAnswers: false,
-      showMedia: true,
+      visibility: {
+        players: { showQuestion: true, showAnswers: false, showMedia: true },
+        screen: { showQuestion: true, showAnswers: true, showMedia: false },
+      },
       scores: { p1: 10, t1: 4 },
     },
   },
@@ -161,6 +162,20 @@ describe('TransportEventSchema', () => {
   it('rejects extra fields inside GAME_STATE.state', () => {
     const bad = { ...FIXTURES.GAME_STATE, state: { ...FIXTURES.GAME_STATE.state, extra: 1 } }
     expect(TransportEventSchema.safeParse(bad).success).toBe(false)
+  })
+
+  it('requires GAME_STATE visibility for both targets', () => {
+    const { visibility } = FIXTURES.GAME_STATE.state
+    const missing = { ...FIXTURES.GAME_STATE.state, visibility: { players: visibility.players } }
+    expect(TransportEventSchema.safeParse({ type: 'GAME_STATE', state: missing }).success).toBe(
+      false
+    )
+    const { visibility: _v, ...flat } = FIXTURES.GAME_STATE.state
+    void _v
+    const legacy = { ...flat, showQuestion: true, showAnswers: false, showMedia: true }
+    expect(TransportEventSchema.safeParse({ type: 'GAME_STATE', state: legacy }).success).toBe(
+      false
+    )
   })
 
   it('rejects an unknown GAME_STATUS status', () => {
@@ -346,9 +361,10 @@ describe('production payload builders', () => {
       currentRoundIdx: 1,
       currentQuestionIdx: 4,
       buzzerLocked: true,
-      showQuestion: true,
-      showAnswers: false,
-      showMedia: true,
+      visibility: {
+        players: { showQuestion: true, showAnswers: false, showMedia: true },
+        screen: { showQuestion: true, showAnswers: false, showMedia: true },
+      },
     } as Game
     const event = { type: 'GAME_STATE', state: serialiseGameState(game, { p1: 7, p2: 0, t1: 3 }) }
     expect(TransportEventSchema.safeParse(event).success).toBe(true)

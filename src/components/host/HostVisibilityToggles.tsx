@@ -1,16 +1,19 @@
 import type { Game } from '@/db'
 import { useGameVisibility } from '@/hooks/useGameVisibility'
 import type { VisibilityState } from '@/hooks/useGameVisibility'
+import type { VisibilityTarget } from '@/transport/types'
 
 interface ToggleProps {
   label: string
+  /** Accessible name; defaults to `label`. */
+  name?: string
   hint: string
   checked: boolean
   disabled: boolean
   onChange: () => void
 }
 
-function Toggle({ label, hint, checked, disabled, onChange }: ToggleProps) {
+function Toggle({ label, name, hint, checked, disabled, onChange }: ToggleProps) {
   return (
     <label
       className="flex items-center justify-between gap-4 cursor-pointer select-none"
@@ -27,7 +30,7 @@ function Toggle({ label, hint, checked, disabled, onChange }: ToggleProps) {
       <button
         role="switch"
         aria-checked={checked}
-        aria-label={label}
+        aria-label={name ?? label}
         disabled={disabled}
         onClick={onChange}
         className="relative shrink-0 w-11 h-6 rounded-full border-2 transition-colors"
@@ -46,9 +49,14 @@ function Toggle({ label, hint, checked, disabled, onChange }: ToggleProps) {
 }
 
 const TOGGLES: Array<{ key: keyof VisibilityState; label: string; hint: string }> = [
-  { key: 'showQuestion', label: 'Show question', hint: 'Players can see the question text' },
-  { key: 'showAnswers', label: 'Show answers', hint: 'Players can see the answer options' },
-  { key: 'showMedia', label: 'Show media', hint: 'Players can see images, audio, or video' },
+  { key: 'showQuestion', label: 'Show question', hint: 'The question text' },
+  { key: 'showAnswers', label: 'Show answers', hint: 'The answer options' },
+  { key: 'showMedia', label: 'Show media', hint: 'Images, audio, or video' },
+]
+
+const TARGETS: Array<{ target: VisibilityTarget; title: string }> = [
+  { target: 'players', title: 'Player phones' },
+  { target: 'screen', title: 'Screen' },
 ]
 
 interface HostVisibilityTogglesProps {
@@ -65,19 +73,28 @@ export function HostVisibilityToggles({ game }: HostVisibilityTogglesProps) {
       >
         Visibility
       </p>
-      <div
-        className="flex flex-col gap-4 rounded-lg border p-4"
-        style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-      >
-        {TOGGLES.map(({ key, label, hint }) => (
-          <Toggle
-            key={key}
-            label={label}
-            hint={hint}
-            checked={visibility[key]}
-            disabled={saving}
-            onChange={() => toggle(key)}
-          />
+      <div className="grid gap-3 sm:grid-cols-2">
+        {TARGETS.map(({ target, title }) => (
+          <div
+            key={target}
+            className="flex flex-col gap-4 rounded-lg border p-4"
+            style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
+          >
+            <p className="text-sm font-semibold" style={{ color: 'var(--color-ink)' }}>
+              {title}
+            </p>
+            {TOGGLES.map(({ key, label, hint }) => (
+              <Toggle
+                key={key}
+                label={label}
+                name={`${label} on ${title.toLowerCase()}`}
+                hint={hint}
+                checked={visibility[target][key]}
+                disabled={saving}
+                onChange={() => toggle(target, key)}
+              />
+            ))}
+          </div>
         ))}
       </div>
       {error && (

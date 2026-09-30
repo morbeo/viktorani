@@ -6,9 +6,14 @@ import type { Game } from '@/db'
 
 const mockToggle = vi.fn()
 
+const VISIBILITY = vi.hoisted(() => ({
+  players: { showQuestion: true, showAnswers: false, showMedia: true },
+  screen: { showQuestion: false, showAnswers: true, showMedia: true },
+}))
+
 vi.mock('@/hooks/useGameVisibility', () => ({
   useGameVisibility: vi.fn(() => ({
-    visibility: { showQuestion: true, showAnswers: false, showMedia: true },
+    visibility: VISIBILITY,
     toggle: mockToggle,
     saving: false,
     error: null,
@@ -23,9 +28,10 @@ const GAME: Game = {
   status: 'active',
   roomId: null,
   scoringEnabled: true,
-  showQuestion: true,
-  showAnswers: false,
-  showMedia: true,
+  visibility: {
+    players: { showQuestion: true, showAnswers: false, showMedia: true },
+    screen: { showQuestion: true, showAnswers: false, showMedia: true },
+  },
   maxTeams: 0,
   maxPerTeam: 0,
   allowIndividual: true,
@@ -46,7 +52,7 @@ const GAME: Game = {
 }
 
 const defaultMock = {
-  visibility: { showQuestion: true, showAnswers: false, showMedia: true },
+  visibility: VISIBILITY,
   toggle: mockToggle,
   saving: false,
   error: null,
@@ -58,44 +64,48 @@ beforeEach(() => {
 })
 
 describe('HostVisibilityToggles — rendering', () => {
-  it('renders three toggle switches', () => {
+  it('renders three switches per target', () => {
     render(<HostVisibilityToggles game={GAME} />)
-    expect(screen.getAllByRole('switch')).toHaveLength(3)
+    expect(screen.getAllByRole('switch')).toHaveLength(6)
+    expect(screen.getByText('Player phones')).toBeInTheDocument()
+    expect(screen.getByText('Screen')).toBeInTheDocument()
   })
-  it('renders all three labels', () => {
+  it('renders the three labels for each target', () => {
     render(<HostVisibilityToggles game={GAME} />)
-    expect(screen.getByText('Show question')).toBeInTheDocument()
-    expect(screen.getByText('Show answers')).toBeInTheDocument()
-    expect(screen.getByText('Show media')).toBeInTheDocument()
+    expect(screen.getAllByText('Show question')).toHaveLength(2)
+    expect(screen.getAllByText('Show answers')).toHaveLength(2)
+    expect(screen.getAllByText('Show media')).toHaveLength(2)
   })
-  it('reflects aria-checked from visibility state', () => {
+  it('reflects aria-checked from each target', () => {
     render(<HostVisibilityToggles game={GAME} />)
-    const [q, a, m] = screen.getAllByRole('switch')
-    expect(q).toHaveAttribute('aria-checked', 'true')
-    expect(a).toHaveAttribute('aria-checked', 'false')
-    expect(m).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByRole('switch', { name: 'Show question on player phones' })).toHaveAttribute(
+      'aria-checked',
+      'true'
+    )
+    expect(screen.getByRole('switch', { name: 'Show question on screen' })).toHaveAttribute(
+      'aria-checked',
+      'false'
+    )
+    expect(screen.getByRole('switch', { name: 'Show answers on screen' })).toHaveAttribute(
+      'aria-checked',
+      'true'
+    )
   })
 })
 
 describe('HostVisibilityToggles — interaction', () => {
-  it('calls toggle with showQuestion', async () => {
+  it.each([
+    ['Show question on player phones', 'players', 'showQuestion'],
+    ['Show answers on player phones', 'players', 'showAnswers'],
+    ['Show media on screen', 'screen', 'showMedia'],
+  ])('%s calls toggle(%s, %s)', async (name, target, key) => {
     render(<HostVisibilityToggles game={GAME} />)
-    await userEvent.click(screen.getByRole('switch', { name: 'Show question' }))
-    expect(mockToggle).toHaveBeenCalledWith('showQuestion')
-  })
-  it('calls toggle with showAnswers', async () => {
-    render(<HostVisibilityToggles game={GAME} />)
-    await userEvent.click(screen.getByRole('switch', { name: 'Show answers' }))
-    expect(mockToggle).toHaveBeenCalledWith('showAnswers')
-  })
-  it('calls toggle with showMedia', async () => {
-    render(<HostVisibilityToggles game={GAME} />)
-    await userEvent.click(screen.getByRole('switch', { name: 'Show media' }))
-    expect(mockToggle).toHaveBeenCalledWith('showMedia')
+    await userEvent.click(screen.getByRole('switch', { name }))
+    expect(mockToggle).toHaveBeenCalledWith(target, key)
   })
   it('disables all switches while saving', () => {
     vi.mocked(useGameVisibility).mockReturnValue({
-      visibility: { showQuestion: true, showAnswers: false, showMedia: true },
+      visibility: VISIBILITY,
       toggle: mockToggle,
       saving: true,
       error: null,
@@ -108,7 +118,7 @@ describe('HostVisibilityToggles — interaction', () => {
 describe('HostVisibilityToggles — error state', () => {
   it('shows error message when error is set', () => {
     vi.mocked(useGameVisibility).mockReturnValue({
-      visibility: { showQuestion: true, showAnswers: false, showMedia: true },
+      visibility: VISIBILITY,
       toggle: mockToggle,
       saving: false,
       error: 'Failed to save visibility',

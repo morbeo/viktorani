@@ -14,9 +14,10 @@ const GAME = {
   name: 'G',
   status: 'waiting',
   roomId: null,
-  showQuestion: true,
-  showAnswers: false,
-  showMedia: true,
+  visibility: {
+    players: { showQuestion: true, showAnswers: false, showMedia: true },
+    screen: { showQuestion: true, showAnswers: false, showMedia: true },
+  },
   maxTeams: 0,
   maxPerTeam: 0,
   allowIndividual: true,
@@ -147,6 +148,17 @@ describe('importDatabase — validation', () => {
     void [_a, _b, _c, _d]
     await importDatabase(jsonFile(snapshot({ games: [legacy] })))
     expect(await db.games.get('g1')).toEqual(GAME)
+  })
+
+  it('moves flat visibility flags from older games into both targets', async () => {
+    const { visibility: _v, ...rest } = GAME
+    void _v
+    const legacy = { ...rest, showQuestion: false, showAnswers: true, showMedia: false }
+    await importDatabase(jsonFile(snapshot({ games: [legacy] })))
+    const flags = { showQuestion: false, showAnswers: true, showMedia: false }
+    const game = await db.games.get('g1')
+    expect(game?.visibility).toEqual({ players: flags, screen: flags })
+    expect(game).not.toHaveProperty('showQuestion')
   })
 
   it('accepts pre-#265 games with Gun transport fields and drops them', async () => {

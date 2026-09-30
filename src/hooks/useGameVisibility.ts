@@ -1,25 +1,22 @@
 import { useState, useCallback } from 'react'
 import { db } from '@/db'
 import { transportManager } from '@/transport'
-import type { Game } from '@/db'
+import type { Game, GameVisibility, TargetVisibility } from '@/db'
+import type { VisibilityTarget } from '@/transport/types'
 
-/** The three toggleable visibility flags for the current question. */
-export interface VisibilityState {
-  showQuestion: boolean
-  showAnswers: boolean
-  showMedia: boolean
-}
+/** The three toggleable visibility flags for the current question on one target. */
+export type VisibilityState = TargetVisibility
 
 /** Return value of {@link useGameVisibility}. */
 export interface UseGameVisibilityResult {
-  /** Current visibility state — initialised from the game record. */
-  visibility: VisibilityState
+  /** Current visibility for both targets — initialised from the game record. */
+  visibility: GameVisibility
   /**
-   * Toggle one visibility flag.
-   * Persists the change to IndexedDB and broadcasts a `VISIBILITY` transport event.
+   * Toggle one visibility flag on one target.
+   * Persists the change to IndexedDB and broadcasts a `VISIBILITY` event for that target.
    * On failure, reverts the optimistic local update.
    */
-  toggle: (key: keyof VisibilityState) => Promise<void>
+  toggle: (target: VisibilityTarget, key: keyof VisibilityState) => Promise<void>
   /** `true` while the DB write is in flight. */
   saving: boolean
   /** Non-null if the last `toggle` call failed. */
@@ -31,9 +28,9 @@ export interface UseGameVisibilityResult {
  *
  * @remarks
  * The GM can independently reveal the question text, answer options, and
- * associated media to players. Each toggle is persisted to the `games` table
- * and broadcast via the `VISIBILITY` transport event so all connected players
- * update immediately.
+ * associated media on player phones and on the projector screen. Each toggle
+ * is persisted to the `games` table and broadcast via the `VISIBILITY`
+ * transport event for its target so connected devices update immediately.
  *
  * Optimistic updates are applied locally before the DB write completes.
  * If the write fails, the previous state is restored and `error` is set.
@@ -45,45 +42,29 @@ export interface UseGameVisibilityResult {
  * function VisibilityPanel({ game }: { game: Game }) {
  *   const { visibility, toggle, saving } = useGameVisibility(game)
  *   return (
- *     <button onClick={() => toggle('showQuestion')} disabled={saving}>
- *       {visibility.showQuestion ? 'Hide' : 'Show'} Question
+ *     <button onClick={() => toggle('players', 'showQuestion')} disabled={saving}>
+ *       {visibility.players.showQuestion ? 'Hide' : 'Show'} Question
  *     </button>
  *   )
  * }
  * ```
  */
 export function useGameVisibility(game: Game): UseGameVisibilityResult {
-  const [visibility, setVisibility] = useState<VisibilityState>({
-    showQuestion: game.showQuestion,
-    showAnswers: game.showAnswers,
-    showMedia: game.showMedia,
-  })
+  const [visibility, setVisibility] = useState<GameVisibility>(game.visibility)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const toggle = useCallback(
-    async (key: keyof VisibilityState) => {
-      const next: VisibilityState = { ...visibility, [key]: !visibility[key] }
+    async (target: VisibilityTarget, key: keyof VisibilityState) => {
+      const flags: TargetVisibility = { ...visibility[target], [key]: !visibility[target][key] }
+      const next: GameVisibility = { ...visibility, [target]: flags }
       setVisibility(next)
       setSaving(true)
       setError(null)
 
       try {
-        await db.games.update(game.id, {
-          showQuestion: next.showQuestion,
-          showAnswers: next.showAnswers,
-          showMedia: next.showMedia,
-          updatedAt: Date.now(),
-        })
-
-        // Single set of flags until per-target visibility lands (#268): it drives phones
-        transportManager.send({
-          type: 'VISIBILITY',
-          target: 'players',
-          showQuestion: next.showQuestion,
-          showAnswers: next.showAnswers,
-          showMedia: next.showMedia,
-        })
+        await db.games.update(game.id, { visibility: next, updatedAt: Date.now() })
+        transportManager.send({ type: 'VISIBILITY', target, ...flags })
       } catch (err) {
         setVisibility(visibility)
         setError(err instanceof Error ? err.message : 'Failed to save visibility')

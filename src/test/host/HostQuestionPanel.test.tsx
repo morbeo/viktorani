@@ -16,9 +16,10 @@ const BASE_GAME: Game = {
   status: 'active',
   roomId: 'ABC123',
   scoringEnabled: true,
-  showQuestion: true,
-  showAnswers: false,
-  showMedia: true,
+  visibility: {
+    players: { showQuestion: true, showAnswers: false, showMedia: true },
+    screen: { showQuestion: true, showAnswers: false, showMedia: true },
+  },
   maxTeams: 0,
   maxPerTeam: 0,
   allowIndividual: true,
@@ -90,7 +91,13 @@ describe('HostQuestionPanel — header', () => {
     expect(screen.getByText('Correct')).toBeInTheDocument()
   })
   it('host always sees title regardless of showQuestion flag', () => {
-    rp(makeQ(), BASE_GQ, { ...BASE_GAME, showQuestion: false })
+    rp(makeQ(), BASE_GQ, {
+      ...BASE_GAME,
+      visibility: {
+        players: { showQuestion: false, showAnswers: false, showMedia: false },
+        screen: { showQuestion: false, showAnswers: false, showMedia: false },
+      },
+    })
     expect(screen.getByText('What is the capital of France?')).toBeInTheDocument()
   })
 })
@@ -151,12 +158,18 @@ describe('HostQuestionPanel — media', () => {
 // ── Visibility toggles ────────────────────────────────────────────────────────
 
 describe('HostQuestionPanel — visibility toggles', () => {
-  it('renders all three toggle switches', () => {
+  it('renders three toggle switches per target', () => {
     rp()
-    expect(screen.getAllByRole('switch')).toHaveLength(3)
+    expect(screen.getAllByRole('switch')).toHaveLength(6)
   })
   it('reflects game visibility state in toggles', () => {
-    rp(makeQ(), BASE_GQ, { ...BASE_GAME, showQuestion: false, showAnswers: true, showMedia: false })
+    rp(makeQ(), BASE_GQ, {
+      ...BASE_GAME,
+      visibility: {
+        players: { showQuestion: false, showAnswers: true, showMedia: false },
+        screen: { showQuestion: true, showAnswers: false, showMedia: true },
+      },
+    })
     const [q, a, m] = screen.getAllByRole('switch')
     expect(q).toHaveAttribute('aria-checked', 'false')
     expect(a).toHaveAttribute('aria-checked', 'true')
@@ -164,15 +177,19 @@ describe('HostQuestionPanel — visibility toggles', () => {
   })
   it('persists to DB when a toggle is clicked', async () => {
     rp()
-    await userEvent.click(screen.getByRole('switch', { name: 'Show answers' }))
+    await userEvent.click(screen.getByRole('switch', { name: 'Show answers on player phones' }))
     expect(db.games.update).toHaveBeenCalledWith(
       'g1',
-      expect.objectContaining({ showAnswers: true })
+      expect.objectContaining({
+        visibility: expect.objectContaining({
+          players: { showQuestion: true, showAnswers: true, showMedia: true },
+        }),
+      })
     )
   })
   it('emits VISIBILITY event with correct payload', async () => {
     rp()
-    await userEvent.click(screen.getByRole('switch', { name: 'Show answers' }))
+    await userEvent.click(screen.getByRole('switch', { name: 'Show answers on player phones' }))
     expect(transportManager.send).toHaveBeenCalledWith({
       type: 'VISIBILITY',
       target: 'players',
@@ -184,7 +201,7 @@ describe('HostQuestionPanel — visibility toggles', () => {
   it('shows error message if DB write fails', async () => {
     vi.mocked(db.games.update).mockRejectedValueOnce(new Error('Write failed'))
     rp()
-    await userEvent.click(screen.getByRole('switch', { name: 'Show question' }))
+    await userEvent.click(screen.getByRole('switch', { name: 'Show question on player phones' }))
     expect(screen.getByText('Write failed')).toBeInTheDocument()
   })
 })
