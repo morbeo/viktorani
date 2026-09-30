@@ -26,7 +26,12 @@ const Loading = () => (
 
 export default function App() {
   useEffect(() => {
-    seedDefaults()
+    const ready = seedDefaults()
+    // `npm run demo` opens the app with ?demo — dev builds only
+    if (import.meta.env.DEV && new URLSearchParams(location.search).has('demo')) {
+      history.replaceState(null, '', location.pathname + location.hash)
+      ready.then(() => import('@/db/demo')).then(m => m.seedDemo())
+    }
   }, [])
 
   return (

@@ -47,11 +47,14 @@ npm install
 npm run dev
 ```
 
+To try it with sample data, run `npm run demo` instead. It opens the admin panel with demo questions, rounds, teams, and a ready-to-run game named **Demo Night**. Running it again won't create duplicates.
+
 ### Available scripts
 
 | Script                  | What it does                                   |
 | ----------------------- | ---------------------------------------------- |
 | `npm run dev`           | Start dev server at `localhost:5173`           |
+| `npm run demo`          | Dev server + seed demo data, opens admin panel |
 | `npm run build`         | Type-check + production build → `dist/`        |
 | `npm run docs`          | Generate API docs → `docs/api/` (gitignored)   |
 | `npm run lint`          | ESLint across all `*.ts` / `*.tsx` files       |
@@ -70,12 +73,12 @@ npm run dev
 
 ## Documentation
 
-| Document | Description |
-| -------- | ----------- |
-| [Host guide](docs/user-guide/host.md) | Setting up and running a trivia night |
-| [Player guide](docs/user-guide/player.md) | Joining a game and buzzing in |
+| Document                                            | Description                              |
+| --------------------------------------------------- | ---------------------------------------- |
+| [Host guide](docs/user-guide/host.md)               | Setting up and running a trivia night    |
+| [Player guide](docs/user-guide/player.md)           | Joining a game and buzzing in            |
 | [API docs](https://morbeo.github.io/viktorani/api/) | Generated TypeDoc — transport, DB, hooks |
-| [Architecture decisions](docs/adr/) | ADRs for all major technical decisions |
+| [Architecture decisions](docs/adr/)                 | ADRs for all major technical decisions   |
 
 To generate API docs locally:
 
@@ -178,13 +181,13 @@ restore or share your question bank.
 
 ### Workflows
 
-| Workflow        | Trigger                        | Purpose                                                                |
-| --------------- | ------------------------------ | ---------------------------------------------------------------------- |
-| `ci.yml`        | PRs to `master`                | PR title lint + type-check, lint, test, build — both required to merge |
-| `deploy.yml`    | push to `master` + manual      | Type-check → lint → test → build → deploy to GitHub Pages              |
-| `docs.yml`      | push to `master` (src/ changes) | Generate TypeDoc → publish to `gh-pages` under `/api/`                |
-| `release.yml`   | push of `v*` tags              | Build tarball → generate release notes → publish GitHub Release        |
-| `automerge.yml` | `CI` workflow completes        | Auto-merge Dependabot patch/minor PRs when CI passes                   |
+| Workflow        | Trigger                         | Purpose                                                                |
+| --------------- | ------------------------------- | ---------------------------------------------------------------------- |
+| `ci.yml`        | PRs to `master`                 | PR title lint + type-check, lint, test, build — both required to merge |
+| `deploy.yml`    | push to `master` + manual       | Type-check → lint → test → build → deploy to GitHub Pages              |
+| `docs.yml`      | push to `master` (src/ changes) | Generate TypeDoc → publish to `gh-pages` under `/api/`                 |
+| `release.yml`   | push of `v*` tags               | Build tarball → generate release notes → publish GitHub Release        |
+| `automerge.yml` | `CI` workflow completes         | Auto-merge Dependabot patch/minor PRs when CI passes                   |
 
 All workflows set `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` to opt into the Node 24 runner ahead of the June 2026 forced migration.
 
