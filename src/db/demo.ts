@@ -4,8 +4,9 @@ import { seedPlayersTeams } from './players-teams'
 import { generateRoomId } from '@/transport'
 
 /**
- * Dev-only demo data, loaded via `npm run demo` (the `?demo` URL flag).
- * Never imported statically, so it stays out of the production bundle.
+ * Demo data, loaded via `npm run demo` (the `?demo` URL flag, dev only) or the
+ * "Load demo data" button in the Settings debug panel (`?debug=1`).
+ * Only imported dynamically, so it stays out of the initial bundle.
  */
 
 export const DEMO_GAME_NAME = 'Demo Night'
