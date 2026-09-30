@@ -30,9 +30,9 @@ and a `start_url` of `/viktorani/` (matching the GitHub Pages subpath).
 **Offline capability scope:**
 - The GM can run a full game offline: questions, navigation, buzzer logic, and scoring
   all work without any network request.
-- The real-time transport (PeerJS / Gun.js) requires internet for initial connection.
+- The real-time transport (PeerJS) requires internet for initial connection.
   Once the game is in progress, PeerJS direct data channels survive brief connectivity
-  drops; Gun.js buffers events and replays on reconnect.
+  drops.
 - Player devices need internet for the initial page load; after caching they can
   reload offline but will not receive transport events without connectivity.
 

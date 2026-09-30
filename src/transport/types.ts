@@ -83,35 +83,29 @@ export interface SerializedGameState {
  * Configuration passed to {@link transport/types.ITransport.connect}.
  *
  * @remarks
- * `passphrase` is used by Gun.js SEA for symmetric encryption of the
- * Gun node key. PeerJS ignores it — PeerJS connections are encrypted by
- * the underlying WebRTC DTLS handshake.
+ * PeerJS connections are encrypted by the underlying WebRTC DTLS handshake.
  */
 export interface TransportConfig {
-  /** Which transport to use. `'auto'` tries PeerJS first, falls back to Gun.js. */
-  mode: 'auto' | 'peer' | 'gun'
   /** `'host'` creates the room; `'player'` joins an existing room. */
   role: 'host' | 'player'
   /** Six-character uppercase room code (e.g. `'XK7RQZ'`). */
   roomId: string
-  /** Four-word passphrase used by Gun SEA encryption (e.g. `'tiger-lamp-cloud-seven'`). */
-  passphrase: string
 }
 
 /** Lifecycle state of the underlying transport connection. */
 export type TransportStatus = 'idle' | 'connecting' | 'connected' | 'disconnected' | 'error'
 
 /** Which transport implementation is currently active, or `null` if not connected. */
-export type TransportType = 'peer' | 'gun' | null
+export type TransportType = 'peer' | null
 
 // ── Interface all transports must implement ───────────────────────────────────
 
 /**
- * Common interface implemented by {@link transport/PeerJSTransport.PeerJSTransport} and {@link transport/GunTransport.GunTransport}.
+ * Interface implemented by {@link transport/PeerJSTransport.PeerJSTransport}.
  *
  * @remarks
  * All transports are one-room-per-instance. Call `connect()` once per session;
- * call `disconnect()` before switching rooms or transport modes.
+ * call `disconnect()` before switching rooms.
  */
 export interface ITransport {
   /** Current connection lifecycle state. */
@@ -121,7 +115,7 @@ export interface ITransport {
 
   /**
    * Establish a connection to (or create) the specified room.
-   * @param config - Room credentials and mode selection.
+   * @param config - Room role and code.
    * @returns Resolves when the connection is ready to send and receive events.
    */
   connect(config: TransportConfig): Promise<void>

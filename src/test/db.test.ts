@@ -196,9 +196,7 @@ describe('DB schema', () => {
       id: 'g1',
       name: 'Test Game',
       status: 'waiting',
-      transportMode: 'auto',
       roomId: 'XYZ123',
-      passphrase: 'a-b-c-d',
       scoringEnabled: true,
       showQuestion: true,
       showAnswers: false,
@@ -235,9 +233,7 @@ describe('DB schema', () => {
 
   it('queries games by status index', async () => {
     const base = {
-      transportMode: 'auto' as const,
       roomId: 'X',
-      passphrase: null,
       scoringEnabled: true,
       showQuestion: true,
       showAnswers: false,
@@ -493,9 +489,7 @@ describe('importDatabase', () => {
       id: 'g1',
       name: 'G',
       status: 'waiting',
-      transportMode: 'auto',
       roomId: 'X',
-      passphrase: null,
       scoringEnabled: true,
       showQuestion: true,
       showAnswers: false,

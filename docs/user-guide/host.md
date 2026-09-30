@@ -94,7 +94,6 @@ On the game settings panel you can configure:
 
 | Option | What it does |
 |---|---|
-| Transport mode | `Auto` (PeerJS → Gun fallback), `PeerJS only`, or `Gun only` |
 | Scoring enabled | Award points automatically on correct buzz adjudication |
 | Auto-lock on first correct | Lock the buzzer after the first correct ruling |
 | Allow false starts | Record buzzes that arrive while the buzzer is locked |
@@ -111,15 +110,14 @@ Open a game and click **Start Game** to enter the GameMaster (GM) view.
 When the game starts, a room code and QR code are generated.
 
 ```
-Room:       XK7RQZ
-Passphrase: tiger-lamp-cloud-seven
+Room: XK7RQZ
 ```
 
 Players can join by:
 - Scanning the QR code with their phone camera.
 - Visiting the Viktorani URL and entering the room code manually.
 
-The QR code links directly to the join page with the room and passphrase pre-filled.
+The QR code links directly to the join page with the room code pre-filled.
 
 ### Lobby
 

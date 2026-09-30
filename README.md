@@ -97,8 +97,7 @@ src/
 ├── transport/
 │   ├── types.ts          # GameEvent / PlayerEvent interfaces
 │   ├── PeerJSTransport.ts
-│   ├── GunTransport.ts   # SEA-encrypted Gun.js relay
-│   └── index.ts          # TransportManager — auto-detect + manual override
+│   └── index.ts          # TransportManager — PeerJS connection + event fan-out
 ├── hooks/
 │   ├── useTransport.ts
 │   ├── useBuzzer.ts

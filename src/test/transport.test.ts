@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { generatePassphrase, generateRoomId, TransportManager } from '@/transport'
+import { generateRoomId, TransportManager } from '@/transport'
 import type {
   ITransport,
   TransportConfig,
@@ -7,32 +7,6 @@ import type {
   TransportStatus,
   TransportType,
 } from '@/transport/types'
-
-// ── generatePassphrase ────────────────────────────────────────────────────────
-
-describe('generatePassphrase', () => {
-  it('returns 4 words by default', () => {
-    const p = generatePassphrase()
-    expect(p.split('-')).toHaveLength(4)
-  })
-
-  it('honours wordCount parameter', () => {
-    expect(generatePassphrase(2).split('-')).toHaveLength(2)
-    expect(generatePassphrase(6).split('-')).toHaveLength(6)
-  })
-
-  it('contains only lowercase words from the wordlist', () => {
-    for (let i = 0; i < 20; i++) {
-      const words = generatePassphrase().split('-')
-      words.forEach(w => expect(w).toMatch(/^[a-z]+$/))
-    }
-  })
-
-  it('generates different values on successive calls', () => {
-    const phrases = new Set(Array.from({ length: 20 }, () => generatePassphrase()))
-    expect(phrases.size).toBeGreaterThan(1)
-  })
-})
 
 // ── generateRoomId ────────────────────────────────────────────────────────────
 
@@ -55,7 +29,7 @@ describe('generateRoomId', () => {
 
 // ── TransportManager ──────────────────────────────────────────────────────────
 
-function makeMockTransport(type: 'peer' | 'gun', fails = false): ITransport {
+function makeMockTransport(type: 'peer', fails = false): ITransport {
   const handlers: Array<(e: TransportEvent) => void> = []
   return {
     get status() {
@@ -79,10 +53,8 @@ function makeMockTransport(type: 'peer' | 'gun', fails = false): ITransport {
 }
 
 const BASE_CONFIG: TransportConfig = {
-  mode: 'peer',
   role: 'host',
   roomId: 'ABC123',
-  passphrase: 'a-b-c-d',
 }
 
 describe('TransportManager', () => {
@@ -109,13 +81,13 @@ describe('TransportManager', () => {
     }
   }
 
-  describe('connect — peer mode', () => {
-    it('uses PeerJS transport when mode is peer', async () => {
+  describe('connect', () => {
+    it('uses the PeerJS transport', async () => {
       const mock = makeMockTransport('peer')
       vi.spyOn(internals(manager), 'tryTransport').mockImplementation(async () => {
         internals(manager).transport = mock
       })
-      await manager.connect({ ...BASE_CONFIG, mode: 'peer' })
+      await manager.connect(BASE_CONFIG)
       expect(manager.transportType).toBe('peer')
     })
 
@@ -131,40 +103,14 @@ describe('TransportManager', () => {
     })
   })
 
-  describe('connect — gun mode', () => {
-    it('uses Gun transport when mode is gun', async () => {
-      const mock = makeMockTransport('gun')
-      vi.spyOn(internals(manager), 'tryTransport').mockImplementation(async () => {
-        internals(manager).transport = mock
+  describe('connect — failure', () => {
+    it('rejects and stays idle when PeerJS fails (no fallback)', async () => {
+      const spy = vi.spyOn(internals(manager), 'tryTransport').mockImplementation(async () => {
+        throw new Error('peer failed')
       })
-      await manager.connect({ ...BASE_CONFIG, mode: 'gun' })
-      expect(manager.transportType).toBe('gun')
-    })
-  })
-
-  describe('connect — auto mode', () => {
-    it('uses PeerJS when it succeeds', async () => {
-      const peer = makeMockTransport('peer')
-      const gun = makeMockTransport('gun')
-      let calls = 0
-      vi.spyOn(internals(manager), 'tryTransport').mockImplementation(async () => {
-        internals(manager).transport = calls++ === 0 ? peer : gun
-      })
-      await manager.connect({ ...BASE_CONFIG, mode: 'auto' })
-      expect(calls).toBe(1)
-      expect(manager.transportType).toBe('peer')
-    })
-
-    it('falls back to Gun when PeerJS fails', async () => {
-      const gun = makeMockTransport('gun')
-      let calls = 0
-      vi.spyOn(internals(manager), 'tryTransport').mockImplementation(async () => {
-        if (calls++ === 0) throw new Error('peer failed')
-        internals(manager).transport = gun
-      })
-      await manager.connect({ ...BASE_CONFIG, mode: 'auto' })
-      expect(calls).toBe(2)
-      expect(manager.transportType).toBe('gun')
+      await expect(manager.connect(BASE_CONFIG)).rejects.toThrow('peer failed')
+      expect(spy).toHaveBeenCalledTimes(1)
+      expect(manager.status).toBe('idle')
     })
   })
 
