@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import type { Plugin } from 'vite'
+import { execSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 
 // GitHub Pages can't send headers, so the CSP ships as a <meta> tag. It is
 // injected only into production builds: the dev server relies on inline
@@ -35,8 +37,33 @@ const cspMeta = (): Plugin => ({
   ],
 })
 
+// Build metadata shown in the hidden Settings debug panel (src/buildInfo.ts).
+// deploy.yml builds on every deploy, so builtAt is also the last deploy time.
+function commitSha(): string {
+  if (process.env.GITHUB_SHA) return process.env.GITHUB_SHA
+  try {
+    return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString()
+      .trim()
+  } catch {
+    return 'unknown'
+  }
+}
+
+const buildInfo = {
+  version: (JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string }).version,
+  commit: commitSha(),
+  builtAt: new Date().toISOString(),
+  runId: process.env.GITHUB_RUN_ID ?? null,
+  runNumber: process.env.GITHUB_RUN_NUMBER ?? null,
+  ref: process.env.GITHUB_REF_NAME ?? null,
+}
+
 export default defineConfig({
   base: '/viktorani/',
+  define: {
+    __BUILD_INFO__: JSON.stringify(buildInfo),
+  },
   plugins: [
     react(),
     tailwindcss(),
