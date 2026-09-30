@@ -141,38 +141,43 @@ export function useBuzzer(
       const g = gameRef.current
       const now = Date.now()
 
-      await db.buzzEvents.update(buzzId, { gmDecision: decision, decidedAt: now })
+      // One transaction: re-read the buzz so a repeated click is a no-op, and commit
+      // the decision and score together. Resolves to null if already decided.
+      const result = await db.transaction(
+        'rw',
+        [db.buzzEvents, db.players, db.questions, db.difficulties],
+        async (): Promise<{ scores?: Record<string, number> } | null> => {
+          const buzz = await db.buzzEvents.get(buzzId)
+          if (!buzz || buzz.gmDecision !== null) return null
+          await db.buzzEvents.update(buzzId, { gmDecision: decision, decidedAt: now })
+
+          if (decision !== 'Correct' || !g.scoringEnabled) return {}
+          const player = await db.players.get(buzz.playerId)
+          if (!player) return {}
+
+          // Resolve score increment from question difficulty; fall back to 1
+          let increment = 1
+          const question = questionId ? await db.questions.get(questionId) : undefined
+          if (question?.difficulty) {
+            const diff = await db.difficulties.get(question.difficulty)
+            if (diff) increment = diff.score
+          }
+          await db.players.update(buzz.playerId, { score: player.score + increment })
+
+          const allPlayers = await db.players.where('gameId').equals(g.id).toArray()
+          return { scores: Object.fromEntries(allPlayers.map(p => [p.id, p.score])) }
+        }
+      )
+      if (!result) return
+
       setBuzzes(prev =>
         prev.map(b => (b.id === buzzId ? { ...b, gmDecision: decision, decidedAt: now } : b))
       )
+      if (result.scores) transportManager.send({ type: 'SCORE_UPDATE', scores: result.scores })
 
-      if (decision === 'Correct') {
-        // Read the buzz from DB to avoid closing over React state
-        const buzz = await db.buzzEvents.get(buzzId)
-        if (buzz && g.scoringEnabled) {
-          const player = await db.players.get(buzz.playerId)
-          if (player) {
-            // Resolve score increment from question difficulty; fall back to 1
-            let increment = 1
-            const question = questionId ? await db.questions.get(questionId) : undefined
-            if (question?.difficulty) {
-              const diff = await db.difficulties.get(question.difficulty)
-              if (diff) increment = diff.score
-            }
-            const newScore = player.score + increment
-            await db.players.update(buzz.playerId, { score: newScore })
-
-            // Broadcast updated scores
-            const allPlayers = await db.players.where('gameId').equals(g.id).toArray()
-            const scores = Object.fromEntries(allPlayers.map(p => [p.id, p.score]))
-            transportManager.send({ type: 'SCORE_UPDATE', scores })
-          }
-        }
-
-        // Auto-lock if configured
-        if (g.autoLockOnFirstCorrect && !gameRef.current.buzzerLocked) {
-          await setLocked(true)
-        }
+      // Auto-lock if configured
+      if (decision === 'Correct' && g.autoLockOnFirstCorrect && !gameRef.current.buzzerLocked) {
+        await setLocked(true)
       }
     },
     [questionId, setLocked]
