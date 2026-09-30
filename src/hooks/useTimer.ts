@@ -310,11 +310,11 @@ export async function applyAutoReset(
 ) {
   for (const t of timers) {
     if (t.autoReset === 'none') continue
+    // A round change also moves to a new question
     const matches =
-      t.autoReset === 'any' ||
-      t.autoReset === changeType ||
-      (t.autoReset === 'round' && changeType === 'round')
-    if (!matches || (t.paused && t.startedAt === null)) continue
+      t.autoReset === 'any' || t.autoReset === changeType || t.autoReset === 'question'
+    const atRest = t.paused && t.startedAt === null && t.remaining === t.duration
+    if (!matches || atRest) continue
     const patch = { paused: true, remaining: t.duration, startedAt: null } as Partial<Timer>
     await db.timers.update(t.id, patch)
     onReset?.(t.id, patch)

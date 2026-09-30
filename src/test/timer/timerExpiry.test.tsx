@@ -337,6 +337,33 @@ describe('useTimerList.autoReset', () => {
     expect(result.current.timers.find(x => x.id === r.id)).toMatchObject({ paused: false })
     expect(await db.timers.get(r.id)).toMatchObject({ paused: false, startedAt: r.startedAt })
   })
+
+  it('resets a question timer that was paused mid-run', async () => {
+    const t = makeTimer({ autoReset: 'question', paused: true, startedAt: null, remaining: 42 })
+    await db.timers.add(t)
+    const { result } = renderHook(() => useTimerList(GAME_ID))
+    await flush()
+
+    await act(async () => {
+      await result.current.autoReset('question')
+    })
+
+    expect(result.current.timers[0].remaining).toBe(60)
+    expect((await db.timers.get(t.id))?.remaining).toBe(60)
+  })
+
+  it('resets question timers on a round change', async () => {
+    const t = makeTimer({ autoReset: 'question', paused: false, startedAt: Date.now() - 5_000 })
+    await db.timers.add(t)
+    const { result } = renderHook(() => useTimerList(GAME_ID))
+    await flush()
+
+    await act(async () => {
+      await result.current.autoReset('round')
+    })
+
+    expect(result.current.timers[0]).toMatchObject({ paused: true, remaining: 60 })
+  })
 })
 
 // ── EditTimerModal ────────────────────────────────────────────────────────────
