@@ -23,7 +23,7 @@ Epic: #243
 
 - [x] `ci.yml:35` PR title script injection; changelog injection in `release.yml` (#255)
 - [x] `release.yml:92` missing `\`: releases failing since v0.0.9 (#256)
-- [ ] Make CI a required status check (#257)
+- [x] Make CI a required status check (#257)
 - [x] `detect-code-changes.sh` paths don't match the deploy paths; deploy repeats CI's work (#258)
 - [x] Validate imported JSON with zod in a single transaction (`db/snapshot.ts`) (#259)
 - [x] Add `.max()` limits to transport schemas (#260); add a CSP (#261)
