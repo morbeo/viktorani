@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useEffect, useCallback, useRef } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
 import { transportManager } from '@/transport'
-import { applyScoreDelta, teamScore } from '@/pages/admin/gamemaster-utils'
-import type { Game, Player, Team, DifficultyLevel } from '@/db'
+import { applyScoreDelta } from '@/pages/admin/gamemaster-utils'
+import type { Game } from '@/db'
 
 /** A single row in the scoreboard — either a team or an individual player. */
 export interface ScoreEntry {
@@ -30,14 +31,29 @@ export interface UseScoreboardResult {
 }
 
 /**
+ * Broadcast every player and team score of a game as one `SCORE_UPDATE`.
+ * The single emitter for score changes (manual adjustments and adjudication).
+ */
+export async function broadcastScores(gameId: string): Promise<void> {
+  const [players, teams] = await Promise.all([
+    db.players.where('gameId').equals(gameId).toArray(),
+    db.teams.where('gameId').equals(gameId).toArray(),
+  ])
+  const scores: Record<string, number> = {}
+  for (const p of players) scores[p.id] = p.score
+  for (const t of teams) scores[t.id] = t.score
+  transportManager.send({ type: 'SCORE_UPDATE', scores })
+}
+
+/**
  * Manages scoreboard state for the GM view.
  *
  * @remarks
- * - Loads players (and teams in team mode) from IndexedDB on mount.
+ * - Reads players and teams live from IndexedDB, so points awarded elsewhere (adjudication)
+ *   and players joining mid-game show up immediately.
  * - Provides {@link UseScoreboardResult.adjust} to apply manual +/− delta to a player or team.
  * - Emits a `SCORE_UPDATE` transport event after every adjustment so players see live scores.
- * - In team mode, adjusting an individual player's score also recalculates and persists
- *   the parent team's aggregate score.
+ * - Team scores are stored on their own: a player adjustment never changes the team score.
  * - Scores are clamped to a minimum of `0`.
  *
  * @param game - The active {@link Game} record. Only `game.id` is used for DB queries.
@@ -57,27 +73,15 @@ export interface UseScoreboardResult {
  * ```
  */
 export function useScoreboard(game: Game): UseScoreboardResult {
-  const [players, setPlayers] = useState<Player[]>([])
-  const [teams, setTeams] = useState<Team[]>([])
-  const [difficulties, setDifficulties] = useState<DifficultyLevel[]>([])
+  const players =
+    useLiveQuery(() => db.players.where('gameId').equals(game.id).toArray(), [game.id]) ?? []
+  const teams =
+    useLiveQuery(() => db.teams.where('gameId').equals(game.id).toArray(), [game.id]) ?? []
+  const difficulties = useLiveQuery(() => db.difficulties.orderBy('order').toArray(), []) ?? []
   const gameRef = useRef(game)
   useEffect(() => {
     gameRef.current = game
   })
-
-  // Load on mount
-  useEffect(() => {
-    if (!game.id) return
-    Promise.all([
-      db.players.where('gameId').equals(game.id).toArray(),
-      db.teams.where('gameId').equals(game.id).toArray(),
-      db.difficulties.orderBy('order').toArray(),
-    ]).then(([ps, ts, ds]) => {
-      setPlayers(ps)
-      setTeams(ts)
-      setDifficulties(ds)
-    })
-  }, [game.id])
 
   // Default increment: lowest difficulty score, or 1
   const defaultIncrement = difficulties.length > 0 ? Math.min(...difficulties.map(d => d.score)) : 1
@@ -85,40 +89,13 @@ export function useScoreboard(game: Game): UseScoreboardResult {
   const adjust = useCallback(async (id: string, kind: 'player' | 'team', delta: number) => {
     const g = gameRef.current
 
-    if (kind === 'player') {
-      const player = await db.players.get(id)
-      if (!player) return
-      const newScore = applyScoreDelta(player.score, delta)
-      await db.players.update(id, { score: newScore })
-      setPlayers(prev => prev.map(p => (p.id === id ? { ...p, score: newScore } : p)))
+    // Player and team scores are independent; the UI updates via the live queries
+    const table = kind === 'player' ? db.players : db.teams
+    const row = await table.get(id)
+    if (!row) return
+    await table.update(id, { score: applyScoreDelta(row.score, delta) })
 
-      // If player belongs to a team, update team score too
-      if (player.teamId) {
-        const updatedPlayers = await db.players.where('gameId').equals(g.id).toArray()
-        const newTeamScore = teamScore(updatedPlayers, player.teamId)
-        await db.teams.update(player.teamId, { score: newTeamScore })
-        setTeams(prev =>
-          prev.map(t => (t.id === player.teamId ? { ...t, score: newTeamScore } : t))
-        )
-      }
-    } else {
-      // Team adjustment: distribute delta to team record, don't touch individual players
-      const team = await db.teams.get(id)
-      if (!team) return
-      const newScore = applyScoreDelta(team.score, delta)
-      await db.teams.update(id, { score: newScore })
-      setTeams(prev => prev.map(t => (t.id === id ? { ...t, score: newScore } : t)))
-    }
-
-    // Broadcast updated scores
-    const [allPlayers, allTeams] = await Promise.all([
-      db.players.where('gameId').equals(g.id).toArray(),
-      db.teams.where('gameId').equals(g.id).toArray(),
-    ])
-    const scores: Record<string, number> = {}
-    for (const p of allPlayers) scores[p.id] = p.score
-    for (const t of allTeams) scores[t.id] = t.score
-    transportManager.send({ type: 'SCORE_UPDATE', scores })
+    await broadcastScores(g.id)
   }, [])
 
   // Build display entries

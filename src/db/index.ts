@@ -183,7 +183,7 @@ export interface Game {
   updatedAt: number
 }
 
-/** A team of players within a {@link Game}. Scores are aggregated from member players. */
+/** A team of players within a {@link Game}. Its score is stored separately from its members' scores. */
 export interface Team {
   id: string
   gameId: string
