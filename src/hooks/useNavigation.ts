@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { db } from '@/db'
 import { transportManager } from '@/transport'
-import { buildNavSequence, getNavPosition, step } from '@/pages/admin/gamemaster-utils'
-import type { Game, GameQuestion, Round } from '@/db'
+import { buildNavSequence, getNavPosition, orderRounds, step } from '@/pages/admin/gamemaster-utils'
+import type { Game, GameQuestion } from '@/db'
 import type { NavEntry, NavPosition } from '@/pages/admin/gamemaster-utils'
 
 export interface UseNavigationResult {
@@ -43,11 +43,7 @@ export function useNavigation(
       ])
       if (cancelled) return
 
-      // Only include rounds referenced by this game
-      const roundIds = new Set(g.roundIds)
-      const rounds = allRounds.filter((r: Round) => roundIds.has(r.id))
-
-      const built = buildNavSequence(gqs as GameQuestion[], rounds)
+      const built = buildNavSequence(gqs as GameQuestion[], orderRounds(g.roundIds, allRounds))
       setSeq(built)
 
       // Recover position from game record (survives reload)

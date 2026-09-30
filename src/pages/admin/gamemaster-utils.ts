@@ -171,6 +171,23 @@ export function buildNavSequence(
   })
 }
 
+/**
+ * Returns the game's rounds in `roundIds` order. A round that no longer exists
+ * gets a placeholder so the remaining rounds keep their positions.
+ *
+ * Pure function — no DB access.
+ */
+export function orderRounds(
+  roundIds: string[],
+  rounds: import('@/db').Round[]
+): import('@/db').Round[] {
+  const byId = new Map(rounds.map(r => [r.id, r]))
+  return roundIds.map(
+    id =>
+      byId.get(id) ?? { id, name: 'Deleted round', description: '', questionIds: [], createdAt: 0 }
+  )
+}
+
 // ── Scoring ───────────────────────────────────────────────────────────────────
 
 /**
