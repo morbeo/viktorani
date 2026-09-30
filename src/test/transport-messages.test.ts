@@ -7,6 +7,13 @@ import {
   TransportEventSchema,
   parseTransportEvent,
 } from '@/transport'
+import {
+  MAX_ID_LENGTH,
+  MAX_LABEL_LENGTH,
+  MAX_NAME_LENGTH,
+  MAX_SCORE_ENTRIES,
+  MAX_STATUS_LENGTH,
+} from '@/transport/messages'
 import type { SerializedGameState, TransportEvent } from '@/transport/types'
 import { serialiseGameState } from '@/pages/admin/gamemaster-utils'
 import type { Game, Player } from '@/db'
@@ -129,6 +136,100 @@ describe('TransportEventSchema', () => {
   })
 })
 
+// ── Size limits ───────────────────────────────────────────────────────────────
+
+/** Build a scores record with `n` entries. */
+function scoresOf(n: number): Record<string, number> {
+  return Object.fromEntries(Array.from({ length: n }, (_, i) => [`p${i}`, i]))
+}
+
+const accepts = (raw: unknown) => TransportEventSchema.safeParse(raw).success
+
+describe('size limits', () => {
+  it.each([
+    ['BUZZ.playerName', FIXTURES.BUZZ, 'playerName', MAX_NAME_LENGTH],
+    ['JOIN.playerName', FIXTURES.JOIN, 'playerName', MAX_NAME_LENGTH],
+    ['BUZZ.playerId', FIXTURES.BUZZ, 'playerId', MAX_ID_LENGTH],
+    ['JOIN.playerId', FIXTURES.JOIN, 'playerId', MAX_ID_LENGTH],
+    ['JOIN.teamId', FIXTURES.JOIN, 'teamId', MAX_ID_LENGTH],
+    ['JOIN.deviceId', FIXTURES.JOIN, 'deviceId', MAX_ID_LENGTH],
+    ['LEAVE.playerId', FIXTURES.LEAVE, 'playerId', MAX_ID_LENGTH],
+    ['FOCUS_CHANGE.playerId', FIXTURES.FOCUS_CHANGE, 'playerId', MAX_ID_LENGTH],
+    ['TIMER_START.id', FIXTURES.TIMER_START, 'id', MAX_ID_LENGTH],
+    ['TIMER_START.label', FIXTURES.TIMER_START, 'label', MAX_LABEL_LENGTH],
+    ['TIMER_PAUSE.id', FIXTURES.TIMER_PAUSE, 'id', MAX_ID_LENGTH],
+    ['TIMER_RESUME.id', FIXTURES.TIMER_RESUME, 'id', MAX_ID_LENGTH],
+    ['TIMER_EXPIRED.id', FIXTURES.TIMER_EXPIRED, 'id', MAX_ID_LENGTH],
+    ['TIMER_EXPIRED.label', FIXTURES.TIMER_EXPIRED, 'label', MAX_LABEL_LENGTH],
+  ] as const)('%s accepts max length and rejects one more', (_name, fixture, field, max) => {
+    expect(accepts({ ...fixture, [field]: 'a'.repeat(max) })).toBe(true)
+    expect(accepts({ ...fixture, [field]: 'a'.repeat(max + 1) })).toBe(false)
+  })
+
+  it('rejects an oversized playerName (1 MB)', () => {
+    expect(accepts({ ...FIXTURES.JOIN, playerName: 'x'.repeat(1_000_000) })).toBe(false)
+  })
+
+  it.each([
+    ['gameId', MAX_ID_LENGTH],
+    ['status', MAX_STATUS_LENGTH],
+  ] as const)('GAME_STATE.state.%s is bounded', (field, max) => {
+    const withValue = (v: string) => ({
+      ...FIXTURES.GAME_STATE,
+      state: { ...FIXTURES.GAME_STATE.state, [field]: v },
+    })
+    expect(accepts(withValue('a'.repeat(max)))).toBe(true)
+    expect(accepts(withValue('a'.repeat(max + 1)))).toBe(false)
+  })
+
+  it('accepts a scores record at the entry limit and rejects one more', () => {
+    expect(accepts({ type: 'SCORE_UPDATE', scores: scoresOf(MAX_SCORE_ENTRIES) })).toBe(true)
+    expect(accepts({ type: 'SCORE_UPDATE', scores: scoresOf(MAX_SCORE_ENTRIES + 1) })).toBe(false)
+  })
+
+  it('rejects a huge scores record inside GAME_STATE', () => {
+    const state = { ...FIXTURES.GAME_STATE.state, scores: scoresOf(10_000) }
+    expect(accepts({ type: 'GAME_STATE', state })).toBe(false)
+  })
+
+  it('rejects an oversized scores key', () => {
+    const scores = { ['k'.repeat(MAX_ID_LENGTH + 1)]: 1 }
+    expect(accepts({ type: 'SCORE_UPDATE', scores })).toBe(false)
+  })
+})
+
+describe('number constraints', () => {
+  const NON_FINITE = [Infinity, -Infinity, NaN]
+
+  it.each(NON_FINITE)('rejects %s in numeric fields', n => {
+    expect(accepts({ ...FIXTURES.SCORE_UPDATE, scores: { p1: n } })).toBe(false)
+    expect(accepts({ ...FIXTURES.BUZZ, timestamp: n })).toBe(false)
+    expect(accepts({ ...FIXTURES.TIMER_START, duration: n })).toBe(false)
+    expect(accepts({ ...FIXTURES.SLIDE_CHANGE, index: n })).toBe(false)
+    expect(accepts({ ...FIXTURES.SLIDE_CHANGE, roundIndex: n })).toBe(false)
+    const state = { ...FIXTURES.GAME_STATE.state, currentRoundIdx: n }
+    expect(accepts({ type: 'GAME_STATE', state })).toBe(false)
+  })
+
+  it('rejects negative or fractional indices', () => {
+    for (const n of [-1, 1.5]) {
+      expect(accepts({ ...FIXTURES.SLIDE_CHANGE, index: n })).toBe(false)
+      expect(accepts({ ...FIXTURES.SLIDE_CHANGE, roundIndex: n })).toBe(false)
+      const state = { ...FIXTURES.GAME_STATE.state, currentQuestionIdx: n }
+      expect(accepts({ type: 'GAME_STATE', state })).toBe(false)
+    }
+  })
+
+  it('rejects negative durations and timestamps', () => {
+    expect(accepts({ ...FIXTURES.TIMER_START, duration: -1 })).toBe(false)
+    expect(accepts({ ...FIXTURES.BUZZ, timestamp: -1 })).toBe(false)
+  })
+
+  it('still accepts negative scores', () => {
+    expect(accepts({ type: 'SCORE_UPDATE', scores: { p1: -5.5 } })).toBe(true)
+  })
+})
+
 // ── Production code paths ─────────────────────────────────────────────────────
 
 describe('production payload builders', () => {
@@ -171,5 +272,11 @@ describe('parseTransportEvent', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     expect(parseTransportEvent({ type: 'BUZZ' })).toBeNull()
     expect(warn).toHaveBeenCalledOnce()
+  })
+
+  it('drops an oversized payload in production', () => {
+    vi.stubEnv('DEV', false)
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    expect(parseTransportEvent({ ...FIXTURES.BUZZ, playerName: 'x'.repeat(10_000) })).toBeNull()
   })
 })
