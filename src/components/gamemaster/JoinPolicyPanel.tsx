@@ -11,6 +11,12 @@ const TOGGLES: Array<{ key: JoinPolicyKey; label: string }> = [
   { key: 'requireApproval', label: 'Require approval' },
 ]
 
+function togglePatch(game: Game, key: JoinPolicyKey): Partial<Game> {
+  const patch: Partial<Game> = { updatedAt: Date.now() }
+  patch[key] = !game[key]
+  return patch
+}
+
 interface JoinPolicyPanelProps {
   game: Game
   /** Receives only the changed fields; the caller merges them into its current game. */
@@ -23,8 +29,7 @@ export function JoinPolicyPanel({ game, onGameChange }: JoinPolicyPanelProps) {
   const [error, setError] = useState<string | null>(null)
 
   async function toggle(key: JoinPolicyKey) {
-    const patch: Partial<Game> = { updatedAt: Date.now() }
-    patch[key] = !game[key]
+    const patch = togglePatch(game, key)
     setSaving(true)
     setError(null)
     try {
