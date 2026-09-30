@@ -308,7 +308,7 @@ function ActiveGame({ game, players, onGameChange, lifecycle }: ActiveGameProps)
   const currentQuestionId = pos ? (seq[pos.flatIndex]?.questionId ?? null) : null
 
   const { displayBuzzes, buzzes, toggleLock, adjudicate, clearBuzzes, handleIncomingBuzz } =
-    useBuzzer(game, currentQuestionId)
+    useBuzzer(game, currentQuestionId, onGameChange)
 
   const timerHook = useTimerList(game.id)
   const timerHookRef = useRef(timerHook)
