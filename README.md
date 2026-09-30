@@ -76,6 +76,7 @@ To try it with sample data, run `npm run demo` instead. It opens the admin panel
 | [Host guide](docs/user-guide/host.md)               | Setting up and running a trivia night    |
 | [Player guide](docs/user-guide/player.md)           | Joining a game and buzzing in            |
 | [API docs](https://morbeo.github.io/viktorani/api/) | Generated TypeDoc — transport, DB, hooks |
+| [Architecture guide](docs/ARCHITECTURE.md)          | Layers, data model, transport, diagrams  |
 | [Architecture decisions](docs/adr/)                 | ADRs for all major technical decisions   |
 
 To generate API docs locally:
