@@ -1,5 +1,7 @@
+import type { z } from 'zod'
 import { db } from '@/db'
 import type { DifficultyLevel, Tag, Question, Round, Game, Note } from '@/db'
+import { SnapshotSchema, QuestionImportRowSchema } from '@/db/snapshot-schema'
 
 /**
  * Full database snapshot used for backup and restore.
@@ -52,45 +54,69 @@ export async function exportDatabase(): Promise<void> {
   URL.revokeObjectURL(url)
 }
 
+/** Largest import file accepted by {@link importDatabase} and {@link importQuestions}. */
+export const MAX_IMPORT_BYTES = 20 * 1024 * 1024
+
+/** Reject oversized files, then read and parse the file as JSON. */
+async function readJsonFile(file: File): Promise<unknown> {
+  if (file.size > MAX_IMPORT_BYTES) {
+    throw new Error(`File is too large (max ${MAX_IMPORT_BYTES / 1024 / 1024} MB)`)
+  }
+  const text = await file.text()
+  try {
+    return JSON.parse(text)
+  } catch (e) {
+    throw new Error(`Invalid JSON: ${(e as Error).message}`, { cause: e })
+  }
+}
+
+/** Human-readable summary of the first few zod issues, e.g. `games.0.roundIds: ...`. */
+function formatIssues(error: z.ZodError): string {
+  return error.issues
+    .slice(0, 3)
+    .map(i => (i.path.length ? `${i.path.join('.')}: ${i.message}` : i.message))
+    .join('; ')
+}
+
 /**
  * Restore a previously exported snapshot into the local database.
  *
  * @remarks
- * Uses `bulkPut` so existing records with matching IDs are overwritten.
- * Accepts both v1 (with categories) and v2 snapshots — `categoryId` fields
- * are stripped from question records transparently.
+ * The whole file is validated before anything is written; all collections are
+ * then written with `bulkPut` in a single transaction, so an invalid file or a
+ * failed write leaves the database untouched. Existing records with matching IDs
+ * are overwritten. Accepts both v1 (with categories) and v2 snapshots —
+ * `categories` and legacy `categoryId` fields are stripped transparently.
  *
  * @param file - A `.json` file previously produced by {@link exportDatabase}.
- * @throws If the file contains an unsupported snapshot version.
+ * @throws If the file is too large, not valid JSON, has an unsupported snapshot
+ *   version, or contains malformed records.
  */
 export async function importDatabase(file: File): Promise<void> {
-  const text = await file.text()
-  const snapshot = JSON.parse(text) as DatabaseSnapshot & {
-    categories?: unknown[] // accepted but ignored from v1 exports
+  const raw = await readJsonFile(file)
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    throw new Error('Invalid backup file: expected a JSON object')
   }
 
-  if (snapshot.version !== 1 && snapshot.version !== 2) {
-    throw new Error(`Unsupported snapshot version: ${snapshot.version}`)
+  const version = (raw as { version?: unknown }).version
+  if (version !== 1 && version !== 2) {
+    throw new Error(`Unsupported snapshot version: ${version}`)
   }
+
+  const parsed = SnapshotSchema.safeParse(raw)
+  if (!parsed.success) throw new Error(`Invalid backup file: ${formatIssues(parsed.error)}`)
+  const snapshot = parsed.data
 
   await db.transaction(
     'rw',
     [db.difficulties, db.tags, db.questions, db.rounds, db.games, db.notes],
     async () => {
-      if (snapshot.difficulties?.length) await db.difficulties.bulkPut(snapshot.difficulties)
-      if (snapshot.tags?.length) await db.tags.bulkPut(snapshot.tags)
-      if (snapshot.questions?.length) {
-        // Strip legacy categoryId if present
-        const cleaned = snapshot.questions.map((q: Question & { categoryId?: unknown }) => {
-          const { categoryId: _dropped, ...rest } = q as Question & { categoryId?: unknown }
-          void _dropped
-          return rest as Question
-        })
-        await db.questions.bulkPut(cleaned)
-      }
-      if (snapshot.rounds?.length) await db.rounds.bulkPut(snapshot.rounds)
-      if (snapshot.games?.length) await db.games.bulkPut(snapshot.games)
-      if (snapshot.notes?.length) await db.notes.bulkPut(snapshot.notes)
+      if (snapshot.difficulties.length) await db.difficulties.bulkPut(snapshot.difficulties)
+      if (snapshot.tags.length) await db.tags.bulkPut(snapshot.tags)
+      if (snapshot.questions.length) await db.questions.bulkPut(snapshot.questions)
+      if (snapshot.rounds.length) await db.rounds.bulkPut(snapshot.rounds)
+      if (snapshot.games.length) await db.games.bulkPut(snapshot.games)
+      if (snapshot.notes.length) await db.notes.bulkPut(snapshot.notes)
     }
   )
 }
@@ -104,19 +130,20 @@ export interface ImportResult {
   errors: string[]
 }
 
-const REQUIRED_FIELDS = ['title', 'type', 'answer'] as const
-
 /**
  * Import questions from a JSON array file into the question bank.
  *
  * @remarks
- * Each element must have at least `title`, `type`, and `answer`.
- * Rows missing required fields are skipped and reported in `errors`.
- * Uses `db.questions.put` so existing records with matching `id` are updated.
+ * Each element must be an object with at least `title`, `type` (a valid
+ * question type) and `answer`; `options`, when present, must be a string array.
+ * Invalid rows are skipped and reported in `errors`. All rows are validated
+ * first, then the valid ones are written with a single `bulkPut` in one
+ * transaction, so a failed write imports nothing. Existing records with a
+ * matching `id` are updated.
  *
  * @param file - A `.json` file containing an array of partial {@link Question} objects.
  * @returns A summary with counts of imported, skipped, and error rows.
- * @throws If the file is not valid JSON or is not a JSON array.
+ * @throws If the file is too large, not valid JSON, not a JSON array, or the write fails.
  *
  * @example
  * ```ts
@@ -125,51 +152,35 @@ const REQUIRED_FIELDS = ['title', 'type', 'answer'] as const
  * ```
  */
 export async function importQuestions(file: File): Promise<ImportResult> {
-  const text = await file.text()
-  let raw: unknown[]
-  try {
-    raw = JSON.parse(text)
-    if (!Array.isArray(raw)) throw new Error('Expected a JSON array')
-  } catch (e) {
-    throw new Error(`Invalid JSON: ${(e as Error).message}`, { cause: e })
-  }
+  const raw = await readJsonFile(file)
+  if (!Array.isArray(raw)) throw new Error('Invalid JSON: Expected a JSON array')
 
   const result: ImportResult = { imported: 0, skipped: 0, errors: [] }
   const now = Date.now()
+  const questions: Question[] = []
 
-  for (let i = 0; i < raw.length; i++) {
-    const row = raw[i] as Record<string, unknown>
-    const missing = REQUIRED_FIELDS.filter(f => !String(row[f] ?? '').trim())
-    if (missing.length) {
-      result.errors.push(`Row ${i + 1}: missing ${missing.join(', ')}`)
+  raw.forEach((row, i) => {
+    const parsed = QuestionImportRowSchema.safeParse(row)
+    if (!parsed.success) {
+      const messages = new Set(parsed.error.issues.map(issue => issue.message))
+      result.errors.push(`Row ${i + 1}: ${[...messages].join(', ')}`)
       result.skipped++
-      continue
+      return
     }
+    const r = parsed.data
+    questions.push({
+      ...r,
+      id: r.id ?? crypto.randomUUID(),
+      title: r.title.trim(),
+      createdAt: r.createdAt ?? now,
+      updatedAt: now,
+    })
+  })
 
-    try {
-      const title = String(row.title).trim()
-      const q: Question = {
-        id: typeof row.id === 'string' ? row.id : crypto.randomUUID(),
-        title,
-        type: (row.type as Question['type']) ?? 'open_ended',
-        options: Array.isArray(row.options) ? (row.options as string[]) : [],
-        answer: String(row.answer),
-        description: typeof row.description === 'string' ? row.description : '',
-        difficulty: typeof row.difficulty === 'string' ? row.difficulty : null,
-        tags: Array.isArray(row.tags) ? (row.tags as string[]) : [],
-        media: typeof row.media === 'string' ? row.media : null,
-        mediaType: (row.mediaType as Question['mediaType']) ?? null,
-        createdAt: typeof row.createdAt === 'number' ? row.createdAt : now,
-        updatedAt: now,
-      }
-      await db.questions.put(q)
-      result.imported++
-    } catch (e) {
-      result.errors.push(`Row ${i + 1}: ${(e as Error).message}`)
-      result.skipped++
-    }
+  if (questions.length) {
+    await db.transaction('rw', db.questions, () => db.questions.bulkPut(questions))
   }
-
+  result.imported = questions.length
   return result
 }
 

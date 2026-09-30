@@ -1,8 +1,8 @@
 // @vitest-pool vmForks
 // Companion to src/test/db.test.ts — covers remaining branches in snapshot.ts:
-//   - importQuestions per-row catch() (lines 119-120)
-//   - importQuestions field coercions: missing id, non-array options/tags,
-//     non-string difficulty/media (lines 93, 103, 106, 109, 111)
+//   - importQuestions write failure (single transaction, nothing written)
+//   - importQuestions field coercions: missing id, non-array tags,
+//     non-string difficulty/media; non-array options are rejected
 //   - importDatabase notes bulk-put path (line 63)
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { db } from '@/db'
@@ -11,53 +11,22 @@ beforeEach(async () => {
   await db.questions.clear()
 })
 
-describe('importQuestions — per-row db error path', () => {
-  it('records a skipped row when db.questions.put throws', async () => {
+describe('importQuestions — write failure', () => {
+  it('rejects and writes nothing when bulkPut throws', async () => {
     const { importQuestions } = await import('@/db/snapshot')
 
-    // Force db.questions.put to throw on first call, succeed on second
     const putSpy = vi
-      .spyOn(db.questions, 'put')
+      .spyOn(db.questions, 'bulkPut')
       .mockRejectedValueOnce(new Error('Constraint violation'))
-      .mockResolvedValue('q2')
 
     const rows = [
-      {
-        id: 'q1',
-        title: 'Failing row',
-        type: 'open_ended',
-        options: [],
-        answer: 'A',
-        description: '',
-        difficulty: null,
-        tags: [],
-        media: null,
-        mediaType: null,
-        createdAt: Date.now(),
-      },
-      {
-        id: 'q2',
-        title: 'Good row',
-        type: 'open_ended',
-        options: [],
-        answer: 'B',
-        description: '',
-        difficulty: null,
-        tags: [],
-        media: null,
-        mediaType: null,
-        createdAt: Date.now(),
-      },
+      { id: 'q1', title: 'Row 1', type: 'open_ended', options: [], answer: 'A' },
+      { id: 'q2', title: 'Row 2', type: 'open_ended', options: [], answer: 'B' },
     ]
 
     const file = new File([JSON.stringify(rows)], 'q.json', { type: 'application/json' })
-    const result = await importQuestions(file)
-
-    expect(result.imported).toBe(1)
-    expect(result.skipped).toBe(1)
-    expect(result.errors).toHaveLength(1)
-    expect(result.errors[0]).toMatch(/Row 1/)
-    expect(result.errors[0]).toMatch(/Constraint violation/)
+    await expect(importQuestions(file)).rejects.toThrow('Constraint violation')
+    expect(await db.questions.count()).toBe(0)
 
     putSpy.mockRestore()
   })
@@ -78,9 +47,19 @@ describe('importQuestions — field coercions', () => {
     expect(all[0].id).toMatch(/^[0-9a-f-]{36}$/) // UUID format
   })
 
-  it('defaults options to [] when row.options is not an array', async () => {
+  it('skips the row when row.options is not an array', async () => {
     const { importQuestions } = await import('@/db/snapshot')
     const rows = [{ title: 'Q', type: 'open_ended', answer: 'A', options: 'wrong' }]
+    const file = new File([JSON.stringify(rows)], 'q.json', { type: 'application/json' })
+    const result = await importQuestions(file)
+    expect(result.skipped).toBe(1)
+    expect(result.errors[0]).toMatch(/options must be an array of strings/)
+    expect(await db.questions.count()).toBe(0)
+  })
+
+  it('defaults options to [] when row.options is omitted', async () => {
+    const { importQuestions } = await import('@/db/snapshot')
+    const rows = [{ title: 'Q', type: 'open_ended', answer: 'A' }]
     const file = new File([JSON.stringify(rows)], 'q.json', { type: 'application/json' })
     await importQuestions(file)
     const all = await db.questions.toArray()
@@ -118,7 +97,6 @@ describe('importQuestions — field coercions', () => {
 
   it('records missing fields when row has null required values', async () => {
     const { importQuestions } = await import('@/db/snapshot')
-    // row[f] is null → String(null ?? '') = '' → trim() = '' → hits missing branch (line 93)
     const rows = [{ title: null, type: 'open_ended', answer: 'A' }]
     const file = new File([JSON.stringify(rows)], 'q.json', { type: 'application/json' })
     const result = await importQuestions(file)
