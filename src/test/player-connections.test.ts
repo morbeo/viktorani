@@ -2,10 +2,11 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { db } from '@/db'
 import type { Game, Player, Team } from '@/db'
+import type { PlayerEvent } from '@/transport/types'
 import { PlayerConnections, resolveJoin } from '@/pages/admin/player-connections'
 
-const JOIN = {
-  type: 'JOIN' as const,
+const JOIN: Extract<PlayerEvent, { type: 'JOIN' }> = {
+  type: 'JOIN',
   playerName: 'Alice',
   deviceId: 'dev-a',
   teamId: null,
