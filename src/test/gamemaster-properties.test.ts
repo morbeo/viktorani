@@ -5,7 +5,6 @@ import {
   buildNavSequence,
   getNavPosition,
   step,
-  teamScore,
 } from '@/pages/admin/gamemaster-utils'
 import type { NavEntry } from '@/pages/admin/gamemaster-utils'
 import type { GameQuestion, Round } from '@/db'
@@ -15,9 +14,6 @@ import type { GameQuestion, Round } from '@/db'
 const score = fc.nat({ max: 10_000 })
 const delta = fc.integer({ min: -1_000, max: 1_000 })
 const magnitude = fc.nat({ max: 1_000 })
-
-const member = (teamId: fc.Arbitrary<string | null>) =>
-  fc.record({ teamId, score: fc.nat({ max: 1_000 }) })
 
 /**
  * A nav sequence built the way Games.tsx materialises it: one GameQuestion per
@@ -98,24 +94,6 @@ describe('scoring properties', () => {
         fc.pre(neverClamped)
         const folded = deltas.reduce(applyScoreDelta, start)
         expect(folded).toBe(start + deltas.reduce((a, b) => a + b, 0))
-      })
-    )
-  })
-
-  it('team score is the sum of its members, regardless of order or other players', () => {
-    const roster = fc
-      .tuple(fc.array(member(fc.constant('t1'))), fc.array(member(fc.constantFrom('t2', null))))
-      .chain(([team, others]) => {
-        const all = [...team, ...others]
-        return fc
-          .shuffledSubarray(all, { minLength: all.length, maxLength: all.length })
-          .map(mixed => ({ team, others, mixed }))
-      })
-    fc.assert(
-      fc.property(roster, ({ team, others, mixed }) => {
-        const expected = team.reduce((sum, p) => sum + p.score, 0)
-        expect(teamScore(mixed, 't1')).toBe(expected)
-        expect(teamScore(others, 't1')).toBe(0)
       })
     )
   })

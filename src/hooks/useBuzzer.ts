@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { db } from '@/db'
 import { transportManager } from '@/transport'
+import { broadcastScores } from '@/hooks/useScoreboard'
 import type { Game, BuzzEvent, GmDecision } from '@/db'
 
 /** Return value of {@link useBuzzer}. */
@@ -146,15 +147,15 @@ export function useBuzzer(
       // the decision and score together. Resolves to null if already decided.
       const result = await db.transaction(
         'rw',
-        [db.buzzEvents, db.players, db.questions, db.difficulties],
-        async (): Promise<{ scores?: Record<string, number> } | null> => {
+        [db.buzzEvents, db.players, db.teams, db.questions, db.difficulties],
+        async (): Promise<{ scored: boolean } | null> => {
           const buzz = await db.buzzEvents.get(buzzId)
           if (!buzz || buzz.gmDecision !== null) return null
           await db.buzzEvents.update(buzzId, { gmDecision: decision, decidedAt: now })
 
-          if (decision !== 'Correct' || !g.scoringEnabled) return {}
+          if (decision !== 'Correct' || !g.scoringEnabled) return { scored: false }
           const player = await db.players.get(buzz.playerId)
-          if (!player) return {}
+          if (!player) return { scored: false }
 
           // Resolve score increment from question difficulty; fall back to 1
           let increment = 1
@@ -165,8 +166,10 @@ export function useBuzzer(
           }
           await db.players.update(buzz.playerId, { score: player.score + increment })
 
-          const allPlayers = await db.players.where('gameId').equals(g.id).toArray()
-          return { scores: Object.fromEntries(allPlayers.map(p => [p.id, p.score])) }
+          // Team scores are stored separately; a correct answer counts for the team too
+          const team = player.teamId ? await db.teams.get(player.teamId) : undefined
+          if (team) await db.teams.update(team.id, { score: team.score + increment })
+          return { scored: true }
         }
       )
       if (!result) return
@@ -174,7 +177,7 @@ export function useBuzzer(
       setBuzzes(prev =>
         prev.map(b => (b.id === buzzId ? { ...b, gmDecision: decision, decidedAt: now } : b))
       )
-      if (result.scores) transportManager.send({ type: 'SCORE_UPDATE', scores: result.scores })
+      if (result.scored) await broadcastScores(g.id)
 
       // Auto-lock if configured
       if (decision === 'Correct' && g.autoLockOnFirstCorrect && !gameRef.current.buzzerLocked) {

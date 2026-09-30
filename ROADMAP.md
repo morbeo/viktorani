@@ -51,7 +51,7 @@ Epic: #244
 
 ## Decisions (2026-09-30)
 
-Full text in #244.
+Full text in #244 (team score in #250).
 
 - **Gun transport:** dropped; PeerJS only.
 - **QR contents:** room code only (no passphrase without Gun).
@@ -60,3 +60,9 @@ Full text in #244.
 - **Late join / rejoin:** separate host toggles for late join, rejoin, and host approval.
 - **Projector:** both a host-side window and a networked screen peer (host-approved).
 - **Team creation:** mutable game setting; players pick or also create teams.
+- **Team score:** stored on its own. A correct answer by a team member adds the points to both the player and the team; manual adjustments change only the row they target.
+- **Round builder in the new-game wizard:** post-MVP; the placeholder stays until then.
+
+## Post-MVP
+
+- [ ] Inline round builder in the new-game wizard (#288)
