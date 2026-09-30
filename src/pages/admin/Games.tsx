@@ -21,6 +21,10 @@ interface WizardState {
   maxTeams: number
   maxPerTeam: number
   allowIndividual: boolean
+  allowLateJoin: boolean
+  allowRejoin: boolean
+  requireApproval: boolean
+  allowPlayerTeams: boolean
   // Buzzer config
   autoLockOnFirstCorrect: boolean
   allowFalseStarts: boolean
@@ -41,6 +45,10 @@ function defaultWizard(): WizardState {
     maxTeams: 0,
     maxPerTeam: 0,
     allowIndividual: true,
+    allowLateJoin: true,
+    allowRejoin: true,
+    requireApproval: false,
+    allowPlayerTeams: true,
     autoLockOnFirstCorrect: false,
     allowFalseStarts: false,
     buzzDeduplication: 'firstOnly',
@@ -164,7 +172,7 @@ function Step1({
         >
           ▶
         </span>
-        Teams & player limits
+        Teams & joining
       </button>
 
       {showAdvanced && (
@@ -176,6 +184,26 @@ function Step1({
             label="Allow individual play (no team)"
             checked={state.allowIndividual}
             onChange={v => set('allowIndividual', v)}
+          />
+          <Toggle
+            label="Players may create their own team"
+            checked={state.allowPlayerTeams}
+            onChange={v => set('allowPlayerTeams', v)}
+          />
+          <Toggle
+            label="Allow joining after the game starts"
+            checked={state.allowLateJoin}
+            onChange={v => set('allowLateJoin', v)}
+          />
+          <Toggle
+            label="Allow players to rejoin"
+            checked={state.allowRejoin}
+            onChange={v => set('allowRejoin', v)}
+          />
+          <Toggle
+            label="Require approval to join"
+            checked={state.requireApproval}
+            onChange={v => set('requireApproval', v)}
           />
           <div className="grid grid-cols-2 gap-3">
             <Input
@@ -429,6 +457,10 @@ function Step3({ state, rounds }: { state: WizardState; rounds: Round[] }) {
     ['Individual play', state.allowIndividual ? 'Allowed' : 'Teams only'],
     ['Max teams', state.maxTeams === 0 ? 'Unlimited' : String(state.maxTeams)],
     ['Max per team', state.maxPerTeam === 0 ? 'Unlimited' : String(state.maxPerTeam)],
+    ['Player-made teams', state.allowPlayerTeams ? 'Allowed' : 'No'],
+    ['Late join', state.allowLateJoin ? 'Allowed' : 'No'],
+    ['Rejoin', state.allowRejoin ? 'Allowed' : 'No'],
+    ['Join approval', state.requireApproval ? 'Required' : 'Not required'],
     ['Rounds', `${selectedRounds.length} round${selectedRounds.length !== 1 ? 's' : ''}`],
     ['Questions', `${totalQ} total`],
   ]
@@ -524,6 +556,10 @@ function GameWizard({
         maxTeams: state.maxTeams,
         maxPerTeam: state.maxPerTeam,
         allowIndividual: state.allowIndividual,
+        allowLateJoin: state.allowLateJoin,
+        allowRejoin: state.allowRejoin,
+        requireApproval: state.requireApproval,
+        allowPlayerTeams: state.allowPlayerTeams,
         roundIds: state.selectedRoundIds,
         currentRoundIdx: 0,
         currentQuestionIdx: 0,

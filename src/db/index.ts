@@ -157,6 +157,15 @@ export interface Game {
   /** Maximum players per team; `0` means unlimited. */
   maxPerTeam: number
   allowIndividual: boolean
+  // Join policy (the GM can change these mid-game)
+  /** Players may join after the game has started. */
+  allowLateJoin: boolean
+  /** A known device may rejoin as its existing player after leaving or disconnecting. */
+  allowRejoin: boolean
+  /** New players wait in the lobby until the GM accepts them. */
+  requireApproval: boolean
+  /** Players may create their own team when joining. */
+  allowPlayerTeams: boolean
   // Rounds / navigation
   /** Ordered array of {@link Round} IDs. */
   roundIds: string[]
@@ -326,6 +335,7 @@ export interface GameQuestion {
  *   that was deployed before history was collapsed back to 1. Dexie reads the installed
  *   schema from IndexedDB, so a v1 or v4 database upgrades in place (missing tables are
  *   created) without declaring the older versions here.
+ * - 6: same stores; back-fills the join policy fields on existing games.
  *
  * To change the schema, add a new `this.version(N + 1)` block below; keep existing blocks.
  */
@@ -368,6 +378,20 @@ export class ViktoraniDB extends Dexie {
       managedTeams: 'id, name, archivedAt',
       managedLabels: 'id, name',
     })
+
+    this.version(6)
+      .stores({})
+      .upgrade(tx =>
+        tx
+          .table('games')
+          .toCollection()
+          .modify((g: Partial<Game>) => {
+            g.allowLateJoin ??= true
+            g.allowRejoin ??= true
+            g.requireApproval ??= false
+            g.allowPlayerTeams ??= true
+          })
+      )
   }
 }
 
