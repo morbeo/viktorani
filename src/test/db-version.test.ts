@@ -2,6 +2,7 @@
 // Browsers that loaded an earlier deploy hold the app database at Dexie v4 (native
 // IndexedDB version 40 — Dexie multiplies by 10) or at the collapsed v1 (native 10).
 // The current schema must open on top of both without a VersionError.
+// v5 databases (native 50) get the v6 join policy back-fill.
 import { describe, it, expect, afterEach } from 'vitest'
 import 'fake-indexeddb/auto'
 import { db } from '@/db'
@@ -67,8 +68,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(5)
-    expect(db.backendDB().version).toBe(50)
+    expect(db.verno).toBe(6)
+    expect(db.backendDB().version).toBe(60)
     expect(db.backendDB().objectStoreNames.contains('managedPlayers')).toBe(true)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
     expect(await db.managedLabels.count()).toBe(0)
@@ -79,8 +80,21 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(5)
-    expect(db.backendDB().version).toBe(50)
+    expect(db.verno).toBe(6)
+    expect(db.backendDB().version).toBe(60)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
+  })
+
+  it('back-fills join policy defaults on existing games (v6)', async () => {
+    await seedRawDb(50, V1_STORES)
+
+    await db.open()
+
+    expect(await db.games.get('g-old')).toMatchObject({
+      allowLateJoin: true,
+      allowRejoin: true,
+      requireApproval: false,
+      allowPlayerTeams: true,
+    })
   })
 })

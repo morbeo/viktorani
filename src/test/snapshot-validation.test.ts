@@ -20,6 +20,10 @@ const GAME = {
   maxTeams: 0,
   maxPerTeam: 0,
   allowIndividual: true,
+  allowLateJoin: true,
+  allowRejoin: true,
+  requireApproval: false,
+  allowPlayerTeams: true,
   roundIds: [],
   currentRoundIdx: 0,
   currentQuestionIdx: 0,
@@ -130,6 +134,19 @@ describe('importDatabase — validation', () => {
       buzzDeduplication: 'firstOnly',
       tiebreakerMode: 'serverOrder',
     })
+  })
+
+  it('defaults join policy fields missing from older games', async () => {
+    const {
+      allowLateJoin: _a,
+      allowRejoin: _b,
+      requireApproval: _c,
+      allowPlayerTeams: _d,
+      ...legacy
+    } = GAME
+    void [_a, _b, _c, _d]
+    await importDatabase(jsonFile(snapshot({ games: [legacy] })))
+    expect(await db.games.get('g1')).toEqual(GAME)
   })
 
   it('accepts pre-#265 games with Gun transport fields and drops them', async () => {
