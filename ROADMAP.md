@@ -34,15 +34,20 @@ Epic: #243
 
 Epic: #244
 
-- [ ] Remove the Gun transport: `GunTransport`, passphrase, `auto` mode, Gun settings/UI, README section
-- [ ] Join flow (`Join.tsx` is a stub): room code/QR → name → team
-- [ ] Play screen connects and sends JOIN / BUZZ / LEAVE / FOCUS_CHANGE
-- [ ] Host binds players to their PeerJS connection instead of trusting self-claimed `playerId`
-- [ ] Late join / rejoin / host approval: three independent game settings
-- [ ] Per-target visibility (projector vs. phones) for question / answers / media; host sends content accordingly
-- [ ] Buzz ordering by host receive time (`tiebreakerMode: 'serverOrder'`)
-- [ ] Projector/screen route (Layouts)
-- [ ] Align or trim the e2e specs with the real UI
+- [ ] Remove the Gun transport, passphrase and auto mode (#265)
+- [ ] Protocol: join handshake, lobby info, question content, targeted visibility (#266)
+- [ ] Join policy settings: late join, rejoin, approval, player-created teams (#267)
+- [ ] Per-target visibility for screen and phones (#268)
+- [ ] Bind players to their PeerJS connection (#269)
+- [ ] Join flow (#270)
+- [ ] Play screen: connect, buzz, leave, focus (#271)
+- [ ] Enforce late join / rejoin / approval (#272)
+- [ ] Broadcast question content per target (#273)
+- [ ] Question content on phones (#274)
+- [ ] Buzz ordering by host receive time (#275)
+- [ ] Host-side projector window (#276)
+- [ ] Networked screen peer (#277)
+- [ ] Align e2e specs with the real player flow (#278)
 
 ## Decisions (2026-09-30)
 
@@ -53,3 +58,5 @@ Full text in #244.
 - **Question display:** the game master sets visibility per target (projector, phones).
 - **Player identity:** bound to the PeerJS connection; the device id only matches rejoins.
 - **Late join / rejoin:** separate host toggles for late join, rejoin, and host approval.
+- **Projector:** both a host-side window and a networked screen peer (host-approved).
+- **Team creation:** mutable game setting; players pick or also create teams.
