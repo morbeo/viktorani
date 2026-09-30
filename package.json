@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "demo": "vite --open \"/viktorani/?demo#/admin\"",
     "build": "tsc -b && vite build",
     "docs": "typedoc",
     "pack": "bash scripts/pack.sh",
