@@ -50,11 +50,12 @@ export function useGameLifecycle(): UseGameLifecycleResult {
    * transport, and persists the status. After this the game is read-only.
    */
   const endGame = useCallback(async (game: Game): Promise<GameStatusPatch> => {
+    // Read scores first so no await sits between announcing the end and disconnecting
+    const scores = await readScores(game.id)
     const patch: GameStatusPatch = { status: 'ended', updatedAt: Date.now() }
     await db.games.update(game.id, patch)
     transportManager.send({ type: 'GAME_STATUS', status: 'ended' })
     // Send final state snapshot before disconnecting
-    const scores = await readScores(game.id)
     transportManager.send({
       type: 'GAME_STATE',
       state: serialiseGameState({ ...game, ...patch }, scores),

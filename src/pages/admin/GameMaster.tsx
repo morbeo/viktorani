@@ -513,9 +513,11 @@ export default function GameMaster() {
       if (s === 'connected') {
         const g = gameRef.current
         if (g && (g.status === 'active' || g.status === 'paused')) {
-          void readScores(g.id).then(scores =>
-            transportManager.send({ type: 'GAME_STATE', state: serialiseGameState(g, scores) })
-          )
+          readScores(g.id)
+            .then(scores =>
+              transportManager.send({ type: 'GAME_STATE', state: serialiseGameState(g, scores) })
+            )
+            .catch(err => console.error('[GameMaster] GAME_STATE resync failed:', err))
         }
       }
     })
