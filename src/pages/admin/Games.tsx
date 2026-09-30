@@ -5,6 +5,7 @@ import { Button, Badge, Input, Select, Modal, Empty } from '@/components/ui'
 import { db } from '@/db'
 import type { Game, Round, TransportMode } from '@/db'
 import { generateRoomId, generatePassphrase } from '@/transport'
+import { createGame, cloneGame, deleteGame } from '@/db/games'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Wizard state
@@ -559,9 +560,9 @@ function GameWizard({
     step === 0
       ? state.name.trim().length > 0
       : step === 1
-        ? state.roundMode === 'existing'
-          ? state.selectedRoundIds.length > 0
-          : true
+        ? // The custom round builder is a placeholder (#288); a game needs at least one question
+          state.roundMode === 'existing' &&
+          rounds.some(r => state.selectedRoundIds.includes(r.id) && r.questionIds.length > 0)
         : true
 
   async function handleCreate() {
@@ -593,24 +594,7 @@ function GameWizard({
         createdAt: now,
         updatedAt: now,
       }
-      await db.games.add(game)
-
-      // Materialise game questions from rounds
-      let order = 0
-      for (const roundId of state.selectedRoundIds) {
-        const round = rounds.find(r => r.id === roundId)
-        if (!round) continue
-        for (const qId of round.questionIds) {
-          await db.gameQuestions.add({
-            id: crypto.randomUUID(),
-            gameId: game.id,
-            questionId: qId,
-            roundId,
-            order: order++,
-            status: 'pending',
-          })
-        }
-      }
+      await createGame(game, rounds)
 
       onCreated(game.id)
     } finally {
@@ -688,36 +672,6 @@ function GameWizard({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Clone confirmation modal
-// ─────────────────────────────────────────────────────────────────────────────
-
-async function cloneGame(game: Game): Promise<string> {
-  const now = Date.now()
-  const newId = crypto.randomUUID()
-  const clone: Game = {
-    ...game,
-    id: newId,
-    name: `${game.name} (copy)`,
-    status: 'waiting',
-    roomId: generateRoomId(),
-    passphrase: game.transportMode !== 'peer' ? generatePassphrase() : null,
-    currentRoundIdx: 0,
-    currentQuestionIdx: 0,
-    buzzerLocked: true,
-    createdAt: now,
-    updatedAt: now,
-  }
-  await db.games.add(clone)
-
-  // Clone game questions
-  const gqs = await db.gameQuestions.where('gameId').equals(game.id).toArray()
-  for (const gq of gqs) {
-    await db.gameQuestions.add({ ...gq, id: crypto.randomUUID(), gameId: newId })
-  }
-  return newId
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Status badge
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -761,11 +715,7 @@ export default function Games() {
   }, [])
 
   async function handleDelete(game: Game) {
-    await db.games.delete(game.id)
-    await db.gameQuestions.where('gameId').equals(game.id).delete()
-    await db.teams.where('gameId').equals(game.id).delete()
-    await db.players.where('gameId').equals(game.id).delete()
-    await db.buzzEvents.where('gameId').equals(game.id).delete()
+    await deleteGame(game.id)
     setDeleting(null)
     load()
   }

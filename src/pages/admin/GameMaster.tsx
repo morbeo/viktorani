@@ -305,7 +305,7 @@ function ActiveGame({ game, players, onGameChange, lifecycle, buzzHandlerRef }: 
     setShowBoundary(true)
   }, [])
 
-  const { seq, pos, goNext, goPrev, isReady } = useNavigation(game, handleBoundary)
+  const { seq, pos, goNext, goPrev, isReady, isEmpty } = useNavigation(game, handleBoundary)
 
   // Current question ID derived from nav position
   const currentQuestionId = pos ? (seq[pos.flatIndex]?.questionId ?? null) : null
@@ -375,6 +375,16 @@ function ActiveGame({ game, players, onGameChange, lifecycle, buzzHandlerRef }: 
     modalOpen,
     enabled: game.status === 'active',
   })
+
+  if (isEmpty) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <p style={{ color: 'var(--color-muted)' }}>
+          This game has no questions. Add questions to its rounds, then create a new game.
+        </p>
+      </div>
+    )
+  }
 
   if (!isReady) {
     return (

@@ -622,14 +622,21 @@ export default function Questions() {
   }
 
   async function handleDelete(ids: string[]) {
-    await db.questions.bulkDelete(ids)
-    setSelected(new Set())
-    const rs = await db.rounds.toArray()
-    for (const r of rs) {
-      if (ids.some(id => r.questionIds.includes(id))) {
-        await db.rounds.update(r.id, { questionIds: r.questionIds.filter(id => !ids.includes(id)) })
+    // Remove the questions and every reference to them (rounds, games) together
+    await db.transaction('rw', [db.questions, db.rounds, db.gameQuestions], async () => {
+      await db.questions.bulkDelete(ids)
+      const rs = await db.rounds.toArray()
+      for (const r of rs) {
+        if (ids.some(id => r.questionIds.includes(id))) {
+          await db.rounds.update(r.id, {
+            questionIds: r.questionIds.filter(id => !ids.includes(id)),
+          })
+        }
       }
-    }
+      // gameQuestions has no questionId index
+      await db.gameQuestions.filter(gq => ids.includes(gq.questionId)).delete()
+    })
+    setSelected(new Set())
     load()
   }
 
