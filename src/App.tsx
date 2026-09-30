@@ -1,6 +1,6 @@
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { lazy, Suspense, useEffect } from 'react'
-import { seedDefaults } from '@/db'
+import { lazy, Suspense, useEffect, useState } from 'react'
+import { db, seedDefaults } from '@/db'
 import { ToastProvider } from '@/components/ui'
 
 // Pages — Admin (lazy-loaded per route)
@@ -25,6 +25,20 @@ const Loading = () => (
 )
 
 export default function App() {
+  const [dbError, setDbError] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Another tab holds an older connection open and is holding up a schema upgrade
+    const onBlocked = () =>
+      setDbError('Viktorani is updating. Close its other open tabs to continue.')
+    db.on('blocked', onBlocked)
+    db.open().then(
+      () => setDbError(null),
+      (err: Error) => setDbError(`Could not open the local database: ${err.message}`)
+    )
+    return () => db.on('blocked').unsubscribe(onBlocked)
+  }, [])
+
   useEffect(() => {
     const ready = seedDefaults()
     // `npm run demo` opens the app with ?demo — dev builds only
@@ -33,6 +47,14 @@ export default function App() {
       ready.then(() => import('@/db/demo')).then(m => m.seedDemo())
     }
   }, [])
+
+  if (dbError) {
+    return (
+      <div className="flex h-screen items-center justify-center p-6 text-center">
+        <p role="alert">{dbError}</p>
+      </div>
+    )
+  }
 
   return (
     <ToastProvider>
