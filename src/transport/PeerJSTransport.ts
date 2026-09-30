@@ -14,7 +14,8 @@ const PREFIX = 'vkt-'
  *
  * Connection topology:
  * - **Host**: one `Peer` instance listens for incoming connections; each
- *   connected player gets its own `DataConnection` in `connections`.
+ *   connected player gets its own `DataConnection` in `connections`, keyed by
+ *   its unique `connectionId`. That id is passed to event handlers as `from`.
  * - **Player**: one `Peer` instance with a random ID; a single outbound
  *   `DataConnection` to the host.
  *
@@ -24,7 +25,8 @@ const PREFIX = 'vkt-'
 export class PeerJSTransport implements ITransport {
   private peer: Peer | null = null
   private connections: Map<string, DataConnection> = new Map()
-  private handlers: Array<(e: TransportEvent) => void> = []
+  private handlers: Array<(e: TransportEvent, from: string) => void> = []
+  private closeHandlers: Array<(connId: string) => void> = []
   private _status: TransportStatus = 'idle'
   private role: 'host' | 'player' = 'host'
 
@@ -80,16 +82,17 @@ export class PeerJSTransport implements ITransport {
 
   private setupConnection(conn: DataConnection) {
     conn.on('open', () => {
-      this.connections.set(conn.peer, conn)
+      this.connections.set(conn.connectionId, conn)
     })
 
     conn.on('data', data => {
       const event = data as TransportEvent
-      this.handlers.forEach(h => h(event))
+      this.handlers.forEach(h => h(event, conn.connectionId))
     })
 
     conn.on('close', () => {
-      this.connections.delete(conn.peer)
+      this.connections.delete(conn.connectionId)
+      this.closeHandlers.forEach(h => h(conn.connectionId))
     })
   }
 
@@ -114,10 +117,22 @@ export class PeerJSTransport implements ITransport {
     }
   }
 
-  onEvent(handler: (e: TransportEvent) => void): () => void {
+  sendTo(connId: string, event: TransportEvent) {
+    const conn = this.connections.get(connId)
+    if (conn?.open) conn.send(event)
+  }
+
+  onEvent(handler: (e: TransportEvent, from: string) => void): () => void {
     this.handlers.push(handler)
     return () => {
       this.handlers = this.handlers.filter(h => h !== handler)
+    }
+  }
+
+  onPeerClose(handler: (connId: string) => void): () => void {
+    this.closeHandlers.push(handler)
+    return () => {
+      this.closeHandlers = this.closeHandlers.filter(h => h !== handler)
     }
   }
 }

@@ -25,11 +25,21 @@ export const MAX_LABEL_LENGTH = 200
 export const MAX_STATUS_LENGTH = 32
 /** Max number of entries in a scores record. */
 export const MAX_SCORE_ENTRIES = 500
+/** Max length of question text fields (title, description, option, answer) and join reasons. */
+export const MAX_TEXT_LENGTH = 5000
+/** Max number of answer options on a question. */
+export const MAX_OPTIONS = 20
+/** Max number of teams listed in `LOBBY_INFO`. */
+export const MAX_LOBBY_TEAMS = 100
+/** Max length of question media (base64 data URL or remote URL), in characters. */
+export const MAX_MEDIA_LENGTH = 10 * 1024 * 1024
 
 const id = z.string().max(MAX_ID_LENGTH)
 const name = z.string().max(MAX_NAME_LENGTH)
 const label = z.string().max(MAX_LABEL_LENGTH)
 const index = z.number().int().nonnegative()
+const text = z.string().max(MAX_TEXT_LENGTH)
+const target = z.enum(['players', 'screen'])
 
 const scoreCountOk = (r: object) => Object.keys(r).length <= MAX_SCORE_ENTRIES
 const scores = z.record(id, z.number()).refine(scoreCountOk, 'Too many score entries')
@@ -78,6 +88,7 @@ export const GameEventSchemas = {
   GAME_STATE: z.strictObject({ type: z.literal('GAME_STATE'), state: SerializedGameStateSchema }),
   VISIBILITY: z.strictObject({
     type: z.literal('VISIBILITY'),
+    target,
     showQuestion: z.boolean(),
     showAnswers: z.boolean(),
     showMedia: z.boolean(),
@@ -86,27 +97,48 @@ export const GameEventSchemas = {
     type: z.literal('GAME_STATUS'),
     status: z.enum(['active', 'paused', 'ended']),
   }),
+  LOBBY_INFO: z.strictObject({
+    type: z.literal('LOBBY_INFO'),
+    teams: z.array(z.strictObject({ id, name })).max(MAX_LOBBY_TEAMS),
+    allowIndividual: z.boolean(),
+    allowPlayerTeams: z.boolean(),
+  }),
+  JOIN_PENDING: z.strictObject({ type: z.literal('JOIN_PENDING') }),
+  JOIN_ACCEPTED: z.strictObject({
+    type: z.literal('JOIN_ACCEPTED'),
+    playerId: id,
+    teamId: id.nullable(),
+  }),
+  JOIN_REJECTED: z.strictObject({ type: z.literal('JOIN_REJECTED'), reason: text }),
+  QUESTION_CONTENT: z.strictObject({
+    type: z.literal('QUESTION_CONTENT'),
+    target,
+    questionId: id,
+    title: text.nullable(),
+    description: text.nullable(),
+    options: z.array(text).max(MAX_OPTIONS).nullable(),
+    answer: text.nullable(),
+    media: z.string().max(MAX_MEDIA_LENGTH).nullable(),
+    mediaType: z.enum(['image', 'audio', 'video']).nullable(),
+  }),
 }
 
 /** Schemas for events sent by players to the GameMaster. */
 export const PlayerEventSchemas = {
   BUZZ: z.strictObject({
     type: z.literal('BUZZ'),
-    playerId: id,
-    playerName: name,
     timestamp: z.number().nonnegative(),
   }),
   JOIN: z.strictObject({
     type: z.literal('JOIN'),
-    playerId: id,
     playerName: name,
-    teamId: id.nullable(),
     deviceId: id,
+    teamId: id.nullable(),
+    newTeamName: name.nullable(),
   }),
-  LEAVE: z.strictObject({ type: z.literal('LEAVE'), playerId: id }),
+  LEAVE: z.strictObject({ type: z.literal('LEAVE') }),
   FOCUS_CHANGE: z.strictObject({
     type: z.literal('FOCUS_CHANGE'),
-    playerId: id,
     away: z.boolean(),
   }),
 }
@@ -125,6 +157,11 @@ export const TransportEventSchema = z.discriminatedUnion('type', [
   GameEventSchemas.GAME_STATE,
   GameEventSchemas.VISIBILITY,
   GameEventSchemas.GAME_STATUS,
+  GameEventSchemas.LOBBY_INFO,
+  GameEventSchemas.JOIN_PENDING,
+  GameEventSchemas.JOIN_ACCEPTED,
+  GameEventSchemas.JOIN_REJECTED,
+  GameEventSchemas.QUESTION_CONTENT,
   PlayerEventSchemas.BUZZ,
   PlayerEventSchemas.JOIN,
   PlayerEventSchemas.LEAVE,

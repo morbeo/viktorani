@@ -86,7 +86,8 @@ export type StatusListener = (status: TransportStatus, type: TransportType) => v
 export class TransportManager {
   private transport: ITransport | null = null
   private statusListeners: StatusListener[] = []
-  private eventHandlers: Array<(e: TransportEvent) => void> = []
+  private eventHandlers: Array<(e: TransportEvent, from: string) => void> = []
+  private closeHandlers: Array<(connId: string) => void> = []
 
   /** Current connection lifecycle state. `'idle'` when not connected. */
   get status(): TransportStatus {
@@ -119,10 +120,11 @@ export class TransportManager {
     await this.tryTransport(new PeerJSTransport(), config)
 
     // Validate against the message contract, then forward to registered handlers
-    this.transport!.onEvent(raw => {
+    this.transport!.onEvent((raw, from) => {
       const event = parseTransportEvent(raw)
-      if (event) this.eventHandlers.forEach(h => h(event))
+      if (event) this.eventHandlers.forEach(h => h(event, from))
     })
+    this.transport!.onPeerClose(connId => this.closeHandlers.forEach(h => h(connId)))
 
     this.notifyStatus()
   }
@@ -159,9 +161,22 @@ export class TransportManager {
   }
 
   /**
+   * Send an event to one connection only (host side). Silently dropped if not
+   * connected or the connection is gone.
+   *
+   * @param connId - The `from` value an {@link TransportManager.onEvent} handler received.
+   * @param event - Any {@link TransportEvent} variant.
+   */
+  sendTo(connId: string, event: TransportEvent) {
+    this.transport?.sendTo(connId, event)
+  }
+
+  /**
    * Subscribe to incoming transport events.
    *
-   * @param handler - Invoked for every event received from the room.
+   * @param handler - Invoked for every valid event received from the room, with the
+   *   id of the connection it arrived on. On the host, use `from` (never a field in the
+   *   payload) to decide which player sent it.
    * @returns An unsubscribe function. Call it in a `useEffect` cleanup or
    *          component teardown to avoid memory leaks.
    *
@@ -174,10 +189,24 @@ export class TransportManager {
    * }, [])
    * ```
    */
-  onEvent(handler: (e: TransportEvent) => void): () => void {
+  onEvent(handler: (e: TransportEvent, from: string) => void): () => void {
     this.eventHandlers.push(handler)
     return () => {
       this.eventHandlers = this.eventHandlers.filter(h => h !== handler)
+    }
+  }
+
+  /**
+   * Subscribe to connections closing (host side: a player's connection dropped).
+   * Preserved across reconnects, like {@link TransportManager.onEvent}.
+   *
+   * @param handler - Called with the id of the closed connection.
+   * @returns An unsubscribe function.
+   */
+  onPeerClose(handler: (connId: string) => void): () => void {
+    this.closeHandlers.push(handler)
+    return () => {
+      this.closeHandlers = this.closeHandlers.filter(h => h !== handler)
     }
   }
 

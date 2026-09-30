@@ -22,7 +22,7 @@ import type { TransportStatus, TransportType, TransportEvent } from '@/transport
  *   return (
  *     <button
  *       disabled={status !== 'connected'}
- *       onClick={() => send({ type: 'BUZZ', playerId, playerName, timestamp: Date.now() })}
+ *       onClick={() => send({ type: 'BUZZ', timestamp: performance.now() })}
  *     >
  *       Buzz!
  *     </button>
