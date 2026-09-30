@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { db } from '@/db'
 import { transportManager } from '@/transport'
+import { applyScoreDelta, teamScore } from '@/pages/admin/gamemaster-utils'
 import type { Game, Player, Team, DifficultyLevel } from '@/db'
 
 /** A single row in the scoreboard — either a team or an individual player. */
@@ -87,24 +88,24 @@ export function useScoreboard(game: Game): UseScoreboardResult {
     if (kind === 'player') {
       const player = await db.players.get(id)
       if (!player) return
-      const newScore = Math.max(0, player.score + delta)
+      const newScore = applyScoreDelta(player.score, delta)
       await db.players.update(id, { score: newScore })
       setPlayers(prev => prev.map(p => (p.id === id ? { ...p, score: newScore } : p)))
 
       // If player belongs to a team, update team score too
       if (player.teamId) {
         const updatedPlayers = await db.players.where('gameId').equals(g.id).toArray()
-        const teamScore = updatedPlayers
-          .filter(p => p.teamId === player.teamId)
-          .reduce((sum, p) => sum + p.score, 0)
-        await db.teams.update(player.teamId, { score: teamScore })
-        setTeams(prev => prev.map(t => (t.id === player.teamId ? { ...t, score: teamScore } : t)))
+        const newTeamScore = teamScore(updatedPlayers, player.teamId)
+        await db.teams.update(player.teamId, { score: newTeamScore })
+        setTeams(prev =>
+          prev.map(t => (t.id === player.teamId ? { ...t, score: newTeamScore } : t))
+        )
       }
     } else {
       // Team adjustment: distribute delta to team record, don't touch individual players
       const team = await db.teams.get(id)
       if (!team) return
-      const newScore = Math.max(0, team.score + delta)
+      const newScore = applyScoreDelta(team.score, delta)
       await db.teams.update(id, { score: newScore })
       setTeams(prev => prev.map(t => (t.id === id ? { ...t, score: newScore } : t)))
     }
