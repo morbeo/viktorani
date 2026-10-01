@@ -84,6 +84,7 @@ function makeBuzz(overrides: Partial<BuzzEvent> = {}): BuzzEvent {
     playerName: 'Alice',
     teamId: null,
     timestamp: Date.now(),
+    receivedAt: Date.now(),
     isFalseStart: false,
     gmDecision: null,
     decidedAt: null,

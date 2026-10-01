@@ -6,7 +6,7 @@ import type { Game, BuzzEvent, GmDecision } from '@/db'
 
 /** Return value of {@link useBuzzer}. */
 export interface UseBuzzerResult {
-  /** All buzz events for the current question, sorted by timestamp ascending. */
+  /** All buzz events for the current question, in the order the host received them. */
   buzzes: BuzzEvent[]
   /**
    * Filtered subset for display — respects `game.buzzDeduplication`.
@@ -26,6 +26,8 @@ export interface UseBuzzerResult {
     playerName: string
     teamId: string | null
     timestamp: number
+    /** Host time from {@link hostNow}, taken as soon as the BUZZ arrives. */
+    receivedAt: number
   }) => Promise<void>
   /**
    * Record the GM's ruling on a specific buzz.
@@ -121,6 +123,7 @@ export function useBuzzer(
       playerName: string
       teamId: string | null
       timestamp: number
+      receivedAt: number
     }) => {
       const g = gameRef.current
       if (!questionId) return
@@ -138,13 +141,14 @@ export function useBuzzer(
         playerName: payload.playerName,
         teamId: payload.teamId,
         timestamp: payload.timestamp,
+        receivedAt: payload.receivedAt,
         isFalseStart,
         gmDecision: null,
         decidedAt: null,
       }
 
       await db.buzzEvents.add(buzz)
-      setBuzzes(prev => [...prev, buzz].sort((a, b) => a.timestamp - b.timestamp))
+      setBuzzes(prev => [...prev, buzz].sort(byArrival))
     },
     [questionId]
   )
@@ -230,23 +234,41 @@ export function useBuzzer(
 }
 
 /**
+ * Current host time in epoch milliseconds with sub-millisecond precision.
+ *
+ * @remarks
+ * Built on `performance.now()` so it never steps backwards within a session, and anchored to
+ * `performance.timeOrigin` so values stay comparable after a reload.
+ */
+export function hostNow(): number {
+  return performance.timeOrigin + performance.now()
+}
+
+/** Sort comparator: the buzz the host received first comes first. */
+export function byArrival(a: BuzzEvent, b: BuzzEvent): number {
+  // Buzzes stored before receivedAt existed fall back to the client timestamp
+  return (a.receivedAt ?? a.timestamp) - (b.receivedAt ?? b.timestamp)
+}
+
+/**
  * Load existing buzz events for a question from IndexedDB.
  *
  * @remarks
  * `useBuzzer` calls this whenever the current question changes to hydrate its local state.
- * Results are sorted by timestamp ascending so the display order matches arrival order.
+ * Results are sorted by host receive time so the display order matches arrival order.
  *
  * @param gameId - The game the buzzes belong to (questions can be shared between games).
  * @param questionId - The question whose buzz history to load.
- * @returns Array of {@link BuzzEvent} records sorted by timestamp.
+ * @returns Array of {@link BuzzEvent} records sorted by {@link byArrival}.
  */
 export async function loadBuzzesForQuestion(
   gameId: string,
   questionId: string
 ): Promise<BuzzEvent[]> {
-  return db.buzzEvents
+  const rows = await db.buzzEvents
     .where('gameId')
     .equals(gameId)
     .and(b => b.questionId === questionId)
-    .sortBy('timestamp')
+    .toArray()
+  return rows.sort(byArrival)
 }

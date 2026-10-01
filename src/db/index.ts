@@ -227,8 +227,10 @@ export interface BuzzEvent {
   playerId: string
   playerName: string
   teamId: string | null
-  /** High-precision client-side timestamp for ordering (microseconds). */
+  /** Time reported by the player's device. Its clock may be skewed, so it never decides order. */
   timestamp: number
+  /** Host clock (epoch ms, sub-ms precision) when the buzz arrived; buzzes are ordered by this. */
+  receivedAt: number
   /** `true` when the buzz arrived before the GM unlocked the buzzer. */
   isFalseStart: boolean
   gmDecision: GmDecision | null

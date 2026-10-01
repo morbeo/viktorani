@@ -32,7 +32,7 @@ import {
 import { useNavigation } from '@/hooks/useNavigation'
 import { useKeyNav } from '@/hooks/useKeyNav'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
-import { useBuzzer } from '@/hooks/useBuzzer'
+import { hostNow, useBuzzer } from '@/hooks/useBuzzer'
 import { useTimerList } from '@/hooks/useTimer'
 import { useGameLifecycle } from '@/hooks/useGameLifecycle'
 import { readScores } from '@/hooks/useScoreboard'
@@ -583,6 +583,8 @@ export default function GameMaster() {
       }
 
       if (event.type === 'BUZZ') {
+        // Stamp arrival before any await, so a slow lookup cannot reorder buzzes
+        const receivedAt = hostNow()
         // Delegate to the mounted ActiveGame's useBuzzer
         const handler = buzzHandlerRef.current
         const player = handler ? await db.players.get(playerId) : undefined
@@ -592,6 +594,7 @@ export default function GameMaster() {
             playerName: player.name,
             teamId: null, // looked up in useBuzzer
             timestamp: event.timestamp,
+            receivedAt,
           })
         }
       }

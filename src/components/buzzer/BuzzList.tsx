@@ -13,12 +13,12 @@ const TIE_WINDOW_MS = 1 // buzzes within 1ms are "tied"
 
 function elapsedLabel(buzz: BuzzEvent, first: BuzzEvent): string {
   if (buzz.id === first.id) return 'first'
-  const ms = buzz.timestamp - first.timestamp
+  const ms = buzz.receivedAt - first.receivedAt
   return `+${ms < 1000 ? ms.toFixed(0) + 'ms' : (ms / 1000).toFixed(2) + 's'}`
 }
 
 function isTied(a: BuzzEvent, b: BuzzEvent): boolean {
-  return Math.abs(a.timestamp - b.timestamp) <= TIE_WINDOW_MS
+  return Math.abs(a.receivedAt - b.receivedAt) <= TIE_WINDOW_MS
 }
 
 const RANK_COLORS = [
