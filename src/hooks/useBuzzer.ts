@@ -244,10 +244,14 @@ export function hostNow(): number {
   return performance.timeOrigin + performance.now()
 }
 
+/** When the host received a buzz. Buzzes stored before receivedAt existed use the client time. */
+export function arrivalTime(buzz: BuzzEvent): number {
+  return buzz.receivedAt ?? buzz.timestamp
+}
+
 /** Sort comparator: the buzz the host received first comes first. */
 export function byArrival(a: BuzzEvent, b: BuzzEvent): number {
-  // Buzzes stored before receivedAt existed fall back to the client timestamp
-  return (a.receivedAt ?? a.timestamp) - (b.receivedAt ?? b.timestamp)
+  return arrivalTime(a) - arrivalTime(b)
 }
 
 /**
