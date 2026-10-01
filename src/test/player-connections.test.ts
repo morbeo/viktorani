@@ -77,9 +77,10 @@ function game(overrides: Partial<Game> = {}): Game {
     status: 'waiting',
     roomId: 'ROOM01',
     scoringEnabled: true,
-    showQuestion: true,
-    showAnswers: false,
-    showMedia: true,
+    visibility: {
+      players: { showQuestion: true, showAnswers: false, showMedia: true },
+      screen: { showQuestion: true, showAnswers: false, showMedia: true },
+    },
     maxTeams: 0,
     maxPerTeam: 0,
     allowIndividual: true,
