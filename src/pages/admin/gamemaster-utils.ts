@@ -1,5 +1,6 @@
 import type { Game, Player, Team } from '@/db'
-import type { SerializedGameState } from '@/transport/types'
+import type { GameEvent, SerializedGameState } from '@/transport/types'
+import { MAX_LOBBY_TEAMS, MAX_NAME_LENGTH } from '@/transport/messages'
 
 /**
  * Serialises a Game + score map into the wire format broadcast to players
@@ -18,6 +19,30 @@ export function serialiseGameState(
     buzzerLocked: game.buzzerLocked,
     visibility: game.visibility,
     scores,
+  }
+}
+
+/**
+ * Builds the LOBBY_INFO a connecting player sees on the join screen: the teams that
+ * still have room (`maxPerTeam`), whether individual play is allowed, and whether
+ * another team may be created (`allowPlayerTeams` within `maxTeams`). The host still
+ * checks every JOIN, so this only shapes the choices. Pure function.
+ */
+export function buildLobbyInfo(
+  game: Game,
+  teams: Team[],
+  players: Player[]
+): Extract<GameEvent, { type: 'LOBBY_INFO' }> {
+  const open = teams.filter(
+    t => game.maxPerTeam === 0 || players.filter(p => p.teamId === t.id).length < game.maxPerTeam
+  )
+  const listed = open.slice(0, MAX_LOBBY_TEAMS)
+  const roomForTeam = game.maxTeams === 0 || teams.length < game.maxTeams
+  return {
+    type: 'LOBBY_INFO',
+    teams: listed.map(t => ({ id: t.id, name: t.name.slice(0, MAX_NAME_LENGTH) })),
+    allowIndividual: game.allowIndividual,
+    allowPlayerTeams: game.allowPlayerTeams && roomForTeam,
   }
 }
 

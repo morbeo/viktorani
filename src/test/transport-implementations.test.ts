@@ -120,14 +120,34 @@ describe('PeerJSTransport', () => {
     expect(t.status).toBe('connected')
   })
 
-  it('connects as player: resolves and creates a connection to host', async () => {
+  it('connects as player: resolves only once the channel to the host is open', async () => {
     const { PeerJSTransport } = await import('@/transport/PeerJSTransport')
     const t = new PeerJSTransport()
 
     const connectPromise = t.connect(PEER_PLAYER_CONFIG)
-    MockPeer.lastInstance.emit('open')
-    await connectPromise
+    const peer = MockPeer.lastInstance as unknown as {
+      emit(e: string, ...a: unknown[]): void
+      connect: (id: string) => { emit(e: string, ...a: unknown[]): void; peer: string }
+    }
+    const origConnect = peer.connect.bind(peer)
+    let conn: ReturnType<typeof peer.connect> | null = null
+    peer.connect = (id: string) => {
+      conn = origConnect(id)
+      return conn
+    }
+    let resolved = false
+    void connectPromise.then(() => {
+      resolved = true
+    })
 
+    peer.emit('open')
+    await Promise.resolve()
+    expect(conn!.peer).toBe('vkt-ROOM1')
+    expect(resolved).toBe(false)
+    expect(t.status).toBe('connecting')
+
+    conn!.emit('open')
+    await connectPromise
     expect(t.status).toBe('connected')
   })
 
@@ -273,6 +293,25 @@ describe('PeerJSTransport', () => {
     expect(conn1.send).not.toHaveBeenCalled()
   })
 
+  it('host: notifies open handlers when a player connection opens', async () => {
+    const { PeerJSTransport } = await import('@/transport/PeerJSTransport')
+    const t = new PeerJSTransport()
+
+    const connectPromise = t.connect(PEER_HOST_CONFIG)
+    MockPeer.lastInstance.emit('open')
+    await connectPromise
+
+    const opened: string[] = []
+    t.onPeerOpen(id => opened.push(id))
+
+    const conn = mockConn('p1')
+    const peer = MockPeer.lastInstance as unknown as { emit(e: string, ...a: unknown[]): void }
+    peer.emit('connection', conn)
+    expect(opened).toEqual([])
+    conn.on.mock.calls.find((args: unknown[]) => args[0] === 'open')?.[1]?.()
+    expect(opened).toEqual(['dc_p1'])
+  })
+
   it('host: notifies close handlers with the connection id', async () => {
     const { PeerJSTransport } = await import('@/transport/PeerJSTransport')
     const t = new PeerJSTransport()
@@ -345,11 +384,12 @@ describe('PeerJSTransport', () => {
     }
 
     peer.emit('open')
-    await connectPromise
 
-    // capturedConn is the MockDataConnection — fire its 'open' so it's stored
+    // capturedConn is the MockDataConnection — fire its 'open' so it's stored and
+    // connect() resolves
     expect(capturedConn).not.toBeNull()
     capturedConn!.emit('open')
+    await connectPromise
 
     const event: TransportEvent = { type: 'BUZZER_UNLOCK' }
     t.send(event)

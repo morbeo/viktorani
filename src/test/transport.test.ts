@@ -48,6 +48,7 @@ function makeMockTransport(type: 'peer', fails = false): ITransport {
       handlers.push(h)
       return () => {}
     }),
+    onPeerOpen: vi.fn(() => () => {}),
     onPeerClose: vi.fn(() => () => {}),
     // expose for testing
     _emit: (e: TransportEvent) => handlers.forEach(h => h(e)),
@@ -163,6 +164,25 @@ describe('TransportManager', () => {
 
     it('is a no-op when not connected', () => {
       expect(() => manager.sendTo('dc_1', { type: 'JOIN_PENDING' })).not.toThrow()
+    })
+  })
+
+  describe('onPeerOpen', () => {
+    it('forwards connection opens from the transport', async () => {
+      const mock = makeMockTransport('peer')
+      vi.spyOn(internals(manager), 'tryTransport').mockImplementation(async () => {
+        internals(manager).transport = mock
+      })
+      await manager.connect(BASE_CONFIG)
+
+      const opened: string[] = []
+      const unsub = manager.onPeerOpen(id => opened.push(id))
+      const captured = (mock.onPeerOpen as ReturnType<typeof vi.fn>).mock.calls[0][0]
+      captured('dc_1')
+      unsub()
+      captured('dc_2')
+
+      expect(opened).toEqual(['dc_1'])
     })
   })
 
