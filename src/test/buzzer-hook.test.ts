@@ -102,6 +102,7 @@ async function buzz(result: { current: ReturnType<typeof useBuzzer> }) {
       playerName: 'Alice',
       teamId: null,
       timestamp: 1,
+      receivedAt: 1,
     })
   )
 }
@@ -332,6 +333,34 @@ describe('useBuzzer scoring (#246)', () => {
   })
 })
 
+// ── Buzz order (#275) ─────────────────────────────────────────────────────────
+
+describe('useBuzzer buzz order (#275)', () => {
+  it('orders buzzes by host receive time, whatever the phones report', async () => {
+    const game = makeGame({ buzzerLocked: false })
+    await db.games.add(game)
+    const { result } = renderBuzzer(game)
+    const incoming = (playerId: string, timestamp: number, receivedAt: number) =>
+      act(() =>
+        result.current.handleIncomingBuzz({
+          playerId,
+          playerName: playerId,
+          teamId: null,
+          timestamp,
+          receivedAt,
+        })
+      )
+
+    // A phone with a slow clock, and one claiming time zero, both arrived later
+    await incoming('p1', 5_000, 10)
+    await incoming('p2', 0, 30)
+    await incoming('p3', 1_000, 20)
+
+    expect(result.current.buzzes.map(b => b.playerId)).toEqual(['p1', 'p3', 'p2'])
+    expect((await db.buzzEvents.toArray()).find(b => b.playerId === 'p2')?.timestamp).toBe(0)
+  })
+})
+
 // ── Buzz history (#251) ───────────────────────────────────────────────────────
 
 describe('useBuzzer buzz history (#251)', () => {
@@ -343,6 +372,7 @@ describe('useBuzzer buzz history (#251)', () => {
     playerName: 'Alice',
     teamId: null,
     timestamp: 1,
+    receivedAt: 1,
     isFalseStart: false,
     gmDecision: null,
     decidedAt: null,

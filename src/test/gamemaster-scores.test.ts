@@ -85,6 +85,7 @@ function makeBuzz(overrides: Partial<BuzzEvent> = {}): BuzzEvent {
     playerName: 'Alice',
     teamId: null,
     timestamp: Date.now(),
+    receivedAt: Date.now(),
     isFalseStart: false,
     gmDecision: null,
     decidedAt: null,
@@ -266,11 +267,11 @@ describe('loadBuzzesForQuestion', () => {
     expect(buzzes[0].id).toBe('b1')
   })
 
-  it('sorts buzzes by timestamp ascending', async () => {
+  it('sorts buzzes by host receive time ascending', async () => {
     await db.buzzEvents.bulkAdd([
-      makeBuzz({ id: 'b2', questionId: 'q1', playerId: 'p2', timestamp: 300 }),
-      makeBuzz({ id: 'b1', questionId: 'q1', playerId: 'p1', timestamp: 100 }),
-      makeBuzz({ id: 'b3', questionId: 'q1', playerId: 'p3', timestamp: 200 }),
+      makeBuzz({ id: 'b2', questionId: 'q1', playerId: 'p2', receivedAt: 300 }),
+      makeBuzz({ id: 'b1', questionId: 'q1', playerId: 'p1', receivedAt: 100 }),
+      makeBuzz({ id: 'b3', questionId: 'q1', playerId: 'p3', receivedAt: 200 }),
     ])
     const buzzes = await loadBuzzesForQuestion('g1', 'q1')
     expect(buzzes.map(b => b.id)).toEqual(['b1', 'b3', 'b2'])
