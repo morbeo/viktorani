@@ -40,6 +40,11 @@ const label = z.string().max(MAX_LABEL_LENGTH)
 const index = z.number().int().nonnegative()
 const text = z.string().max(MAX_TEXT_LENGTH)
 const target = z.enum(['players', 'screen'])
+const targetVisibility = z.strictObject({
+  showQuestion: z.boolean(),
+  showAnswers: z.boolean(),
+  showMedia: z.boolean(),
+})
 
 const scoreCountOk = (r: object) => Object.keys(r).length <= MAX_SCORE_ENTRIES
 const scores = z.record(id, z.number()).refine(scoreCountOk, 'Too many score entries')
@@ -51,9 +56,7 @@ export const SerializedGameStateSchema = z.strictObject({
   currentRoundIdx: index,
   currentQuestionIdx: index,
   buzzerLocked: z.boolean(),
-  showQuestion: z.boolean(),
-  showAnswers: z.boolean(),
-  showMedia: z.boolean(),
+  visibility: z.strictObject({ players: targetVisibility, screen: targetVisibility }),
   scores,
 })
 

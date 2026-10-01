@@ -1,3 +1,5 @@
+import type { GameVisibility } from '@/db'
+
 // ── Shared event types ────────────────────────────────────────────────────────
 
 /**
@@ -126,9 +128,8 @@ export interface SerializedGameState {
   currentRoundIdx: number
   currentQuestionIdx: number
   buzzerLocked: boolean
-  showQuestion: boolean
-  showAnswers: boolean
-  showMedia: boolean
+  /** What each target shows, as last set by the GM (see `VISIBILITY`). */
+  visibility: GameVisibility
   /** Current player and team scores keyed by player or team ID, as in `SCORE_UPDATE`. */
   scores: Record<string, number>
 }

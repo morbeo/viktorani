@@ -50,36 +50,55 @@ export const RoundSchema = z.object({
   createdAt: z.number(),
 }) satisfies z.ZodType<Round>
 
-export const GameSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  status: z.enum(['waiting', 'active', 'paused', 'ended']),
-  // Pre-#265 backups also carry `transportMode` ('auto' | 'peer' | 'gun') and `passphrase`;
-  // PeerJS is now the only transport, so those keys are stripped on parse like any unknown key.
-  roomId: z.string().nullable(),
+const TargetVisibilitySchema = z.object({
   showQuestion: z.boolean(),
   showAnswers: z.boolean(),
-  showMedia: z.boolean().default(true),
-  maxTeams: z.number().default(0),
-  maxPerTeam: z.number().default(0),
-  allowIndividual: z.boolean().default(true),
-  allowLateJoin: z.boolean().default(true),
-  allowRejoin: z.boolean().default(true),
-  requireApproval: z.boolean().default(false),
-  allowPlayerTeams: z.boolean().default(true),
-  roundIds: z.array(z.string()),
-  currentRoundIdx: z.number(),
-  currentQuestionIdx: z.number(),
-  buzzerLocked: z.boolean(),
-  scoringEnabled: z.boolean().default(true),
-  // Buzzer config was added after v1 backups; defaults mirror the game wizard.
-  autoLockOnFirstCorrect: z.boolean().default(false),
-  allowFalseStarts: z.boolean().default(false),
-  buzzDeduplication: z.enum(['firstOnly', 'all']).default('firstOnly'),
-  tiebreakerMode: z.literal('serverOrder').default('serverOrder'),
-  createdAt: z.number(),
-  updatedAt: z.number(),
-}) satisfies z.ZodType<Game>
+  showMedia: z.boolean(),
+})
+
+export const GameSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    status: z.enum(['waiting', 'active', 'paused', 'ended']),
+    // Pre-#265 backups also carry `transportMode` ('auto' | 'peer' | 'gun') and `passphrase`;
+    // PeerJS is now the only transport, so those keys are stripped on parse like any unknown key.
+    roomId: z.string().nullable(),
+    // Backups before #268 carry one set of flags; they become both targets' visibility.
+    showQuestion: z.boolean().optional(),
+    showAnswers: z.boolean().optional(),
+    showMedia: z.boolean().optional(),
+    visibility: z
+      .object({ players: TargetVisibilitySchema, screen: TargetVisibilitySchema })
+      .optional(),
+    maxTeams: z.number().default(0),
+    maxPerTeam: z.number().default(0),
+    allowIndividual: z.boolean().default(true),
+    allowLateJoin: z.boolean().default(true),
+    allowRejoin: z.boolean().default(true),
+    requireApproval: z.boolean().default(false),
+    allowPlayerTeams: z.boolean().default(true),
+    roundIds: z.array(z.string()),
+    currentRoundIdx: z.number(),
+    currentQuestionIdx: z.number(),
+    buzzerLocked: z.boolean(),
+    scoringEnabled: z.boolean().default(true),
+    // Buzzer config was added after v1 backups; defaults mirror the game wizard.
+    autoLockOnFirstCorrect: z.boolean().default(false),
+    allowFalseStarts: z.boolean().default(false),
+    buzzDeduplication: z.enum(['firstOnly', 'all']).default('firstOnly'),
+    tiebreakerMode: z.literal('serverOrder').default('serverOrder'),
+    createdAt: z.number(),
+    updatedAt: z.number(),
+  })
+  .transform(({ showQuestion, showAnswers, showMedia, visibility, ...game }) => {
+    const flags = {
+      showQuestion: showQuestion ?? true,
+      showAnswers: showAnswers ?? false,
+      showMedia: showMedia ?? true,
+    }
+    return { ...game, visibility: visibility ?? { players: { ...flags }, screen: { ...flags } } }
+  }) satisfies z.ZodType<Game>
 
 export const NoteSchema = z.object({
   id: z.string(),

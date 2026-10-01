@@ -36,9 +36,10 @@ function makeGame(overrides: Partial<Game> = {}): Game {
     name: 'Test Game',
     status: 'active',
     roomId: 'ROOM1',
-    showQuestion: true,
-    showAnswers: false,
-    showMedia: true,
+    visibility: {
+      players: { showQuestion: true, showAnswers: false, showMedia: true },
+      screen: { showQuestion: true, showAnswers: false, showMedia: true },
+    },
     maxTeams: 0,
     maxPerTeam: 0,
     allowIndividual: true,
@@ -127,7 +128,11 @@ describe('serialiseGameState — score map', () => {
   })
 
   it('includes all required GAME_STATE fields', () => {
-    const game = makeGame({ buzzerLocked: true, showQuestion: false, showAnswers: true })
+    const visibility = {
+      players: { showQuestion: false, showAnswers: true, showMedia: true },
+      screen: { showQuestion: true, showAnswers: false, showMedia: false },
+    }
+    const game = makeGame({ buzzerLocked: true, visibility })
     const state = serialiseGameState(game, {})
     expect(state).toMatchObject({
       gameId: 'g1',
@@ -135,9 +140,7 @@ describe('serialiseGameState — score map', () => {
       currentRoundIdx: 0,
       currentQuestionIdx: 0,
       buzzerLocked: true,
-      showQuestion: false,
-      showAnswers: true,
-      showMedia: true,
+      visibility,
     })
   })
 })

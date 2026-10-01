@@ -16,9 +16,10 @@ const BASE_GAME: Game = {
   status: 'waiting',
   roomId: 'ABC123',
   scoringEnabled: true,
-  showQuestion: true,
-  showAnswers: false,
-  showMedia: true,
+  visibility: {
+    players: { showQuestion: true, showAnswers: false, showMedia: true },
+    screen: { showQuestion: true, showAnswers: false, showMedia: true },
+  },
   maxTeams: 0,
   maxPerTeam: 0,
   allowIndividual: true,
@@ -62,9 +63,7 @@ describe('serialiseGameState', () => {
     expect(state.currentRoundIdx).toBe(0)
     expect(state.currentQuestionIdx).toBe(0)
     expect(state.buzzerLocked).toBe(true)
-    expect(state.showQuestion).toBe(true)
-    expect(state.showAnswers).toBe(false)
-    expect(state.showMedia).toBe(true)
+    expect(state.visibility).toEqual(BASE_GAME.visibility)
   })
 
   it('passes the player and team score map through', () => {

@@ -16,9 +16,7 @@ export function serialiseGameState(
     currentRoundIdx: game.currentRoundIdx,
     currentQuestionIdx: game.currentQuestionIdx,
     buzzerLocked: game.buzzerLocked,
-    showQuestion: game.showQuestion,
-    showAnswers: game.showAnswers,
-    showMedia: game.showMedia,
+    visibility: game.visibility,
     scores,
   }
 }

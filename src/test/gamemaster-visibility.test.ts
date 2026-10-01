@@ -27,9 +27,10 @@ function makeGame(overrides: Partial<Game> = {}): Game {
     name: 'Test Game',
     status: 'active',
     roomId: 'ROOM1',
-    showQuestion: true,
-    showAnswers: false,
-    showMedia: true,
+    visibility: {
+      players: { showQuestion: true, showAnswers: false, showMedia: true },
+      screen: { showQuestion: true, showAnswers: false, showMedia: true },
+    },
     maxTeams: 0,
     maxPerTeam: 0,
     allowIndividual: true,
@@ -61,71 +62,76 @@ describe('useGameVisibility', () => {
   })
 
   it('initialises visibility from the game record', () => {
-    const game = makeGame({ showQuestion: false, showAnswers: true, showMedia: false })
-    const { result } = renderHook(() => useGameVisibility(game))
-    expect(result.current.visibility).toEqual({
-      showQuestion: false,
-      showAnswers: true,
-      showMedia: false,
-    })
+    const visibility = {
+      players: { showQuestion: false, showAnswers: true, showMedia: false },
+      screen: { showQuestion: true, showAnswers: false, showMedia: true },
+    }
+    const { result } = renderHook(() => useGameVisibility(makeGame({ visibility })))
+    expect(result.current.visibility).toEqual(visibility)
   })
 
-  it('toggles showQuestion from true to false', async () => {
-    const game = makeGame({ showQuestion: true })
+  it('toggles a flag on one target only', async () => {
+    const game = makeGame()
     await db.games.add(game)
 
     const { result } = renderHook(() => useGameVisibility(game))
     await act(async () => {
-      await result.current.toggle('showQuestion')
+      await result.current.toggle('players', 'showQuestion')
     })
 
-    expect(result.current.visibility.showQuestion).toBe(false)
+    expect(result.current.visibility.players.showQuestion).toBe(false)
+    expect(result.current.visibility.screen.showQuestion).toBe(true)
   })
 
-  it('toggles showAnswers from false to true', async () => {
-    const game = makeGame({ showAnswers: false })
+  it('toggles the screen independently of players', async () => {
+    const game = makeGame()
     await db.games.add(game)
 
     const { result } = renderHook(() => useGameVisibility(game))
     await act(async () => {
-      await result.current.toggle('showAnswers')
+      await result.current.toggle('screen', 'showAnswers')
     })
 
-    expect(result.current.visibility.showAnswers).toBe(true)
+    expect(result.current.visibility.screen.showAnswers).toBe(true)
+    expect(result.current.visibility.players.showAnswers).toBe(false)
   })
 
-  it('persists the updated flags to the DB', async () => {
-    const game = makeGame({ showQuestion: true, showAnswers: false, showMedia: true })
+  it('persists both targets to the DB', async () => {
+    const game = makeGame()
     await db.games.add(game)
 
     const { result } = renderHook(() => useGameVisibility(game))
     await act(async () => {
-      await result.current.toggle('showAnswers')
+      await result.current.toggle('players', 'showAnswers')
     })
 
     const stored = await db.games.get('g1')
-    expect(stored?.showAnswers).toBe(true)
-    expect(stored?.showQuestion).toBe(true) // unchanged
-    expect(stored?.showMedia).toBe(true) // unchanged
-  })
-
-  it('emits a VISIBILITY event with the updated flags', async () => {
-    const game = makeGame({ showQuestion: true, showAnswers: false, showMedia: true })
-    await db.games.add(game)
-
-    const { result } = renderHook(() => useGameVisibility(game))
-    await act(async () => {
-      await result.current.toggle('showMedia')
-    })
-
-    expect(mockSend).toHaveBeenCalledWith({
-      type: 'VISIBILITY',
-      target: 'players',
-      showQuestion: true,
-      showAnswers: false,
-      showMedia: false,
+    expect(stored?.visibility).toEqual({
+      players: { showQuestion: true, showAnswers: true, showMedia: true },
+      screen: { showQuestion: true, showAnswers: false, showMedia: true },
     })
   })
+
+  it.each(['players', 'screen'] as const)(
+    'emits a VISIBILITY event for the %s target',
+    async target => {
+      const game = makeGame()
+      await db.games.add(game)
+
+      const { result } = renderHook(() => useGameVisibility(game))
+      await act(async () => {
+        await result.current.toggle(target, 'showMedia')
+      })
+
+      expect(mockSend).toHaveBeenCalledWith({
+        type: 'VISIBILITY',
+        target,
+        showQuestion: true,
+        showAnswers: false,
+        showMedia: false,
+      })
+    }
+  )
 
   it('only emits one VISIBILITY event per toggle call', async () => {
     const game = makeGame()
@@ -133,7 +139,7 @@ describe('useGameVisibility', () => {
 
     const { result } = renderHook(() => useGameVisibility(game))
     await act(async () => {
-      await result.current.toggle('showQuestion')
+      await result.current.toggle('players', 'showQuestion')
     })
 
     expect(mockSend).toHaveBeenCalledTimes(1)
@@ -145,7 +151,7 @@ describe('useGameVisibility', () => {
 
     const { result } = renderHook(() => useGameVisibility(game))
     await act(async () => {
-      await result.current.toggle('showQuestion')
+      await result.current.toggle('players', 'showQuestion')
     })
 
     expect(result.current.saving).toBe(false)
@@ -157,7 +163,7 @@ describe('useGameVisibility', () => {
 
     const { result } = renderHook(() => useGameVisibility(game))
     await act(async () => {
-      await result.current.toggle('showQuestion')
+      await result.current.toggle('players', 'showQuestion')
     })
 
     expect(result.current.error).toBeNull()

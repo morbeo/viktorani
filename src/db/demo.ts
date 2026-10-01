@@ -181,9 +181,10 @@ export async function seedDemo(): Promise<void> {
     name: DEMO_GAME_NAME,
     status: 'waiting',
     roomId: generateRoomId(),
-    showQuestion: true,
-    showAnswers: false,
-    showMedia: true,
+    visibility: {
+      players: { showQuestion: true, showAnswers: false, showMedia: true },
+      screen: { showQuestion: true, showAnswers: false, showMedia: true },
+    },
     maxTeams: 0,
     maxPerTeam: 0,
     allowIndividual: true,

@@ -132,11 +132,24 @@ export interface Round {
   createdAt: number
 }
 
+/** Which parts of the current question one target (phones or screen) shows. */
+export interface TargetVisibility {
+  showQuestion: boolean
+  showAnswers: boolean
+  showMedia: boolean
+}
+
+/** Question visibility, set independently for player phones and the projector screen. */
+export interface GameVisibility {
+  players: TargetVisibility
+  screen: TargetVisibility
+}
+
 /**
  * A complete game session including configuration, real-time state, and navigation position.
  *
  * @remarks
- * The `buzzerLocked` flag and `showQuestion / showAnswers / showMedia` fields are
+ * The `buzzerLocked` flag and `visibility` are
  * the authoritative source of truth for the current question's display state.
  * They are synced to players via transport events (`BUZZER_LOCK`, `VISIBILITY`, etc.)
  * whenever the GM changes them.
@@ -147,10 +160,7 @@ export interface Game {
   status: GameStatus
   /** Six-character room code shared with players (e.g. `'XK7RQZ'`). `null` before the game starts. */
   roomId: string | null
-  // Visibility
-  showQuestion: boolean
-  showAnswers: boolean
-  showMedia: boolean
+  visibility: GameVisibility
   // Players / teams
   /** Maximum number of teams allowed; `0` means unlimited. */
   maxTeams: number
@@ -336,6 +346,7 @@ export interface GameQuestion {
  *   schema from IndexedDB, so a v1 or v4 database upgrades in place (missing tables are
  *   created) without declaring the older versions here.
  * - 6: same stores; back-fills the join policy fields on existing games.
+ * - 7: same stores; moves `showQuestion / showAnswers / showMedia` into per-target `visibility`.
  *
  * To change the schema, add a new `this.version(N + 1)` block below; keep existing blocks.
  */
@@ -390,6 +401,25 @@ export class ViktoraniDB extends Dexie {
             g.allowRejoin ??= true
             g.requireApproval ??= false
             g.allowPlayerTeams ??= true
+          })
+      )
+
+    this.version(7)
+      .stores({})
+      .upgrade(tx =>
+        tx
+          .table('games')
+          .toCollection()
+          .modify((g: Partial<Game> & Partial<TargetVisibility>) => {
+            const flags: TargetVisibility = {
+              showQuestion: g.showQuestion ?? true,
+              showAnswers: g.showAnswers ?? false,
+              showMedia: g.showMedia ?? true,
+            }
+            g.visibility ??= { players: { ...flags }, screen: { ...flags } }
+            delete g.showQuestion
+            delete g.showAnswers
+            delete g.showMedia
           })
       )
   }
