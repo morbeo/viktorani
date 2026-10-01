@@ -1,6 +1,12 @@
-import type { Game, Player, Team } from '@/db'
-import type { GameEvent, SerializedGameState } from '@/transport/types'
-import { MAX_LOBBY_TEAMS, MAX_NAME_LENGTH } from '@/transport/messages'
+import type { Game, Player, Question, TargetVisibility, Team } from '@/db'
+import type { GameEvent, SerializedGameState, VisibilityTarget } from '@/transport/types'
+import {
+  MAX_LOBBY_TEAMS,
+  MAX_MEDIA_LENGTH,
+  MAX_NAME_LENGTH,
+  MAX_OPTIONS,
+  MAX_TEXT_LENGTH,
+} from '@/transport/messages'
 
 /**
  * Serialises a Game + score map into the wire format broadcast to players
@@ -43,6 +49,44 @@ export function buildLobbyInfo(
     teams: listed.map(t => ({ id: t.id, name: t.name.slice(0, MAX_NAME_LENGTH) })),
     allowIndividual: game.allowIndividual,
     allowPlayerTeams: game.allowPlayerTeams && roomForTeam,
+  }
+}
+
+/** True/false questions store no options of their own. */
+const TRUE_FALSE_OPTIONS = ['True', 'False']
+
+/**
+ * Builds the QUESTION_CONTENT for one target, leaving out everything the GM has hidden
+ * there: the title and description need `showQuestion`, the options `showAnswers` and the
+ * media `showMedia`. The correct answer is never sent, because showing the options must
+ * not reveal it. Text is clipped to the transport limits and oversized media is dropped,
+ * so the message always passes validation. Pure function.
+ */
+export function buildQuestionContent(
+  question: Question,
+  target: VisibilityTarget,
+  flags: TargetVisibility
+): Extract<GameEvent, { type: 'QUESTION_CONTENT' }> {
+  const clip = (s: string) => s.slice(0, MAX_TEXT_LENGTH)
+  const options =
+    question.type === 'true_false'
+      ? TRUE_FALSE_OPTIONS
+      : question.type === 'multiple_choice'
+        ? question.options
+        : []
+  const fits = question.media && question.media.length <= MAX_MEDIA_LENGTH
+  const media = flags.showMedia && question.mediaType && fits ? question.media : null
+  return {
+    type: 'QUESTION_CONTENT',
+    target,
+    questionId: question.id,
+    title: flags.showQuestion ? clip(question.title) : null,
+    description: flags.showQuestion && question.description ? clip(question.description) : null,
+    options:
+      flags.showAnswers && options.length > 0 ? options.slice(0, MAX_OPTIONS).map(clip) : null,
+    answer: null,
+    media,
+    mediaType: media ? question.mediaType : null,
   }
 }
 

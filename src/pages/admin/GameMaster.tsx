@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef, type RefObject } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { QRCodeSVG } from 'qrcode.react'
 import { QrCode, Rocket, Copy, Check } from 'lucide-react'
 import AdminLayout from '@/components/AdminLayout'
@@ -21,10 +22,12 @@ import { TeamManagerPanel } from '@/components/gamemaster/TeamManagerPanel'
 import { GameControls } from '@/components/gamemaster/GameControls'
 import { JoinPolicyPanel } from '@/components/gamemaster/JoinPolicyPanel'
 import { PendingJoinsPanel } from '@/components/gamemaster/PendingJoinsPanel'
+import { HostQuestionPanel } from '@/components/host/HostQuestionPanel'
 import { db } from '@/db'
 import { transportManager } from '@/transport'
 import {
   buildLobbyInfo,
+  buildQuestionContent,
   serialiseGameState,
   upsertPlayer,
   markPlayerAway,
@@ -42,7 +45,7 @@ import { PlayerConnections, resolveJoin } from '@/pages/admin/player-connections
 import type { JoinResult, PendingJoin } from '@/pages/admin/player-connections'
 import { TimerPanel } from '@/components/timer/TimerPanel'
 import type { Game, Player, Team } from '@/db'
-import type { TransportStatus, TransportType, TransportEvent } from '@/transport/types'
+import type { GameEvent, TransportStatus, TransportType, TransportEvent } from '@/transport/types'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -305,9 +308,12 @@ interface ActiveGameProps {
   pendingJoins: PendingJoin[]
   onApproveJoin: (connId: string) => void
   onRejectJoin: (connId: string) => void
+  /** Receives the players' content for the current question, or `null` when there is none. */
+  onQuestionContent: (content: QuestionContent | null) => void
 }
 
 type BuzzHandler = ReturnType<typeof useBuzzer>['handleIncomingBuzz']
+type QuestionContent = Extract<GameEvent, { type: 'QUESTION_CONTENT' }>
 
 function ActiveGame({
   game,
@@ -317,6 +323,7 @@ function ActiveGame({
   pendingJoins,
   onApproveJoin,
   onRejectJoin,
+  onQuestionContent,
 }: ActiveGameProps) {
   const [showBoundary, setShowBoundary] = useState(false)
   const [boundaryEntry, setBoundaryEntry] = useState<
@@ -333,6 +340,27 @@ function ActiveGame({
 
   // Current question ID derived from nav position
   const currentQuestionId = pos ? (seq[pos.flatIndex]?.questionId ?? null) : null
+  const currentGameQuestionId = pos ? (seq[pos.flatIndex]?.gameQuestionId ?? null) : null
+
+  const loadedQuestion = useLiveQuery(
+    () => (currentQuestionId ? db.questions.get(currentQuestionId) : undefined),
+    [currentQuestionId]
+  )
+  const loadedGameQuestion = useLiveQuery(
+    () => (currentGameQuestionId ? db.gameQuestions.get(currentGameQuestionId) : undefined),
+    [currentGameQuestionId]
+  )
+  // Ignore the previous question's result while the new one loads
+  const question = loadedQuestion?.id === currentQuestionId ? loadedQuestion : undefined
+  const gameQuestion =
+    loadedGameQuestion?.id === currentGameQuestionId ? loadedGameQuestion : undefined
+
+  // Send the current question to admitted players on navigation and whenever the GM
+  // changes what players may see
+  const playerVisibility = game.visibility.players
+  useEffect(() => {
+    onQuestionContent(question ? buildQuestionContent(question, 'players', playerVisibility) : null)
+  }, [question, playerVisibility, onQuestionContent])
 
   const { displayBuzzes, buzzes, toggleLock, adjudicate, clearBuzzes, handleIncomingBuzz } =
     useBuzzer(game, currentQuestionId, onGameChange)
@@ -435,6 +463,15 @@ function ActiveGame({
             </span>
           </div>
 
+          {question && gameQuestion && (
+            <HostQuestionPanel
+              question={question}
+              gameQuestion={gameQuestion}
+              game={game}
+              onGameChange={onGameChange}
+            />
+          )}
+
           {/* Read-only banner for ended games */}
           {isEnded && (
             <div
@@ -518,6 +555,8 @@ export default function GameMaster() {
   // JOINs and approvals run one at a time so each sees the teams and players saved by
   // the one before (team limits, same-name team reuse)
   const joinQueueRef = useRef<Promise<void>>(Promise.resolve())
+  // What players may currently see of the question; late joiners get it when admitted
+  const questionContentRef = useRef<QuestionContent | null>(null)
 
   useEffect(() => {
     gameRef.current = game
@@ -610,10 +649,20 @@ export default function GameMaster() {
           state: serialiseGameState(g, scores),
         })
       }
+      if (questionContentRef.current) transportManager.sendTo(connId, questionContentRef.current)
       addToast(`${player.name} joined the game`, { variant: 'info', durationMs: 4000 })
     },
     [addToast]
   )
+
+  // Question content goes only to admitted players, never to every open connection
+  const handleQuestionContent = useCallback((content: QuestionContent | null) => {
+    questionContentRef.current = content
+    if (!content) return
+    for (const connId of connectionsRef.current.connections()) {
+      transportManager.sendTo(connId, content)
+    }
+  }, [])
 
   const enqueueJoin = useCallback((task: () => Promise<void>) => {
     const run = joinQueueRef.current.then(task)
@@ -933,6 +982,7 @@ export default function GameMaster() {
           pendingJoins={pendingJoins}
           onApproveJoin={id => void handleApproveJoin(id)}
           onRejectJoin={handleRejectJoin}
+          onQuestionContent={handleQuestionContent}
         />
       </ControlSizeContext.Provider>
     </AdminLayout>
