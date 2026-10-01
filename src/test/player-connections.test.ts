@@ -4,6 +4,7 @@ import { db } from '@/db'
 import type { Game, Player, Team } from '@/db'
 import type { PlayerEvent } from '@/transport/types'
 import { PlayerConnections, resolveJoin } from '@/pages/admin/player-connections'
+import { MAX_LOBBY_TEAMS } from '@/transport/messages'
 
 const JOIN: Extract<PlayerEvent, { type: 'JOIN' }> = {
   type: 'JOIN',
@@ -145,6 +146,13 @@ describe('resolveJoin', () => {
     expect(joined.player.score).toBe(0)
   })
 
+  it('never matches an empty deviceId to a player imported by the host', async () => {
+    await db.players.add(player({ deviceId: '', score: 30 }))
+    const joined = await accepted(game({ requireApproval: true }), { ...JOIN, deviceId: '' })
+    expect(joined.rejoin).toBe(false)
+    expect(joined.player.id).not.toBe('p1')
+  })
+
   it('does not match a device from another game', async () => {
     await db.players.add(player({ gameId: 'g2' }))
     expect((await accepted(game(), JOIN)).player.id).not.toBe('p1')
@@ -197,6 +205,14 @@ describe('resolveJoin', () => {
     )
     await db.teams.add(team('t1', 'g1'))
     expect(await rejection(game({ maxTeams: 1 }), join)).toBe('No more teams can be created')
+  })
+
+  it('caps player-created teams even without a team limit', async () => {
+    const teams = Array.from({ length: MAX_LOBBY_TEAMS }, (_, i) => team(`t${i}`, 'g1'))
+    await db.teams.bulkAdd(teams)
+    expect(await rejection(game(), { ...JOIN, newTeamName: 'One more' })).toBe(
+      'No more teams can be created'
+    )
   })
 
   it('joins an existing team with the same name instead of creating one', async () => {

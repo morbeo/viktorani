@@ -512,6 +512,11 @@ export default function GameMaster() {
   const connectionsRef = useRef(new PlayerConnections())
   const [pendingJoins, setPendingJoins] = useState<PendingJoin[]>([])
   const pendingJoinsRef = useRef<PendingJoin[]>([])
+  // Players kicked this session: their rejoins always wait for approval
+  const kickedRef = useRef(new Set<string>())
+  // JOINs and approvals run one at a time so each sees the teams and players saved by
+  // the one before (team limits, same-name team reuse)
+  const joinQueueRef = useRef<Promise<void>>(Promise.resolve())
 
   useEffect(() => {
     gameRef.current = game
@@ -583,11 +588,12 @@ export default function GameMaster() {
   const admit = useCallback(
     async (connId: string, result: Extract<JoinResult, { status: 'accepted' }>) => {
       const { player, newTeam } = result
-      if (newTeam) {
-        await db.teams.add(newTeam)
-        setTeams(prev => [...prev, newTeam])
-      }
-      await db.players.put(player)
+      await db.transaction('rw', db.teams, db.players, async () => {
+        if (newTeam) await db.teams.add(newTeam)
+        await db.players.put(player)
+      })
+      if (newTeam) setTeams(prev => [...prev, newTeam])
+      kickedRef.current.delete(player.id)
       connectionsRef.current.bind(connId, player.id)
       setPlayers(prev => upsertPlayer(prev, player))
       transportManager.sendTo(connId, {
@@ -608,6 +614,38 @@ export default function GameMaster() {
     [addToast]
   )
 
+  const enqueueJoin = useCallback((task: () => Promise<void>) => {
+    const run = joinQueueRef.current.then(task)
+    joinQueueRef.current = run.catch(err => console.error('[GameMaster] Join failed:', err))
+    return run
+  }, [])
+
+  // Apply the join policy: reject, queue for approval (new players when approval is on,
+  // and anyone kicked this session) or admit
+  const handleJoin = useCallback(
+    async (join: PendingJoin['join'], from: string) => {
+      const g = gameRef.current
+      if (!g) return
+      const result = await resolveJoin(g, join)
+      if (result.status === 'rejected') {
+        transportManager.sendTo(from, { type: 'JOIN_REJECTED', reason: result.reason })
+        return
+      }
+      const kicked = result.rejoin && kickedRef.current.has(result.player.id)
+      if ((g.requireApproval && !result.rejoin) || kicked) {
+        setPendingJoins(prev => [...prev.filter(p => p.connId !== from), { connId: from, join }])
+        transportManager.sendTo(from, { type: 'JOIN_PENDING' })
+        addToast(`${join.playerName} is waiting for approval`, {
+          variant: 'info',
+          durationMs: 4000,
+        })
+        return
+      }
+      await admit(from, result)
+    },
+    [addToast, admit]
+  )
+
   // Subscribe to player JOIN / LEAVE / FOCUS_CHANGE / BUZZ events. The sending player is
   // derived from the connection (`from`), never from the payload.
   const handleEvent = useCallback(
@@ -616,24 +654,7 @@ export default function GameMaster() {
       if (!g) return
 
       if (event.type === 'JOIN') {
-        const result = await resolveJoin(g, event)
-        if (result.status === 'rejected') {
-          transportManager.sendTo(from, { type: 'JOIN_REJECTED', reason: result.reason })
-          return
-        }
-        if (g.requireApproval && !result.rejoin) {
-          setPendingJoins(prev => [
-            ...prev.filter(p => p.connId !== from),
-            { connId: from, join: event },
-          ])
-          transportManager.sendTo(from, { type: 'JOIN_PENDING' })
-          addToast(`${event.playerName} is waiting for approval`, {
-            variant: 'info',
-            durationMs: 4000,
-          })
-          return
-        }
-        await admit(from, result)
+        await enqueueJoin(() => handleJoin(event, from))
         return
       }
 
@@ -666,7 +687,7 @@ export default function GameMaster() {
         }
       }
     },
-    [addToast, admit]
+    [enqueueJoin, handleJoin]
   )
 
   useEffect(() => {
@@ -694,17 +715,19 @@ export default function GameMaster() {
       const pending = pendingJoinsRef.current.find(p => p.connId === connId)
       if (!g || !pending) return
       setPendingJoins(prev => prev.filter(p => p.connId !== connId))
-      const result = await resolveJoin(g, pending.join)
-      if (result.status === 'rejected') {
-        transportManager.sendTo(connId, { type: 'JOIN_REJECTED', reason: result.reason })
-        addToast(`${pending.join.playerName} could not join: ${result.reason}`, {
-          variant: 'error',
-        })
-        return
-      }
-      await admit(connId, result)
+      await enqueueJoin(async () => {
+        const result = await resolveJoin(gameRef.current ?? g, pending.join)
+        if (result.status === 'rejected') {
+          transportManager.sendTo(connId, { type: 'JOIN_REJECTED', reason: result.reason })
+          addToast(`${pending.join.playerName} could not join: ${result.reason}`, {
+            variant: 'error',
+          })
+          return
+        }
+        await admit(connId, result)
+      })
     },
-    [addToast, admit]
+    [addToast, admit, enqueueJoin]
   )
 
   const handleRejectJoin = useCallback((connId: string) => {
@@ -719,6 +742,7 @@ export default function GameMaster() {
   const handleKick = useCallback(async (playerId: string) => {
     const g = gameRef.current
     if (!g) return
+    kickedRef.current.add(playerId)
     connectionsRef.current.unbindPlayer(playerId)
     await db.players.update(playerId, { isAway: true })
     setPlayers(prev => markPlayerAway(prev, playerId))

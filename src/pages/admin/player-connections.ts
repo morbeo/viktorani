@@ -1,6 +1,7 @@
 import { db } from '@/db'
 import type { Game, Player, Team } from '@/db'
 import type { PlayerEvent } from '@/transport/types'
+import { MAX_LOBBY_TEAMS } from '@/transport/messages'
 
 type JoinEvent = Extract<PlayerEvent, { type: 'JOIN' }>
 
@@ -67,21 +68,26 @@ export type JoinResult =
  * @remarks
  * - With `allowRejoin`, a device seen before in this game gets its earlier record back
  *   (id, score, team, join time) and skips the late join check. Without it the device
- *   joins as a new player.
+ *   joins as a new player. An empty `deviceId` (players imported by the host have one)
+ *   never matches.
  * - New players are refused once the game has started unless `allowLateJoin` is on.
  * - `teamId` must name a team of this game with room left (`maxPerTeam`); `newTeamName`
- *   needs `allowPlayerTeams` and room for another team (`maxTeams`), and joins an
- *   existing team of the same name. Joining without a team needs `allowIndividual`.
+ *   needs `allowPlayerTeams` and room for another team (`maxTeams`, and never more than
+ *   `MAX_LOBBY_TEAMS`), and joins an existing team of the same name. Joining without a
+ *   team needs `allowIndividual`.
  * - `requireApproval` is not checked here: the caller queues accepted new players.
+ *
+ * The caller must handle one JOIN at a time and save the result before resolving the
+ * next, or concurrent joins could exceed the team limits.
  */
 export async function resolveJoin(game: Game, join: JoinEvent): Promise<JoinResult> {
   const [players, teams] = await Promise.all([
     db.players.where('gameId').equals(game.id).toArray(),
     db.teams.where('gameId').equals(game.id).toArray(),
   ])
-  const previous = players
-    .filter(p => p.deviceId === join.deviceId)
-    .sort((a, b) => b.joinedAt - a.joinedAt)[0]
+  // Imported players have an empty deviceId; never let a JOIN claim them
+  const sameDevice = join.deviceId ? players.filter(p => p.deviceId === join.deviceId) : []
+  const previous = sameDevice.sort((a, b) => b.joinedAt - a.joinedAt)[0]
   const existing = game.allowRejoin ? previous : undefined
 
   if (!existing && game.status !== 'waiting' && !game.allowLateJoin) {
@@ -98,7 +104,7 @@ export async function resolveJoin(game: Game, join: JoinEvent): Promise<JoinResu
     }
     if (sameName) {
       teamId = sameName.id
-    } else if (game.maxTeams > 0 && teams.length >= game.maxTeams) {
+    } else if (teams.length >= (game.maxTeams > 0 ? game.maxTeams : MAX_LOBBY_TEAMS)) {
       return { status: 'rejected', reason: 'No more teams can be created' }
     } else {
       newTeam = {

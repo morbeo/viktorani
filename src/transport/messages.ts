@@ -132,7 +132,7 @@ export const PlayerEventSchemas = {
   JOIN: z.strictObject({
     type: z.literal('JOIN'),
     playerName: name,
-    deviceId: id,
+    deviceId: id.min(1),
     teamId: id.nullable(),
     newTeamName: name.nullable(),
   }),
