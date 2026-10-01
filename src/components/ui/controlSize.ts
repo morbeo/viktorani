@@ -15,11 +15,12 @@ const STEPS: Record<ControlSize, number> = { sm: -1, md: 0, lg: 1 }
 
 /**
  * How many steps to shift a control's size: -1, 0 or +1 inside the GameMaster page
- * (small, medium, large), 0 everywhere else.
+ * (small, medium, large), 0 everywhere else. The size comes from localStorage, so any
+ * other stored value counts as medium.
  */
 export function useControlSizeStep(): number {
   const ctx = useContext(ControlSizeContext)
-  return ctx ? (STEPS[ctx.size] ?? 0) : 0
+  return ctx && Object.hasOwn(STEPS, ctx.size) ? STEPS[ctx.size] : 0
 }
 
 /** Pick one of three values (small, medium, large) by the current control size step. */

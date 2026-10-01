@@ -34,6 +34,14 @@ describe('control size', () => {
     )
   })
 
+  it('treats an unknown stored size as medium', () => {
+    for (const stored of ['xl', 'constructor']) {
+      const { unmount } = render(<Harness initial={stored as ControlSize} />)
+      expect(screen.getByRole('button', { name: 'Go' }).className).toContain('px-3 py-1.5')
+      unmount()
+    }
+  })
+
   it('renders no picker outside a provider', () => {
     render(<ControlSizePicker />)
     expect(screen.queryByRole('radiogroup')).toBeNull()
