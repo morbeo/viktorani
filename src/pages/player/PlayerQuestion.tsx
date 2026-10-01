@@ -4,16 +4,7 @@ import { remarkDefinitionList, defListHastHandlers } from 'remark-definition-lis
 import rehypeRaw from 'rehype-raw'
 import rehypeSanitize from 'rehype-sanitize'
 import type { QuestionContent } from './player-session'
-
-type MediaType = NonNullable<QuestionContent['mediaType']>
-
-/**
- * Whether host-sent media may be used as a source: a data URL of the announced kind
- * or a remote https URL. Anything else (javascript:, http:, other data types) is dropped.
- */
-export function isSafeMedia(src: string, type: MediaType): boolean {
-  return src.startsWith(`data:${type}/`) || src.startsWith('https://')
-}
+import { isSafeMedia } from './safe-media'
 
 /** The question as far as the host lets players see it: title, description, options, media. */
 export function PlayerQuestion({ question }: { question: QuestionContent }) {

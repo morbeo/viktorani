@@ -1,7 +1,8 @@
 // @vitest-pool vmForks
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { PlayerQuestion, isSafeMedia } from '@/pages/player/PlayerQuestion'
+import { PlayerQuestion } from '@/pages/player/PlayerQuestion'
+import { isSafeMedia } from '@/pages/player/safe-media'
 import type { QuestionContent } from '@/pages/player/player-session'
 
 function content(patch: Partial<QuestionContent> = {}): QuestionContent {
