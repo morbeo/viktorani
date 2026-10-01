@@ -8,15 +8,22 @@ interface HostQuestionPanelProps {
   question: Question
   gameQuestion: GameQuestion
   game: Game
+  /** Receives each saved visibility patch; the caller merges it into its current game. */
+  onGameChange?: (patch: Partial<Game>) => void
 }
 
-export function HostQuestionPanel({ question, gameQuestion, game }: HostQuestionPanelProps) {
+export function HostQuestionPanel({
+  question,
+  gameQuestion,
+  game,
+  onGameChange,
+}: HostQuestionPanelProps) {
   return (
     <div className="flex flex-col gap-6">
       <HostQuestionHeader question={question} gameQuestion={gameQuestion} />
       <HostQuestionAnswers question={question} />
       {question.media && question.mediaType && <HostQuestionMedia question={question} />}
-      <HostVisibilityToggles game={game} />
+      <HostVisibilityToggles game={game} onGameChange={onGameChange} />
     </div>
   )
 }

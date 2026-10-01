@@ -36,6 +36,8 @@ export interface UseGameVisibilityResult {
  * If the write fails, the previous state is restored and `error` is set.
  *
  * @param game - The active game. Initial visibility values are read from this record.
+ * @param onGameChange - Receives the saved patch (`visibility`, `updatedAt`) so the caller can
+ *   merge it into its own `game` state.
  *
  * @example
  * ```tsx
@@ -49,7 +51,10 @@ export interface UseGameVisibilityResult {
  * }
  * ```
  */
-export function useGameVisibility(game: Game): UseGameVisibilityResult {
+export function useGameVisibility(
+  game: Game,
+  onGameChange?: (patch: Partial<Game>) => void
+): UseGameVisibilityResult {
   const [visibility, setVisibility] = useState<GameVisibility>(game.visibility)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -63,7 +68,9 @@ export function useGameVisibility(game: Game): UseGameVisibilityResult {
       setError(null)
 
       try {
-        await db.games.update(game.id, { visibility: next, updatedAt: Date.now() })
+        const patch = { visibility: next, updatedAt: Date.now() }
+        await db.games.update(game.id, patch)
+        onGameChange?.(patch)
         transportManager.send({ type: 'VISIBILITY', target, ...flags })
       } catch (err) {
         setVisibility(visibility)
@@ -72,7 +79,7 @@ export function useGameVisibility(game: Game): UseGameVisibilityResult {
         setSaving(false)
       }
     },
-    [game.id, visibility]
+    [game.id, visibility, onGameChange]
   )
 
   return { visibility, toggle, saving, error }
