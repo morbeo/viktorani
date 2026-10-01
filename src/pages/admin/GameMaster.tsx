@@ -20,6 +20,7 @@ import { RosterPanel } from '@/components/gamemaster/RosterPanel'
 import { TeamManagerPanel } from '@/components/gamemaster/TeamManagerPanel'
 import { GameControls } from '@/components/gamemaster/GameControls'
 import { JoinPolicyPanel } from '@/components/gamemaster/JoinPolicyPanel'
+import { PendingJoinsPanel } from '@/components/gamemaster/PendingJoinsPanel'
 import { db } from '@/db'
 import { transportManager } from '@/transport'
 import {
@@ -37,6 +38,7 @@ import { useTimerList } from '@/hooks/useTimer'
 import { useGameLifecycle } from '@/hooks/useGameLifecycle'
 import { readScores } from '@/hooks/useScoreboard'
 import { PlayerConnections, resolveJoin } from '@/pages/admin/player-connections'
+import type { JoinResult, PendingJoin } from '@/pages/admin/player-connections'
 import { TimerPanel } from '@/components/timer/TimerPanel'
 import type { Game, Player, Team } from '@/db'
 import type { TransportStatus, TransportType, TransportEvent } from '@/transport/types'
@@ -73,6 +75,9 @@ interface LobbyProps {
   onAssignPlayer: (playerId: string, teamId: string | null) => Promise<void>
   onImportFromManaged: () => Promise<void>
   onGameChange: (patch: Partial<Game>) => void
+  pendingJoins: PendingJoin[]
+  onApproveJoin: (connId: string) => void
+  onRejectJoin: (connId: string) => void
 }
 
 function Lobby({
@@ -90,6 +95,9 @@ function Lobby({
   onAssignPlayer,
   onImportFromManaged,
   onGameChange,
+  pendingJoins,
+  onApproveJoin,
+  onRejectJoin,
 }: LobbyProps) {
   const activePlayers = players.filter(p => !p.isAway)
   const canStart = soloBypass || (status === 'connected' && activePlayers.length > 0)
@@ -208,6 +216,11 @@ function Lobby({
 
         {/* Roster + team management */}
         <div className="flex flex-col gap-4">
+          <PendingJoinsPanel
+            pending={pendingJoins}
+            onApprove={onApproveJoin}
+            onReject={onRejectJoin}
+          />
           <RosterPanel players={players} teams={teams} onKick={onKick} />
           <TeamManagerPanel
             game={game}
@@ -288,11 +301,22 @@ interface ActiveGameProps {
   onGameChange: (patch: Partial<Game>) => void
   lifecycle: import('@/hooks/useGameLifecycle').UseGameLifecycleResult
   buzzHandlerRef: RefObject<BuzzHandler | null>
+  pendingJoins: PendingJoin[]
+  onApproveJoin: (connId: string) => void
+  onRejectJoin: (connId: string) => void
 }
 
 type BuzzHandler = ReturnType<typeof useBuzzer>['handleIncomingBuzz']
 
-function ActiveGame({ game, onGameChange, lifecycle, buzzHandlerRef }: ActiveGameProps) {
+function ActiveGame({
+  game,
+  onGameChange,
+  lifecycle,
+  buzzHandlerRef,
+  pendingJoins,
+  onApproveJoin,
+  onRejectJoin,
+}: ActiveGameProps) {
   const [showBoundary, setShowBoundary] = useState(false)
   const [boundaryEntry, setBoundaryEntry] = useState<
     import('@/pages/admin/gamemaster-utils').NavEntry | null
@@ -440,7 +464,14 @@ function ActiveGame({ game, onGameChange, lifecycle, buzzHandlerRef }: ActiveGam
           {/* Timers — hidden when ended */}
           {!isEnded && <TimerPanel gameId={game.id} hook={timerHook} />}
 
-          {/* Join policy — hidden when ended */}
+          {/* Join requests and policy — hidden when ended */}
+          {!isEnded && (
+            <PendingJoinsPanel
+              pending={pendingJoins}
+              onApprove={onApproveJoin}
+              onReject={onRejectJoin}
+            />
+          )}
           {!isEnded && <JoinPolicyPanel game={game} onGameChange={onGameChange} />}
 
           {/* Scoreboard — always visible; ScoreboardPanel itself gates on scoringEnabled */}
@@ -479,10 +510,21 @@ export default function GameMaster() {
   const gameRef = useRef<Game | null>(null)
   const buzzHandlerRef = useRef<BuzzHandler | null>(null)
   const connectionsRef = useRef(new PlayerConnections())
+  const [pendingJoins, setPendingJoins] = useState<PendingJoin[]>([])
+  const pendingJoinsRef = useRef<PendingJoin[]>([])
+  // Players kicked this session: their rejoins always wait for approval
+  const kickedRef = useRef(new Set<string>())
+  // JOINs and approvals run one at a time so each sees the teams and players saved by
+  // the one before (team limits, same-name team reuse)
+  const joinQueueRef = useRef<Promise<void>>(Promise.resolve())
 
   useEffect(() => {
     gameRef.current = game
   }, [game])
+
+  useEffect(() => {
+    pendingJoinsRef.current = pendingJoins
+  }, [pendingJoins])
 
   // Load game + existing players + teams on mount
   useEffect(() => {
@@ -541,6 +583,69 @@ export default function GameMaster() {
     }
   }, [game?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Save an accepted join (and the team it creates), bind the connection and send the
+  // player the current state
+  const admit = useCallback(
+    async (connId: string, result: Extract<JoinResult, { status: 'accepted' }>) => {
+      const { player, newTeam } = result
+      await db.transaction('rw', db.teams, db.players, async () => {
+        if (newTeam) await db.teams.add(newTeam)
+        await db.players.put(player)
+      })
+      if (newTeam) setTeams(prev => [...prev, newTeam])
+      kickedRef.current.delete(player.id)
+      connectionsRef.current.bind(connId, player.id)
+      setPlayers(prev => upsertPlayer(prev, player))
+      transportManager.sendTo(connId, {
+        type: 'JOIN_ACCEPTED',
+        playerId: player.id,
+        teamId: player.teamId,
+      })
+      const g = gameRef.current
+      if (g) {
+        const scores = await readScores(g.id)
+        transportManager.sendTo(connId, {
+          type: 'GAME_STATE',
+          state: serialiseGameState(g, scores),
+        })
+      }
+      addToast(`${player.name} joined the game`, { variant: 'info', durationMs: 4000 })
+    },
+    [addToast]
+  )
+
+  const enqueueJoin = useCallback((task: () => Promise<void>) => {
+    const run = joinQueueRef.current.then(task)
+    joinQueueRef.current = run.catch(err => console.error('[GameMaster] Join failed:', err))
+    return run
+  }, [])
+
+  // Apply the join policy: reject, queue for approval (new players when approval is on,
+  // and anyone kicked this session) or admit
+  const handleJoin = useCallback(
+    async (join: PendingJoin['join'], from: string) => {
+      const g = gameRef.current
+      if (!g) return
+      const result = await resolveJoin(g, join)
+      if (result.status === 'rejected') {
+        transportManager.sendTo(from, { type: 'JOIN_REJECTED', reason: result.reason })
+        return
+      }
+      const kicked = result.rejoin && kickedRef.current.has(result.player.id)
+      if ((g.requireApproval && !result.rejoin) || kicked) {
+        setPendingJoins(prev => [...prev.filter(p => p.connId !== from), { connId: from, join }])
+        transportManager.sendTo(from, { type: 'JOIN_PENDING' })
+        addToast(`${join.playerName} is waiting for approval`, {
+          variant: 'info',
+          durationMs: 4000,
+        })
+        return
+      }
+      await admit(from, result)
+    },
+    [addToast, admit]
+  )
+
   // Subscribe to player JOIN / LEAVE / FOCUS_CHANGE / BUZZ events. The sending player is
   // derived from the connection (`from`), never from the payload.
   const handleEvent = useCallback(
@@ -549,21 +654,7 @@ export default function GameMaster() {
       if (!g) return
 
       if (event.type === 'JOIN') {
-        const player = await resolveJoin(g.id, event)
-        await db.players.put(player)
-        connectionsRef.current.bind(from, player.id)
-        setPlayers(prev => upsertPlayer(prev, player))
-        transportManager.sendTo(from, {
-          type: 'JOIN_ACCEPTED',
-          playerId: player.id,
-          teamId: player.teamId,
-        })
-        const scores = await readScores(g.id)
-        transportManager.sendTo(from, {
-          type: 'GAME_STATE',
-          state: serialiseGameState(gameRef.current ?? g, scores),
-        })
-        addToast(`${player.name} joined the lobby`, { variant: 'info', durationMs: 4000 })
+        await enqueueJoin(() => handleJoin(event, from))
         return
       }
 
@@ -596,7 +687,7 @@ export default function GameMaster() {
         }
       }
     },
-    [addToast]
+    [enqueueJoin, handleJoin]
   )
 
   useEffect(() => {
@@ -606,6 +697,7 @@ export default function GameMaster() {
   // A dropped connection marks its player away; they can rejoin from the same device
   useEffect(() => {
     return transportManager.onPeerClose(connId => {
+      setPendingJoins(prev => prev.filter(p => p.connId !== connId))
       const playerId = connectionsRef.current.unbindConnection(connId)
       if (!playerId) return
       setPlayers(prev => markPlayerAway(prev, playerId))
@@ -615,10 +707,42 @@ export default function GameMaster() {
     })
   }, [])
 
+  // Approve a queued join. The policy is checked again against the current game and teams,
+  // which may have changed while the player waited.
+  const handleApproveJoin = useCallback(
+    async (connId: string) => {
+      const g = gameRef.current
+      const pending = pendingJoinsRef.current.find(p => p.connId === connId)
+      if (!g || !pending) return
+      setPendingJoins(prev => prev.filter(p => p.connId !== connId))
+      await enqueueJoin(async () => {
+        const result = await resolveJoin(gameRef.current ?? g, pending.join)
+        if (result.status === 'rejected') {
+          transportManager.sendTo(connId, { type: 'JOIN_REJECTED', reason: result.reason })
+          addToast(`${pending.join.playerName} could not join: ${result.reason}`, {
+            variant: 'error',
+          })
+          return
+        }
+        await admit(connId, result)
+      })
+    },
+    [addToast, admit, enqueueJoin]
+  )
+
+  const handleRejectJoin = useCallback((connId: string) => {
+    setPendingJoins(prev => prev.filter(p => p.connId !== connId))
+    transportManager.sendTo(connId, {
+      type: 'JOIN_REJECTED',
+      reason: 'The host declined your request',
+    })
+  }, [])
+
   // Kick player — mark as away in DB + state, broadcast updated game state
   const handleKick = useCallback(async (playerId: string) => {
     const g = gameRef.current
     if (!g) return
+    kickedRef.current.add(playerId)
     connectionsRef.current.unbindPlayer(playerId)
     await db.players.update(playerId, { isAway: true })
     setPlayers(prev => markPlayerAway(prev, playerId))
@@ -768,6 +892,9 @@ export default function GameMaster() {
             onAssignPlayer={handleAssignPlayer}
             onImportFromManaged={handleImportFromManaged}
             onGameChange={applyGamePatch}
+            pendingJoins={pendingJoins}
+            onApproveJoin={id => void handleApproveJoin(id)}
+            onRejectJoin={handleRejectJoin}
           />
         </ControlSizeContext.Provider>
       </AdminLayout>
@@ -783,6 +910,9 @@ export default function GameMaster() {
           onGameChange={applyGamePatch}
           lifecycle={lifecycle}
           buzzHandlerRef={buzzHandlerRef}
+          pendingJoins={pendingJoins}
+          onApproveJoin={id => void handleApproveJoin(id)}
+          onRejectJoin={handleRejectJoin}
         />
       </ControlSizeContext.Provider>
     </AdminLayout>
