@@ -1,8 +1,15 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Button } from '@/components/ui'
+import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { useTransportEvents } from '@/hooks/useTransport'
+import { transportManager } from '@/transport'
+import { MAX_NAME_LENGTH } from '@/transport/messages'
 import { formatTime, playBeep } from '@/hooks/useTimer'
 import { TimerExpiredOverlay } from '@/components/timer/TimerExpiredOverlay'
 import type { GameEvent } from '@/transport/types'
+import { getDeviceId } from './device-id'
+import { startPlayerSession, usePlayerSession } from './player-session'
 
 // ── Player-side timer state ───────────────────────────────────────────────────
 
@@ -175,9 +182,10 @@ function PlayerTimerCard({ timer, remaining }: { timer: PlayerTimer; remaining: 
   )
 }
 
-// ── Main Play page ────────────────────────────────────────────────────────────
+// ── Timers ────────────────────────────────────────────────────────────────────
 
-export default function Play() {
+/** The host's running timers, and the overlay when one expires. */
+export function PlayerTimers() {
   const { timers, remaining, handleEvent, expired, dismissExpired } = usePlayerTimers()
 
   useTransportEvents(
@@ -202,32 +210,192 @@ export default function Play() {
   return (
     <>
       {expired && <TimerExpiredOverlay label={expired.label} onDismiss={dismissExpired} />}
-
-      {activeTimers.length === 0 ? (
-        <div
-          className="flex items-center justify-center h-screen"
-          style={{ background: 'var(--color-cream)' }}
-        >
-          <p style={{ color: 'var(--color-muted)' }}>Waiting for host…</p>
-        </div>
-      ) : (
-        <div
-          className="min-h-screen px-4 py-8 flex flex-col items-center gap-6"
-          style={{ background: 'var(--color-cream)' }}
-        >
-          <h1
-            className="text-2xl font-black"
-            style={{ fontFamily: 'Playfair Display, serif', color: 'var(--color-ink)' }}
-          >
-            Timers
-          </h1>
-          <div className="w-full max-w-sm flex flex-col gap-4">
-            {activeTimers.map(t => (
-              <PlayerTimerCard key={t.id} timer={t} remaining={remaining(t.id)} />
-            ))}
-          </div>
+      {activeTimers.length > 0 && (
+        <div className="w-full max-w-sm flex flex-col gap-4">
+          {activeTimers.map(t => (
+            <PlayerTimerCard key={t.id} timer={t} remaining={remaining(t.id)} />
+          ))}
         </div>
       )}
     </>
+  )
+}
+
+// ── Main Play page ────────────────────────────────────────────────────────────
+
+type Problem = { kind: 'pending' } | { kind: 'rejected'; reason: string } | { kind: 'lost' }
+
+/** Connect to the room and ask the host to restore this device's player. */
+async function rejoin(roomId: string, name: string) {
+  startPlayerSession()
+  await transportManager.connect({ role: 'player', roomId })
+  transportManager.send({
+    type: 'JOIN',
+    playerName: name,
+    deviceId: getDeviceId(),
+    teamId: null,
+    newTeamName: null,
+  })
+}
+
+/**
+ * The player's game screen: a buzz button that follows the host's buzzer lock, the
+ * player's score and the host's timers. Opened without a session (a reload or a shared
+ * link), it reconnects and rejoins by device id. Reports tab switches as FOCUS_CHANGE.
+ */
+export default function Play() {
+  const { roomId = '' } = useParams<{ roomId: string }>()
+  const navigate = useNavigate()
+  const [storedName] = useLocalStorage('viktorani-player-name', '')
+  const name = storedName.trim().slice(0, MAX_NAME_LENGTH)
+  const session = usePlayerSession()
+  const [problem, setProblem] = useState<Problem | null>(null)
+  const [buzzed, setBuzzed] = useState(false)
+  const startedRef = useRef(false)
+  const leftRef = useRef(false)
+  const joined = session.playerId !== null
+
+  // Opened without a session: rejoin once (refs survive StrictMode's second effect run)
+  useEffect(() => {
+    if (startedRef.current || joined || !name) return
+    startedRef.current = true
+    rejoin(roomId, name).catch(() => setProblem({ kind: 'lost' }))
+  }, [roomId, name, joined])
+
+  useTransportEvents(
+    useCallback(
+      event => {
+        if (event.type === 'JOIN_ACCEPTED') setProblem(null)
+        if (event.type === 'JOIN_PENDING') setProblem({ kind: 'pending' })
+        if (event.type === 'JOIN_REJECTED') setProblem({ kind: 'rejected', reason: event.reason })
+        if (event.type === 'BUZZER_UNLOCK' || event.type === 'SLIDE_CHANGE') setBuzzed(false)
+      },
+      []
+    )
+  )
+
+  useEffect(() => {
+    return transportManager.onPeerClose(() => {
+      if (!leftRef.current) setProblem({ kind: 'lost' })
+    })
+  }, [])
+
+  // Tell the host when the player switches away from the tab and back
+  useEffect(() => {
+    if (!joined) return
+    const onVisibility = () =>
+      transportManager.send({ type: 'FOCUS_CHANGE', away: document.hidden })
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => document.removeEventListener('visibilitychange', onVisibility)
+  }, [joined])
+
+  function handleBuzz() {
+    transportManager.send({ type: 'BUZZ', timestamp: Date.now() })
+    setBuzzed(true)
+  }
+
+  function handleReconnect() {
+    setProblem(null)
+    rejoin(roomId, name).catch(() => setProblem({ kind: 'lost' }))
+  }
+
+  function handleLeave() {
+    leftRef.current = true
+    transportManager.send({ type: 'LEAVE' })
+    void transportManager.disconnect()
+    navigate(`/join/${roomId}`, { replace: true })
+  }
+
+  if (!name && !joined) return <Navigate to={`/join/${roomId}`} replace />
+
+  const canBuzz = joined && !session.buzzerLocked && !buzzed
+  const score = session.playerId ? (session.scores[session.playerId] ?? 0) : 0
+  const teamScore = session.teamId ? session.scores[session.teamId] : undefined
+
+  return (
+    <div
+      className="min-h-screen px-4 py-8 flex flex-col items-center gap-6"
+      style={{ background: 'var(--color-cream)' }}
+    >
+      {problem?.kind === 'pending' && <Status text="Waiting for the host to let you back in…" />}
+
+      {problem?.kind === 'rejected' && (
+        <>
+          <Alert text={`You could not rejoin: ${problem.reason}`} />
+          <Button variant="primary" onClick={handleLeave}>
+            Join again
+          </Button>
+        </>
+      )}
+
+      {problem?.kind === 'lost' && (
+        <>
+          <Alert text="Lost the connection to the host." />
+          <Button variant="primary" onClick={handleReconnect}>
+            Reconnect
+          </Button>
+          <Button variant="ghost" onClick={handleLeave}>
+            Back to join
+          </Button>
+        </>
+      )}
+
+      {!problem && !joined && <Status text="Connecting to the host…" />}
+
+      {!problem && joined && (
+        <>
+          <header className="w-full max-w-sm flex items-center justify-between gap-4">
+            <div>
+              <p className="font-semibold" style={{ color: 'var(--color-ink)' }}>
+                {name}
+              </p>
+              <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
+                Score <span className="mono tabular-nums">{score}</span>
+                {teamScore !== undefined && (
+                  <>
+                    {' · '}Team <span className="mono tabular-nums">{teamScore}</span>
+                  </>
+                )}
+              </p>
+            </div>
+            <Button variant="ghost" onClick={handleLeave}>
+              Leave
+            </Button>
+          </header>
+
+          <button
+            type="button"
+            aria-label="Buzz"
+            disabled={!canBuzz}
+            onClick={handleBuzz}
+            className="w-64 h-64 rounded-full text-4xl font-black shadow-lg transition-colors"
+            style={{
+              background: canBuzz ? 'var(--color-red)' : 'var(--color-border)',
+              color: canBuzz ? '#fff' : 'var(--color-muted)',
+            }}
+          >
+            {buzzed ? 'Buzzed!' : session.buzzerLocked ? 'Locked' : 'BUZZ'}
+          </button>
+
+          <PlayerTimers />
+        </>
+      )}
+    </div>
+  )
+}
+
+function Status({ text }: { text: string }) {
+  return (
+    <p role="status" className="text-sm" style={{ color: 'var(--color-muted)' }}>
+      {text}
+    </p>
+  )
+}
+
+function Alert({ text }: { text: string }) {
+  return (
+    <p role="alert" className="text-sm" style={{ color: 'var(--color-red)' }}>
+      {text}
+    </p>
   )
 }
