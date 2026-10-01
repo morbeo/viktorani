@@ -87,6 +87,7 @@ export class TransportManager {
   private transport: ITransport | null = null
   private statusListeners: StatusListener[] = []
   private eventHandlers: Array<(e: TransportEvent, from: string) => void> = []
+  private openHandlers: Array<(connId: string) => void> = []
   private closeHandlers: Array<(connId: string) => void> = []
 
   /** Current connection lifecycle state. `'idle'` when not connected. */
@@ -124,6 +125,7 @@ export class TransportManager {
       const event = parseTransportEvent(raw)
       if (event) this.eventHandlers.forEach(h => h(event, from))
     })
+    this.transport!.onPeerOpen(connId => this.openHandlers.forEach(h => h(connId)))
     this.transport!.onPeerClose(connId => this.closeHandlers.forEach(h => h(connId)))
 
     this.notifyStatus()
@@ -193,6 +195,20 @@ export class TransportManager {
     this.eventHandlers.push(handler)
     return () => {
       this.eventHandlers = this.eventHandlers.filter(h => h !== handler)
+    }
+  }
+
+  /**
+   * Subscribe to connections opening (host side: a player connected and has not joined
+   * yet). Preserved across reconnects, like {@link TransportManager.onEvent}.
+   *
+   * @param handler - Called with the id of the opened connection.
+   * @returns An unsubscribe function.
+   */
+  onPeerOpen(handler: (connId: string) => void): () => void {
+    this.openHandlers.push(handler)
+    return () => {
+      this.openHandlers = this.openHandlers.filter(h => h !== handler)
     }
   }
 
