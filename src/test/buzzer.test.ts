@@ -51,6 +51,7 @@ function makeBuzz(overrides: Partial<BuzzEvent> = {}): BuzzEvent {
     playerName: 'Alice',
     teamId: null,
     timestamp: Date.now(),
+    receivedAt: Date.now(),
     isFalseStart: false,
     gmDecision: null,
     decidedAt: null,
@@ -108,11 +109,12 @@ describe('BuzzEvent DB schema', () => {
 describe('loadBuzzesForQuestion', () => {
   beforeEach(clearAll)
 
-  it('returns buzzes sorted by timestamp ascending', async () => {
-    const b1 = makeBuzz({ id: 'b1', timestamp: 300 })
-    const b2 = makeBuzz({ id: 'b2', timestamp: 100 })
-    const b3 = makeBuzz({ id: 'b3', timestamp: 200 })
-    await db.buzzEvents.bulkAdd([b1, b2, b3])
+  it('returns buzzes in host receive order, ignoring client timestamps', async () => {
+    await db.buzzEvents.bulkAdd([
+      makeBuzz({ id: 'b1', receivedAt: 300, timestamp: 0 }),
+      makeBuzz({ id: 'b2', receivedAt: 100, timestamp: 900 }),
+      makeBuzz({ id: 'b3', receivedAt: 200, timestamp: 500 }),
+    ])
     const result = await loadBuzzesForQuestion('g1', 'q1')
     expect(result.map(b => b.id)).toEqual(['b2', 'b3', 'b1'])
   })
