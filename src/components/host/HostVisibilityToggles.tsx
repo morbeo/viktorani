@@ -61,10 +61,12 @@ const TARGETS: Array<{ target: VisibilityTarget; title: string }> = [
 
 interface HostVisibilityTogglesProps {
   game: Game
+  /** Receives each saved visibility patch; the caller merges it into its current game. */
+  onGameChange?: (patch: Partial<Game>) => void
 }
 
-export function HostVisibilityToggles({ game }: HostVisibilityTogglesProps) {
-  const { visibility, toggle, saving, error } = useGameVisibility(game)
+export function HostVisibilityToggles({ game, onGameChange }: HostVisibilityTogglesProps) {
+  const { visibility, toggle, saving, error } = useGameVisibility(game, onGameChange)
   return (
     <div className="flex flex-col gap-2">
       <p

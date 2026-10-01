@@ -34,6 +34,11 @@ export class PlayerConnections {
     return this.byConn.get(connId)
   }
 
+  /** Every connection bound to a player, i.e. the admitted players' connections. */
+  connections(): string[] {
+    return [...this.byConn.keys()]
+  }
+
   /** Remove the binding for `connId`. Returns the player it was bound to, if any. */
   unbindConnection(connId: string): string | undefined {
     const playerId = this.byConn.get(connId)

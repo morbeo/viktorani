@@ -60,6 +60,14 @@ describe('PlayerConnections', () => {
     expect(c.unbindConnection('dc1')).toBeUndefined()
   })
 
+  it('lists only connections bound to a player', () => {
+    const c = new PlayerConnections()
+    c.bind('dc1', 'p1')
+    c.bind('dc2', 'p2')
+    c.unbindConnection('dc2')
+    expect(c.connections()).toEqual(['dc1'])
+  })
+
   it('unbindPlayer removes the player from every connection (kick)', () => {
     const c = new PlayerConnections()
     c.bind('dc1', 'p1')

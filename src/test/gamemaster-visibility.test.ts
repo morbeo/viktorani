@@ -83,6 +83,25 @@ describe('useGameVisibility', () => {
     expect(result.current.visibility.screen.showQuestion).toBe(true)
   })
 
+  it('reports the saved patch so the caller can update its game', async () => {
+    const game = makeGame()
+    await db.games.add(game)
+    const onGameChange = vi.fn()
+
+    const { result } = renderHook(() => useGameVisibility(game, onGameChange))
+    await act(async () => {
+      await result.current.toggle('players', 'showMedia')
+    })
+
+    expect(onGameChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        visibility: expect.objectContaining({
+          players: { showQuestion: true, showAnswers: false, showMedia: false },
+        }),
+      })
+    )
+  })
+
   it('toggles the screen independently of players', async () => {
     const game = makeGame()
     await db.games.add(game)
