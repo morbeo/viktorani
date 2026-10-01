@@ -15,9 +15,10 @@ const GAME: Game = {
   status: 'active',
   roomId: 'ABC',
   scoringEnabled: true,
-  showQuestion: true,
-  showAnswers: false,
-  showMedia: true,
+  visibility: {
+    players: { showQuestion: true, showAnswers: false, showMedia: true },
+    screen: { showQuestion: true, showAnswers: false, showMedia: true },
+  },
   maxTeams: 0,
   maxPerTeam: 0,
   allowIndividual: true,

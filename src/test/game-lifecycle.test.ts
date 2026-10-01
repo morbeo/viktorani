@@ -23,9 +23,10 @@ function makeGame(overrides: Partial<Game> = {}): Game {
     status: 'active',
     roomId: 'ABC123',
     scoringEnabled: true,
-    showQuestion: true,
-    showAnswers: false,
-    showMedia: true,
+    visibility: {
+      players: { showQuestion: true, showAnswers: false, showMedia: true },
+      screen: { showQuestion: true, showAnswers: false, showMedia: true },
+    },
     maxTeams: 0,
     maxPerTeam: 0,
     allowIndividual: true,

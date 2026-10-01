@@ -16,9 +16,10 @@ const BASE_GAME: Game = {
   status: 'active',
   roomId: 'ABC',
   scoringEnabled: true,
-  showQuestion: true,
-  showAnswers: false,
-  showMedia: true,
+  visibility: {
+    players: { showQuestion: true, showAnswers: false, showMedia: true },
+    screen: { showQuestion: true, showAnswers: false, showMedia: true },
+  },
   maxTeams: 0,
   maxPerTeam: 0,
   allowIndividual: true,
@@ -57,15 +58,15 @@ describe('useGameVisibility — rollback on non-Error rejection', () => {
   it('rolls back optimistic update when rejection is not an Error', async () => {
     const { result } = renderHook(() => useGameVisibility(BASE_GAME))
     await act(async () => {
-      await result.current.toggle('showAnswers')
+      await result.current.toggle('players', 'showAnswers')
     })
-    expect(result.current.visibility.showAnswers).toBe(false)
+    expect(result.current.visibility.players.showAnswers).toBe(false)
   })
 
   it('sets the fallback error message', async () => {
     const { result } = renderHook(() => useGameVisibility(BASE_GAME))
     await act(async () => {
-      await result.current.toggle('showAnswers')
+      await result.current.toggle('players', 'showAnswers')
     })
     expect(result.current.error).toBe('Failed to save visibility')
   })
@@ -73,7 +74,7 @@ describe('useGameVisibility — rollback on non-Error rejection', () => {
   it('does not emit a transport event', async () => {
     const { result } = renderHook(() => useGameVisibility(BASE_GAME))
     await act(async () => {
-      await result.current.toggle('showAnswers')
+      await result.current.toggle('players', 'showAnswers')
     })
     expect(transportManager.send).not.toHaveBeenCalled()
   })
@@ -81,7 +82,7 @@ describe('useGameVisibility — rollback on non-Error rejection', () => {
   it('resets saving to false', async () => {
     const { result } = renderHook(() => useGameVisibility(BASE_GAME))
     await act(async () => {
-      await result.current.toggle('showAnswers')
+      await result.current.toggle('players', 'showAnswers')
     })
     expect(result.current.saving).toBe(false)
   })
