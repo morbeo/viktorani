@@ -200,6 +200,10 @@ describe('TransportEventSchema', () => {
     expect(accepts({ ...FIXTURES.JOIN, playerId: 'p1' })).toBe(false)
   })
 
+  it('rejects a JOIN with an empty deviceId', () => {
+    expect(accepts({ ...FIXTURES.JOIN, deviceId: '' })).toBe(false)
+  })
+
   it('accepts QUESTION_CONTENT with every hidden field null', () => {
     const hidden = {
       ...FIXTURES.QUESTION_CONTENT,
