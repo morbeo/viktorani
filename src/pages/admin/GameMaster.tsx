@@ -8,6 +8,7 @@ import { TransportBanner } from '@/components/gamemaster/TransportBanner'
 import type { ScreensPanelProps } from '@/components/gamemaster/ScreensPanel'
 import type { MessagePanelProps } from '@/components/gamemaster/MessagePanel'
 import { db } from '@/db'
+import { logEvent } from '@/db/game-log'
 import { isAbortError, retry, transportManager } from '@/transport'
 import {
   buildLobbyInfo,
@@ -225,7 +226,19 @@ export default function GameMaster() {
         if (newTeam) await db.teams.add(newTeam)
         await db.players.put(player)
       })
-      if (newTeam) setTeams(prev => [...prev, newTeam])
+      if (newTeam) {
+        setTeams(prev => [...prev, newTeam])
+        logEvent(player.gameId, 'team_created', {
+          actorId: player.id,
+          subjectId: newTeam.id,
+          data: { name: newTeam.name },
+        })
+      }
+      logEvent(player.gameId, result.rejoin ? 'player_rejoined' : 'player_joined', {
+        actorId: player.id,
+        subjectId: player.id,
+        data: { name: player.name },
+      })
       // Closed while saving: keep the player, disconnected
       if (closedRef.current.has(connId)) {
         setPlayers(prev =>
@@ -385,12 +398,17 @@ export default function GameMaster() {
         connectionsRef.current.unbindConnection(from)
         await db.players.update(playerId, { presence: 'left' })
         setPlayers(prev => setPlayerPresence(prev, playerId, 'left'))
+        logEvent(g.id, 'player_left', { actorId: playerId, subjectId: playerId })
       }
 
       if (event.type === 'FOCUS_CHANGE') {
         const presence = event.away ? 'hidden' : 'connected'
         await db.players.update(playerId, { presence })
         setPlayers(prev => setPlayerPresence(prev, playerId, presence))
+        logEvent(g.id, event.away ? 'player_hidden' : 'player_back', {
+          actorId: playerId,
+          subjectId: playerId,
+        })
       }
 
       // Buzzes count only while the game runs, whatever a player's device shows
@@ -440,10 +458,12 @@ export default function GameMaster() {
       closedRef.current.add(connId)
       updatePendingJoins(prev => prev.filter(p => p.connId !== connId))
       updatePendingScreens(prev => prev.filter(c => c !== connId))
-      screensRef.current.delete(connId)
+      const gameId = gameRef.current?.id
+      if (screensRef.current.delete(connId) && gameId) logEvent(gameId, 'screen_disconnected')
       joinersRef.current.delete(connId)
       const playerId = connectionsRef.current.unbindConnection(connId)
       if (!playerId) return
+      if (gameId) logEvent(gameId, 'player_disconnected', { subjectId: playerId })
       setPlayers(prev => setPlayerPresence(prev, playerId, 'disconnected'))
       db.players
         .update(playerId, { presence: 'disconnected' })
@@ -459,9 +479,12 @@ export default function GameMaster() {
       const pending = pendingJoinsRef.current.find(p => p.connId === connId)
       if (!g || !pending) return
       updatePendingJoins(prev => prev.filter(p => p.connId !== connId))
+      const name = pending.join.playerName
+      logEvent(g.id, 'join_approved', { data: { name } })
       await enqueueJoin(async () => {
         const result = await resolveJoin(gameRef.current ?? g, pending.join)
         if (result.status === 'rejected') {
+          logEvent(g.id, 'join_rejected', { data: { name, reason: result.reason } })
           transportManager.sendTo(connId, { type: 'JOIN_REJECTED', reason: result.reason })
           addToast(`${pending.join.playerName} could not join: ${result.reason}`, {
             variant: 'error',
@@ -475,6 +498,9 @@ export default function GameMaster() {
   )
 
   const handleRejectJoin = useCallback((connId: string) => {
+    const g = gameRef.current
+    const pending = pendingJoinsRef.current.find(p => p.connId === connId)
+    if (g && pending) logEvent(g.id, 'join_rejected', { data: { name: pending.join.playerName } })
     updatePendingJoins(prev => prev.filter(p => p.connId !== connId))
     transportManager.sendTo(connId, {
       type: 'JOIN_REJECTED',
@@ -487,6 +513,7 @@ export default function GameMaster() {
     if (!pendingScreensRef.current.includes(connId)) return
     updatePendingScreens(prev => prev.filter(c => c !== connId))
     screensRef.current.add(connId)
+    if (gameRef.current) logEvent(gameRef.current.id, 'screen_approved')
     transportManager.sendTo(connId, { type: 'SCREEN_ACCEPTED' })
     if (screenContentRef.current) transportManager.sendTo(connId, screenContentRef.current)
     transportManager.sendTo(connId, { type: 'SCOREBOARD', rows: scoreboardRef.current })
@@ -498,6 +525,8 @@ export default function GameMaster() {
   }, [updatePendingScreens])
 
   const handleRejectScreen = useCallback((connId: string) => {
+    const g = gameRef.current
+    if (g && pendingScreensRef.current.includes(connId)) logEvent(g.id, 'screen_rejected')
     updatePendingScreens(prev => prev.filter(c => c !== connId))
     transportManager.sendTo(connId, {
       type: 'JOIN_REJECTED',
@@ -527,6 +556,7 @@ export default function GameMaster() {
     connectionsRef.current.unbindPlayer(playerId)
     await db.players.update(playerId, { presence: 'kicked' })
     setPlayers(prev => setPlayerPresence(prev, playerId, 'kicked'))
+    logEvent(g.id, 'player_kicked', { subjectId: playerId })
     const scores = await readScores(g.id)
     transportManager.send({ type: 'GAME_STATE', state: serialiseGameState(g, scores) })
   }, [])
@@ -545,6 +575,7 @@ export default function GameMaster() {
     }
     await db.teams.add(team)
     setTeams(prev => [...prev, team])
+    logEvent(g.id, 'team_created', { subjectId: team.id, data: { name } })
   }, [])
 
   // Import all active managed teams (and their players) into the session
@@ -605,6 +636,7 @@ export default function GameMaster() {
       const now = Date.now()
       const updated = { ...game, status: 'active' as const, updatedAt: now }
       await db.games.update(game.id, { status: 'active', updatedAt: now })
+      logEvent(game.id, 'game_started')
       setGame(updated)
       transportManager.send({ type: 'GAME_STATUS', status: 'active' })
       const scores = await readScores(game.id)

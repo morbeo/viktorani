@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
 import { updateQuestionStatus } from '@/db/games'
+import { logEvent } from '@/db/game-log'
 import { transportManager } from '@/transport'
 import { buildNavSequence, getNavPosition, orderRounds, step } from '@/pages/admin/gamemaster-utils'
 import type { Game, GameQuestion } from '@/db'
@@ -101,6 +102,17 @@ export function useNavigation(
         currentRoundIdx: nextPos.roundIdx,
         currentQuestionIdx: nextFlat,
         updatedAt: now,
+      })
+      const entry = seq[nextFlat]
+      if (nextPos.roundIdx !== pos.roundIdx) {
+        logEvent(game.id, 'round_changed', {
+          subjectId: entry.roundId,
+          data: { round: entry.roundName },
+        })
+      }
+      logEvent(game.id, 'question_shown', {
+        subjectId: entry.questionId,
+        data: { round: entry.roundName, question: nextPos.questionIdx + 1 },
       })
 
       // Broadcast to players

@@ -275,6 +275,55 @@ export interface ScoreEvent {
   timestamp: number
 }
 
+/** Something that happened in a game, other than buzzes and score changes. */
+export type GameLogKind =
+  | 'game_started'
+  | 'game_paused'
+  | 'game_resumed'
+  | 'game_ended'
+  | 'question_shown'
+  | 'round_changed'
+  | 'player_joined'
+  | 'player_rejoined'
+  | 'join_approved'
+  | 'join_rejected'
+  | 'player_hidden'
+  | 'player_back'
+  | 'player_disconnected'
+  | 'player_left'
+  | 'player_kicked'
+  | 'team_created'
+  | 'buzzer_locked'
+  | 'buzzer_unlocked'
+  | 'buzzes_cleared'
+  | 'timer_started'
+  | 'timer_paused'
+  | 'timer_resumed'
+  | 'timer_reset'
+  | 'timer_expired'
+  | 'visibility_changed'
+  | 'screen_approved'
+  | 'screen_rejected'
+  | 'screen_disconnected'
+
+/**
+ * One entry in a game's log. Buzzes, rulings and score changes are not copied here: the
+ * log view reads them from `buzzEvents` and `scoreEvents`.
+ */
+export interface GameLogEntry {
+  id: string
+  gameId: string
+  /** `Date.now()` when it happened. */
+  at: number
+  kind: GameLogKind
+  /** The player who did it, or `null` for the host. */
+  actorId: string | null
+  /** The player, team, timer or question it happened to, if any. */
+  subjectId: string | null
+  /** Details for display, such as names at the time. */
+  data: Record<string, string | number | boolean | null>
+}
+
 /**
  * A named arrangement of {@link Widget}s displayed on the GM screen.
  *
@@ -379,6 +428,7 @@ export interface GameQuestion {
  * - 7: same stores; moves `showQuestion / showAnswers / showMedia` into per-target `visibility`.
  * - 8: same stores; replaces `Player.isAway` with `Player.presence`.
  * - 9: adds `scoreEvents`, the log of score changes.
+ * - 10: adds `gameLog`, the log of everything else that happens in a game.
  *
  * To change the schema, add a new `this.version(N + 1)` block below; keep existing blocks.
  */
@@ -392,6 +442,7 @@ export class ViktoraniDB extends Dexie {
   players!: EntityTable<Player, 'id'>
   buzzEvents!: EntityTable<BuzzEvent, 'id'>
   scoreEvents!: EntityTable<ScoreEvent, 'id'>
+  gameLog!: EntityTable<GameLogEntry, 'id'>
   layouts!: EntityTable<Layout, 'id'>
   widgets!: EntityTable<Widget, 'id'>
   notes!: EntityTable<Note, 'id'>
@@ -471,6 +522,8 @@ export class ViktoraniDB extends Dexie {
       )
 
     this.version(9).stores({ scoreEvents: 'id, gameId, timestamp' })
+
+    this.version(10).stores({ gameLog: 'id, gameId, [gameId+at]' })
   }
 }
 

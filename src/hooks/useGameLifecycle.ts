@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { db } from '@/db'
+import { logEvent } from '@/db/game-log'
 import { transportManager } from '@/transport'
 import { serialiseGameState } from '@/pages/admin/gamemaster-utils'
 import { readScores } from '@/hooks/useScoreboard'
@@ -33,6 +34,7 @@ export function useGameLifecycle(): UseGameLifecycleResult {
   const pauseGame = useCallback(async (game: Game): Promise<GameStatusPatch> => {
     const patch: GameStatusPatch = { status: 'paused', updatedAt: Date.now() }
     await db.games.update(game.id, patch)
+    logEvent(game.id, 'game_paused')
     transportManager.send({ type: 'GAME_STATUS', status: 'paused' })
     return patch
   }, [])
@@ -41,6 +43,7 @@ export function useGameLifecycle(): UseGameLifecycleResult {
   const resumeGame = useCallback(async (game: Game): Promise<GameStatusPatch> => {
     const patch: GameStatusPatch = { status: 'active', updatedAt: Date.now() }
     await db.games.update(game.id, patch)
+    logEvent(game.id, 'game_resumed')
     transportManager.send({ type: 'GAME_STATUS', status: 'active' })
     return patch
   }, [])
@@ -54,6 +57,7 @@ export function useGameLifecycle(): UseGameLifecycleResult {
     const scores = await readScores(game.id)
     const patch: GameStatusPatch = { status: 'ended', updatedAt: Date.now() }
     await db.games.update(game.id, patch)
+    logEvent(game.id, 'game_ended')
     transportManager.send({ type: 'GAME_STATUS', status: 'ended' })
     // Send final state snapshot before disconnecting
     transportManager.send({
