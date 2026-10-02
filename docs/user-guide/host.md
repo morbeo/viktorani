@@ -152,7 +152,7 @@ showing where they stand (hover it for a description):
 | Gold crossed-out eye | Tab hidden | Connected, but looking at something else |
 | Grey crossed-out Wi-Fi | Disconnected | The connection dropped, or they haven't joined from a device; they can rejoin if rejoining is allowed |
 | Grey exit arrow | Left | They pressed Leave |
-| Red crossed-out person | Kicked | You removed them |
+| Red crossed-out person | Kicked | You removed them; if they rejoin, they wait for your approval, even after you reload the page |
 
 The count above the list shows connected players, with tab-hidden and disconnected
 players counted separately. Once everyone is in, click **Start** to begin the first round.
