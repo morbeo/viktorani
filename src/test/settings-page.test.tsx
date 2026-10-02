@@ -114,7 +114,7 @@ describe('Settings', () => {
 
   it('saves the defaults for new games', async () => {
     renderAt('/admin/settings/game-defaults')
-    await userEvent.click(screen.getByRole('radio', { name: 'Pub quiz' }))
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Preset' }), 'Pub quiz')
     await userEvent.click(screen.getByRole('switch', { name: 'Scoring' }))
     expect(getSettings().gameDefaults).toEqual(
       expect.objectContaining({ scoringEnabled: false, maxPerTeam: 6, allowIndividual: false })

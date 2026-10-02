@@ -17,51 +17,103 @@ export type GameSettings = Pick<
   | 'buzzDeduplication'
 >
 
-/** The settings a preset sets: joining and the buzzer. Scoring and visibility are left alone. */
-export type PresetSettings = Omit<GameSettings, 'scoringEnabled' | 'visibility'>
-
-export type PresetId = 'open' | 'pub' | 'classroom'
-
-export interface Preset {
-  id: PresetId
+/** A saved set of game settings the host can apply in one click. */
+export interface GamePreset {
+  id: string
   label: string
   description: string
-  settings: PresetSettings
+  settings: GameSettings
 }
 
-export const PRESETS: Preset[] = [
+/** Every game setting, in form order. */
+export const GAME_SETTINGS_KEYS = [
+  'scoringEnabled',
+  'visibility',
+  'maxTeams',
+  'maxPerTeam',
+  'allowIndividual',
+  'allowPlayerTeams',
+  'allowLateJoin',
+  'allowRejoin',
+  'requireApproval',
+  'autoLockOnFirstCorrect',
+  'allowFalseStarts',
+  'buzzDeduplication',
+] as const satisfies ReadonlyArray<keyof GameSettings>
+
+/**
+ * The joining and buzzer settings: all a preset changes during a game, where scoring is
+ * locked and visibility is set on the question panel.
+ */
+export const LIVE_PRESET_KEYS = GAME_SETTINGS_KEYS.filter(
+  k => k !== 'scoringEnabled' && k !== 'visibility'
+)
+
+/** Just the game settings of `value`, which may be a whole game. */
+export function pickGameSettings(value: GameSettings): GameSettings {
+  return Object.fromEntries(GAME_SETTINGS_KEYS.map(k => [k, value[k]])) as GameSettings
+}
+
+/** Just the given settings of a preset, as a patch. */
+export function presetPatch(
+  preset: GamePreset,
+  keys: ReadonlyArray<keyof GameSettings> = GAME_SETTINGS_KEYS
+): Partial<GameSettings> {
+  return Object.fromEntries(keys.map(k => [k, preset.settings[k]]))
+}
+
+const sameValue = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
+
+/** The first preset whose given settings all match, or `null` when they have been customised. */
+export function matchPreset(
+  settings: GameSettings,
+  presets: GamePreset[],
+  keys: ReadonlyArray<keyof GameSettings> = GAME_SETTINGS_KEYS
+): GamePreset | null {
+  return presets.find(p => keys.every(k => sameValue(settings[k], p.settings[k]))) ?? null
+}
+
+/** Highest value the team limit steppers go up to. */
+export const MAX_LIMIT = 99
+
+/** Settings for a new game: an open lobby, scoring on, answers hidden. */
+export function defaultSettings(): GameSettings {
+  return {
+    scoringEnabled: true,
+    visibility: {
+      players: { showQuestion: true, showAnswers: false, showMedia: true },
+      screen: { showQuestion: true, showAnswers: false, showMedia: true },
+    },
+    allowIndividual: true,
+    allowPlayerTeams: true,
+    allowLateJoin: true,
+    allowRejoin: true,
+    requireApproval: false,
+    maxTeams: 0,
+    maxPerTeam: 0,
+    autoLockOnFirstCorrect: false,
+    allowFalseStarts: false,
+    buzzDeduplication: 'firstOnly',
+  }
+}
+
+/** The presets a new install starts with; Settings → Game defaults can restore them. */
+export const BUILT_IN_PRESETS: GamePreset[] = [
   {
     id: 'open',
     label: 'Open lobby',
     description: 'Anyone can join at any time, alone or in a team.',
-    settings: {
-      allowIndividual: true,
-      allowPlayerTeams: true,
-      allowLateJoin: true,
-      allowRejoin: true,
-      requireApproval: false,
-      maxTeams: 0,
-      maxPerTeam: 0,
-      autoLockOnFirstCorrect: false,
-      allowFalseStarts: false,
-      buzzDeduplication: 'firstOnly',
-    },
+    settings: defaultSettings(),
   },
   {
     id: 'pub',
     label: 'Pub quiz',
     description: 'Teams only, up to 6 per team. The buzzer locks after a correct answer.',
     settings: {
+      ...defaultSettings(),
       allowIndividual: false,
-      allowPlayerTeams: true,
-      allowLateJoin: true,
-      allowRejoin: true,
-      requireApproval: false,
-      maxTeams: 0,
       maxPerTeam: 6,
       autoLockOnFirstCorrect: true,
-      allowFalseStarts: false,
-      buzzDeduplication: 'firstOnly',
     },
   },
   {
@@ -70,41 +122,11 @@ export const PRESETS: Preset[] = [
     description:
       'You approve each player and make the teams. False starts are recorded and the buzzer locks after a correct answer.',
     settings: {
-      allowIndividual: true,
+      ...defaultSettings(),
       allowPlayerTeams: false,
-      allowLateJoin: true,
-      allowRejoin: true,
       requireApproval: true,
-      maxTeams: 0,
-      maxPerTeam: 0,
       autoLockOnFirstCorrect: true,
       allowFalseStarts: true,
-      buzzDeduplication: 'firstOnly',
     },
   },
 ]
-
-/** The preset the settings match exactly, or `null` when they have been customised. */
-export function matchPreset(settings: GameSettings): PresetId | null {
-  const match = PRESETS.find(p =>
-    (Object.keys(p.settings) as Array<keyof PresetSettings>).every(
-      k => settings[k] === p.settings[k]
-    )
-  )
-  return match?.id ?? null
-}
-
-/** Highest value the team limit steppers go up to. */
-export const MAX_LIMIT = 99
-
-/** Settings for a new game: the open lobby preset, scoring on, answers hidden. */
-export function defaultSettings(): GameSettings {
-  return {
-    scoringEnabled: true,
-    visibility: {
-      players: { showQuestion: true, showAnswers: false, showMedia: true },
-      screen: { showQuestion: true, showAnswers: false, showMedia: true },
-    },
-    ...PRESETS[0].settings,
-  }
-}

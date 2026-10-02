@@ -104,12 +104,18 @@ The first step of the **New game** wizard holds the game settings. They start fr
 **Settings → Game defaults**, which has the same form plus the tiebreaker (for now only
 **First buzz to reach the host**). Changing a default doesn't change existing games.
 
-- **Preset** sets joining and the buzzer for a common kind of game:
+- **Preset** fills in every game setting at once. Three come built in:
   - **Open lobby**: anyone joins at any time, alone or in a team.
   - **Pub quiz**: teams only, up to 6 per team; the buzzer locks after a correct answer.
   - **Classroom**: you approve each player and make the teams; false starts are recorded.
 
-  Change any setting afterwards and the preset shows as **Custom**.
+  Change any setting afterwards and the preset shows as **Custom**. **Save as preset** keeps
+  the current settings as a new preset under a name you choose.
+
+  **Settings → Game defaults → Presets** lists them in the order the form offers them. Add,
+  edit, rename, reorder and delete presets there, built-in ones included; **Reset built-ins**
+  puts the three built-in presets back as they were and keeps your own. Presets are saved with
+  the app settings and included in backups.
 - **Scoring**: keep a score for each player and team. It can't be changed once the game exists.
 - **Visibility**: what player phones and the screen show (question text, answers, media).
 - **Advanced** (collapsed): the individual joining and buzzer settings.
@@ -126,7 +132,8 @@ The first step of the **New game** wizard holds the game settings. They start fr
 | Buzz display | `First per player` or `All attempts` |
 
 During the game, **Game settings** in the header opens a drawer to change the joining and buzzer
-settings live. Visibility is changed on the question panel.
+settings live. Visibility is changed on the question panel. A preset picked there only
+changes joining and the buzzer.
 
 ---
 
@@ -297,12 +304,13 @@ When all rounds are complete (or you choose to end early):
 The game record remains in your local database until you delete it or purge all data
 via **Settings → Data → Purge**.
 
-Deleting a question, round or game, and archiving players or teams in bulk, asks first.
+Deleting a question, round, game or preset, and archiving players or teams in bulk, asks
+first.
 Turn off **Settings → General → Confirm destructive actions** to skip those dialogs.
 Purging all data always asks.
 
 **Settings → Data → Export JSON** saves your questions, games and app settings (theme, action
-buttons, control size, sound, timer and game defaults, general settings) to one file;
+buttons, control size, sound, timer and game defaults, presets, general settings) to one file;
 **Import JSON** restores them. Backups leave out game logs; download a game's log from its
 **Log** tab instead.
 
