@@ -1,10 +1,19 @@
 import { useState, type ReactNode } from 'react'
 import { Lock } from 'lucide-react'
-import { HelpTip, Icon } from '@/components/ui'
+import { Button, HelpTip, Icon, Input } from '@/components/ui'
 import { JOIN_POLICY_HELP } from '@/components/gamemaster/join-policy-help'
 import type { BuzzDeduplication, TargetVisibility } from '@/db'
-import { MAX_LIMIT, PRESETS, matchPreset } from './game-settings'
-import type { GameSettings, PresetId } from './game-settings'
+import { useAppSettings } from '@/hooks/useAppSettings'
+import { MAX_PRESETS } from '@/lib/app-settings'
+import {
+  GAME_SETTINGS_KEYS,
+  LIVE_PRESET_KEYS,
+  MAX_LIMIT,
+  matchPreset,
+  pickGameSettings,
+  presetPatch,
+} from './game-settings'
+import type { GameSettings } from './game-settings'
 
 export interface GameSettingsFormProps {
   value: GameSettings
@@ -16,6 +25,8 @@ export interface GameSettingsFormProps {
    */
   mode: 'create' | 'live'
   disabled?: boolean
+  /** Show the preset picker and Save as preset. Off when editing a preset itself. */
+  presets?: boolean
 }
 
 const VISIBILITY_ROWS: Array<{ key: keyof TargetVisibility; label: string }> = [
@@ -40,10 +51,25 @@ export function GameSettingsForm({
   onChange,
   mode,
   disabled = false,
+  presets: showPresets = true,
 }: GameSettingsFormProps) {
   const [showAdvanced, setShowAdvanced] = useState(false)
-  const preset = matchPreset(value)
+  const [{ gamePresets }, updateSettings] = useAppSettings()
+  const [presetName, setPresetName] = useState<string | null>(null)
   const live = mode === 'live'
+  // During a game a preset only sets joining and the buzzer
+  const presetKeys = live ? LIVE_PRESET_KEYS : GAME_SETTINGS_KEYS
+  const preset = matchPreset(value, gamePresets, presetKeys)
+
+  function savePreset() {
+    const label = presetName?.trim()
+    if (!label) return
+    const settings = pickGameSettings(value)
+    updateSettings({
+      gamePresets: [...gamePresets, { id: crypto.randomUUID(), label, description: '', settings }],
+    })
+    setPresetName(null)
+  }
 
   const joining = (
     <Section title="Joining">
@@ -132,28 +158,88 @@ export function GameSettingsForm({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1.5">
-        <Row
-          label="Preset"
-          help="Sets the joining and buzzer settings for a common kind of game. Scoring and visibility are not changed."
-        >
-          <Segmented<PresetId | null>
+      {showPresets && (
+        <div className="flex flex-col gap-1.5">
+          <Row
             label="Preset"
-            options={PRESETS.map(p => ({ value: p.id, label: p.label }))}
-            value={preset}
-            disabled={disabled}
-            onChange={id => {
-              const p = PRESETS.find(x => x.id === id)
-              if (p) onChange(p.settings)
-            }}
-          />
-        </Row>
-        <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
-          {preset
-            ? PRESETS.find(p => p.id === preset)?.description
-            : 'Custom: the settings below do not match a preset.'}
-        </p>
-      </div>
+            help={
+              live
+                ? 'Sets the joining and buzzer settings from a saved preset. Manage presets in Settings → Game defaults.'
+                : 'Sets every setting below from a saved preset. Manage presets in Settings → Game defaults.'
+            }
+          >
+            <div className="flex items-center gap-2">
+              {gamePresets.length > 0 && (
+                <select
+                  aria-label="Preset"
+                  value={preset?.id ?? ''}
+                  disabled={disabled}
+                  onChange={e => {
+                    const p = gamePresets.find(x => x.id === e.target.value)
+                    if (p) onChange(presetPatch(p, presetKeys))
+                  }}
+                  className="px-2 py-1 rounded border text-xs outline-none max-w-[12rem]"
+                  style={{
+                    borderColor: 'var(--color-border)',
+                    background: 'var(--color-cream)',
+                    color: 'var(--color-ink)',
+                  }}
+                >
+                  {!preset && (
+                    <option value="" disabled>
+                      Custom
+                    </option>
+                  )}
+                  {gamePresets.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={disabled || presetName !== null || gamePresets.length >= MAX_PRESETS}
+                onClick={() => setPresetName('')}
+              >
+                Save as preset
+              </Button>
+            </div>
+          </Row>
+          {presetName !== null && (
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <Input
+                  id="new-preset-name"
+                  label="Preset name"
+                  value={presetName}
+                  maxLength={60}
+                  autoFocus
+                  onChange={e => setPresetName(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      savePreset()
+                    }
+                  }}
+                />
+              </div>
+              <Button size="sm" onClick={savePreset} disabled={!presetName.trim()}>
+                Save
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setPresetName(null)}>
+                Cancel
+              </Button>
+            </div>
+          )}
+          <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
+            {preset
+              ? preset.description || `Matches the ${preset.label} preset.`
+              : 'Custom: the settings below do not match a preset.'}
+          </p>
+        </div>
+      )}
 
       {live ? (
         <Row
