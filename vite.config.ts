@@ -132,10 +132,10 @@ export default defineConfig({
       // /* c8 ignore */ at the untestable callsites and tracked in
       // docs/coverage-notes.md until their epics are complete.
       thresholds: {
-        lines: 75,
-        functions: 75,
-        branches: 70,
-        statements: 75,
+        lines: 80,
+        functions: 80,
+        branches: 75,
+        statements: 80,
       },
     },
   },
