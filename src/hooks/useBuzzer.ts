@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { db } from '@/db'
 import { transportManager } from '@/transport'
-import { broadcastScores } from '@/hooks/useScoreboard'
+import { broadcastScores, writeScore } from '@/hooks/useScoreboard'
 import type { Game, BuzzEvent, GmDecision } from '@/db'
 
 /** Return value of {@link useBuzzer}. */
@@ -164,7 +164,7 @@ export function useBuzzer(
       // the decision and score together. Resolves to null if already decided.
       const result = await db.transaction(
         'rw',
-        [db.buzzEvents, db.players, db.teams, db.questions, db.difficulties],
+        [db.buzzEvents, db.players, db.teams, db.scoreEvents, db.questions, db.difficulties],
         async (): Promise<{ scored: boolean } | null> => {
           const buzz = await db.buzzEvents.get(buzzId)
           if (!buzz || buzz.gmDecision !== null) return null
@@ -181,11 +181,16 @@ export function useBuzzer(
             const diff = await db.difficulties.get(question.difficulty)
             if (diff) increment = diff.score
           }
-          await db.players.update(buzz.playerId, { score: player.score + increment })
+          const award = {
+            gameId: g.id,
+            next: (score: number) => score + increment,
+            reason: 'correct' as const,
+            questionId,
+          }
+          await writeScore({ ...award, id: player.id, kind: 'player' })
 
           // Team scores are stored separately; a correct answer counts for the team too
-          const team = player.teamId ? await db.teams.get(player.teamId) : undefined
-          if (team) await db.teams.update(team.id, { score: team.score + increment })
+          if (player.teamId) await writeScore({ ...award, id: player.teamId, kind: 'team' })
           return { scored: true }
         }
       )

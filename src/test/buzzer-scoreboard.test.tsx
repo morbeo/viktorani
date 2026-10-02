@@ -4,7 +4,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BuzzerPanel } from '@/components/buzzer/BuzzerPanel'
 import { ScoreboardPanel } from '@/components/scoreboard/ScoreboardPanel'
-import type { Game, BuzzEvent } from '@/db'
+import type { Game, BuzzEvent, ScoreEvent } from '@/db'
 
 const mockGame: Game = {
   id: 'g1',
@@ -35,7 +35,15 @@ const mockGame: Game = {
   updatedAt: Date.now(),
 }
 
+const { mockSet, mockHistory } = vi.hoisted(() => ({
+  mockSet: vi.fn<(id: string, kind: 'player' | 'team', score: number) => Promise<void>>(
+    async () => {}
+  ),
+  mockHistory: { current: [] as ScoreEvent[] },
+}))
+
 vi.mock('@/hooks/useScoreboard', () => ({
+  useScoreHistory: () => mockHistory.current,
   useScoreboard: () => ({
     entries: [
       { id: 'p1', name: 'Alice', score: 10, kind: 'player' as const },
@@ -46,6 +54,7 @@ vi.mock('@/hooks/useScoreboard', () => ({
       ]},
     ],
     adjust: vi.fn(async () => {}),
+    set: mockSet,
     defaultIncrement: 10,
   }),
 }))
@@ -224,6 +233,7 @@ describe('BuzzerPanel', () => {
 describe('ScoreboardPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockHistory.current = []
   })
 
   it('renders scoreboard with entries', () => {
@@ -269,5 +279,50 @@ describe('ScoreboardPanel', () => {
   it('shows team label for team entries', () => {
     render(<ScoreboardPanel game={mockGame} />)
     expect(screen.getByText('· team')).toBeInTheDocument()
+  })
+
+  it('sets a typed score on Enter', async () => {
+    render(<ScoreboardPanel game={mockGame} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Set score for Alice, now 10' }))
+    const input = screen.getByRole('spinbutton', { name: 'New score for Alice' })
+    await userEvent.clear(input)
+    await userEvent.type(input, '42{Enter}')
+
+    expect(mockSet).toHaveBeenCalledTimes(1)
+    expect(mockSet).toHaveBeenCalledWith('p1', 'player', 42)
+    expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument()
+  })
+
+  it('cancels a typed score on Esc', async () => {
+    render(<ScoreboardPanel game={mockGame} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Set score for Bob, now 5' }))
+    const input = screen.getByRole('spinbutton', { name: 'New score for Bob' })
+    await userEvent.type(input, '7{Escape}')
+
+    expect(mockSet).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Set score for Bob, now 5' })).toBeInTheDocument()
+  })
+
+  it('lists the score history, newest first, when opened', async () => {
+    const change = { gameId: 'g1', kind: 'player' as const, questionId: null }
+    mockHistory.current = [
+      { ...change, id: 's2', targetId: 'p2', name: 'Bob', from: 0, to: 5, reason: 'set', timestamp: 2 },
+      {
+        ...change,
+        id: 's1',
+        targetId: 'p1',
+        name: 'Alice',
+        from: 9,
+        to: 10,
+        reason: 'correct',
+        timestamp: 1,
+      },
+    ]
+    render(<ScoreboardPanel game={mockGame} />)
+    await userEvent.click(screen.getByRole('button', { name: /score history \(2\)/i }))
+
+    const items = screen.getAllByRole('listitem')
+    expect(items[0]).toHaveTextContent('Bob0 → 5set')
+    expect(items[1]).toHaveTextContent('Alice9 → 10correct answer')
   })
 })

@@ -13,8 +13,8 @@ import { SnapshotSchema, QuestionImportRowSchema } from '@/db/snapshot-schema'
  *   added later; older v2 files without it restore games with no questions.
  *
  * `gameQuestions` is included because it defines which questions each game plays.
- * Runtime-only collections (`players`, `teams`, `buzzEvents`, `timers`, `layouts`,
- * `widgets`) are intentionally excluded — they represent transient session state
+ * Runtime-only collections (`players`, `teams`, `buzzEvents`, `scoreEvents`, `timers`,
+ * `layouts`, `widgets`) are intentionally excluded — they represent transient session state
  * that is not meaningful to restore.
  */
 export interface DatabaseSnapshot {
