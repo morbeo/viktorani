@@ -1,4 +1,5 @@
 import type { Game } from '@/db'
+import { HelpTip } from '@/components/ui'
 import { useGameVisibility } from '@/hooks/useGameVisibility'
 import type { VisibilityState } from '@/hooks/useGameVisibility'
 import type { VisibilityTarget } from '@/transport/types'
@@ -70,10 +71,14 @@ export function HostVisibilityToggles({ game, onGameChange }: HostVisibilityTogg
   return (
     <div className="flex flex-col gap-2">
       <p
-        className="text-xs font-semibold uppercase tracking-wide"
+        className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide"
         style={{ color: 'var(--color-muted)' }}
       >
         Visibility
+        <HelpTip
+          label="About Visibility"
+          text="What player phones and the screen show for the current question, set separately for each. Hidden parts are never sent to that device. Show answers means the answer options; the correct answer is never sent."
+        />
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
         {TARGETS.map(({ target, title }) => (

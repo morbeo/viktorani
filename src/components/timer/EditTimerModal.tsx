@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui'
+import { Button, HelpTip } from '@/components/ui'
 import type { TimerNotify, TimerAutoReset } from '@/hooks/useTimer'
 import type { Timer } from '@/db'
 
@@ -15,11 +15,13 @@ interface EditTimerModalProps {
 
 function Picker<T extends string>({
   label,
+  help,
   value,
   options,
   onChange,
 }: {
   label: string
+  help: string
   value: T
   options: { value: T; label: string; description: string }[]
   onChange: (v: T) => void
@@ -27,10 +29,11 @@ function Picker<T extends string>({
   return (
     <div className="flex flex-col gap-2">
       <p
-        className="text-xs font-semibold uppercase tracking-wider"
+        className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider"
         style={{ color: 'var(--color-muted)' }}
       >
         {label}
+        <HelpTip label={`About ${label}`} text={help} />
       </p>
       <div className="grid grid-cols-2 gap-1.5">
         {options.map(opt => (
@@ -150,6 +153,7 @@ export function EditTimerModal({ timer, onSave, onCancel }: EditTimerModalProps)
 
         <Picker
           label="Audio notification"
+          help="Beeps when the timer reaches zero, on the devices you pick."
           value={audioNotify}
           options={AUDIO_OPTIONS}
           onChange={setAudioNotify}
@@ -157,6 +161,7 @@ export function EditTimerModal({ timer, onSave, onCancel }: EditTimerModalProps)
 
         <Picker
           label="Visual notification (popup)"
+          help="Shows a time's-up popup when the timer reaches zero, on the devices you pick."
           value={visualNotify}
           options={VISUAL_OPTIONS}
           onChange={setVisualNotify}
@@ -164,6 +169,7 @@ export function EditTimerModal({ timer, onSave, onCancel }: EditTimerModalProps)
 
         <Picker
           label="Auto-reset on screen change"
+          help="Puts the timer back to its full time, paused, when you move on. Per question: on every move. Per round: only when the round changes. Manual: it keeps its time until you reset it."
           value={autoReset}
           options={RESET_OPTIONS}
           onChange={setAutoReset}
