@@ -13,6 +13,7 @@ const Layouts = lazy(() => import('@/pages/admin/Layouts'))
 const Notes = lazy(() => import('@/pages/admin/Notes'))
 const NoteDetail = lazy(() => import('@/pages/admin/NoteDetail'))
 const Settings = lazy(() => import('@/pages/admin/Settings'))
+const Debug = lazy(() => import('@/pages/admin/Debug'))
 const PlayersTeams = lazy(() => import('@/pages/admin/PlayersTeams'))
 
 // Pages — Player (lazy-loaded per route)
@@ -74,6 +75,7 @@ export default function App() {
             <Route path="/admin/notes" element={<Notes />} />
             <Route path="/admin/notes/:id" element={<NoteDetail />} />
             <Route path="/admin/settings" element={<Settings />} />
+            <Route path="/admin/debug" element={<Debug />} />
             <Route path="/join" element={<Join />} />
             <Route path="/join/:roomId" element={<Join />} />
             <Route path="/play/:roomId" element={<Play />} />

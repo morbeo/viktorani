@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
 import { Copy, Database } from 'lucide-react'
 import { Button, Icon, useToast } from '@/components/ui'
 import { db } from '@/db'
 import { buildInfo } from '@/buildInfo'
 
-const STORAGE_KEY = 'viktorani:debug'
 const REPO_URL = 'https://github.com/morbeo/viktorani'
 
 interface AsyncInfo {
@@ -43,23 +41,10 @@ async function loadAsyncInfo(): Promise<AsyncInfo> {
 }
 
 /**
- * Hidden debug section for bug reports. Opening Settings with `?debug=1` shows it and
- * remembers that in localStorage; `?debug=0` forgets it. Cosmetic only — show nothing sensitive.
+ * Build and runtime info for bug reports, with Copy and demo data loading.
+ * Shown on the debug page opened from the sidebar. Cosmetic only — show nothing sensitive.
  */
 export default function DebugInfo() {
-  const [params] = useSearchParams()
-  const flag = params.get('debug')
-  const visible = flag === '1' || (flag !== '0' && localStorage.getItem(STORAGE_KEY) === '1')
-
-  useEffect(() => {
-    if (flag === '1') localStorage.setItem(STORAGE_KEY, '1')
-    else if (flag === '0') localStorage.removeItem(STORAGE_KEY)
-  }, [flag])
-
-  return visible ? <DebugPanel /> : null
-}
-
-function DebugPanel() {
   const { addToast } = useToast()
   const [asyncInfo, setAsyncInfo] = useState<AsyncInfo | null>(null)
   const [loadingDemo, setLoadingDemo] = useState(false)
@@ -131,15 +116,10 @@ function DebugPanel() {
   return (
     <section>
       <div className="mb-3 flex items-start justify-between gap-4">
-        <div>
-          <h2 className="font-semibold text-base" style={{ color: 'var(--color-ink)' }}>
-            Debug
-          </h2>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
-            Build and runtime info for bug reports. Demo data adds sample questions, rounds,
-            teams and a ready-to-run game; loading it twice adds nothing. Hide with ?debug=0
-          </p>
-        </div>
+        <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
+          Build and runtime info for bug reports. Demo data adds sample questions, rounds, teams
+          and a ready-to-run game; loading it twice adds nothing.
+        </p>
         <div className="flex gap-2">
           <Button variant="secondary" size="sm" onClick={handleLoadDemo} disabled={loadingDemo}>
             <Icon icon={Database} size="sm" />
