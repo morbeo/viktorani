@@ -179,6 +179,14 @@ describe('resolveJoin', () => {
     })
   })
 
+  it('reports a rejoin by a player saved as kicked', async () => {
+    await db.players.add(player({ presence: 'kicked' }))
+    const rejoin = await accepted(game(), JOIN)
+    expect(rejoin).toMatchObject({ rejoin: true, kicked: true })
+    expect(rejoin.player.presence).toBe('connected')
+    expect((await accepted(game(), { ...JOIN, deviceId: 'dev-b' })).kicked).toBe(false)
+  })
+
   it('treats a known device as a new player when rejoin is off', async () => {
     await db.players.add(player({ score: 30 }))
     const joined = await accepted(game({ allowRejoin: false }), JOIN)

@@ -95,10 +95,17 @@ const PLAYER_TEAM_COLORS = ['#e74c3c', '#2ecc71', '#3a57b7', '#f1c40f', '#8e44ad
 /**
  * Outcome of a JOIN under the game's join policy. An accepted join carries the player
  * record to save and, when the player asked for a new team, the team to create first.
- * `rejoin` is `true` when the device's earlier player record was restored.
+ * `rejoin` is `true` when the device's earlier player record was restored, and `kicked`
+ * when that record was saved as kicked.
  */
 export type JoinResult =
-  | { status: 'accepted'; player: Player; newTeam: Team | null; rejoin: boolean }
+  | {
+      status: 'accepted'
+      player: Player
+      newTeam: Team | null
+      rejoin: boolean
+      kicked: boolean
+    }
   | { status: 'rejected'; reason: string }
 
 /**
@@ -190,5 +197,6 @@ export async function resolveJoin(game: Game, join: JoinEvent): Promise<JoinResu
     },
     newTeam,
     rejoin: !!existing,
+    kicked: existing?.presence === 'kicked',
   }
 }

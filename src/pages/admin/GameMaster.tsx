@@ -307,7 +307,7 @@ export default function GameMaster() {
   }, [])
 
   // Apply the join policy: reject, queue for approval (new players when approval is on,
-  // and anyone kicked this session) or admit
+  // and anyone kicked, this session or before a reload) or admit
   const handleJoin = useCallback(
     async (join: PendingJoin['join'], from: string) => {
       const g = gameRef.current
@@ -317,7 +317,8 @@ export default function GameMaster() {
         transportManager.sendTo(from, { type: 'JOIN_REJECTED', reason: result.reason })
         return
       }
-      const kicked = result.rejoin && kickedRef.current.has(result.player.id)
+      const kicked =
+        result.rejoin && (result.kicked || kickedRef.current.has(result.player.id))
       if ((g.requireApproval && !result.rejoin) || kicked) {
         const waiting = pendingJoinsRef.current
         if (waiting.length >= MAX_PENDING_JOINS && !waiting.some(p => p.connId === from)) {
