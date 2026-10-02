@@ -229,4 +229,12 @@ export interface ITransport {
    * @returns An unsubscribe function.
    */
   onPeerClose(handler: (connId: string) => void): () => void
+
+  /**
+   * Subscribe to status changes after `connect()` has resolved, such as losing the
+   * signalling server or the host, reconnecting, or giving up.
+   * @param handler - Called with the new status and the error behind it, if any.
+   * @returns An unsubscribe function.
+   */
+  onStatusChange(handler: (status: TransportStatus, error: unknown) => void): () => void
 }

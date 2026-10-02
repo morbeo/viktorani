@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { generateRoomId, TransportManager } from '@/transport'
+import { describeTransportError, generateRoomId, retry, TransportManager } from '@/transport'
 import type {
   ITransport,
   TransportConfig,
@@ -50,6 +50,7 @@ function makeMockTransport(type: 'peer', fails = false): ITransport {
     }),
     onPeerOpen: vi.fn(() => () => {}),
     onPeerClose: vi.fn(() => () => {}),
+    onStatusChange: vi.fn(() => () => {}),
     // expose for testing
     _emit: (e: TransportEvent) => handlers.forEach(h => h(e)),
   } as unknown as ITransport
@@ -107,13 +108,30 @@ describe('TransportManager', () => {
   })
 
   describe('connect — failure', () => {
-    it('rejects and stays idle when PeerJS fails (no fallback)', async () => {
+    it('rejects and reports the error when PeerJS fails (no fallback)', async () => {
       const spy = vi.spyOn(internals(manager), 'tryTransport').mockImplementation(async () => {
-        throw new Error('peer failed')
+        throw Object.assign(new Error('peer failed'), { type: 'unavailable-id' })
       })
+      const listener = vi.fn()
+      manager.onStatusChange(listener)
       await expect(manager.connect(BASE_CONFIG)).rejects.toThrow('peer failed')
       expect(spy).toHaveBeenCalledTimes(1)
+      expect(manager.status).toBe('error')
+      expect(manager.error).toBe('This room is already open in another tab or on another device.')
+      expect(listener).toHaveBeenLastCalledWith('error', null)
+
+      await manager.disconnect()
       expect(manager.status).toBe('idle')
+      expect(manager.error).toBeNull()
+    })
+
+    it('stays idle when the connect is cancelled', async () => {
+      vi.spyOn(internals(manager), 'tryTransport').mockImplementation(async () => {
+        throw new DOMException('Transport connect cancelled', 'AbortError')
+      })
+      await expect(manager.connect(BASE_CONFIG)).rejects.toMatchObject({ name: 'AbortError' })
+      expect(manager.status).toBe('idle')
+      expect(manager.error).toBeNull()
     })
   })
 
@@ -323,5 +341,76 @@ describe('TransportManager', () => {
       expect(a).toHaveBeenCalled()
       expect(b).toHaveBeenCalled()
     })
+
+    it('forwards status changes after connecting, with a readable error', async () => {
+      const mock = makeMockTransport('peer')
+      vi.spyOn(internals(manager), 'tryTransport').mockImplementation(async () => {
+        internals(manager).transport = mock
+      })
+      await manager.connect(BASE_CONFIG)
+      const listener = vi.fn()
+      manager.onStatusChange(listener)
+      const forward = (mock.onStatusChange as ReturnType<typeof vi.fn>).mock.calls[0][0] as (
+        s: TransportStatus,
+        e: unknown
+      ) => void
+
+      forward('disconnected', Object.assign(new Error('Lost'), { type: 'network' }))
+      expect(listener).toHaveBeenCalledTimes(1)
+      expect(manager.error).toBe(
+        'Cannot reach the connection server. Check your internet connection.'
+      )
+
+      forward('connected', null)
+      expect(listener).toHaveBeenCalledTimes(2)
+      expect(manager.error).toBeNull()
+    })
+  })
+})
+
+describe('describeTransportError', () => {
+  it('explains the PeerJS error types a user can act on', () => {
+    expect(describeTransportError({ type: 'peer-unavailable' })).toMatch(/host is not online/)
+    expect(describeTransportError({ type: 'socket-closed' })).toMatch(/connection server/)
+    expect(describeTransportError(new Error('PeerJS connection timeout'))).toMatch(/Timed out/)
+  })
+
+  it('falls back to a generic sentence', () => {
+    expect(describeTransportError(new Error('???'))).toBe('The connection failed.')
+    expect(describeTransportError(null)).toBe('The connection failed.')
+  })
+})
+
+describe('retry', () => {
+  it('retries after each delay until the attempt succeeds', async () => {
+    const attempt = vi
+      .fn<() => Promise<string>>()
+      .mockRejectedValueOnce(new Error('one'))
+      .mockRejectedValueOnce(new Error('two'))
+      .mockResolvedValue('ok')
+    const onRetry = vi.fn()
+    await expect(retry(attempt, { delays: [0, 0, 0], onRetry })).resolves.toBe('ok')
+    expect(attempt).toHaveBeenCalledTimes(3)
+    expect(onRetry.mock.calls).toEqual([[1], [2]])
+  })
+
+  it('rejects with the last error once the delays are used up', async () => {
+    const attempt = vi.fn<() => Promise<void>>().mockRejectedValue(new Error('down'))
+    await expect(retry(attempt, { delays: [0] })).rejects.toThrow('down')
+    expect(attempt).toHaveBeenCalledTimes(2)
+  })
+
+  it('stops at once on an AbortError or when cancelled', async () => {
+    const aborted = vi
+      .fn<() => Promise<void>>()
+      .mockRejectedValue(new DOMException('cancelled', 'AbortError'))
+    await expect(retry(aborted, { delays: [0] })).rejects.toMatchObject({ name: 'AbortError' })
+    expect(aborted).toHaveBeenCalledTimes(1)
+
+    const failing = vi.fn<() => Promise<void>>().mockRejectedValue(new Error('down'))
+    await expect(retry(failing, { delays: [0], cancelled: () => true })).rejects.toMatchObject({
+      name: 'AbortError',
+    })
+    expect(failing).toHaveBeenCalledTimes(1)
   })
 })

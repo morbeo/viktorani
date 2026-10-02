@@ -10,21 +10,29 @@ const bus = vi.hoisted(() => ({
   closeHandlers: [] as Array<(id: string) => void>,
 }))
 
-vi.mock('@/transport', () => ({
-  transportManager: {
-    connect: vi.fn(),
-    disconnect: vi.fn(),
-    send: vi.fn(),
-    onEvent: vi.fn((h: (e: TransportEvent, from: string) => void) => {
-      bus.handlers.push(h)
-      return () => bus.handlers.splice(bus.handlers.indexOf(h), 1)
-    }),
-    onPeerClose: vi.fn((h: (id: string) => void) => {
-      bus.closeHandlers.push(h)
-      return () => bus.closeHandlers.splice(bus.closeHandlers.indexOf(h), 1)
-    }),
-  },
-}))
+vi.mock('@/transport', async importOriginal => {
+  const actual = await importOriginal<typeof import('@/transport')>()
+  return {
+    ...actual,
+    // One immediate retry keeps the tests fast
+    retry: ((attempt, options) =>
+      actual.retry(attempt, { ...options, delays: [0] })) as typeof actual.retry,
+    transportManager: {
+      error: 'Cannot reach the connection server.',
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      send: vi.fn(),
+      onEvent: vi.fn((h: (e: TransportEvent, from: string) => void) => {
+        bus.handlers.push(h)
+        return () => bus.handlers.splice(bus.handlers.indexOf(h), 1)
+      }),
+      onPeerClose: vi.fn((h: (id: string) => void) => {
+        bus.closeHandlers.push(h)
+        return () => bus.closeHandlers.splice(bus.closeHandlers.indexOf(h), 1)
+      }),
+    },
+  }
+})
 
 import { transportManager } from '@/transport'
 import Play from '@/pages/player/Play'
@@ -168,13 +176,30 @@ describe('Play', () => {
     )
   })
 
-  it('offers to reconnect when the host connection drops', async () => {
+  it('rejoins on its own when the host connection drops', async () => {
     await reachGame()
     act(() => bus.closeHandlers.forEach(h => h('host')))
-    expect(screen.getByRole('alert')).toHaveTextContent('Lost the connection to the host.')
-
-    await userEvent.click(screen.getByRole('button', { name: 'Reconnect' }))
     await waitFor(() => expect(transportManager.connect).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(transportManager.send).toHaveBeenCalledTimes(2))
+    expect(transportManager.send).toHaveBeenLastCalledWith(
+      expect.objectContaining({ type: 'JOIN', playerName: 'Alice' })
+    )
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('offers to reconnect, with the reason, once the retries fail', async () => {
+    await reachGame()
+    vi.mocked(transportManager.connect).mockRejectedValue(new Error('network'))
+    act(() => bus.closeHandlers.forEach(h => h('host')))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Lost the connection to the host. Cannot reach the connection server.'
+    )
+    // The first try and one retry
+    expect(transportManager.connect).toHaveBeenCalledTimes(3)
+
+    vi.mocked(transportManager.connect).mockResolvedValue(undefined)
+    await userEvent.click(screen.getByRole('button', { name: 'Reconnect' }))
+    await waitFor(() => expect(transportManager.connect).toHaveBeenCalledTimes(4))
   })
 
   it('holds the buzzer while the host pauses the game', async () => {
@@ -196,5 +221,6 @@ describe('Play', () => {
     expect(screen.getByText('4')).toBeInTheDocument()
     expect(screen.queryByRole('alert')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Buzz' })).toBeNull()
+    expect(transportManager.connect).toHaveBeenCalledTimes(1)
   })
 })

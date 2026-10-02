@@ -23,10 +23,11 @@ import { GameControls } from '@/components/gamemaster/GameControls'
 import { JoinPolicyPanel } from '@/components/gamemaster/JoinPolicyPanel'
 import { PendingJoinsPanel } from '@/components/gamemaster/PendingJoinsPanel'
 import { ScreensPanel } from '@/components/gamemaster/ScreensPanel'
+import { TransportBanner } from '@/components/gamemaster/TransportBanner'
 import type { ScreensPanelProps } from '@/components/gamemaster/ScreensPanel'
 import { HostQuestionPanel } from '@/components/host/HostQuestionPanel'
 import { db } from '@/db'
-import { transportManager } from '@/transport'
+import { isAbortError, retry, transportManager } from '@/transport'
 import {
   buildLobbyInfo,
   buildManagedImport,
@@ -157,20 +158,6 @@ function Lobby({
           <TransportPill status={status} type={type} />
         </div>
       </div>
-
-      {/* Error banner */}
-      {status === 'error' && (
-        <div
-          className="px-4 py-3 rounded-lg border text-sm"
-          style={{
-            borderColor: 'var(--color-red)',
-            background: 'var(--color-red)11',
-            color: 'var(--color-red)',
-          }}
-        >
-          Transport failed to connect. Check your internet connection and try reloading.
-        </div>
-      )}
 
       {/* QR + player list */}
       <div className="grid gap-6" style={{ gridTemplateColumns: '1fr 1fr' }}>
@@ -578,6 +565,10 @@ export default function GameMaster() {
   const [teams, setTeams] = useState<Team[]>([])
   const [status, setStatus] = useState<TransportStatus>(transportManager.status)
   const [type, setType] = useState<TransportType>(transportManager.transportType)
+  const [transportError, setTransportError] = useState<string | null>(transportManager.error)
+  const [retrying, setRetrying] = useState<number | null>(null)
+  // Bumped by the banner's Retry button to open the room again
+  const [connectKey, setConnectKey] = useState(0)
   const [soloBypass, setSoloBypass] = useState(false)
   const [starting, setStarting] = useState(false)
   const [notFound, setNotFound] = useState(false)
@@ -672,6 +663,7 @@ export default function GameMaster() {
     const unsub = transportManager.onStatusChange((s, t) => {
       setStatus(s)
       setType(t)
+      setTransportError(transportManager.error)
       // Re-sync players when transport reconnects mid-game
       if (s === 'connected') {
         const g = gameRef.current
@@ -685,22 +677,28 @@ export default function GameMaster() {
       }
     })
 
-    transportManager
-      .connect({
-        role: 'host',
-        roomId: game.roomId ?? '',
-      })
+    // Retried a few times: after a reload the server may still hold the room for a moment
+    let stopped = false
+    retry(() => transportManager.connect({ role: 'host', roomId: game.roomId ?? '' }), {
+      cancelled: () => stopped,
+      onRetry: setRetrying,
+    })
       .catch(err => {
         // Leaving (or remounting) before the room is ready cancels the connect on purpose
-        if (err instanceof DOMException && err.name === 'AbortError') return
+        if (isAbortError(err)) return
         console.error('[GameMaster] Transport connect failed:', err)
+      })
+      .finally(() => {
+        if (!stopped) setRetrying(null)
       })
 
     return () => {
+      stopped = true
       unsub()
+      setRetrying(null)
       transportManager.disconnect()
     }
-  }, [game?.id, gameEnded]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [game?.id, gameEnded, connectKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Save an accepted join (and the team it creates), bind the connection and send the
   // player the current state
@@ -1105,10 +1103,21 @@ export default function GameMaster() {
     )
   }
 
+  // An ended game is offline on purpose
+  const transportBanner = gameEnded ? null : (
+    <TransportBanner
+      status={status}
+      error={transportError}
+      retrying={retrying}
+      onRetry={() => setConnectKey(k => k + 1)}
+    />
+  )
+
   if (game.status === 'waiting') {
     return (
       <AdminLayout>
         <ControlSizeContext.Provider value={{ size: controlSize, setSize: setControlSize }}>
+          {transportBanner}
           <Lobby
             game={game}
             players={players}
@@ -1138,6 +1147,7 @@ export default function GameMaster() {
   return (
     <AdminLayout>
       <ControlSizeContext.Provider value={{ size: controlSize, setSize: setControlSize }}>
+        {transportBanner}
         <ActiveGame
           game={game}
           onGameChange={applyGamePatch}
