@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { db } from '@/db'
+import { logEvent } from '@/db/game-log'
 import { transportManager } from '@/transport'
-import type { Timer, TimerNotify, TimerAutoReset } from '@/db'
+import type { GameLogKind, Timer, TimerNotify, TimerAutoReset } from '@/db'
 import type { TransportEvent } from '@/transport/types'
 import { getSettings } from '@/lib/app-settings'
 
@@ -106,6 +107,7 @@ export function useTimerList(gameId: string): UseTimerListResult {
       const patch: Partial<Timer> = { paused: false, startedAt: now, remaining: t.duration }
       await db.timers.update(id, patch)
       updateLocal(id, patch)
+      logTimer(t, 'timer_started')
       transportManager.send({ type: 'TIMER_START', id, duration: t.duration, label: t.label })
     },
     [updateLocal]
@@ -120,6 +122,7 @@ export function useTimerList(gameId: string): UseTimerListResult {
       const patch: Partial<Timer> = { paused: true, remaining: rem, startedAt: null }
       await db.timers.update(id, patch)
       updateLocal(id, patch)
+      logTimer(t, 'timer_paused')
       transportManager.send({ type: 'TIMER_PAUSE', id })
     },
     [updateLocal]
@@ -133,6 +136,7 @@ export function useTimerList(gameId: string): UseTimerListResult {
       const patch: Partial<Timer> = { paused: false, startedAt: now }
       await db.timers.update(id, patch)
       updateLocal(id, patch)
+      logTimer(t, 'timer_resumed')
       transportManager.send({ type: 'TIMER_RESUME', id })
     },
     [updateLocal]
@@ -147,6 +151,7 @@ export function useTimerList(gameId: string): UseTimerListResult {
       const patch: Partial<Timer> = { paused: false, remaining: t.duration, startedAt: now }
       await db.timers.update(id, patch)
       updateLocal(id, patch)
+      logTimer(t, 'timer_started')
       transportManager.send({ type: 'TIMER_START', id, duration: t.duration, label: t.label })
     },
     [pauseTimer, updateLocal]
@@ -274,6 +279,7 @@ export function useTimerExpiry(
       if (firedRef.current.has(runKey)) continue
       firedRef.current.add(runKey)
 
+      logTimer(t, 'timer_expired')
       if (t.audioNotify === 'host' || t.audioNotify === 'both') playBeep()
       const audio = t.audioNotify === 'players' || t.audioNotify === 'both'
       const visual = t.visualNotify === 'players' || t.visualNotify === 'both'
@@ -327,6 +333,10 @@ export function playBeep(frequency = 880, durationMs = 600) {
   }
 }
 
+function logTimer(t: Timer, kind: GameLogKind) {
+  logEvent(t.gameId, kind, { subjectId: t.id, data: { label: t.label } })
+}
+
 // ── Auto-reset ────────────────────────────────────────────────────────────────
 
 export type NavChangeType = 'question' | 'round'
@@ -350,6 +360,7 @@ export async function applyAutoReset(
     const patch = { paused: true, remaining: t.duration, startedAt: null } as Partial<Timer>
     await db.timers.update(t.id, patch)
     onReset?.(t.id, patch)
+    logTimer(t, 'timer_reset')
     transportManager.send({ type: 'TIMER_RESET', id: t.id, duration: t.duration })
   }
 }

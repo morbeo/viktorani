@@ -16,9 +16,10 @@ import type { AppSettings } from '@/lib/app-settings'
  *   (the app preferences) was added later still; files without it leave them unchanged.
  *
  * `gameQuestions` is included because it defines which questions each game plays.
- * Runtime-only collections (`players`, `teams`, `buzzEvents`, `scoreEvents`, `timers`,
- * `layouts`, `widgets`) are intentionally excluded — they represent transient session state
- * that is not meaningful to restore.
+ * Runtime-only collections (`players`, `teams`, `buzzEvents`, `scoreEvents`, `gameLog`,
+ * `timers`, `layouts`, `widgets`) are intentionally excluded — they represent transient
+ * session state that is not meaningful to restore. A game's log is downloaded from the game
+ * master view instead.
  */
 export interface DatabaseSnapshot {
   version: number

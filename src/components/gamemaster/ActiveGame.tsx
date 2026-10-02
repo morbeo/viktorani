@@ -8,6 +8,7 @@ import {
   MessageSquare,
   Pause,
   Play,
+  ScrollText,
   Trophy,
   Users,
 } from 'lucide-react'
@@ -22,6 +23,7 @@ import { RosterPanel } from '@/components/gamemaster/RosterPanel'
 import { ScreensPanel } from '@/components/gamemaster/ScreensPanel'
 import type { ScreensPanelProps } from '@/components/gamemaster/ScreensPanel'
 import { MessagePanel } from '@/components/gamemaster/MessagePanel'
+import { GameLogPanel } from '@/components/gamemaster/GameLogPanel'
 import type { MessagePanelProps } from '@/components/gamemaster/MessagePanel'
 import { HostQuestionPanel } from '@/components/host/HostQuestionPanel'
 import { Icon } from '@/components/ui'
@@ -61,7 +63,7 @@ export interface ActiveGameProps {
 export type BuzzHandler = ReturnType<typeof useBuzzer>['handleIncomingBuzz']
 export type QuestionContent = Extract<GameEvent, { type: 'QUESTION_CONTENT' }>
 
-type SideTab = 'people' | 'messages' | 'scoreboard'
+type SideTab = 'people' | 'messages' | 'scoreboard' | 'log'
 type TabId = 'play' | SideTab
 
 const TABS: Record<TabId, { label: string; icon: LucideIcon }> = {
@@ -69,6 +71,7 @@ const TABS: Record<TabId, { label: string; icon: LucideIcon }> = {
   people: { label: 'People', icon: Users },
   messages: { label: 'Messages', icon: MessageSquare },
   scoreboard: { label: 'Scoreboard', icon: Trophy },
+  log: { label: 'Log', icon: ScrollText },
 }
 
 interface HostTabsProps {
@@ -343,8 +346,10 @@ export function ActiveGame({
   if (!pos) return null
 
   const isEnded = game.status === 'ended'
-  const sideTabs: SideTab[] = isEnded ? ['scoreboard'] : ['people', 'messages', 'scoreboard']
-  const activeSide = isEnded ? 'scoreboard' : sideTab
+  const sideTabs: SideTab[] = isEnded
+    ? ['scoreboard', 'log']
+    : ['people', 'messages', 'scoreboard', 'log']
+  const activeSide = sideTabs.includes(sideTab) ? sideTab : 'scoreboard'
   const waiting = pendingJoins.length + screens.pending.length
 
   return (
@@ -426,7 +431,7 @@ export function ActiveGame({
           </div>
         </div>
 
-        {/* Side panel: people, messages and the scoreboard. Panels stay mounted so
+        {/* Side panel: people, messages, the scoreboard and the log. Panels stay mounted so
             drafts and scroll positions survive switching tabs */}
         <div
           className={`${view === 'side' ? 'flex' : 'hidden'} lg:flex flex-col flex-1 lg:flex-none lg:w-[26rem] min-w-0 lg:border-l`}
@@ -476,6 +481,14 @@ export function ActiveGame({
               hidden={activeSide !== 'scoreboard'}
             >
               <ScoreboardPanel game={game} questionId={currentQuestionId} />
+            </div>
+            <div
+              id="host-panel-log"
+              role="tabpanel"
+              aria-label="Log"
+              hidden={activeSide !== 'log'}
+            >
+              <GameLogPanel game={game} />
             </div>
           </div>
         </div>

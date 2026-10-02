@@ -181,13 +181,17 @@ The top bar holds the game name and status, game settings, **Open screen**, **Pa
 **End game**. Below it, the screen is split in two:
 
 - **Play** (left): the current question, the buzzer and the timers.
-- **Side panel** (right), with three tabs:
+- **Side panel** (right), with four tabs:
   - **People**: join requests, screens waiting for approval, and the roster, where you can
     kick a player. The tab shows how many joins and screens are waiting.
   - **Messages**: the message panel.
   - **Scoreboard**: scores and the score history.
+  - **Log**: everything that has happened in the game, newest first: the game starting,
+    pausing and ending, questions and rounds, players joining, leaving and being kicked,
+    buzzes, rulings, score changes, timers, what was revealed, and screens. **CSV** and
+    **JSON** download the whole log.
 
-On narrow screens, **Play** is a fourth tab instead of a column. Hover over a button to see
+On narrow screens, **Play** is an extra tab instead of a column. Hover over a button to see
 its keyboard shortcut, or press **Ctrl+K** (**⌘K** on a Mac) to open the command palette.
 
 ### Displaying a question
@@ -287,7 +291,8 @@ When all rounds are complete (or you choose to end early):
 
 1. Click **End game** in the GM view and confirm.
 2. Players and screens see the final scores.
-3. The game stays open read-only, with the final scoreboard.
+3. The game stays open read-only, with the final scoreboard and the **Log** tab, where you
+   can still download the game log.
 
 The game record remains in your local database until you delete it or purge all data
 via **Settings → Data → Purge**.
@@ -298,4 +303,5 @@ Purging all data always asks.
 
 **Settings → Data → Export JSON** saves your questions, games and app settings (theme, action
 buttons, control size, sound, timer and game defaults, general settings) to one file;
-**Import JSON** restores them.
+**Import JSON** restores them. Backups leave out game logs; download a game's log from its
+**Log** tab instead.

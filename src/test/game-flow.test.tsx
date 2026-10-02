@@ -424,5 +424,11 @@ describe('game flow', () => {
     await host.waitFor(async () => expect(await presence()).toBe('hidden'))
     client.send({ type: 'LEAVE' })
     await host.waitFor(async () => expect(await presence()).toBe('left'))
+    const kinds = async () => (await db.gameLog.toArray()).map(e => e.kind)
+    await host.waitFor(async () =>
+      expect(await kinds()).toEqual(
+        expect.arrayContaining(['player_joined', 'player_hidden', 'player_left'])
+      )
+    )
   }, 20_000)
 })

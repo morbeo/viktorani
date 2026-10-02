@@ -121,6 +121,7 @@ describe('purgeDatabase', () => {
     await db.tags.add({ id: 't1', name: 'Music', color: '#f00' })
     await db.difficulties.add({ id: 'd1', name: 'Easy', score: 5, color: '#0f0', order: 0 })
     await db.notes.add({ id: 'n1', name: 'N', content: '', createdAt: 0, updatedAt: 0 })
+    await db.gameLog.add({ id: 'l1', gameId: 'g1', at: 0 } as never)
 
     await purgeDatabase()
 
@@ -129,6 +130,7 @@ describe('purgeDatabase', () => {
     expect(await db.tags.count()).toBe(0)
     expect(await db.difficulties.count()).toBe(0)
     expect(await db.notes.count()).toBe(0)
+    expect(await db.gameLog.count()).toBe(0)
   })
 
   it('is safe to call on an already-empty database', async () => {

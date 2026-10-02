@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { db } from '@/db'
+import { logEvent } from '@/db/game-log'
 import { transportManager } from '@/transport'
 import type { Game, GameVisibility, TargetVisibility } from '@/db'
 import type { VisibilityTarget } from '@/transport/types'
@@ -71,6 +72,7 @@ export function useGameVisibility(
         const patch = { visibility: next, updatedAt: Date.now() }
         await db.games.update(game.id, patch)
         onGameChange?.(patch)
+        logEvent(game.id, 'visibility_changed', { data: { target, item: key, shown: flags[key] } })
         transportManager.send({ type: 'VISIBILITY', target, ...flags })
       } catch (err) {
         setVisibility(visibility)
