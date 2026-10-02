@@ -293,6 +293,23 @@ describe('game flow', () => {
     }
   }, 20_000)
 
+  it('does not admit a connection that closed while its join was queued', async () => {
+    await seedGame()
+    const { db } = await import('@/db')
+    const host = await mountSide('host', '/admin/game/g1')
+    await host.waitFor(() => expect(hub.state.host).not.toBeNull())
+
+    const { client } = await connectClient()
+    // A device of its own: earlier tests leave their players in the shared database
+    client.send({ ...JOIN, playerName: 'Dora', deviceId: 'device-dora' } as TransportEvent)
+    client.disconnect()
+    await new Promise(r => setTimeout(r, 300))
+
+    // Never connected as a player: either not saved, or saved as away
+    const saved = await db.players.where('deviceId').equals('device-dora').toArray()
+    expect(saved.every(p => p.isAway)).toBe(true)
+  }, 20_000)
+
   it('ignores buzzes while the game is paused', async () => {
     await seedGame()
     const { db } = await import('@/db')
