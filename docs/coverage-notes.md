@@ -33,14 +33,10 @@ drag down thresholds. Add a comment explaining *why* the block is excluded.
 
 | Metric | Threshold |
 |---|---|
-| Statements | 75% |
-| Lines | 75% |
-| Functions | 75% |
-| Branches | 70% |
+| Statements | 80% |
+| Lines | 80% |
+| Functions | 80% |
+| Branches | 75% |
 
 Branches are set slightly lower because JSX ternaries and optional chaining
 generate branch entries that are rarely all exercised in unit tests.
-
-Coverage only counts files a test loads. `game-flow.test.tsx` renders the whole
-GameMaster, which brings many host components into the report for the first
-time, so the thresholds were lowered by 5 points to match.
