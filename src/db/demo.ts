@@ -5,7 +5,7 @@ import { generateRoomId } from '@/transport'
 
 /**
  * Demo data, loaded via `npm run demo` (the `?demo` URL flag, dev only) or the
- * "Load demo data" button in the Settings debug panel (`?debug=1`).
+ * "Load demo data" button on the debug page (the version entry in the sidebar).
  * Only imported dynamically, so it stays out of the initial bundle.
  */
 
