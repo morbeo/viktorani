@@ -10,15 +10,11 @@ import { ScreensPanel } from '@/components/gamemaster/ScreensPanel'
 import type { ScreensPanelProps } from '@/components/gamemaster/ScreensPanel'
 import { MessagePanel } from '@/components/gamemaster/MessagePanel'
 import type { MessagePanelProps } from '@/components/gamemaster/MessagePanel'
-import { canStartGame, isConnected } from '@/pages/admin/gamemaster-utils'
+import { canStartGame, isConnected, joinUrl } from '@/pages/admin/gamemaster-utils'
+import { useAppSettings } from '@/hooks/useAppSettings'
 import type { PendingJoin } from '@/pages/admin/player-connections'
 import type { Game, Player, Team } from '@/db'
 import type { TransportStatus, TransportType } from '@/transport/types'
-
-function joinUrl(roomId: string): string {
-  const base = window.location.origin + window.location.pathname
-  return `${base}#/join/${roomId}`
-}
 
 const STATUS_LABEL: Record<TransportStatus, string> = {
   idle: 'Not connected',
@@ -71,13 +67,14 @@ export function Lobby({
   screens,
   messages,
 }: LobbyProps) {
+  const [{ joinUrlBase }] = useAppSettings()
   const activePlayers = players.filter(isConnected)
   const canStart = canStartGame({
     transportStatus: status,
     activePlayers: activePlayers.length,
     soloBypass,
   })
-  const url = game.roomId ? joinUrl(game.roomId) : ''
+  const url = game.roomId ? joinUrl(game.roomId, joinUrlBase) : ''
   const [copied, setCopied] = useState(false)
 
   function handleCopyUrl() {

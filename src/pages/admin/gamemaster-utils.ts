@@ -115,6 +115,15 @@ export function canStartGame(params: {
 }
 
 /**
+ * The player join link for a room. Uses `base` (an http(s) URL, query and hash dropped)
+ * when set, or else the current page's address.
+ */
+export function joinUrl(roomId: string, base = ''): string {
+  const { origin, pathname } = base ? new URL(base) : window.location
+  return `${origin}${pathname}#/join/${roomId}`
+}
+
+/**
  * Upserts a joining player into a player list, preserving existing score
  * and joinedAt. Returns a new sorted array.
  */
