@@ -208,6 +208,23 @@ async function seedGame() {
   })
 }
 
+/** A bare connection to the host that records what it receives. */
+async function connectClient() {
+  const client = new hub.FakeTransport()
+  const received: TransportEvent[] = []
+  client.onEvent(event => received.push(event))
+  await client.connect({ role: 'player', roomId: 'ABC234' })
+  return { client, received }
+}
+
+const JOIN: TransportEvent = {
+  type: 'JOIN',
+  playerName: 'Bob',
+  deviceId: 'device-bob',
+  teamId: null,
+  newTeamName: null,
+}
+
 describe('game flow', () => {
   it('a player joins, buzzes, and sees the point the host awards', async () => {
     const user = userEvent.setup()
@@ -234,5 +251,41 @@ describe('game flow', () => {
       () => expect(player.view.getByText(/^Score/)).toHaveTextContent('Score 1'),
       SLOW
     )
+  }, 20_000)
+
+  it('a connection that joins as a player cannot also wait as a screen', async () => {
+    await seedGame()
+    const host = await mountSide('host', '/admin/game/g1')
+    await host.waitFor(() => expect(hub.state.host).not.toBeNull())
+
+    const { client, received } = await connectClient()
+    client.send(JOIN)
+    client.send({ type: 'SCREEN_JOIN' })
+
+    await host.waitFor(
+      () => expect(received.map(e => e.type)).toContain('JOIN_ACCEPTED'),
+      SLOW
+    )
+    expect(received.map(e => e.type)).not.toContain('JOIN_PENDING')
+    expect(host.view.queryByRole('button', { name: 'Approve screen 1' })).toBeNull()
+  }, 20_000)
+
+  it('turns screens away once ten are waiting', async () => {
+    await seedGame()
+    const host = await mountSide('host', '/admin/game/g1')
+    await host.waitFor(() => expect(hub.state.host).not.toBeNull())
+
+    const clients = await Promise.all(Array.from({ length: 11 }, connectClient))
+    clients.forEach(({ client }) => client.send({ type: 'SCREEN_JOIN' }))
+
+    const last = clients[10].received
+    await host.waitFor(() => expect(last.map(e => e.type)).toContain('JOIN_REJECTED'))
+    expect(last).toContainEqual({
+      type: 'JOIN_REJECTED',
+      reason: 'Too many screens are waiting. Try again later.',
+    })
+    for (const { received } of clients.slice(0, 10)) {
+      expect(received.map(e => e.type)).toContain('JOIN_PENDING')
+    }
   }, 20_000)
 })
