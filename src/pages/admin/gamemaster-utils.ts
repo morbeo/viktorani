@@ -276,6 +276,15 @@ export function applyScoreDelta(score: number, delta: number): number {
   return Math.max(0, score + delta)
 }
 
+/**
+ * A typed-in score as stored: rounded to a whole number from `0` to
+ * `Number.MAX_SAFE_INTEGER`, or `null` when it isn't a finite number.
+ */
+export function toScore(value: number): number | null {
+  if (!Number.isFinite(value)) return null
+  return Math.min(Number.MAX_SAFE_INTEGER, Math.max(0, Math.round(value)))
+}
+
 // ── Navigation position ───────────────────────────────────────────────────────
 
 export interface NavPosition {

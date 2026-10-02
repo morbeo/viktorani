@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, type ReactNode } from 'react'
 import { Plus, Minus, ChevronDown, ChevronRight, Medal } from 'lucide-react'
 import { useScoreboard, useScoreHistory } from '@/hooks/useScoreboard'
 import { Icon, useControlSizeStep, pickBySize } from '@/components/ui'
+import { toScore } from '@/pages/admin/gamemaster-utils'
 import type { Game, ScoreChangeReason } from '@/db'
 
 interface FlashState {
@@ -68,7 +69,7 @@ export function ScoreboardPanel({ game, questionId = null }: ScoreboardPanelProp
   const handleSet = useCallback(
     async (id: string, kind: 'player' | 'team', from: number, to: number) => {
       await set(id, kind, to)
-      const delta = Math.max(0, Math.round(to)) - from
+      const delta = (toScore(to) ?? from) - from
       if (delta !== 0) triggerFlash(id, delta)
     },
     [set, triggerFlash]
