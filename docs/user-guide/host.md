@@ -90,14 +90,31 @@ A game contains one or more rounds. Each round is an ordered list of questions.
 
 ### Configure the game
 
-On the game settings panel you can configure:
+The first step of the **New game** wizard holds the game settings.
+
+- **Preset** sets joining and the buzzer for a common kind of game:
+  - **Open lobby**: anyone joins at any time, alone or in a team.
+  - **Pub quiz**: teams only, up to 6 per team; the buzzer locks after a correct answer.
+  - **Classroom**: you approve each player and make the teams; false starts are recorded.
+
+  Change any setting afterwards and the preset shows as **Custom**.
+- **Scoring**: keep a score for each player and team. It can't be changed once the game exists.
+- **Visibility**: what player phones and the screen show (question text, answers, media).
+- **Advanced** (collapsed): the individual joining and buzzer settings.
 
 | Option | What it does |
 |---|---|
-| Scoring enabled | Award points automatically on correct buzz adjudication |
-| Auto-lock on first correct | Lock the buzzer after the first correct ruling |
-| Allow false starts | Record buzzes that arrive while the buzzer is locked |
-| Buzz deduplication | `First only` (one buzz per player per question) or `All` |
+| Individual play | Players may join without a team |
+| Players may create teams | Players may type a new team name when they join |
+| Allow late join / rejoin | Who may join after the start, and whether a dropped player comes back as themselves |
+| Require approval | New players wait in Join requests until you approve them |
+| Max teams / Max per team | Team limits; **No limit** (∞) by default |
+| Auto-lock after a correct answer | Lock the buzzer after the first correct ruling |
+| Record false starts | Keep buzzes that arrive while the buzzer is locked |
+| Buzz display | `First per player` or `All attempts` |
+
+During the game, **Game settings** in the header opens a drawer to change the joining and buzzer
+settings live. Visibility is changed on the question panel.
 
 ---
 

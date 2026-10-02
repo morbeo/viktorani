@@ -4,7 +4,7 @@ import { QrCode, Rocket, Copy, Check } from 'lucide-react'
 import { Button, TransportPill, Icon, ControlSizePicker } from '@/components/ui'
 import { RosterPanel } from '@/components/gamemaster/RosterPanel'
 import { TeamManagerPanel } from '@/components/gamemaster/TeamManagerPanel'
-import { JoinPolicyPanel } from '@/components/gamemaster/JoinPolicyPanel'
+import { GameSettingsDrawer } from '@/components/gamemaster/GameSettingsDrawer'
 import { PendingJoinsPanel } from '@/components/gamemaster/PendingJoinsPanel'
 import { ScreensPanel } from '@/components/gamemaster/ScreensPanel'
 import type { ScreensPanelProps } from '@/components/gamemaster/ScreensPanel'
@@ -101,6 +101,7 @@ export function Lobby({
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <GameSettingsDrawer game={game} onGameChange={onGameChange} />
           <ControlSizePicker />
           <TransportPill status={status} type={type} />
         </div>
@@ -194,7 +195,6 @@ export function Lobby({
             onAssignPlayer={onAssignPlayer}
             onImportFromManaged={onImportFromManaged}
           />
-          <JoinPolicyPanel game={game} onGameChange={onGameChange} />
         </div>
       </div>
 

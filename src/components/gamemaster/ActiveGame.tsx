@@ -5,7 +5,6 @@ import { RoundBoundary } from '@/components/RoundBoundary'
 import { BuzzerPanel } from '@/components/buzzer/BuzzerPanel'
 import { ScoreboardPanel } from '@/components/scoreboard/ScoreboardPanel'
 import { GameControls } from '@/components/gamemaster/GameControls'
-import { JoinPolicyPanel } from '@/components/gamemaster/JoinPolicyPanel'
 import { PendingJoinsPanel } from '@/components/gamemaster/PendingJoinsPanel'
 import { ScreensPanel } from '@/components/gamemaster/ScreensPanel'
 import type { ScreensPanelProps } from '@/components/gamemaster/ScreensPanel'
@@ -246,7 +245,7 @@ export function ActiveGame({
           {/* Timers — hidden when ended */}
           {!isEnded && <TimerPanel gameId={game.id} hook={timerHook} />}
 
-          {/* Join requests and policy — hidden when ended */}
+          {/* Join requests — hidden when ended */}
           {!isEnded && (
             <PendingJoinsPanel
               pending={pendingJoins}
@@ -254,7 +253,6 @@ export function ActiveGame({
               onReject={onRejectJoin}
             />
           )}
-          {!isEnded && <JoinPolicyPanel game={game} onGameChange={onGameChange} />}
           {!isEnded && <ScreensPanel {...screens} />}
           {!isEnded && <MessagePanel {...messages} />}
 

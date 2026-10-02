@@ -103,7 +103,8 @@ src/
 │   └── player/              Join, Play
 ├── components/
 │   ├── ui/                  Button, Input, Modal, Toast, Icon, control size…
-│   ├── gamemaster/          GameControls, RosterPanel, TeamManagerPanel, JoinPolicyPanel
+│   ├── gamemaster/          GameControls, RosterPanel, TeamManagerPanel, GameSettingsDrawer
+│   ├── game-settings/       GameSettingsForm and presets, shared by the wizard and the GM
 │   ├── host/                HostQuestionPanel and its parts, visibility toggles
 │   ├── buzzer/              BuzzerPanel, BuzzList, BuzzerLockButton
 │   ├── timer/               TimerPanel, TimerCard, modals, expiry overlay
@@ -316,13 +317,12 @@ flowchart TD
   Lobby --> QR[Join QR + room code]
   Lobby --> Roster[RosterPanel]
   Lobby --> Teams[TeamManagerPanel]
-  Lobby --> Join1[JoinPolicyPanel]
-  Active --> Controls[GameControls<br/>pause, end, control size]
+  Lobby --> Settings1[GameSettingsDrawer]
+  Active --> Controls[GameControls<br/>pause, end, control size,<br/>GameSettingsDrawer]
   Active --> Nav[NavHeader<br/>useNavigation, useKeyNav]
   Active --> Q[HostQuestionPanel<br/>useGameVisibility]
   Active --> Buzz[BuzzerPanel<br/>useBuzzer]
   Active --> Timers[TimerPanel<br/>useTimerList]
-  Active --> Join2[JoinPolicyPanel]
   Active --> Score[ScoreboardPanel<br/>useScoreboard]
 ```
 
@@ -364,6 +364,6 @@ module. `db/demo.ts` seeds a demo game from the Settings debug panel.
 - `GameMaster.tsx`, `Games.tsx` and `Questions.tsx` are 750–1150 lines each. Splitting their
   inner components into `components/` would make them easier to follow.
 - `gamemaster-utils.ts` and `player-connections.ts` hold domain logic but live under `pages/`.
-- Some small UI pieces are duplicated (for example, local `Toggle` switches in the Games wizard,
-  the visibility toggles and the join policy panel).
+- Some small UI pieces are duplicated (for example, the local `Toggle` switches in
+  `GameSettingsForm` and the visibility toggles).
 - The player pages are not connected to the host yet (Epic #244).

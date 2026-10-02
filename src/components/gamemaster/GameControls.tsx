@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Pause, Play, Square, ChevronLeft, Monitor } from 'lucide-react'
 import { Button, Icon, ControlSizePicker } from '@/components/ui'
 import { EndGameModal } from '@/components/gamemaster/EndGameModal'
+import { GameSettingsDrawer } from '@/components/gamemaster/GameSettingsDrawer'
 import type { Game } from '@/db'
 import type { UseGameLifecycleResult } from '@/hooks/useGameLifecycle'
 
@@ -100,6 +101,8 @@ export function GameControls({ game, onGameChange, lifecycle }: GameControlsProp
         )}
 
         <ControlSizePicker />
+
+        {!isEnded && <GameSettingsDrawer game={game} onGameChange={onGameChange} />}
 
         <Button variant="secondary" size="sm" onClick={handleOpenScreen}>
           <Icon icon={Monitor} size="sm" />
