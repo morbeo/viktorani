@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { SETTINGS_KEY, getSettings, setSettings } from '@/lib/app-settings'
 import { useAppSettings } from '@/hooks/useAppSettings'
+import { defaultSettings } from '@/components/game-settings/game-settings'
 
 const stored = () => JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? 'null')
 
@@ -12,7 +13,7 @@ beforeEach(() => {
 describe('app settings', () => {
   it('defaults every field', () => {
     expect(getSettings()).toEqual({
-      version: 2,
+      version: 3,
       theme: 'system',
       actionMode: 'icons',
       controlSize: 'sm',
@@ -22,6 +23,33 @@ describe('app settings', () => {
       timerAudioNotify: 'none',
       timerVisualNotify: 'none',
       timerAutoReset: 'none',
+      gameDefaults: { ...defaultSettings(), tiebreakerMode: 'serverOrder' },
+    })
+  })
+
+  it('upgrades a version 2 entry with the built-in game defaults', () => {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ version: 2, soundVolume: 40 }))
+    expect(getSettings()).toEqual(
+      expect.objectContaining({
+        version: 3,
+        soundVolume: 40,
+        gameDefaults: { ...defaultSettings(), tiebreakerMode: 'serverOrder' },
+      })
+    )
+  })
+
+  it('falls back game default by game default on invalid values', () => {
+    localStorage.setItem(
+      SETTINGS_KEY,
+      JSON.stringify({
+        version: 3,
+        gameDefaults: { scoringEnabled: false, maxPerTeam: -1, tiebreakerMode: 'random' },
+      })
+    )
+    expect(getSettings().gameDefaults).toEqual({
+      ...defaultSettings(),
+      scoringEnabled: false,
+      tiebreakerMode: 'serverOrder',
     })
   })
 
@@ -31,7 +59,7 @@ describe('app settings', () => {
       JSON.stringify({ version: 1, theme: 'dark', actionMode: 'text', controlSize: 'lg' })
     )
     expect(getSettings()).toEqual(
-      expect.objectContaining({ version: 2, theme: 'dark', soundVolume: 100, timerDuration: 60 })
+      expect.objectContaining({ version: 3, theme: 'dark', soundVolume: 100, timerDuration: 60 })
     )
   })
 

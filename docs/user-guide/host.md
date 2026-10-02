@@ -95,7 +95,9 @@ A game contains one or more rounds. Each round is an ordered list of questions.
 
 ### Configure the game
 
-The first step of the **New game** wizard holds the game settings.
+The first step of the **New game** wizard holds the game settings. They start from
+**Settings → Game defaults**, which has the same form plus the tiebreaker (for now only
+**First buzz to reach the host**). Changing a default doesn't change existing games.
 
 - **Preset** sets joining and the buzzer for a common kind of game:
   - **Open lobby**: anyone joins at any time, alone or in a team.
@@ -267,4 +269,4 @@ The game record remains in your local database until you delete it or purge all 
 via **Settings → Data → Purge**.
 
 **Settings → Data → Export JSON** saves your questions, games and app settings (theme, action
-buttons, control size, sound, timer defaults) to one file; **Import JSON** restores them.
+buttons, control size, sound, timer and game defaults) to one file; **Import JSON** restores them.
