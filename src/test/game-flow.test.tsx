@@ -303,7 +303,8 @@ describe('game flow', () => {
       t => t.textContent === 'Messages'
     )
     await userEvent.setup().click(messagesTab as HTMLElement)
-    expect(host.view.getByRole('tabpanel', { name: 'People', hidden: true })).not.toBeVisible()
+    // A hidden panel has no accessible name, so find it by id
+    expect(document.getElementById('host-panel-people')).not.toBeVisible()
     expect(host.view.getByRole('tabpanel', { name: 'Messages' })).toBeVisible()
   }, 20_000)
 
