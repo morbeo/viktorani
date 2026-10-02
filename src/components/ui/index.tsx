@@ -2,10 +2,12 @@ import type { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes } from 'react
 import { useControlSizeStep } from './controlSize'
 import { X, Network, CircleDot, CircleOff } from 'lucide-react'
 import { Icon } from './Icon'
+import { HelpTip } from './HelpTip'
 import type { TransportStatus, TransportType } from '@/transport/types'
 
 export { Icon } from './Icon'
 export { Steps } from './Steps'
+export { HelpTip } from './HelpTip'
 export { ControlSizePicker } from './ControlSizePicker'
 // eslint-disable-next-line react-refresh/only-export-components
 export { ControlSizeContext, useControlSizeStep, pickBySize } from './controlSize'
@@ -133,15 +135,20 @@ export function Card({ children, className = '', style }: CardProps) {
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string
+  /** Explains the field in a {@link HelpTip} next to the label. */
+  help?: string
 }
 
-export function Input({ label, id, className = '', style, ...props }: InputProps) {
+export function Input({ label, help, id, className = '', style, ...props }: InputProps) {
   return (
     <div className="flex flex-col gap-1">
       {label && (
-        <label htmlFor={id} className="text-xs font-medium" style={{ color: 'var(--color-muted)' }}>
-          {label}
-        </label>
+        <span className="flex items-center gap-1.5" style={{ color: 'var(--color-muted)' }}>
+          <label htmlFor={id} className="text-xs font-medium">
+            {label}
+          </label>
+          {help && <HelpTip label={`About ${label}`} text={help} />}
+        </span>
       )}
       <input
         id={id}
@@ -311,6 +318,13 @@ export function TransportPill({ status, type }: { status: TransportStatus; type:
         ? 'var(--color-gold)'
         : 'var(--color-muted)'
 
+  const help =
+    status === 'connected'
+      ? 'The room is open: players can join and get updates. Their devices connect to this one through PeerJS.'
+      : status === 'connecting'
+        ? 'Opening the room. Players can join once it is connected.'
+        : "The room is not open, so players can't join or get updates."
+
   const label =
     status === 'connected'
       ? 'PeerJS'
@@ -328,6 +342,7 @@ export function TransportPill({ status, type }: { status: TransportStatus; type:
     >
       <Icon icon={IconComponent} size="sm" className="shrink-0" />
       {label}
+      <HelpTip label="About the connection" text={help} />
     </span>
   )
 }

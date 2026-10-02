@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AdminLayout from '@/components/AdminLayout'
-import { Button, Badge, Input, Modal, Empty } from '@/components/ui'
+import { Button, Badge, Input, Modal, Empty, HelpTip } from '@/components/ui'
+import { JOIN_POLICY_HELP } from '@/components/gamemaster/join-policy-help'
 import { db } from '@/db'
 import type { Game, GameVisibility, Round, TargetVisibility } from '@/db'
 import { generateRoomId } from '@/transport'
@@ -204,32 +205,38 @@ function Step1({
         >
           <Toggle
             label="Allow individual play (no team)"
+            help={JOIN_POLICY_HELP.allowIndividual}
             checked={state.allowIndividual}
             onChange={v => set('allowIndividual', v)}
           />
           <Toggle
             label="Players may create their own team"
+            help={JOIN_POLICY_HELP.allowPlayerTeams}
             checked={state.allowPlayerTeams}
             onChange={v => set('allowPlayerTeams', v)}
           />
           <Toggle
             label="Allow joining after the game starts"
+            help={JOIN_POLICY_HELP.allowLateJoin}
             checked={state.allowLateJoin}
             onChange={v => set('allowLateJoin', v)}
           />
           <Toggle
             label="Allow players to rejoin"
+            help={JOIN_POLICY_HELP.allowRejoin}
             checked={state.allowRejoin}
             onChange={v => set('allowRejoin', v)}
           />
           <Toggle
             label="Require approval to join"
+            help={JOIN_POLICY_HELP.requireApproval}
             checked={state.requireApproval}
             onChange={v => set('requireApproval', v)}
           />
           <div className="grid grid-cols-2 gap-3">
             <Input
               label="Max teams (0 = ∞)"
+              help="Players can't create a new team once the game has this many teams. 0: no limit."
               type="number"
               min={0}
               value={state.maxTeams}
@@ -237,6 +244,7 @@ function Step1({
             />
             <Input
               label="Max per team (0 = ∞)"
+              help="Players can't join a team that already has this many members. 0: no limit."
               type="number"
               min={0}
               value={state.maxPerTeam}
@@ -259,16 +267,24 @@ function Step1({
         </p>
         <Toggle
           label="Auto-lock after first correct answer"
+          help="When you rule a buzz correct, the buzzer locks so nobody else can buzz until you unlock it."
           checked={state.autoLockOnFirstCorrect}
           onChange={v => set('autoLockOnFirstCorrect', v)}
         />
         <Toggle
           label="Record false starts (buzzes before unlock)"
+          help="Buzzes pressed while the buzzer is locked are kept and marked as false starts in the buzz list. Off: they are ignored."
           checked={state.allowFalseStarts}
           onChange={v => set('allowFalseStarts', v)}
         />
         <div className="flex flex-col gap-1">
-          <span className="text-sm">Buzz display</span>
+          <span className="flex items-center gap-1.5 text-sm">
+            Buzz display
+            <HelpTip
+              label="About Buzz display"
+              text="First buzz per player: each player is listed once, at their first buzz. All attempts: every press is listed. Every buzz is recorded either way."
+            />
+          </span>
           <div className="flex gap-2">
             {(['firstOnly', 'all'] as const).map(mode => (
               <button
@@ -295,19 +311,25 @@ function Step1({
 
 function Toggle({
   label,
+  help,
   checked,
   onChange,
 }: {
   label: string
+  help?: string
   checked: boolean
   onChange: (v: boolean) => void
 }) {
   return (
     <label className="flex items-center justify-between cursor-pointer gap-4">
-      <span className="text-sm">{label}</span>
+      <span className="flex items-center gap-1.5 text-sm">
+        {label}
+        {help && <HelpTip label={`About ${label}`} text={help} />}
+      </span>
       <button
         role="switch"
         aria-checked={checked}
+        aria-label={label}
         onClick={() => onChange(!checked)}
         className="w-10 h-5 rounded-full transition-all relative shrink-0"
         style={{ background: checked ? 'var(--color-ink)' : 'var(--color-border)' }}

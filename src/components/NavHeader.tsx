@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { Icon, useControlSizeStep, pickBySize } from '@/components/ui'
+import { Icon, HelpTip, useControlSizeStep, pickBySize } from '@/components/ui'
 import type { GameQuestion } from '@/db'
 import type { NavEntry, NavPosition } from '@/pages/admin/gamemaster-utils'
 
@@ -57,8 +57,15 @@ export function NavHeader({ pos, seq, onPrev, onNext }: NavHeaderProps) {
           <span className="text-sm font-semibold truncate" style={{ color: 'var(--color-ink)' }}>
             {pos.roundIdx >= 0 ? `Round ${pos.roundIdx + 1}` : ''}
           </span>
-          <span className="text-xs shrink-0 mono" style={{ color: 'var(--color-muted)' }}>
+          <span
+            className="flex items-center gap-1.5 text-xs shrink-0 mono"
+            style={{ color: 'var(--color-muted)' }}
+          >
             Q {pos.flatIndex + 1} / {seq.length}
+            <HelpTip
+              label="About the progress track"
+              text="One dot per question in this round. Gold: the current question. Green: correct, or passed without a ruling. Red: wrong. Grey: skipped. Hollow: not reached yet. Other rounds are one bar each, green once played."
+            />
           </span>
         </div>
 
