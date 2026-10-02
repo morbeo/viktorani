@@ -84,6 +84,11 @@ export type GameEvent =
   | { type: 'SCREEN_ACCEPTED' }
   /** Ranked scores with names, sent to approved screens only. Empty when scoring is off. */
   | { type: 'SCOREBOARD'; rows: ScoreboardRow[] }
+  /**
+   * A short plain-text note from the host to some players, a team or the screens. It stays
+   * shown until the next MESSAGE; `text: null` clears it.
+   */
+  | { type: 'MESSAGE'; text: string | null }
 
 /** Where question content is shown: the projector/screen or player phones. */
 export type VisibilityTarget = 'players' | 'screen'

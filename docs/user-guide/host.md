@@ -176,6 +176,14 @@ The scoreboard panel shows all players/teams with `+` and `−` buttons.
 Click them to apply a one-step delta (defaulting to the lowest difficulty score).
 Score changes are broadcast to players immediately.
 
+### Sending a message
+
+The **Message** panel (in the lobby and during the game) sends a short plain-text note of up
+to 280 characters. Pick who gets it under **To**: everyone (players and screens), all players,
+the screens, one team, or one connected player. Players see it in a banner they can dismiss;
+screens show it at the top until you send another message or click **Clear everywhere**.
+Messages are not resent to players who join or rejoin later.
+
 ---
 
 ## 5. Timer usage

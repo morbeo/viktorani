@@ -8,6 +8,8 @@ import { JoinPolicyPanel } from '@/components/gamemaster/JoinPolicyPanel'
 import { PendingJoinsPanel } from '@/components/gamemaster/PendingJoinsPanel'
 import { ScreensPanel } from '@/components/gamemaster/ScreensPanel'
 import type { ScreensPanelProps } from '@/components/gamemaster/ScreensPanel'
+import { MessagePanel } from '@/components/gamemaster/MessagePanel'
+import type { MessagePanelProps } from '@/components/gamemaster/MessagePanel'
 import { canStartGame, isConnected } from '@/pages/admin/gamemaster-utils'
 import type { PendingJoin } from '@/pages/admin/player-connections'
 import type { Game, Player, Team } from '@/db'
@@ -45,6 +47,7 @@ export interface LobbyProps {
   onApproveJoin: (connId: string) => void
   onRejectJoin: (connId: string) => void
   screens: ScreensPanelProps
+  messages: MessagePanelProps
 }
 
 export function Lobby({
@@ -66,6 +69,7 @@ export function Lobby({
   onApproveJoin,
   onRejectJoin,
   screens,
+  messages,
 }: LobbyProps) {
   const activePlayers = players.filter(isConnected)
   const canStart = canStartGame({
@@ -180,6 +184,7 @@ export function Lobby({
             onReject={onRejectJoin}
           />
           <ScreensPanel {...screens} />
+          <MessagePanel {...messages} />
           <RosterPanel players={players} teams={teams} onKick={onKick} />
           <TeamManagerPanel
             game={game}

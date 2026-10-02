@@ -223,4 +223,17 @@ describe('Play', () => {
     expect(screen.queryByRole('button', { name: 'Buzz' })).toBeNull()
     expect(transportManager.connect).toHaveBeenCalledTimes(1)
   })
+
+  it('shows the host message until dismissed, and a repeat of it again', async () => {
+    await reachGame()
+    emit({ type: 'MESSAGE', text: 'Two minutes to the next round' })
+    expect(screen.getByText('Two minutes to the next round')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Dismiss message' }))
+    expect(screen.queryByText('Two minutes to the next round')).toBeNull()
+
+    emit({ type: 'MESSAGE', text: 'Two minutes to the next round' })
+    expect(screen.getByText('Two minutes to the next round')).toBeInTheDocument()
+    emit({ type: 'MESSAGE', text: null })
+    expect(screen.queryByText('Two minutes to the next round')).toBeNull()
+  })
 })
