@@ -9,6 +9,8 @@ import DataSettings from '@/components/settings/DataSettings'
 import SoundSettings from '@/components/settings/SoundSettings'
 import TimerSettings from '@/components/settings/TimerSettings'
 import GameDefaultsSettings from '@/components/settings/GameDefaultsSettings'
+import { SETTINGS_CATEGORIES } from '@/components/settings/categories'
+import type { SettingsCategoryId } from '@/components/settings/categories'
 
 function LibrarySettings() {
   return (
@@ -20,15 +22,17 @@ function LibrarySettings() {
   )
 }
 
-const CATEGORIES = [
-  { id: 'appearance', label: 'Appearance', element: <AppearanceSettings /> },
-  { id: 'general', label: 'General', element: <GeneralSettings /> },
-  { id: 'sound', label: 'Sound & notifications', element: <SoundSettings /> },
-  { id: 'timers', label: 'Timers', element: <TimerSettings /> },
-  { id: 'game-defaults', label: 'Game defaults', element: <GameDefaultsSettings /> },
-  { id: 'library', label: 'Library', element: <LibrarySettings /> },
-  { id: 'data', label: 'Data', element: <DataSettings /> },
-]
+const ELEMENTS: Record<SettingsCategoryId, React.ReactElement> = {
+  appearance: <AppearanceSettings />,
+  general: <GeneralSettings />,
+  sound: <SoundSettings />,
+  timers: <TimerSettings />,
+  'game-defaults': <GameDefaultsSettings />,
+  library: <LibrarySettings />,
+  data: <DataSettings />,
+}
+
+const CATEGORIES = SETTINGS_CATEGORIES.map(c => ({ ...c, element: ELEMENTS[c.id] }))
 
 /** Settings, one category per route: `/admin/settings/<category>`. */
 export default function Settings() {

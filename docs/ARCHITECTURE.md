@@ -339,7 +339,9 @@ flowchart TD
   (`components/command-palette/`) is mounted once in `App.tsx`, opens with Ctrl/⌘+K on `/admin`
   pages and is lazy-loaded on first use. Its "New game", "New question" and question results
   navigate to `?new=1` or `?edit=<id>`, which the Games and Questions pages read to open their
-  forms.
+  forms; player and team results use `?player=<id>` and `?team=<id>` on Players & Teams.
+  Settings categories come from `components/settings/categories.ts`, shared with the Settings
+  page.
 
 ## Backups and import
 
