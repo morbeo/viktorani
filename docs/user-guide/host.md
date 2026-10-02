@@ -93,6 +93,11 @@ A game contains one or more rounds. Each round is an ordered list of questions.
 3. Click **Add Questions** to search and select questions from your bank.
 4. Drag rows to reorder questions within a round.
 
+You can also build rounds in step 2 of the **New game** wizard: choose **Create new rounds**,
+then **Add round**. Name each round, open its question count to search or filter by tag and
+tick questions, and use the arrows to reorder rounds. Every round needs a name and at least one
+question. The rounds are saved with the game and show up on the Questions page afterwards.
+
 ### Configure the game
 
 The first step of the **New game** wizard holds the game settings.

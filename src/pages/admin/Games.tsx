@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useLiveQuery } from 'dexie-react-hooks'
 import AdminLayout from '@/components/AdminLayout'
 import { Button, Badge, Input, Modal, Empty } from '@/components/ui'
 import { GameSettingsForm } from '@/components/game-settings/GameSettingsForm'
 import { defaultSettings } from '@/components/game-settings/game-settings'
 import type { GameSettings } from '@/components/game-settings/game-settings'
+import { RoundBuilder } from '@/components/games/RoundBuilder'
+import type { DraftRound } from '@/components/games/RoundBuilder'
 import { db } from '@/db'
-import type { Game, Round, TargetVisibility } from '@/db'
+import type { Game, Question, Round, Tag, TargetVisibility } from '@/db'
 import { generateRoomId } from '@/transport'
 import { createGame, cloneGame, deleteGame } from '@/db/games'
 
@@ -20,7 +23,7 @@ interface WizardState extends GameSettings {
   // Step 2
   roundMode: 'existing' | 'custom'
   selectedRoundIds: string[]
-  customRounds: { name: string; questionIds: string[] }[]
+  customRounds: DraftRound[]
 }
 
 const VISIBILITY_FLAGS: Array<{ key: keyof TargetVisibility; label: string }> = [
@@ -117,10 +120,14 @@ function Step2({
   state,
   set,
   rounds,
+  questions,
+  tags,
 }: {
   state: WizardState
   set: (k: keyof WizardState, v: unknown) => void
   rounds: Round[]
+  questions: Question[]
+  tags: Tag[]
 }) {
   function toggleRound(id: string) {
     const ids = state.selectedRoundIds
@@ -236,13 +243,12 @@ function Step2({
       )}
 
       {state.roundMode === 'custom' && (
-        <div
-          className="rounded-lg border p-4 text-sm"
-          style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted)' }}
-        >
-          Custom round builder coming in a future update. For now, create rounds in the Questions
-          page and select them here.
-        </div>
+        <RoundBuilder
+          value={state.customRounds}
+          onChange={r => set('customRounds', r)}
+          questions={questions}
+          tags={tags}
+        />
       )}
     </div>
   )
@@ -253,9 +259,12 @@ function Step2({
 // ─────────────────────────────────────────────────────────────────────────────
 
 function Step3({ state, rounds }: { state: WizardState; rounds: Round[] }) {
-  const selectedRounds = state.selectedRoundIds
-    .map(id => rounds.find(r => r.id === id))
-    .filter(Boolean) as Round[]
+  const selectedRounds: Array<Pick<Round, 'id' | 'name' | 'questionIds'>> =
+    state.roundMode === 'custom'
+      ? state.customRounds
+      : (state.selectedRoundIds
+          .map(id => rounds.find(r => r.id === id))
+          .filter(Boolean) as Round[])
   const totalQ = selectedRounds.reduce((s, r) => s + r.questionIds.length, 0)
 
   const rows = [
@@ -339,6 +348,8 @@ function GameWizard({
   const [step, setStep] = useState(0)
   const [state, setState] = useState<WizardState>(defaultWizard)
   const [saving, setSaving] = useState(false)
+  const questions = useLiveQuery(() => db.questions.orderBy('createdAt').reverse().toArray(), [])
+  const tags = useLiveQuery(() => db.tags.toArray(), [])
 
   function set(key: keyof WizardState, value: unknown) {
     setState(s => ({ ...s, [key]: value }))
@@ -352,15 +363,27 @@ function GameWizard({
     step === 0
       ? state.name.trim().length > 0
       : step === 1
-        ? // The custom round builder is a placeholder (#288); a game needs at least one question
-          state.roundMode === 'existing' &&
-          rounds.some(r => state.selectedRoundIds.includes(r.id) && r.questionIds.length > 0)
+        ? // A game needs at least one question; every new round needs a name and a question
+          state.roundMode === 'existing'
+          ? rounds.some(r => state.selectedRoundIds.includes(r.id) && r.questionIds.length > 0)
+          : state.customRounds.length > 0 &&
+            state.customRounds.every(r => r.name.trim() && r.questionIds.length > 0)
         : true
 
   async function handleCreate() {
     setSaving(true)
     try {
       const now = Date.now()
+      const newRounds: Round[] =
+        state.roundMode === 'custom'
+          ? state.customRounds.map(r => ({
+              id: r.id,
+              name: r.name.trim(),
+              description: '',
+              questionIds: r.questionIds,
+              createdAt: now,
+            }))
+          : []
       const game: Game = {
         id: crypto.randomUUID(),
         name: state.name.trim(),
@@ -374,7 +397,8 @@ function GameWizard({
         allowRejoin: state.allowRejoin,
         requireApproval: state.requireApproval,
         allowPlayerTeams: state.allowPlayerTeams,
-        roundIds: state.selectedRoundIds,
+        roundIds:
+          state.roundMode === 'custom' ? newRounds.map(r => r.id) : state.selectedRoundIds,
         currentRoundIdx: 0,
         currentQuestionIdx: 0,
         buzzerLocked: true,
@@ -386,7 +410,7 @@ function GameWizard({
         createdAt: now,
         updatedAt: now,
       }
-      await createGame(game, rounds)
+      await createGame(game, rounds, newRounds)
 
       onCreated(game.id)
     } finally {
@@ -436,7 +460,15 @@ function GameWizard({
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto px-6 py-3">
           {step === 0 && <Step1 state={state} set={set} update={update} />}
-          {step === 1 && <Step2 state={state} set={set} rounds={rounds} />}
+          {step === 1 && (
+            <Step2
+              state={state}
+              set={set}
+              rounds={rounds}
+              questions={questions ?? []}
+              tags={tags ?? []}
+            />
+          )}
           {step === 2 && <Step3 state={state} rounds={rounds} />}
         </div>
 

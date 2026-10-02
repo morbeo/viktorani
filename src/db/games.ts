@@ -28,9 +28,18 @@ export function buildGameQuestions(
   })
 }
 
-export async function createGame(game: Game, rounds: Round[]): Promise<void> {
-  const gqs = buildGameQuestions(game.id, game.roundIds, rounds)
-  await db.transaction('rw', [db.games, db.gameQuestions], async () => {
+/**
+ * Write a game and its questions. `newRounds` are rounds built in the new-game wizard;
+ * they are saved in the same transaction, so a failure leaves neither them nor the game.
+ */
+export async function createGame(
+  game: Game,
+  rounds: Round[],
+  newRounds: Round[] = []
+): Promise<void> {
+  const gqs = buildGameQuestions(game.id, game.roundIds, [...rounds, ...newRounds])
+  await db.transaction('rw', [db.rounds, db.games, db.gameQuestions], async () => {
+    if (newRounds.length) await db.rounds.bulkAdd(newRounds)
     await db.games.add(game)
     await db.gameQuestions.bulkAdd(gqs)
   })
