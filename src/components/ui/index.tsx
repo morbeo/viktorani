@@ -323,7 +323,7 @@ export function TransportPill({ status, type }: { status: TransportStatus; type:
       ? 'The room is open: players can join and get updates. Their devices connect to this one through PeerJS.'
       : status === 'connecting'
         ? 'Opening the room. Players can join once it is connected.'
-        : 'The room is not open, so players can't join or get updates.'
+        : "The room is not open, so players can't join or get updates."
 
   const label =
     status === 'connected'
