@@ -1,5 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
+import { updateQuestionStatus } from '@/db/games'
 import { transportManager } from '@/transport'
 import { buildNavSequence, getNavPosition, orderRounds, step } from '@/pages/admin/gamemaster-utils'
 import type { Game, GameQuestion } from '@/db'
@@ -18,7 +20,8 @@ export interface UseNavigationResult {
 /**
  * Manages question navigation for an active game session.
  * Loads game questions + rounds once, then exposes prev/next actions
- * that persist to DB and emit SLIDE_CHANGE.
+ * that persist to DB and emit SLIDE_CHANGE. Each entry's `questionStatus` stays live,
+ * and moving forward from a question nobody answered marks it skipped.
  *
  * onRoundBoundary is called (not via setState in effect) whenever
  * navigation crosses into a new round. The callback runs in event-handler
@@ -28,7 +31,7 @@ export function useNavigation(
   game: Game | null,
   onRoundBoundary: (entry: NavEntry) => void = () => {}
 ): UseNavigationResult {
-  const [seq, setSeq] = useState<NavEntry[]>([])
+  const [loadedSeq, setSeq] = useState<NavEntry[]>([])
   const [pos, setPos] = useState<NavPosition | null>(null)
   const [loaded, setLoaded] = useState(false)
 
@@ -61,6 +64,27 @@ export function useNavigation(
     }
   }, [game?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const statuses = useLiveQuery(
+    async () =>
+      game
+        ? new Map(
+            (await db.gameQuestions.where('gameId').equals(game.id).toArray()).map(gq => [
+              gq.id,
+              gq.status,
+            ])
+          )
+        : undefined,
+    [game?.id]
+  )
+  const seq = useMemo(
+    () =>
+      loadedSeq.map(e => {
+        const status = statuses?.get(e.gameQuestionId) ?? e.questionStatus
+        return status === e.questionStatus ? e : { ...e, questionStatus: status }
+      }),
+    [loadedSeq, statuses]
+  )
+
   const navigate = useCallback(
     async (dir: 1 | -1) => {
       if (!game || !pos || seq.length === 0) return
@@ -72,6 +96,7 @@ export function useNavigation(
       const now = Date.now()
 
       // Persist to DB
+      if (dir === 1) await updateQuestionStatus(seq[pos.flatIndex].gameQuestionId, 'left')
       await db.games.update(game.id, {
         currentRoundIdx: nextPos.roundIdx,
         currentQuestionIdx: nextFlat,

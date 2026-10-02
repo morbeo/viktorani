@@ -6,7 +6,13 @@ vi.mock('@/transport', () => ({
 }))
 
 import { db } from '@/db'
-import { createGame, cloneGame, deleteGame } from '@/db/games'
+import {
+  createGame,
+  cloneGame,
+  deleteGame,
+  nextQuestionStatus,
+  updateQuestionStatus,
+} from '@/db/games'
 import type { Game, Round } from '@/db'
 
 const game = {
@@ -86,5 +92,34 @@ describe('deleteGame', () => {
     // Other games are untouched
     expect(await db.gameQuestions.where('gameId').equals('g2').count()).toBe(3)
     expect(await db.widgets.get('w-g2')).toBeDefined()
+  })
+})
+
+describe('nextQuestionStatus', () => {
+  it.each([
+    ['pending', 'Correct', 'correct'],
+    ['incorrect', 'Correct', 'correct'],
+    ['pending', 'Incorrect', 'incorrect'],
+    ['correct', 'Incorrect', 'correct'],
+    ['pending', 'Skip', 'pending'],
+    ['pending', 'left', 'skipped'],
+    ['incorrect', 'left', 'incorrect'],
+    ['skipped', 'Correct', 'correct'],
+  ] as const)('%s + %s → %s', (current, event, expected) => {
+    expect(nextQuestionStatus(current, event)).toBe(expected)
+  })
+})
+
+describe('updateQuestionStatus', () => {
+  it('writes the new status and ignores unknown questions', async () => {
+    await createGame(game, rounds)
+    const [gq] = await db.gameQuestions.where('gameId').equals('g1').sortBy('order')
+
+    await updateQuestionStatus(gq.id, 'Incorrect')
+    expect((await db.gameQuestions.get(gq.id))?.status).toBe('incorrect')
+    await updateQuestionStatus(gq.id, 'left')
+    expect((await db.gameQuestions.get(gq.id))?.status).toBe('incorrect')
+
+    await expect(updateQuestionStatus('missing', 'Correct')).resolves.toBeUndefined()
   })
 })

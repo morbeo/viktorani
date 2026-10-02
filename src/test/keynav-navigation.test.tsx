@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useKeyNav } from '@/hooks/useKeyNav'
 import { useNavigation } from '@/hooks/useNavigation'
+import { updateQuestionStatus } from '@/db/games'
 import type { Game } from '@/db'
 
 describe('useKeyNav', () => {
@@ -102,6 +103,7 @@ const { mockDb, mockTransportManager } = vi.hoisted(() => ({
 
 vi.mock('@/db', () => ({ db: mockDb }))
 vi.mock('@/transport', () => ({ transportManager: mockTransportManager }))
+vi.mock('@/db/games', () => ({ updateQuestionStatus: vi.fn() }))
 
 describe('useNavigation', () => {
   const game: Game = {
@@ -183,6 +185,7 @@ describe('useNavigation', () => {
       await result.current.goNext()
     })
 
+    expect(updateQuestionStatus).toHaveBeenCalledWith('gq1', 'left')
     expect(mockDb.games.update).toHaveBeenCalledWith(
       'g1',
       expect.objectContaining({ currentQuestionIdx: 1 })

@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Icon, useControlSizeStep, pickBySize } from '@/components/ui'
+import type { GameQuestion } from '@/db'
 import type { NavEntry, NavPosition } from '@/pages/admin/gamemaster-utils'
 
 interface NavHeaderProps {
@@ -15,8 +16,11 @@ interface NavHeaderProps {
  * Progress track:
  *   - One pill per round
  *   - Current round: expanded, shows one circle per question
- *     - done: filled --color-positive
  *     - active: larger, filled --color-accent
+ *     - answered correctly: filled --color-positive
+ *     - answered incorrectly: filled --color-negative
+ *     - skipped: filled --color-muted
+ *     - done without a result: filled --color-positive
  *     - todo: hollow border
  *   - Other rounds: collapsed to a fixed-width pill
  *     - done: --color-positive (dimmed)
@@ -103,6 +107,14 @@ interface RoundSummary {
   roundId: string
   roundIdx: number
   questionCount: number
+  /** Each question's status, in order. */
+  statuses: GameQuestion['status'][]
+}
+
+const STATUS_COLOR: Record<Exclude<GameQuestion['status'], 'pending'>, string> = {
+  correct: 'var(--color-positive)',
+  incorrect: 'var(--color-negative)',
+  skipped: 'var(--color-muted)',
 }
 
 function CollapsedRoundPill({ done }: { done: boolean }) {
@@ -130,12 +142,19 @@ function ActiveRoundPill({ round, questionIdx }: { round: RoundSummary; question
       }}
     >
       {Array.from({ length: round.questionCount }, (_, i) => {
-        const done = i < questionIdx
+        const status = round.statuses[i] ?? 'pending'
+        const fill =
+          status !== 'pending'
+            ? STATUS_COLOR[status]
+            : i < questionIdx
+              ? 'var(--color-positive)'
+              : null
         const active = i === questionIdx
 
         return (
           <div
             key={i}
+            title={status === 'pending' ? undefined : `Question ${i + 1}: ${status}`}
             className="rounded-full transition-all duration-200"
             style={
               active
@@ -145,11 +164,11 @@ function ActiveRoundPill({ round, questionIdx }: { round: RoundSummary; question
                     background: 'var(--color-accent)',
                     flexShrink: 0,
                   }
-                : done
+                : fill
                   ? {
                       width: 8,
                       height: 8,
-                      background: 'var(--color-positive)',
+                      background: fill,
                       flexShrink: 0,
                     }
                   : {
@@ -180,9 +199,12 @@ function buildRoundSummaries(seq: NavEntry[]): RoundSummary[] {
         roundId: entry.roundId,
         roundIdx: entry.roundIdx,
         questionCount: 0,
+        statuses: [],
       })
     }
-    seen.get(entry.roundId)!.questionCount++
+    const summary = seen.get(entry.roundId)!
+    summary.questionCount++
+    summary.statuses.push(entry.questionStatus)
   }
   return [...seen.values()].sort((a, b) => a.roundIdx - b.roundIdx)
 }
