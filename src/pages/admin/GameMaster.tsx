@@ -218,10 +218,12 @@ export default function GameMaster() {
       if (newTeam) setTeams(prev => [...prev, newTeam])
       // Closed while saving: keep the player, disconnected
       if (closedRef.current.has(connId)) {
-        await db.players.update(player.id, { presence: 'disconnected' })
         setPlayers(prev =>
           setPlayerPresence(upsertPlayer(prev, player), player.id, 'disconnected')
         )
+        db.players
+          .update(player.id, { presence: 'disconnected' })
+          .catch(err => console.error('[GameMaster] Marking player disconnected failed:', err))
         return
       }
       kickedRef.current.delete(player.id)
