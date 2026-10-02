@@ -305,3 +305,7 @@ Purging all data always asks.
 buttons, control size, sound, timer and game defaults, general settings) to one file;
 **Import JSON** restores them. Backups leave out game logs; download a game's log from its
 **Log** tab instead.
+
+To try things out, **Settings → Data → Load demo data** (or "Load demo data" in the command
+palette, Ctrl/⌘+K) adds sample questions, rounds, teams and a ready-to-run game named
+**Demo Night**. Loading it twice adds nothing.

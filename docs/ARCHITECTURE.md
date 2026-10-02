@@ -357,7 +357,8 @@ buzzes are not included. Import upserts rows by id,
 so existing data with other ids is kept, and a failed write rolls back the whole import.
 `db/snapshot-schema.ts` accepts older backup versions and fills in defaults for fields added
 later, so old backups keep working. Question-only import/export and note files use the same
-module. `db/demo.ts` seeds a demo game from the Settings debug panel.
+module. `db/demo.ts` seeds a demo game; `lib/load-demo.ts` loads it on demand from Settings → Data,
+the command palette ("Load demo data") and the debug page.
 
 ## Testing
 
