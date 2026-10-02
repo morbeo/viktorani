@@ -110,10 +110,9 @@ function usePlayerTimers() {
       )
     }
     if (event.type === 'TIMER_EXPIRED') {
-      // Host controls audio/visual flags via transport; players always get both
-      // (the host already filtered — if this event arrived, players should react)
-      playBeep()
-      setExpired({ id: event.id, label: event.label })
+      // The host says which of the timer's notifications are meant for players
+      if (event.audio) playBeep()
+      if (event.visual) setExpired({ id: event.id, label: event.label })
     }
   }, [])
 
