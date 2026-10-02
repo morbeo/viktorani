@@ -18,6 +18,7 @@ const PlayersTeams = lazy(() => import('@/pages/admin/PlayersTeams'))
 // Pages — Player (lazy-loaded per route)
 const Join = lazy(() => import('@/pages/player/Join'))
 const Play = lazy(() => import('@/pages/player/Play'))
+const RemoteScreen = lazy(() => import('@/pages/screen/RemoteScreen'))
 
 const Loading = () => (
   <div className="flex h-screen items-center justify-center">
@@ -76,6 +77,7 @@ export default function App() {
             <Route path="/join" element={<Join />} />
             <Route path="/join/:roomId" element={<Join />} />
             <Route path="/play/:roomId" element={<Play />} />
+            <Route path="/screen/:roomId" element={<RemoteScreen />} />
             <Route path="*" element={<Navigate to="/admin" replace />} />
           </Routes>
         </Suspense>

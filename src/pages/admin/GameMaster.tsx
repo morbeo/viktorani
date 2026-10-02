@@ -22,6 +22,8 @@ import { TeamManagerPanel } from '@/components/gamemaster/TeamManagerPanel'
 import { GameControls } from '@/components/gamemaster/GameControls'
 import { JoinPolicyPanel } from '@/components/gamemaster/JoinPolicyPanel'
 import { PendingJoinsPanel } from '@/components/gamemaster/PendingJoinsPanel'
+import { ScreensPanel } from '@/components/gamemaster/ScreensPanel'
+import type { ScreensPanelProps } from '@/components/gamemaster/ScreensPanel'
 import { HostQuestionPanel } from '@/components/host/HostQuestionPanel'
 import { db } from '@/db'
 import { transportManager } from '@/transport'
@@ -40,12 +42,19 @@ import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { hostNow, useBuzzer } from '@/hooks/useBuzzer'
 import { useTimerList } from '@/hooks/useTimer'
 import { useGameLifecycle } from '@/hooks/useGameLifecycle'
-import { readScores } from '@/hooks/useScoreboard'
+import { buildScoreEntries, readScores } from '@/hooks/useScoreboard'
 import { PlayerConnections, resolveJoin } from '@/pages/admin/player-connections'
 import type { JoinResult, PendingJoin } from '@/pages/admin/player-connections'
 import { TimerPanel } from '@/components/timer/TimerPanel'
 import type { Game, Player, Team } from '@/db'
-import type { GameEvent, TransportStatus, TransportType, TransportEvent } from '@/transport/types'
+import { MAX_SCOREBOARD_ROWS } from '@/transport/messages'
+import type {
+  GameEvent,
+  ScoreboardRow,
+  TransportStatus,
+  TransportType,
+  TransportEvent,
+} from '@/transport/types'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -82,6 +91,7 @@ interface LobbyProps {
   pendingJoins: PendingJoin[]
   onApproveJoin: (connId: string) => void
   onRejectJoin: (connId: string) => void
+  screens: ScreensPanelProps
 }
 
 function Lobby({
@@ -102,6 +112,7 @@ function Lobby({
   pendingJoins,
   onApproveJoin,
   onRejectJoin,
+  screens,
 }: LobbyProps) {
   const activePlayers = players.filter(p => !p.isAway)
   const canStart = soloBypass || (status === 'connected' && activePlayers.length > 0)
@@ -225,6 +236,7 @@ function Lobby({
             onApprove={onApproveJoin}
             onReject={onRejectJoin}
           />
+          <ScreensPanel {...screens} />
           <RosterPanel players={players} teams={teams} onKick={onKick} />
           <TeamManagerPanel
             game={game}
@@ -310,6 +322,9 @@ interface ActiveGameProps {
   onRejectJoin: (connId: string) => void
   /** Receives the players' content for the current question, or `null` when there is none. */
   onQuestionContent: (content: QuestionContent | null) => void
+  /** Receives the screen's content for the current question, or `null` when there is none. */
+  onScreenContent: (content: QuestionContent | null) => void
+  screens: ScreensPanelProps
 }
 
 type BuzzHandler = ReturnType<typeof useBuzzer>['handleIncomingBuzz']
@@ -324,6 +339,8 @@ function ActiveGame({
   onApproveJoin,
   onRejectJoin,
   onQuestionContent,
+  onScreenContent,
+  screens,
 }: ActiveGameProps) {
   const [showBoundary, setShowBoundary] = useState(false)
   const [boundaryEntry, setBoundaryEntry] = useState<
@@ -361,6 +378,12 @@ function ActiveGame({
   useEffect(() => {
     onQuestionContent(question ? buildQuestionContent(question, 'players', playerVisibility) : null)
   }, [question, playerVisibility, onQuestionContent])
+
+  // Same for approved screens, with the screen's visibility
+  const screenVisibility = game.visibility.screen
+  useEffect(() => {
+    onScreenContent(question ? buildQuestionContent(question, 'screen', screenVisibility) : null)
+  }, [question, screenVisibility, onScreenContent])
 
   const { displayBuzzes, buzzes, toggleLock, adjudicate, clearBuzzes, handleIncomingBuzz } =
     useBuzzer(game, currentQuestionId, onGameChange)
@@ -511,6 +534,7 @@ function ActiveGame({
             />
           )}
           {!isEnded && <JoinPolicyPanel game={game} onGameChange={onGameChange} />}
+          {!isEnded && <ScreensPanel {...screens} />}
 
           {/* Scoreboard — always visible; ScoreboardPanel itself gates on scoringEnabled */}
           <ScoreboardPanel game={game} />
@@ -557,16 +581,24 @@ export default function GameMaster() {
   const joinQueueRef = useRef<Promise<void>>(Promise.resolve())
   // What players may currently see of the question; late joiners get it when admitted
   const questionContentRef = useRef<QuestionContent | null>(null)
+  // Projector screens on other devices: approved ones get broadcasts, screen content and
+  // the scoreboard; pending ones wait for the GM like players do
+  const screensRef = useRef(new Set<string>())
+  const [pendingScreens, setPendingScreens] = useState<string[]>([])
+  const pendingScreensRef = useRef<string[]>([])
+  const screenContentRef = useRef<QuestionContent | null>(null)
+  const scoreboardRef = useRef<ScoreboardRow[]>([])
 
   useEffect(() => {
     gameRef.current = game
   }, [game])
 
-  // Broadcasts (scores, timers, buzzer, navigation) reach admitted players only, never
-  // connections that are still choosing a team or waiting for approval
+  // Broadcasts (scores, timers, buzzer, navigation) reach admitted players and approved
+  // screens only, never connections that are still choosing a team or waiting for approval
   useEffect(() => {
     transportManager.setBroadcastFilter(
-      connId => connectionsRef.current.playerFor(connId) !== undefined
+      connId =>
+        connectionsRef.current.playerFor(connId) !== undefined || screensRef.current.has(connId)
     )
     return () => transportManager.setBroadcastFilter(null)
   }, [])
@@ -574,6 +606,10 @@ export default function GameMaster() {
   useEffect(() => {
     pendingJoinsRef.current = pendingJoins
   }, [pendingJoins])
+
+  useEffect(() => {
+    pendingScreensRef.current = pendingScreens
+  }, [pendingScreens])
 
   // Load game + existing players + teams on mount
   useEffect(() => {
@@ -673,6 +709,38 @@ export default function GameMaster() {
     }
   }, [])
 
+  const handleScreenContent = useCallback((content: QuestionContent | null) => {
+    screenContentRef.current = content
+    if (!content) return
+    for (const connId of screensRef.current) transportManager.sendTo(connId, content)
+  }, [])
+
+  // Names and scores for approved screens, sent whenever they change. Empty when scoring
+  // is off, so the screen hides its scoreboard.
+  const scoreEntries = useLiveQuery(async () => {
+    if (!id) return []
+    const [ps, ts] = await Promise.all([
+      db.players.where('gameId').equals(id).toArray(),
+      db.teams.where('gameId').equals(id).toArray(),
+    ])
+    return buildScoreEntries(ps, ts)
+  }, [id])
+  const scoreboard =
+    game?.scoringEnabled && scoreEntries
+      ? JSON.stringify(
+          scoreEntries
+            .slice(0, MAX_SCOREBOARD_ROWS)
+            .map(e => ({ id: e.id, name: e.name, score: e.score }))
+        )
+      : '[]'
+  useEffect(() => {
+    const rows = JSON.parse(scoreboard) as ScoreboardRow[]
+    scoreboardRef.current = rows
+    for (const connId of screensRef.current) {
+      transportManager.sendTo(connId, { type: 'SCOREBOARD', rows })
+    }
+  }, [scoreboard])
+
   const enqueueJoin = useCallback((task: () => Promise<void>) => {
     const run = joinQueueRef.current.then(task)
     joinQueueRef.current = run.catch(err => console.error('[GameMaster] Join failed:', err))
@@ -712,7 +780,22 @@ export default function GameMaster() {
       const g = gameRef.current
       if (!g) return
 
+      // An approved screen only listens
+      if (screensRef.current.has(from)) return
+
+      if (event.type === 'SCREEN_JOIN') {
+        const isPlayer =
+          connectionsRef.current.playerFor(from) !== undefined ||
+          pendingJoinsRef.current.some(p => p.connId === from)
+        if (isPlayer || pendingScreensRef.current.includes(from)) return
+        setPendingScreens(prev => (prev.includes(from) ? prev : [...prev, from]))
+        transportManager.sendTo(from, { type: 'JOIN_PENDING' })
+        addToast('A screen is waiting for approval', { variant: 'info', durationMs: 4000 })
+        return
+      }
+
       if (event.type === 'JOIN') {
+        if (pendingScreensRef.current.includes(from)) return
         await enqueueJoin(() => handleJoin(event, from))
         return
       }
@@ -749,7 +832,7 @@ export default function GameMaster() {
         }
       }
     },
-    [enqueueJoin, handleJoin]
+    [addToast, enqueueJoin, handleJoin]
   )
 
   useEffect(() => {
@@ -776,6 +859,8 @@ export default function GameMaster() {
   useEffect(() => {
     return transportManager.onPeerClose(connId => {
       setPendingJoins(prev => prev.filter(p => p.connId !== connId))
+      setPendingScreens(prev => prev.filter(c => c !== connId))
+      screensRef.current.delete(connId)
       const playerId = connectionsRef.current.unbindConnection(connId)
       if (!playerId) return
       setPlayers(prev => markPlayerAway(prev, playerId))
@@ -813,6 +898,24 @@ export default function GameMaster() {
     transportManager.sendTo(connId, {
       type: 'JOIN_REJECTED',
       reason: 'The host declined your request',
+    })
+  }, [])
+
+  // Approve a waiting screen and send it what the screen currently shows
+  const handleApproveScreen = useCallback((connId: string) => {
+    if (!pendingScreensRef.current.includes(connId)) return
+    setPendingScreens(prev => prev.filter(c => c !== connId))
+    screensRef.current.add(connId)
+    transportManager.sendTo(connId, { type: 'SCREEN_ACCEPTED' })
+    if (screenContentRef.current) transportManager.sendTo(connId, screenContentRef.current)
+    transportManager.sendTo(connId, { type: 'SCOREBOARD', rows: scoreboardRef.current })
+  }, [])
+
+  const handleRejectScreen = useCallback((connId: string) => {
+    setPendingScreens(prev => prev.filter(c => c !== connId))
+    transportManager.sendTo(connId, {
+      type: 'JOIN_REJECTED',
+      reason: 'The host declined the screen',
     })
   }, [])
 
@@ -928,6 +1031,13 @@ export default function GameMaster() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
+  const screens: ScreensPanelProps = {
+    roomId: game?.roomId ?? null,
+    pending: pendingScreens,
+    onApprove: handleApproveScreen,
+    onReject: handleRejectScreen,
+  }
+
   if (notFound) {
     return (
       <AdminLayout title="Game not found">
@@ -973,6 +1083,7 @@ export default function GameMaster() {
             pendingJoins={pendingJoins}
             onApproveJoin={id => void handleApproveJoin(id)}
             onRejectJoin={handleRejectJoin}
+            screens={screens}
           />
         </ControlSizeContext.Provider>
       </AdminLayout>
@@ -992,6 +1103,8 @@ export default function GameMaster() {
           onApproveJoin={id => void handleApproveJoin(id)}
           onRejectJoin={handleRejectJoin}
           onQuestionContent={handleQuestionContent}
+          onScreenContent={handleScreenContent}
+          screens={screens}
         />
       </ControlSizeContext.Provider>
     </AdminLayout>

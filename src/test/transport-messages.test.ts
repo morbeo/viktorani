@@ -15,6 +15,7 @@ import {
   MAX_NAME_LENGTH,
   MAX_OPTIONS,
   MAX_SCORE_ENTRIES,
+  MAX_SCOREBOARD_ROWS,
   MAX_STATUS_LENGTH,
   MAX_TEXT_LENGTH,
 } from '@/transport/messages'
@@ -90,6 +91,9 @@ const FIXTURES: { [K in TransportEvent['type']]: Extract<TransportEvent, { type:
   },
   LEAVE: { type: 'LEAVE' },
   FOCUS_CHANGE: { type: 'FOCUS_CHANGE', away: true },
+  SCREEN_JOIN: { type: 'SCREEN_JOIN' },
+  SCREEN_ACCEPTED: { type: 'SCREEN_ACCEPTED' },
+  SCOREBOARD: { type: 'SCOREBOARD', rows: [{ id: 'p1', name: 'Ann', score: 10 }] },
 }
 
 const CASES = Object.values(FIXTURES).map(f => [f.type, f] as const)
@@ -313,6 +317,18 @@ describe('size limits', () => {
   it('rejects a huge scores record inside GAME_STATE', () => {
     const state = { ...FIXTURES.GAME_STATE.state, scores: scoresOf(10_000) }
     expect(accepts({ type: 'GAME_STATE', state })).toBe(false)
+  })
+
+  it('accepts a scoreboard at the row limit and rejects one more', () => {
+    const rows = (n: number) =>
+      Array.from({ length: n }, (_, i) => ({ id: `p${i}`, name: 'Ann', score: i }))
+    expect(accepts({ type: 'SCOREBOARD', rows: rows(MAX_SCOREBOARD_ROWS) })).toBe(true)
+    expect(accepts({ type: 'SCOREBOARD', rows: rows(MAX_SCOREBOARD_ROWS + 1) })).toBe(false)
+  })
+
+  it('rejects an oversized scoreboard name', () => {
+    const rows = [{ id: 'p1', name: 'x'.repeat(MAX_NAME_LENGTH + 1), score: 1 }]
+    expect(accepts({ type: 'SCOREBOARD', rows })).toBe(false)
   })
 
   it('rejects an oversized scores key', () => {

@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
 import { transportManager } from '@/transport'
 import { applyScoreDelta } from '@/pages/admin/gamemaster-utils'
-import type { Game } from '@/db'
+import type { Game, Player, Team } from '@/db'
 
 /** A single row in the scoreboard — either a team or an individual player. */
 export interface ScoreEntry {
@@ -51,6 +51,49 @@ export async function readScores(gameId: string): Promise<Record<string, number>
  */
 export async function broadcastScores(gameId: string): Promise<void> {
   transportManager.send({ type: 'SCORE_UPDATE', scores: await readScores(gameId) })
+}
+
+/**
+ * Scoreboard rows, highest score first: one per team with its members, plus players
+ * without a team, or one per player when the game has no teams.
+ */
+export function buildScoreEntries(players: Player[], teams: Team[]): ScoreEntry[] {
+  let entries: ScoreEntry[]
+
+  if (teams.length > 0) {
+    // Team rows with player breakdown
+    const teamEntries: ScoreEntry[] = teams.map(team => {
+      const members = players
+        .filter(p => p.teamId === team.id)
+        .map(p => ({ id: p.id, name: p.name, score: p.score }))
+      return {
+        id: team.id,
+        name: team.name,
+        score: team.score,
+        teamId: team.id,
+        members,
+        kind: 'team',
+      }
+    })
+
+    // Solo players (no team)
+    const soloEntries: ScoreEntry[] = players
+      .filter(p => !p.teamId)
+      .map(p => ({ id: p.id, name: p.name, score: p.score, teamId: null, kind: 'player' }))
+
+    entries = [...teamEntries, ...soloEntries]
+  } else {
+    entries = players.map(p => ({
+      id: p.id,
+      name: p.name,
+      score: p.score,
+      teamId: null,
+      kind: 'player',
+    }))
+  }
+
+  // Sort by score descending
+  return [...entries].sort((a, b) => b.score - a.score)
 }
 
 /**
@@ -111,45 +154,7 @@ export function useScoreboard(game: Game): UseScoreboardResult {
     await broadcastScores(g.id)
   }, [])
 
-  // Build display entries
-  const isTeamMode = teams.length > 0
-
-  let entries: ScoreEntry[]
-
-  if (isTeamMode) {
-    // Team rows with player breakdown
-    const teamEntries: ScoreEntry[] = teams.map(team => {
-      const members = players
-        .filter(p => p.teamId === team.id)
-        .map(p => ({ id: p.id, name: p.name, score: p.score }))
-      return {
-        id: team.id,
-        name: team.name,
-        score: team.score,
-        teamId: team.id,
-        members,
-        kind: 'team',
-      }
-    })
-
-    // Solo players (no team)
-    const soloEntries: ScoreEntry[] = players
-      .filter(p => !p.teamId)
-      .map(p => ({ id: p.id, name: p.name, score: p.score, teamId: null, kind: 'player' }))
-
-    entries = [...teamEntries, ...soloEntries]
-  } else {
-    entries = players.map(p => ({
-      id: p.id,
-      name: p.name,
-      score: p.score,
-      teamId: null,
-      kind: 'player',
-    }))
-  }
-
-  // Sort by score descending
-  entries = [...entries].sort((a, b) => b.score - a.score)
+  const entries = buildScoreEntries(players, teams)
 
   return { entries, adjust, defaultIncrement }
 }
