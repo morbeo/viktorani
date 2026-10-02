@@ -18,7 +18,7 @@ describe('QrScanner', () => {
   })
 
   it('shows unsupported message when BarcodeDetector is not available', () => {
-    vi.stubGlobal('BarcodeDetector', undefined)
+    // jsdom has no BarcodeDetector, so the scanner sees an unsupported browser
     render(<QrScanner onScan={onScan} onError={onError} />)
     expect(screen.getByText(/QR scanning requires Chrome 83\+/i)).toBeInTheDocument()
   })
@@ -111,28 +111,38 @@ describe('QrScanner', () => {
   })
 })
 
-// Hoisted so the vi.mock factory below can use it
-const mockDb = vi.hoisted(() => ({
-  players: {
-    where: vi.fn().mockReturnValue({
-      equals: vi.fn().mockReturnValue({
-        toArray: vi.fn().mockResolvedValue([]),
-      }),
-    }),
-    add: vi.fn().mockResolvedValue('p1'),
-    update: vi.fn().mockResolvedValue(undefined),
-  },
-  teams: {
-    where: vi.fn().mockReturnValue({
-      equals: vi.fn().mockReturnValue({
-        first: vi.fn().mockResolvedValue(null),
-      }),
-    }),
-    add: vi.fn().mockResolvedValue('t1'),
-  },
+// Hoisted so the vi.mock factory below can use them
+const { mockDetectPlayerConflict, mockImportPlayerDirect } = vi.hoisted(() => ({
+  mockDetectPlayerConflict: vi.fn(),
+  mockImportPlayerDirect: vi.fn(),
 }))
 
-vi.mock('@/db', () => ({ db: mockDb }))
+vi.mock('@/components/players-teams/qrImport', () => ({
+  detectPlayerConflict: mockDetectPlayerConflict,
+  importPlayerDirect: mockImportPlayerDirect,
+  applyPlayerMerge: vi.fn(),
+  importTeamQr: vi.fn(),
+}))
+
+const PLAYER_QR = JSON.stringify({
+  type: 'viktorani/player/v1',
+  id: 'p1',
+  name: 'Alice',
+  labels: [],
+})
+
+function stubCamera(rawValue: string) {
+  vi.stubGlobal(
+    'BarcodeDetector',
+    class {
+      detect = vi.fn().mockResolvedValue([{ rawValue }])
+    }
+  )
+  const mockStream = { getTracks: () => [{ stop: vi.fn() }] }
+  vi.stubGlobal('navigator', {
+    mediaDevices: { getUserMedia: vi.fn().mockResolvedValue(mockStream) },
+  })
+}
 
 describe('ScanQrModal', () => {
   const onClose = vi.fn()
@@ -140,7 +150,8 @@ describe('ScanQrModal', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.stubGlobal('BarcodeDetector', undefined)
+    mockDetectPlayerConflict.mockResolvedValue(null)
+    mockImportPlayerDirect.mockResolvedValue('p1')
   })
 
   afterEach(() => {
@@ -162,25 +173,9 @@ describe('ScanQrModal', () => {
     expect(screen.queryByRole('heading', { name: 'Scan QR code' })).not.toBeInTheDocument()
   })
 
-  it('shows processing state', async () => {
-    vi.stubGlobal('BarcodeDetector', class {
-      detect = vi.fn().mockResolvedValue([
-        {
-          rawValue: JSON.stringify({
-            type: 'player',
-            name: 'Alice',
-            score: 0,
-            teamId: null,
-          }),
-        },
-      ])
-    })
-
-    const mockStream = { getTracks: () => [{ stop: vi.fn() }] }
-    vi.stubGlobal('navigator', {
-      mediaDevices: { getUserMedia: vi.fn().mockResolvedValue(mockStream) },
-    })
-
+  it('shows processing state while the import runs', async () => {
+    mockDetectPlayerConflict.mockReturnValue(new Promise(() => {}))
+    stubCamera(PLAYER_QR)
     render(<ScanQrModal open={true} onClose={onClose} onImported={onImported} />)
 
     await waitFor(() => {
@@ -188,69 +183,19 @@ describe('ScanQrModal', () => {
     })
   })
 
-  it('shows done state after successful import', async () => {
-    vi.stubGlobal('BarcodeDetector', class {
-      detect = vi.fn().mockResolvedValue([
-        {
-          rawValue: JSON.stringify({
-            type: 'player',
-            name: 'Alice',
-            score: 0,
-            teamId: null,
-          }),
-        },
-      ])
-    })
-
-    const mockStream = { getTracks: () => [{ stop: vi.fn() }] }
-    vi.stubGlobal('navigator', {
-      mediaDevices: { getUserMedia: vi.fn().mockResolvedValue(mockStream) },
-    })
-
+  it('offers team assignment after a player import', async () => {
+    stubCamera(PLAYER_QR)
     render(<ScanQrModal open={true} onClose={onClose} onImported={onImported} />)
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Player imported' })).toBeInTheDocument()
     })
-  })
-
-  it('shows assign team buttons after player import', async () => {
-    vi.stubGlobal('BarcodeDetector', class {
-      detect = vi.fn().mockResolvedValue([
-        {
-          rawValue: JSON.stringify({
-            type: 'player',
-            name: 'Bob',
-            score: 0,
-            teamId: null,
-          }),
-        },
-      ])
-    })
-
-    const mockStream = { getTracks: () => [{ stop: vi.fn() }] }
-    vi.stubGlobal('navigator', {
-      mediaDevices: { getUserMedia: vi.fn().mockResolvedValue(mockStream) },
-    })
-
-    render(<ScanQrModal open={true} onClose={onClose} onImported={onImported} />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Assign team')).toBeInTheDocument()
-      expect(screen.getByText('Skip')).toBeInTheDocument()
-    })
+    expect(screen.getByRole('button', { name: 'Assign team' })).toBeInTheDocument()
+    expect(onImported).toHaveBeenCalledWith(['p1'])
   })
 
   it('shows error state when scan fails', async () => {
-    vi.stubGlobal('BarcodeDetector', class {
-      detect = vi.fn().mockResolvedValue([{ rawValue: 'invalid' }])
-    })
-
-    const mockStream = { getTracks: () => [{ stop: vi.fn() }] }
-    vi.stubGlobal('navigator', {
-      mediaDevices: { getUserMedia: vi.fn().mockResolvedValue(mockStream) },
-    })
-
+    stubCamera('invalid')
     render(<ScanQrModal open={true} onClose={onClose} onImported={onImported} />)
 
     await waitFor(() => {
@@ -258,32 +203,11 @@ describe('ScanQrModal', () => {
     })
   })
 
-  it('allows scanning another QR after done', async () => {
-    vi.stubGlobal('BarcodeDetector', class {
-      detect = vi.fn().mockResolvedValue([
-        {
-          rawValue: JSON.stringify({
-            type: 'player',
-            name: 'Charlie',
-            score: 0,
-            teamId: null,
-          }),
-        },
-      ])
-    })
-
-    const mockStream = { getTracks: () => [{ stop: vi.fn() }] }
-    vi.stubGlobal('navigator', {
-      mediaDevices: { getUserMedia: vi.fn().mockResolvedValue(mockStream) },
-    })
-
+  it('closes when the team assignment is skipped', async () => {
+    stubCamera(PLAYER_QR)
     render(<ScanQrModal open={true} onClose={onClose} onImported={onImported} />)
 
-    await waitFor(() => {
-      expect(screen.getByText('Assign team')).toBeInTheDocument()
-    })
-
-    await userEvent.click(screen.getByText('Skip'))
+    await userEvent.click(await screen.findByRole('button', { name: 'Skip' }))
     expect(onClose).toHaveBeenCalled()
   })
 })

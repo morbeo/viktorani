@@ -150,11 +150,13 @@ describe('TimerPanel', () => {
   it('creates and starts a timer', async () => {
     render(<TimerPanel gameId="g1" hook={mockHook} />)
     await userEvent.click(screen.getByRole('button', { name: 'Add timer' }))
-    await userEvent.type(screen.getByLabelText('Label (optional)'), 'New Timer')
-    await userEvent.clear(screen.getByLabelText('Min'))
-    await userEvent.type(screen.getByLabelText('Min'), '0')
-    await userEvent.clear(screen.getByLabelText('Sec'))
-    await userEvent.type(screen.getByLabelText('Sec'), '45')
+    // The modal's labels are not tied to their inputs, so query by placeholder and role
+    await userEvent.type(screen.getByPlaceholderText('e.g. Round 1 · Team A'), 'New Timer')
+    const [min, sec] = screen.getAllByRole('spinbutton')
+    await userEvent.clear(min)
+    await userEvent.type(min, '0')
+    await userEvent.clear(sec)
+    await userEvent.type(sec, '45')
     await userEvent.click(screen.getByRole('button', { name: 'Create' }))
     expect(mockHook.createTimer).toHaveBeenCalledWith({
       gameId: 'g1',

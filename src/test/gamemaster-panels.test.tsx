@@ -90,7 +90,7 @@ describe('GameControls', () => {
     render(<GameControls game={mockGame} onGameChange={onChange} lifecycle={mockLifecycle} />)
     await userEvent.click(screen.getByRole('button', { name: 'Pause game' }))
     expect(mockLifecycle.pauseGame).toHaveBeenCalledWith(mockGame)
-    expect(onChange).toHaveBeenCalledWith({ status: 'paused' })
+    expect(onChange).toHaveBeenCalledWith({ status: 'paused', updatedAt: 0 })
   })
 
   it('resumes the game when resume button is clicked', async () => {
@@ -104,7 +104,7 @@ describe('GameControls', () => {
     )
     await userEvent.click(screen.getByRole('button', { name: 'Resume game' }))
     expect(mockLifecycle.resumeGame).toHaveBeenCalledWith({ ...mockGame, status: 'paused' })
-    expect(onChange).toHaveBeenCalledWith({ status: 'active' })
+    expect(onChange).toHaveBeenCalledWith({ status: 'active', updatedAt: 0 })
   })
 
   it('opens end game modal when end button is clicked', async () => {
@@ -112,16 +112,18 @@ describe('GameControls', () => {
       <GameControls game={mockGame} onGameChange={vi.fn()} lifecycle={mockLifecycle} />
     )
     await userEvent.click(screen.getByRole('button', { name: 'End game' }))
-    expect(screen.getByRole('heading', { name: 'End game' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'End game?' })).toBeInTheDocument()
   })
 
   it('ends the game when confirmed', async () => {
     const onChange = vi.fn()
     render(<GameControls game={mockGame} onGameChange={onChange} lifecycle={mockLifecycle} />)
     await userEvent.click(screen.getByRole('button', { name: 'End game' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+    // The toolbar button and the modal's confirm button share the name; the modal's is last
+    const [, confirm] = screen.getAllByRole('button', { name: 'End game' })
+    await userEvent.click(confirm)
     expect(mockLifecycle.endGame).toHaveBeenCalledWith(mockGame)
-    expect(onChange).toHaveBeenCalledWith({ status: 'ended' })
+    expect(onChange).toHaveBeenCalledWith({ status: 'ended', updatedAt: 0 })
   })
 
   it('opens projector screen in a named window', async () => {

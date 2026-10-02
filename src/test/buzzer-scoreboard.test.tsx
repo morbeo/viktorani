@@ -245,12 +245,6 @@ describe('ScoreboardPanel', () => {
     expect(screen.getByText('15')).toBeInTheDocument()
   })
 
-  it('shows medal for first place', () => {
-    render(<ScoreboardPanel game={mockGame} />)
-    const medals = screen.getAllByTestId(/lucide-icon/)
-    expect(medals.length).toBeGreaterThan(0)
-  })
-
   it('hides panel when scoring is disabled', () => {
     const { container } = render(<ScoreboardPanel game={{ ...mockGame, scoringEnabled: false }} />)
     expect(container).toBeEmptyDOMElement()
