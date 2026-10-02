@@ -71,6 +71,11 @@ const STATUS_LABEL: Record<TransportStatus, string> = {
   error: 'Connection error',
 }
 
+// Requests waiting for the GM beyond these are turned away, so a flood of connections
+// cannot fill the lobby
+const MAX_PENDING_JOINS = 100
+const MAX_PENDING_SCREENS = 10
+
 // ── Lobby view ────────────────────────────────────────────────────────────────
 
 interface LobbyProps {
@@ -576,6 +581,8 @@ export default function GameMaster() {
   const pendingJoinsRef = useRef<PendingJoin[]>([])
   // Players kicked this session: their rejoins always wait for approval
   const kickedRef = useRef(new Set<string>())
+  // Connections that have sent a JOIN: they are players and cannot also become screens
+  const joinersRef = useRef(new Set<string>())
   // JOINs and approvals run one at a time so each sees the teams and players saved by
   // the one before (team limits, same-name team reuse)
   const joinQueueRef = useRef<Promise<void>>(Promise.resolve())
@@ -760,7 +767,21 @@ export default function GameMaster() {
       }
       const kicked = result.rejoin && kickedRef.current.has(result.player.id)
       if ((g.requireApproval && !result.rejoin) || kicked) {
-        setPendingJoins(prev => [...prev.filter(p => p.connId !== from), { connId: from, join }])
+        const waiting = pendingJoinsRef.current
+        if (waiting.length >= MAX_PENDING_JOINS && !waiting.some(p => p.connId === from)) {
+          transportManager.sendTo(from, {
+            type: 'JOIN_REJECTED',
+            reason: 'Too many players are waiting. Try again later.',
+          })
+          return
+        }
+        const add = (prev: PendingJoin[]) => [
+          ...prev.filter(p => p.connId !== from),
+          { connId: from, join },
+        ]
+        // Update the ref now too, so the next request sees this one before React renders
+        pendingJoinsRef.current = add(waiting)
+        setPendingJoins(add)
         transportManager.sendTo(from, { type: 'JOIN_PENDING' })
         addToast(`${join.playerName} is waiting for approval`, {
           variant: 'info',
@@ -784,10 +805,15 @@ export default function GameMaster() {
       if (screensRef.current.has(from)) return
 
       if (event.type === 'SCREEN_JOIN') {
-        const isPlayer =
-          connectionsRef.current.playerFor(from) !== undefined ||
-          pendingJoinsRef.current.some(p => p.connId === from)
-        if (isPlayer || pendingScreensRef.current.includes(from)) return
+        if (joinersRef.current.has(from) || pendingScreensRef.current.includes(from)) return
+        if (pendingScreensRef.current.length >= MAX_PENDING_SCREENS) {
+          transportManager.sendTo(from, {
+            type: 'JOIN_REJECTED',
+            reason: 'Too many screens are waiting. Try again later.',
+          })
+          return
+        }
+        pendingScreensRef.current = [...pendingScreensRef.current, from]
         setPendingScreens(prev => (prev.includes(from) ? prev : [...prev, from]))
         transportManager.sendTo(from, { type: 'JOIN_PENDING' })
         addToast('A screen is waiting for approval', { variant: 'info', durationMs: 4000 })
@@ -796,6 +822,7 @@ export default function GameMaster() {
 
       if (event.type === 'JOIN') {
         if (pendingScreensRef.current.includes(from)) return
+        joinersRef.current.add(from)
         await enqueueJoin(() => handleJoin(event, from))
         return
       }
@@ -861,6 +888,7 @@ export default function GameMaster() {
       setPendingJoins(prev => prev.filter(p => p.connId !== connId))
       setPendingScreens(prev => prev.filter(c => c !== connId))
       screensRef.current.delete(connId)
+      joinersRef.current.delete(connId)
       const playerId = connectionsRef.current.unbindConnection(connId)
       if (!playerId) return
       setPlayers(prev => markPlayerAway(prev, playerId))
