@@ -32,6 +32,7 @@ import {
   buildLobbyInfo,
   buildManagedImport,
   buildQuestionContent,
+  canStartGame,
   serialiseGameState,
   upsertPlayer,
   markPlayerAway,
@@ -129,7 +130,11 @@ function Lobby({
   screens,
 }: LobbyProps) {
   const activePlayers = players.filter(p => !p.isAway)
-  const canStart = soloBypass || (status === 'connected' && activePlayers.length > 0)
+  const canStart = canStartGame({
+    transportStatus: status,
+    activePlayers: activePlayers.length,
+    soloBypass,
+  })
   const url = game.roomId ? joinUrl(game.roomId) : ''
   const [copied, setCopied] = useState(false)
 
@@ -346,7 +351,6 @@ function ActiveGame({
   const [boundaryEntry, setBoundaryEntry] = useState<
     import('@/pages/admin/gamemaster-utils').NavEntry | null
   >(null)
-  const [modalOpen] = useState(false)
 
   const handleBoundary = useCallback((entry: import('@/pages/admin/gamemaster-utils').NavEntry) => {
     setBoundaryEntry(entry)
@@ -425,10 +429,9 @@ function ActiveGame({
     }
   }, [buzzHandlerRef, handleIncomingBuzz])
 
-  // Space = toggle buzzer lock (only when no modal open)
+  // Space = toggle buzzer lock
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (modalOpen) return
       if (
         e.code === 'Space' &&
         !(e.target instanceof HTMLInputElement) &&
@@ -440,12 +443,12 @@ function ActiveGame({
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [modalOpen, toggleLock])
+  }, [toggleLock])
 
   useKeyNav({
     onNext: goNext,
     onPrev: goPrev,
-    modalOpen,
+    modalOpen: false,
     enabled: game.status === 'active',
   })
 
