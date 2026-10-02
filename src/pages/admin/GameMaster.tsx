@@ -71,6 +71,11 @@ const STATUS_LABEL: Record<TransportStatus, string> = {
   error: 'Connection error',
 }
 
+// Requests waiting for the GM beyond these are turned away, so a flood of connections
+// cannot fill the lobby
+const MAX_PENDING_JOINS = 100
+const MAX_PENDING_SCREENS = 10
+
 // ── Lobby view ────────────────────────────────────────────────────────────────
 
 interface LobbyProps {
@@ -576,6 +581,10 @@ export default function GameMaster() {
   const pendingJoinsRef = useRef<PendingJoin[]>([])
   // Players kicked this session: their rejoins always wait for approval
   const kickedRef = useRef(new Set<string>())
+  // Connections that have sent a JOIN: they are players and cannot also become screens
+  const joinersRef = useRef(new Set<string>())
+  // Connections whose JOIN is queued or being resolved
+  const resolvingRef = useRef(new Set<string>())
   // JOINs and approvals run one at a time so each sees the teams and players saved by
   // the one before (team limits, same-name team reuse)
   const joinQueueRef = useRef<Promise<void>>(Promise.resolve())
@@ -603,13 +612,17 @@ export default function GameMaster() {
     return () => transportManager.setBroadcastFilter(null)
   }, [])
 
-  useEffect(() => {
-    pendingJoinsRef.current = pendingJoins
-  }, [pendingJoins])
+  // The waiting lists live in refs, so each request sees the ones before it even before
+  // React renders, and are copied to state for rendering
+  const updatePendingJoins = useCallback((next: (prev: PendingJoin[]) => PendingJoin[]) => {
+    pendingJoinsRef.current = next(pendingJoinsRef.current)
+    setPendingJoins(pendingJoinsRef.current)
+  }, [])
 
-  useEffect(() => {
-    pendingScreensRef.current = pendingScreens
-  }, [pendingScreens])
+  const updatePendingScreens = useCallback((next: (prev: string[]) => string[]) => {
+    pendingScreensRef.current = next(pendingScreensRef.current)
+    setPendingScreens(pendingScreensRef.current)
+  }, [])
 
   // Load game + existing players + teams on mount
   useEffect(() => {
@@ -760,7 +773,15 @@ export default function GameMaster() {
       }
       const kicked = result.rejoin && kickedRef.current.has(result.player.id)
       if ((g.requireApproval && !result.rejoin) || kicked) {
-        setPendingJoins(prev => [...prev.filter(p => p.connId !== from), { connId: from, join }])
+        const waiting = pendingJoinsRef.current
+        if (waiting.length >= MAX_PENDING_JOINS && !waiting.some(p => p.connId === from)) {
+          transportManager.sendTo(from, {
+            type: 'JOIN_REJECTED',
+            reason: 'Too many players are waiting. Try again later.',
+          })
+          return
+        }
+        updatePendingJoins(prev => [...prev.filter(p => p.connId !== from), { connId: from, join }])
         transportManager.sendTo(from, { type: 'JOIN_PENDING' })
         addToast(`${join.playerName} is waiting for approval`, {
           variant: 'info',
@@ -770,7 +791,7 @@ export default function GameMaster() {
       }
       await admit(from, result)
     },
-    [addToast, admit]
+    [addToast, admit, updatePendingJoins]
   )
 
   // Subscribe to player JOIN / LEAVE / FOCUS_CHANGE / BUZZ events. The sending player is
@@ -784,19 +805,28 @@ export default function GameMaster() {
       if (screensRef.current.has(from)) return
 
       if (event.type === 'SCREEN_JOIN') {
-        const isPlayer =
-          connectionsRef.current.playerFor(from) !== undefined ||
-          pendingJoinsRef.current.some(p => p.connId === from)
-        if (isPlayer || pendingScreensRef.current.includes(from)) return
-        setPendingScreens(prev => (prev.includes(from) ? prev : [...prev, from]))
+        if (joinersRef.current.has(from) || pendingScreensRef.current.includes(from)) return
+        if (pendingScreensRef.current.length >= MAX_PENDING_SCREENS) {
+          transportManager.sendTo(from, {
+            type: 'JOIN_REJECTED',
+            reason: 'Too many screens are waiting. Try again later.',
+          })
+          return
+        }
+        updatePendingScreens(prev => [...prev, from])
         transportManager.sendTo(from, { type: 'JOIN_PENDING' })
         addToast('A screen is waiting for approval', { variant: 'info', durationMs: 4000 })
         return
       }
 
       if (event.type === 'JOIN') {
-        if (pendingScreensRef.current.includes(from)) return
-        await enqueueJoin(() => handleJoin(event, from))
+        // One JOIN per connection at a time: more would only queue up database lookups
+        if (pendingScreensRef.current.includes(from) || resolvingRef.current.has(from)) return
+        joinersRef.current.add(from)
+        resolvingRef.current.add(from)
+        await enqueueJoin(() => handleJoin(event, from)).finally(() =>
+          resolvingRef.current.delete(from)
+        )
         return
       }
 
@@ -832,7 +862,7 @@ export default function GameMaster() {
         }
       }
     },
-    [addToast, enqueueJoin, handleJoin]
+    [addToast, enqueueJoin, handleJoin, updatePendingScreens]
   )
 
   useEffect(() => {
@@ -858,9 +888,10 @@ export default function GameMaster() {
   // A dropped connection marks its player away; they can rejoin from the same device
   useEffect(() => {
     return transportManager.onPeerClose(connId => {
-      setPendingJoins(prev => prev.filter(p => p.connId !== connId))
-      setPendingScreens(prev => prev.filter(c => c !== connId))
+      updatePendingJoins(prev => prev.filter(p => p.connId !== connId))
+      updatePendingScreens(prev => prev.filter(c => c !== connId))
       screensRef.current.delete(connId)
+      joinersRef.current.delete(connId)
       const playerId = connectionsRef.current.unbindConnection(connId)
       if (!playerId) return
       setPlayers(prev => markPlayerAway(prev, playerId))
@@ -868,7 +899,7 @@ export default function GameMaster() {
         .update(playerId, { isAway: true })
         .catch(err => console.error('[GameMaster] Marking player away failed:', err))
     })
-  }, [])
+  }, [updatePendingJoins, updatePendingScreens])
 
   // Approve a queued join. The policy is checked again against the current game and teams,
   // which may have changed while the player waited.
@@ -877,7 +908,7 @@ export default function GameMaster() {
       const g = gameRef.current
       const pending = pendingJoinsRef.current.find(p => p.connId === connId)
       if (!g || !pending) return
-      setPendingJoins(prev => prev.filter(p => p.connId !== connId))
+      updatePendingJoins(prev => prev.filter(p => p.connId !== connId))
       await enqueueJoin(async () => {
         const result = await resolveJoin(gameRef.current ?? g, pending.join)
         if (result.status === 'rejected') {
@@ -890,34 +921,34 @@ export default function GameMaster() {
         await admit(connId, result)
       })
     },
-    [addToast, admit, enqueueJoin]
+    [addToast, admit, enqueueJoin, updatePendingJoins]
   )
 
   const handleRejectJoin = useCallback((connId: string) => {
-    setPendingJoins(prev => prev.filter(p => p.connId !== connId))
+    updatePendingJoins(prev => prev.filter(p => p.connId !== connId))
     transportManager.sendTo(connId, {
       type: 'JOIN_REJECTED',
       reason: 'The host declined your request',
     })
-  }, [])
+  }, [updatePendingJoins])
 
   // Approve a waiting screen and send it what the screen currently shows
   const handleApproveScreen = useCallback((connId: string) => {
     if (!pendingScreensRef.current.includes(connId)) return
-    setPendingScreens(prev => prev.filter(c => c !== connId))
+    updatePendingScreens(prev => prev.filter(c => c !== connId))
     screensRef.current.add(connId)
     transportManager.sendTo(connId, { type: 'SCREEN_ACCEPTED' })
     if (screenContentRef.current) transportManager.sendTo(connId, screenContentRef.current)
     transportManager.sendTo(connId, { type: 'SCOREBOARD', rows: scoreboardRef.current })
-  }, [])
+  }, [updatePendingScreens])
 
   const handleRejectScreen = useCallback((connId: string) => {
-    setPendingScreens(prev => prev.filter(c => c !== connId))
+    updatePendingScreens(prev => prev.filter(c => c !== connId))
     transportManager.sendTo(connId, {
       type: 'JOIN_REJECTED',
       reason: 'The host declined the screen',
     })
-  }, [])
+  }, [updatePendingScreens])
 
   // Kick player — mark as away in DB + state, broadcast updated game state
   const handleKick = useCallback(async (playerId: string) => {
