@@ -36,7 +36,7 @@ const FIXTURES: { [K in TransportEvent['type']]: Extract<TransportEvent, { type:
   TIMER_PAUSE: { type: 'TIMER_PAUSE', id: 't1' },
   TIMER_RESUME: { type: 'TIMER_RESUME', id: 't1' },
   TIMER_RESET: { type: 'TIMER_RESET', id: 't1', duration: 60 },
-  TIMER_EXPIRED: { type: 'TIMER_EXPIRED', id: 't1', label: 'Round' },
+  TIMER_EXPIRED: { type: 'TIMER_EXPIRED', id: 't1', label: 'Round', audio: true, visual: false },
   GAME_STATE: {
     type: 'GAME_STATE',
     state: {

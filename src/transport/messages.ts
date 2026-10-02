@@ -89,6 +89,8 @@ export const GameEventSchemas = {
     type: z.literal('TIMER_EXPIRED'),
     id,
     label,
+    audio: z.boolean(),
+    visual: z.boolean(),
   }),
   GAME_STATE: z.strictObject({ type: z.literal('GAME_STATE'), state: SerializedGameStateSchema }),
   VISIBILITY: z.strictObject({

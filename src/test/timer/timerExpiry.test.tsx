@@ -228,14 +228,31 @@ describe('useTimerExpiry', () => {
     beepSpy.mockRestore()
   })
 
-  it('emits TIMER_EXPIRED transport event on expiry', () => {
+  it('emits TIMER_EXPIRED with the notifications meant for players', () => {
     const onExpire = vi.fn()
-    const timer = makeTimer({ paused: false, startedAt: 55555, label: 'Finals' })
+    const timer = makeTimer({
+      paused: false,
+      startedAt: 55555,
+      label: 'Finals',
+      audioNotify: 'both',
+      visualNotify: 'host',
+    })
     const remaining = vi.fn().mockReturnValue(0)
     renderHook(() => useTimerExpiry([timer], remaining, onExpire))
-    expect(transportManager.send).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'TIMER_EXPIRED', id: timer.id, label: 'Finals' })
-    )
+    expect(transportManager.send).toHaveBeenCalledWith({
+      type: 'TIMER_EXPIRED',
+      id: timer.id,
+      label: 'Finals',
+      audio: true,
+      visual: false,
+    })
+  })
+
+  it('sends no TIMER_EXPIRED when no notification is meant for players', () => {
+    vi.mocked(transportManager.send).mockClear()
+    const timer = makeTimer({ paused: false, startedAt: 44444, visualNotify: 'host' })
+    renderHook(() => useTimerExpiry([timer], vi.fn().mockReturnValue(0), vi.fn()))
+    expect(transportManager.send).not.toHaveBeenCalled()
   })
 })
 

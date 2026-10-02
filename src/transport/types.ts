@@ -37,7 +37,8 @@ export type GameEvent =
   /** Resets the named timer to its full duration, paused. */
   | { type: 'TIMER_RESET'; id: string; duration: number }
   /** Notifies players that a timer has reached zero. */
-  | { type: 'TIMER_EXPIRED'; id: string; label: string }
+  /** `audio` and `visual` say whether players should beep and show the expiry popup. */
+  | { type: 'TIMER_EXPIRED'; id: string; label: string; audio: boolean; visual: boolean }
   /** Full game-state snapshot sent to newly connected players. */
   | { type: 'GAME_STATE'; state: SerializedGameState }
   /** Toggles which parts of the current question are revealed on one target. */
