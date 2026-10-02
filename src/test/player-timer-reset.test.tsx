@@ -36,3 +36,14 @@ describe('PlayerTimers — TIMER_RESET (#285)', () => {
     expect(screen.getByText('01:00')).toBeInTheDocument()
   })
 })
+
+describe('PlayerTimers — TIMER_EXPIRED', () => {
+  it('shows the popup only when the host asks for it', () => {
+    render(<PlayerTimers />)
+    emit({ type: 'TIMER_EXPIRED', id: 't1', label: 'Q', audio: false, visual: false })
+    expect(screen.queryByText("Time's up!")).toBeNull()
+
+    emit({ type: 'TIMER_EXPIRED', id: 't1', label: 'Q', audio: false, visual: true })
+    expect(screen.getByText("Time's up!")).toBeInTheDocument()
+  })
+})
