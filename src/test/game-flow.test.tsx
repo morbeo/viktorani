@@ -293,6 +293,21 @@ describe('game flow', () => {
     }
   }, 20_000)
 
+  it('does not admit a connection that closed while its join was queued', async () => {
+    await seedGame()
+    const { db } = await import('@/db')
+    const host = await mountSide('host', '/admin/game/g1')
+    await host.waitFor(() => expect(hub.state.host).not.toBeNull())
+
+    const { client } = await connectClient()
+    client.send(JOIN)
+    client.disconnect()
+    await new Promise(r => setTimeout(r, 300))
+
+    expect(await db.players.where('gameId').equals('g1').count()).toBe(0)
+    expect(host.view.queryByText('Bob')).toBeNull()
+  }, 20_000)
+
   it('ignores buzzes while the game is paused', async () => {
     await seedGame()
     const { db } = await import('@/db')

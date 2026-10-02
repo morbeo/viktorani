@@ -593,6 +593,8 @@ export default function GameMaster() {
   const joinersRef = useRef(new Set<string>())
   // Connections whose JOIN is queued or being resolved
   const resolvingRef = useRef(new Set<string>())
+  // Connections that have closed: a JOIN or approval still queued for one must not admit it
+  const closedRef = useRef(new Set<string>())
   // JOINs and approvals run one at a time so each sees the teams and players saved by
   // the one before (team limits, same-name team reuse)
   const joinQueueRef = useRef<Promise<void>>(Promise.resolve())
@@ -705,11 +707,18 @@ export default function GameMaster() {
   const admit = useCallback(
     async (connId: string, result: Extract<JoinResult, { status: 'accepted' }>) => {
       const { player, newTeam } = result
+      if (closedRef.current.has(connId)) return
       await db.transaction('rw', db.teams, db.players, async () => {
         if (newTeam) await db.teams.add(newTeam)
         await db.players.put(player)
       })
       if (newTeam) setTeams(prev => [...prev, newTeam])
+      // Closed while saving: keep the player, away and without a connection
+      if (closedRef.current.has(connId)) {
+        await db.players.update(player.id, { isAway: true })
+        setPlayers(prev => upsertPlayer(prev, { ...player, isAway: true }))
+        return
+      }
       kickedRef.current.delete(player.id)
       connectionsRef.current.bind(connId, player.id)
       setPlayers(prev => upsertPlayer(prev, player))
@@ -909,6 +918,7 @@ export default function GameMaster() {
   // A dropped connection marks its player away; they can rejoin from the same device
   useEffect(() => {
     return transportManager.onPeerClose(connId => {
+      closedRef.current.add(connId)
       updatePendingJoins(prev => prev.filter(p => p.connId !== connId))
       updatePendingScreens(prev => prev.filter(c => c !== connId))
       screensRef.current.delete(connId)
