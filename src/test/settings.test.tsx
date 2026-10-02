@@ -181,6 +181,8 @@ describe('ManageDifficulties', () => {
       fireEvent.change(nameInput, { target: { value: name } })
       fireEvent.click(screen.getByRole('button', { name: /save/i }))
       await waitFor(() => screen.getByText(name))
+      // The live list can show the new name before the add form closes; "+ Add" is back only then
+      await screen.findByRole('button', { name: /add/i })
     }
 
     const all = await db.difficulties.orderBy('order').toArray()

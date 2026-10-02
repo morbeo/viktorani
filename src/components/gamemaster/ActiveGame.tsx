@@ -1,17 +1,30 @@
 import { useEffect, useState, useCallback, useMemo, useRef, type RefObject } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ArrowLeft, ArrowRight, Lock, LockOpen, Pause, Play, Trophy } from 'lucide-react'
+import {
+  ArrowLeft,
+  ArrowRight,
+  Lock,
+  LockOpen,
+  MessageSquare,
+  Pause,
+  Play,
+  Trophy,
+  Users,
+} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { NavHeader } from '@/components/NavHeader'
 import { RoundBoundary } from '@/components/RoundBoundary'
 import { BuzzerPanel } from '@/components/buzzer/BuzzerPanel'
 import { ScoreboardPanel } from '@/components/scoreboard/ScoreboardPanel'
 import { GameControls } from '@/components/gamemaster/GameControls'
 import { PendingJoinsPanel } from '@/components/gamemaster/PendingJoinsPanel'
+import { RosterPanel } from '@/components/gamemaster/RosterPanel'
 import { ScreensPanel } from '@/components/gamemaster/ScreensPanel'
 import type { ScreensPanelProps } from '@/components/gamemaster/ScreensPanel'
 import { MessagePanel } from '@/components/gamemaster/MessagePanel'
 import type { MessagePanelProps } from '@/components/gamemaster/MessagePanel'
 import { HostQuestionPanel } from '@/components/host/HostQuestionPanel'
+import { Icon } from '@/components/ui'
 import { db } from '@/db'
 import { buildQuestionContent } from '@/pages/admin/gamemaster-utils'
 import { useNavigation } from '@/hooks/useNavigation'
@@ -22,7 +35,7 @@ import type { PendingJoin } from '@/pages/admin/player-connections'
 import { TimerPanel } from '@/components/timer/TimerPanel'
 import { useRegisterCommands } from '@/components/command-palette/commands'
 import type { Command } from '@/components/command-palette/commands'
-import type { Game, GmDecision } from '@/db'
+import type { Game, GmDecision, Player, Team } from '@/db'
 import { updateQuestionStatus } from '@/db/games'
 import type { GameEvent } from '@/transport/types'
 
@@ -34,6 +47,9 @@ export interface ActiveGameProps {
   pendingJoins: PendingJoin[]
   onApproveJoin: (connId: string) => void
   onRejectJoin: (connId: string) => void
+  players: Player[]
+  teams: Team[]
+  onKick: (playerId: string) => void
   /** Receives the players' content for the current question, or `null` when there is none. */
   onQuestionContent: (content: QuestionContent | null) => void
   /** Receives the screen's content for the current question, or `null` when there is none. */
@@ -45,6 +61,66 @@ export interface ActiveGameProps {
 export type BuzzHandler = ReturnType<typeof useBuzzer>['handleIncomingBuzz']
 export type QuestionContent = Extract<GameEvent, { type: 'QUESTION_CONTENT' }>
 
+type SideTab = 'people' | 'messages' | 'scoreboard'
+type TabId = 'play' | SideTab
+
+const TABS: Record<TabId, { label: string; icon: LucideIcon }> = {
+  play: { label: 'Play', icon: Play },
+  people: { label: 'People', icon: Users },
+  messages: { label: 'Messages', icon: MessageSquare },
+  scoreboard: { label: 'Scoreboard', icon: Trophy },
+}
+
+interface HostTabsProps {
+  label: string
+  tabs: TabId[]
+  selected: TabId
+  /** Count shown on the People tab: joins and screens waiting for approval. */
+  waiting: number
+  onSelect: (tab: TabId) => void
+  className: string
+}
+
+function HostTabs({ label, tabs, selected, waiting, onSelect, className }: HostTabsProps) {
+  return (
+    <div
+      role="tablist"
+      aria-label={label}
+      className={`border-b shrink-0 ${className}`}
+      style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
+    >
+      {tabs.map(id => {
+        const active = id === selected
+        return (
+          <button
+            key={id}
+            role="tab"
+            aria-selected={active}
+            aria-controls={`host-panel-${id}`}
+            onClick={() => onSelect(id)}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium"
+            style={{
+              color: active ? 'var(--color-gold)' : 'var(--color-muted)',
+              borderBottom: active ? '2px solid var(--color-gold)' : '2px solid transparent',
+            }}
+          >
+            <Icon icon={TABS[id].icon} size="sm" />
+            {TABS[id].label}
+            {id === 'people' && waiting > 0 && (
+              <span
+                className="text-xs font-semibold px-1.5 rounded-full"
+                style={{ background: 'var(--color-gold)', color: '#fff' }}
+              >
+                {waiting}
+              </span>
+            )}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 export function ActiveGame({
   game,
   onGameChange,
@@ -53,12 +129,18 @@ export function ActiveGame({
   pendingJoins,
   onApproveJoin,
   onRejectJoin,
+  players,
+  teams,
+  onKick,
   onQuestionContent,
   onScreenContent,
   screens,
   messages,
 }: ActiveGameProps) {
   const [showBoundary, setShowBoundary] = useState(false)
+  // Narrow screens show either the play column or the side panel; wide screens show both
+  const [view, setView] = useState<'play' | 'side'>('play')
+  const [sideTab, setSideTab] = useState<SideTab>('people')
   const [boundaryEntry, setBoundaryEntry] = useState<
     import('@/pages/admin/gamemaster-utils').NavEntry | null
   >(null)
@@ -163,8 +245,16 @@ export function ActiveGame({
     enabled: game.status === 'active',
   })
 
+  const selectTab = useCallback((tab: TabId) => {
+    if (tab === 'play') {
+      setView('play')
+    } else {
+      setView('side')
+      setSideTab(tab)
+    }
+  }, [])
+
   // Game commands for the command palette
-  const scoreboardRef = useRef<HTMLDivElement>(null)
   const { timers, startTimer, pauseTimer, resumeTimer } = timerHook
   const commands = useMemo<Command[]>(() => {
     const showScoreboard: Command = {
@@ -173,7 +263,7 @@ export function ActiveGame({
       group: 'Game',
       icon: Trophy,
       keywords: 'scores',
-      run: () => scoreboardRef.current?.scrollIntoView({ behavior: 'smooth' }),
+      run: () => selectTab('scoreboard'),
     }
     if (game.status === 'ended') return [showScoreboard]
     return [
@@ -228,6 +318,7 @@ export function ActiveGame({
     startTimer,
     pauseTimer,
     resumeTimer,
+    selectTab,
   ])
   useRegisterCommands('active-game', commands)
 
@@ -252,6 +343,9 @@ export function ActiveGame({
   if (!pos) return null
 
   const isEnded = game.status === 'ended'
+  const sideTabs: SideTab[] = isEnded ? ['scoreboard'] : ['people', 'messages', 'scoreboard']
+  const activeSide = isEnded ? 'scoreboard' : sideTab
+  const waiting = pendingJoins.length + screens.pending.length
 
   return (
     <div className="flex flex-col h-full -mx-8 -my-6" style={{ height: 'calc(100vh - 64px)' }}>
@@ -267,69 +361,122 @@ export function ActiveGame({
 
       <NavHeader pos={pos} seq={seq} onPrev={goPrev} onNext={goNext} />
 
-      <div className="flex-1 overflow-y-auto px-8 py-6">
-        <div className="max-w-3xl mx-auto flex flex-col gap-6">
-          {/* Question context */}
-          <div style={{ color: 'var(--color-muted)' }} className="text-sm">
-            {seq[pos.flatIndex]?.roundName} · Q {pos.questionIdx + 1} of {pos.roundQuestions}
-            <span className="ml-3 text-xs">
-              ({pos.flatIndex + 1} / {seq.length} total)
-            </span>
-          </div>
+      <HostTabs
+        label="Host sections"
+        tabs={['play', ...sideTabs]}
+        selected={view === 'play' ? 'play' : activeSide}
+        waiting={waiting}
+        onSelect={selectTab}
+        className="flex lg:hidden"
+      />
 
-          {question && gameQuestion && (
-            <HostQuestionPanel
-              question={question}
-              gameQuestion={gameQuestion}
-              game={game}
-              onGameChange={onGameChange}
-            />
-          )}
-
-          {/* Read-only banner for ended games */}
-          {isEnded && (
-            <div
-              className="px-4 py-3 rounded-lg border text-sm"
-              style={{
-                borderColor: 'var(--color-border)',
-                background: 'var(--color-border)44',
-                color: 'var(--color-muted)',
-              }}
-            >
-              This game has ended. The scoreboard is read-only.
+      <div className="flex-1 min-h-0 flex">
+        {/* Play: what the host uses every few seconds */}
+        <div
+          id="host-panel-play"
+          className={`${view === 'play' ? 'block' : 'hidden'} lg:block flex-1 min-w-0 overflow-y-auto px-8 py-6`}
+        >
+          <div className="max-w-3xl mx-auto flex flex-col gap-6">
+            {/* Question context */}
+            <div style={{ color: 'var(--color-muted)' }} className="text-sm">
+              {seq[pos.flatIndex]?.roundName} · Q {pos.questionIdx + 1} of {pos.roundQuestions}
+              <span className="ml-3 text-xs">
+                ({pos.flatIndex + 1} / {seq.length} total)
+              </span>
             </div>
-          )}
 
-          {/* Buzzer panel — hidden when ended */}
-          {!isEnded && (
-            <BuzzerPanel
-              game={game}
-              questionId={currentQuestionId}
-              buzzes={buzzes}
-              displayBuzzes={displayBuzzes}
-              onToggleLock={() => void toggleLock()}
-              onAdjudicate={(id, decision) => void handleAdjudicate(id, decision)}
-              onClear={() => currentQuestionId && void clearBuzzes(currentQuestionId)}
-            />
-          )}
+            {question && gameQuestion && (
+              <HostQuestionPanel
+                question={question}
+                gameQuestion={gameQuestion}
+                game={game}
+                onGameChange={onGameChange}
+              />
+            )}
 
-          {/* Timers — hidden when ended */}
-          {!isEnded && <TimerPanel gameId={game.id} hook={timerHook} />}
+            {/* Read-only banner for ended games */}
+            {isEnded && (
+              <div
+                className="px-4 py-3 rounded-lg border text-sm"
+                style={{
+                  borderColor: 'var(--color-border)',
+                  background: 'var(--color-border)44',
+                  color: 'var(--color-muted)',
+                }}
+              >
+                This game has ended. The scoreboard is read-only.
+              </div>
+            )}
 
-          {/* Join requests — hidden when ended */}
-          {!isEnded && (
-            <PendingJoinsPanel
-              pending={pendingJoins}
-              onApprove={onApproveJoin}
-              onReject={onRejectJoin}
-            />
-          )}
-          {!isEnded && <ScreensPanel {...screens} />}
-          {!isEnded && <MessagePanel {...messages} />}
+            {/* Buzzer panel — hidden when ended */}
+            {!isEnded && (
+              <BuzzerPanel
+                game={game}
+                questionId={currentQuestionId}
+                buzzes={buzzes}
+                displayBuzzes={displayBuzzes}
+                onToggleLock={() => void toggleLock()}
+                onAdjudicate={(id, decision) => void handleAdjudicate(id, decision)}
+                onClear={() => currentQuestionId && void clearBuzzes(currentQuestionId)}
+              />
+            )}
 
-          {/* Scoreboard — always visible; ScoreboardPanel itself gates on scoringEnabled */}
-          <div ref={scoreboardRef}>
-            <ScoreboardPanel game={game} questionId={currentQuestionId} />
+            {/* Timers — hidden when ended */}
+            {!isEnded && <TimerPanel gameId={game.id} hook={timerHook} />}
+          </div>
+        </div>
+
+        {/* Side panel: people, messages and the scoreboard. Panels stay mounted so
+            drafts and scroll positions survive switching tabs */}
+        <div
+          className={`${view === 'side' ? 'flex' : 'hidden'} lg:flex flex-col flex-1 lg:flex-none lg:w-[26rem] min-w-0 lg:border-l`}
+          style={{ borderColor: 'var(--color-border)' }}
+        >
+          <HostTabs
+            label="Side panel"
+            tabs={sideTabs}
+            selected={activeSide}
+            waiting={waiting}
+            onSelect={selectTab}
+            className="hidden lg:flex"
+          />
+          <div className="flex-1 overflow-y-auto px-4 py-4">
+            {!isEnded && (
+              <div
+                id="host-panel-people"
+                role="tabpanel"
+                aria-label="People"
+                hidden={activeSide !== 'people'}
+                className="flex flex-col gap-4"
+              >
+                <PendingJoinsPanel
+                  pending={pendingJoins}
+                  onApprove={onApproveJoin}
+                  onReject={onRejectJoin}
+                />
+                <ScreensPanel {...screens} />
+                <RosterPanel players={players} teams={teams} onKick={onKick} />
+              </div>
+            )}
+            {!isEnded && (
+              <div
+                id="host-panel-messages"
+                role="tabpanel"
+                aria-label="Messages"
+                hidden={activeSide !== 'messages'}
+              >
+                <MessagePanel {...messages} />
+              </div>
+            )}
+            {/* ScoreboardPanel itself gates on scoringEnabled */}
+            <div
+              id="host-panel-scoreboard"
+              role="tabpanel"
+              aria-label="Scoreboard"
+              hidden={activeSide !== 'scoreboard'}
+            >
+              <ScoreboardPanel game={game} questionId={currentQuestionId} />
+            </div>
           </div>
         </div>
       </div>

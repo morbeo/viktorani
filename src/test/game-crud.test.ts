@@ -50,6 +50,27 @@ describe('createGame', () => {
     await expect(createGame(game, rounds)).rejects.toThrow('boom')
     expect(await db.games.get('g1')).toBeUndefined()
   })
+
+  it('saves new rounds with the game, or neither', async () => {
+    const fresh: Round = {
+      id: 'r9',
+      name: 'New',
+      description: '',
+      questionIds: ['q7'],
+      createdAt: 0,
+    }
+    await createGame({ ...game, roundIds: ['r9'] }, [], [fresh])
+    expect(await db.rounds.get('r9')).toEqual(fresh)
+    const gqs = await db.gameQuestions.where('gameId').equals('g1').toArray()
+    expect(gqs.map(gq => [gq.questionId, gq.roundId])).toEqual([['q7', 'r9']])
+
+    vi.spyOn(db.gameQuestions, 'bulkAdd').mockRejectedValue(new Error('boom'))
+    await expect(
+      createGame({ ...game, id: 'g2', roundIds: ['r8'] }, [], [{ ...fresh, id: 'r8' }])
+    ).rejects.toThrow('boom')
+    expect(await db.rounds.get('r8')).toBeUndefined()
+    expect(await db.games.get('g2')).toBeUndefined()
+  })
 })
 
 describe('cloneGame', () => {
