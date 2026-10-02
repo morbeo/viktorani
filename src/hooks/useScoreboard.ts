@@ -2,7 +2,7 @@ import { useEffect, useCallback, useRef } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
 import { transportManager } from '@/transport'
-import { applyScoreDelta } from '@/pages/admin/gamemaster-utils'
+import { applyScoreDelta, toScore } from '@/pages/admin/gamemaster-utils'
 import type { Game, Player, ScoreChangeReason, ScoreEvent, Team } from '@/db'
 
 /** A single row in the scoreboard — either a team or an individual player. */
@@ -26,7 +26,7 @@ export interface UseScoreboardResult {
    * Persists the change to IndexedDB and broadcasts a `SCORE_UPDATE` event.
    */
   adjust: (id: string, kind: 'player' | 'team', delta: number) => Promise<void>
-  /** Set a player's or team's score to `score` (a whole number, at least 0), then broadcast. */
+  /** Set a player's or team's score to `score` (see `toScore`), then broadcast; ignores NaN. */
   set: (id: string, kind: 'player' | 'team', score: number) => Promise<void>
   /** Suggested increment step — the lowest difficulty point value, or `1` if none configured. */
   defaultIncrement: number
@@ -221,8 +221,10 @@ export function useScoreboard(game: Game, questionId: string | null = null): Use
   )
 
   const set = useCallback(
-    (id: string, kind: 'player' | 'team', score: number) =>
-      update(id, kind, () => Math.max(0, Math.round(score)), 'set'),
+    async (id: string, kind: 'player' | 'team', score: number) => {
+      const to = toScore(score)
+      if (to !== null) await update(id, kind, () => to, 'set')
+    },
     [update]
   )
 
