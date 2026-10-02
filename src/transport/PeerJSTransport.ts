@@ -31,6 +31,8 @@ export class PeerJSTransport implements ITransport {
   private closeHandlers: Array<(connId: string) => void> = []
   private _status: TransportStatus = 'idle'
   private role: 'host' | 'player' = 'host'
+  // Rejects the pending connect() when disconnect() is called before it settles
+  private abortConnect: (() => void) | null = null
 
   get status() {
     return this._status
@@ -48,12 +50,19 @@ export class PeerJSTransport implements ITransport {
       this.peer = new Peer(peerId ?? '', { debug: 0 })
 
       const timeout = setTimeout(() => {
+        this.abortConnect = null
         this.disconnect()
         reject(new Error('PeerJS connection timeout'))
       }, 8000)
 
+      this.abortConnect = () => {
+        clearTimeout(timeout)
+        reject(new DOMException('Transport connect cancelled', 'AbortError'))
+      }
+
       const ready = () => {
         clearTimeout(timeout)
+        this.abortConnect = null
         this._status = 'connected'
         resolve()
       }
@@ -80,6 +89,7 @@ export class PeerJSTransport implements ITransport {
 
       this.peer.on('error', err => {
         clearTimeout(timeout)
+        this.abortConnect = null
         this._status = 'error'
         reject(err)
       })
@@ -108,6 +118,8 @@ export class PeerJSTransport implements ITransport {
   }
 
   disconnect() {
+    this.abortConnect?.()
+    this.abortConnect = null
     this.connections.forEach(c => c.close())
     this.connections.clear()
     this.peer?.destroy()

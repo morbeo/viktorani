@@ -433,6 +433,17 @@ describe('PeerJSTransport', () => {
     expect(t.status).toBe('disconnected')
     vi.useRealTimers()
   })
+
+  it('disconnect during connect rejects the pending connect at once', async () => {
+    const { PeerJSTransport } = await import('@/transport/PeerJSTransport')
+    const t = new PeerJSTransport()
+
+    const connectPromise = t.connect(PEER_HOST_CONFIG)
+    t.disconnect()
+
+    await expect(connectPromise).rejects.toMatchObject({ name: 'AbortError' })
+    expect(MockPeer.lastInstance.destroy).toHaveBeenCalled()
+  })
 })
 
 // ── TransportManager.tryTransport (transport/index.ts lines 64-65) ─────────────
@@ -460,5 +471,34 @@ describe('TransportManager — tryTransport executes connect and stores transpor
 
     expect(manager.status).toBe('connected')
     expect(manager.transportType).toBe('peer')
+  })
+
+  it('disconnect while the host is still connecting releases the peer', async () => {
+    const { TransportManager } = await import('@/transport')
+    const manager = new TransportManager()
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(MockPeer as any).lastInstance = null
+    const connectPromise = manager.connect(PEER_HOST_CONFIG)
+    while (!MockPeer.lastInstance) {
+      await Promise.resolve()
+    }
+    const peer = MockPeer.lastInstance
+    await manager.disconnect()
+
+    await expect(connectPromise).rejects.toMatchObject({ name: 'AbortError' })
+    expect(peer.destroy).toHaveBeenCalled()
+    expect(manager.status).toBe('idle')
+  })
+
+  it('disconnect before the transport module loads cancels the connect', async () => {
+    const { TransportManager } = await import('@/transport')
+    const manager = new TransportManager()
+
+    const connectPromise = manager.connect(PEER_HOST_CONFIG)
+    await manager.disconnect()
+
+    await expect(connectPromise).rejects.toMatchObject({ name: 'AbortError' })
+    expect(manager.status).toBe('idle')
   })
 })
