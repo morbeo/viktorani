@@ -56,7 +56,7 @@ const player: Player = {
   name: 'Alice',
   teamId: null,
   score: 0,
-  isAway: false,
+  presence: 'connected',
   deviceId: 'd1',
   joinedAt: 0,
 }

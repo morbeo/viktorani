@@ -220,7 +220,7 @@ export async function seedDemo(): Promise<void> {
       name,
       teamId: teams[i].id,
       score: 0,
-      isAway: false,
+      presence: 'connected',
       deviceId: crypto.randomUUID(),
       joinedAt: now,
     }))

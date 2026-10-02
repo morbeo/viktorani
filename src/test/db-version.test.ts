@@ -2,7 +2,8 @@
 // Browsers that loaded an earlier deploy hold the app database at Dexie v4 (native
 // IndexedDB version 40 — Dexie multiplies by 10) or at the collapsed v1 (native 10).
 // The current schema must open on top of both without a VersionError.
-// v5 databases (native 50) get the v6 join policy back-fill; v6 ones the v7 visibility move.
+// v5 databases (native 50) get the v6 join policy back-fill; v6 ones the v7 visibility move;
+// v7 ones the v8 move from Player.isAway to Player.presence.
 import { describe, it, expect, afterEach } from 'vitest'
 import 'fake-indexeddb/auto'
 import { db } from '@/db'
@@ -42,7 +43,8 @@ function request<T>(req: IDBRequest<T>): Promise<T> {
 async function seedRawDb(
   nativeVersion: number,
   stores: Record<string, string>,
-  game: Record<string, unknown> = {}
+  game: Record<string, unknown> = {},
+  players: Record<string, unknown>[] = []
 ) {
   const req = indexedDB.open(db.name, nativeVersion)
   req.onupgradeneeded = () => {
@@ -53,7 +55,8 @@ async function seedRawDb(
     }
   }
   const raw = await request(req)
-  const tx = raw.transaction('games', 'readwrite')
+  const tx = raw.transaction(['games', 'players'], 'readwrite')
+  players.forEach(p => tx.objectStore('players').put(p))
   tx.objectStore('games').put({
     id: 'g-old',
     name: 'Old game',
@@ -78,8 +81,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(7)
-    expect(db.backendDB().version).toBe(70)
+    expect(db.verno).toBe(8)
+    expect(db.backendDB().version).toBe(80)
     expect(db.backendDB().objectStoreNames.contains('managedPlayers')).toBe(true)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
     expect(await db.managedLabels.count()).toBe(0)
@@ -90,8 +93,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(7)
-    expect(db.backendDB().version).toBe(70)
+    expect(db.verno).toBe(8)
+    expect(db.backendDB().version).toBe(80)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
   })
 
@@ -126,5 +129,20 @@ describe('Dexie schema version', () => {
 
     const flags = { showQuestion: true, showAnswers: false, showMedia: true }
     expect((await db.games.get('g-old'))?.visibility).toEqual({ players: flags, screen: flags })
+  })
+
+  it('turns isAway into presence on existing players (v8)', async () => {
+    const base = { gameId: 'g-old', name: 'P', teamId: null, score: 0, deviceId: 'd', joinedAt: 1 }
+    await seedRawDb(70, V1_STORES, {}, [
+      { ...base, id: 'p-here', isAway: false },
+      { ...base, id: 'p-away', isAway: true },
+    ])
+
+    await db.open()
+
+    expect(await db.players.get('p-here')).toMatchObject({ presence: 'connected' })
+    const away = await db.players.get('p-away')
+    expect(away).toMatchObject({ presence: 'disconnected' })
+    expect(away).not.toHaveProperty('isAway')
   })
 })

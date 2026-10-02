@@ -38,6 +38,14 @@ export type TimerNotify = 'none' | 'host' | 'players' | 'both'
 export type TimerAutoReset = 'none' | 'question' | 'round' | 'any'
 
 /**
+ * Where a player stands with the host.
+ * `'connected'` — playing; `'hidden'` — connected, but their tab is in the background;
+ * `'disconnected'` — no connection (it dropped, or they never joined from a device);
+ * `'left'` — they pressed Leave; `'kicked'` — the host removed them.
+ */
+export type PlayerPresence = 'connected' | 'hidden' | 'disconnected' | 'left' | 'kicked'
+
+/**
  * Strategy for breaking ties when two buzzes arrive with identical timestamps.
  * Currently only server-arrival order is supported.
  */
@@ -215,8 +223,8 @@ export interface Player {
   /** `null` if the player is not on a team (individual mode). */
   teamId: string | null
   score: number
-  /** `true` when the player's tab is backgrounded (detected via Page Visibility API). */
-  isAway: boolean
+  /** Connection state as the host sees it; see {@link PlayerPresence}. */
+  presence: PlayerPresence
   /** Stable browser-local UUID stored in `localStorage` to deduplicate rejoins. */
   deviceId: string
   joinedAt: number
@@ -422,6 +430,20 @@ export class ViktoraniDB extends Dexie {
             delete g.showQuestion
             delete g.showAnswers
             delete g.showMedia
+          })
+      )
+
+    // Player.isAway became Player.presence. An away player may have left, been kicked or
+    // dropped; without knowing which, they are treated as disconnected.
+    this.version(8)
+      .stores({})
+      .upgrade(tx =>
+        tx
+          .table('players')
+          .toCollection()
+          .modify((p: Partial<Player> & { isAway?: boolean }) => {
+            p.presence ??= p.isAway ? 'disconnected' : 'connected'
+            delete p.isAway
           })
       )
   }

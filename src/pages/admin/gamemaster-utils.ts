@@ -1,4 +1,13 @@
-import type { Game, ManagedPlayer, ManagedTeam, Player, Question, TargetVisibility, Team } from '@/db'
+import type {
+  Game,
+  ManagedPlayer,
+  ManagedTeam,
+  Player,
+  PlayerPresence,
+  Question,
+  TargetVisibility,
+  Team,
+} from '@/db'
 import type { GameEvent, SerializedGameState, VisibilityTarget } from '@/transport/types'
 import {
   MAX_LOBBY_TEAMS,
@@ -127,7 +136,7 @@ export function upsertPlayer(
     teamId: incoming.teamId,
     deviceId: incoming.deviceId,
     score: existing?.score ?? 0,
-    isAway: false,
+    presence: 'connected',
     joinedAt: existing?.joinedAt ?? Date.now(),
   }
   const without = players.filter(p => p.id !== incoming.id)
@@ -135,17 +144,19 @@ export function upsertPlayer(
 }
 
 /**
- * Marks a player as away in a player list. Returns a new array.
+ * Sets a player's presence in a player list. Returns a new array.
  */
-export function markPlayerAway(players: Player[], playerId: string): Player[] {
-  return players.map(p => (p.id === playerId ? { ...p, isAway: true } : p))
+export function setPlayerPresence(
+  players: Player[],
+  playerId: string,
+  presence: PlayerPresence
+): Player[] {
+  return players.map(p => (p.id === playerId ? { ...p, presence } : p))
 }
 
-/**
- * Sets a player's isAway flag (on or off) in a player list. Returns a new array.
- */
-export function setPlayerAway(players: Player[], playerId: string, away: boolean): Player[] {
-  return players.map(p => (p.id === playerId ? { ...p, isAway: away } : p))
+/** True while the player has a connection to the host, whether or not their tab is in view. */
+export function isConnected(player: Player): boolean {
+  return player.presence === 'connected' || player.presence === 'hidden'
 }
 
 /**
@@ -400,7 +411,8 @@ export function buildManagedImport(params: {
         name: mp.name,
         teamId: (teamName && teamIdByName.get(teamName)) || null,
         score: 0,
-        isAway: false,
+        // Added by the host, not joined from a device
+        presence: 'disconnected',
         deviceId: '',
         joinedAt: now + i,
       }
