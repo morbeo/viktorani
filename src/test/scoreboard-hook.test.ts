@@ -84,7 +84,7 @@ describe('useScoreboard', () => {
 
   it('sets a score directly, logs it and broadcasts', async () => {
     const { result } = renderHook(() => useScoreboard(game, 'q1'))
-    await waitFor(() => expect(scoreOf(result, 'p1')).toBe(0))
+    await waitFor(() => expect(scoreOf(result, 't1')).toBe(0))
 
     await act(() => result.current.set('p1', 'player', 12))
 
