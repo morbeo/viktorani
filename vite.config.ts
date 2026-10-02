@@ -106,9 +106,8 @@ export default defineConfig({
       'archives',
       'deploy/',
       'dist/',
-      'e2e/',
       'src/main.tsx',
-      'src/pages/**', // page-level integration — tested via e2e
+      'src/pages/**',
       'src/components/AdminLayout.tsx',
       '**/*.d.ts',
       'vite.config.ts',
@@ -118,7 +117,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json-summary'],
       // Files excluded from coverage entirely (untestable boilerplate,
-      // entry points, or files covered by e2e rather than unit tests).
+      // entry points, or page-level files covered by integration tests).
       exclude: [
         'src/main.tsx',
         'src/pages/**',
