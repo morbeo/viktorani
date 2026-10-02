@@ -495,4 +495,25 @@ describe('HelpTip', () => {
     expect(screen.getByRole('tooltip')).toBeInTheDocument()
     expect(onToggle).not.toHaveBeenCalled()
   })
+
+  it('renders outside clipping containers and opens above a trigger near the bottom', () => {
+    render(
+      <div style={{ overflow: 'auto' }}>
+        <HelpTip label="About Allow rejoin" text={TEXT} />
+      </div>
+    )
+    const trigger = screen.getByRole('button', { name: 'About Allow rejoin' })
+    const bottom = window.innerHeight - 2
+    vi.spyOn(trigger, 'getBoundingClientRect').mockReturnValue({
+      left: 0,
+      width: 16,
+      top: bottom - 16,
+      bottom,
+    } as DOMRect)
+    fireEvent.click(trigger)
+    const tip = screen.getByRole('tooltip')
+    expect(tip.parentElement).toBe(document.body)
+    expect(parseFloat(tip.style.top)).toBeLessThan(bottom - 16)
+    expect(parseFloat(tip.style.left)).toBeGreaterThanOrEqual(8)
+  })
 })
