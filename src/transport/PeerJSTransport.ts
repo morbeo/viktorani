@@ -70,7 +70,11 @@ export class PeerJSTransport implements ITransport {
       })
 
       this.peer.on('connection', conn => {
-        // Host receives player connections
+        // Only the host receives connections; a player talks to the host alone
+        if (config.role !== 'host') {
+          conn.close()
+          return
+        }
         this.setupConnection(conn)
       })
 
