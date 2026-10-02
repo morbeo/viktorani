@@ -6,6 +6,7 @@ import { Button, useToast, ControlSizeContext } from '@/components/ui'
 import type { ControlSize } from '@/components/ui'
 import { TransportBanner } from '@/components/gamemaster/TransportBanner'
 import type { ScreensPanelProps } from '@/components/gamemaster/ScreensPanel'
+import type { MessagePanelProps } from '@/components/gamemaster/MessagePanel'
 import { db } from '@/db'
 import { isAbortError, retry, transportManager } from '@/transport'
 import {
@@ -22,8 +23,12 @@ import { hostNow } from '@/hooks/useBuzzer'
 import { runningTimerEvents } from '@/hooks/useTimer'
 import { useGameLifecycle } from '@/hooks/useGameLifecycle'
 import { buildScoreEntries, readScores } from '@/hooks/useScoreboard'
-import { PlayerConnections, resolveJoin } from '@/pages/admin/player-connections'
-import type { JoinResult, PendingJoin } from '@/pages/admin/player-connections'
+import {
+  PlayerConnections,
+  messageRecipients,
+  resolveJoin,
+} from '@/pages/admin/player-connections'
+import type { JoinResult, MessageTarget, PendingJoin } from '@/pages/admin/player-connections'
 import type { Game, Player, Team } from '@/db'
 import { MAX_SCOREBOARD_ROWS } from '@/transport/messages'
 import type {
@@ -494,6 +499,20 @@ export default function GameMaster() {
     })
   }, [updatePendingScreens])
 
+  const handleSendMessage = useCallback(
+    (target: MessageTarget, text: string | null) => {
+      const recipients = messageRecipients(
+        target,
+        connectionsRef.current,
+        screensRef.current,
+        players
+      )
+      for (const connId of recipients) transportManager.sendTo(connId, { type: 'MESSAGE', text })
+      return recipients.length
+    },
+    [players]
+  )
+
   // Kick player — mark as kicked in DB + state, broadcast updated game state
   const handleKick = useCallback(async (playerId: string) => {
     const g = gameRef.current
@@ -597,6 +616,7 @@ export default function GameMaster() {
     onApprove: handleApproveScreen,
     onReject: handleRejectScreen,
   }
+  const messages: MessagePanelProps = { players, teams, onSend: handleSendMessage }
 
   if (notFound) {
     return (
@@ -655,6 +675,7 @@ export default function GameMaster() {
             onApproveJoin={id => void handleApproveJoin(id)}
             onRejectJoin={handleRejectJoin}
             screens={screens}
+            messages={messages}
           />
         </ControlSizeContext.Provider>
       </AdminLayout>
@@ -677,6 +698,7 @@ export default function GameMaster() {
           onQuestionContent={handleQuestionContent}
           onScreenContent={handleScreenContent}
           screens={screens}
+          messages={messages}
         />
       </ControlSizeContext.Provider>
     </AdminLayout>

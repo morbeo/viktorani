@@ -54,6 +54,41 @@ export class PlayerConnections {
   }
 }
 
+/** Who a host MESSAGE goes to. */
+export type MessageTarget =
+  | { kind: 'everyone' }
+  | { kind: 'players' }
+  | { kind: 'screens' }
+  | { kind: 'team'; teamId: string }
+  | { kind: 'player'; playerId: string }
+
+/**
+ * The connections a host MESSAGE to `target` goes to: admitted players (all, one team's
+ * members as `players` says, or one player) and approved screens.
+ */
+export function messageRecipients(
+  target: MessageTarget,
+  connections: PlayerConnections,
+  screens: Iterable<string>,
+  players: Player[]
+): string[] {
+  const playerConns = connections.connections()
+  switch (target.kind) {
+    case 'everyone':
+      return [...playerConns, ...screens]
+    case 'players':
+      return playerConns
+    case 'screens':
+      return [...screens]
+    case 'team': {
+      const members = new Set(players.filter(p => p.teamId === target.teamId).map(p => p.id))
+      return playerConns.filter(c => members.has(connections.playerFor(c) ?? ''))
+    }
+    case 'player':
+      return playerConns.filter(c => connections.playerFor(c) === target.playerId)
+  }
+}
+
 /** Colours given to teams players create themselves, in creation order. */
 const PLAYER_TEAM_COLORS = ['#e74c3c', '#2ecc71', '#3a57b7', '#f1c40f', '#8e44ad', '#1abc9c']
 

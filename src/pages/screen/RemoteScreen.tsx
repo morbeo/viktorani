@@ -81,7 +81,7 @@ export default function RemoteScreen() {
 
   if (ended && session.status === 'accepted') {
     return (
-      <ScreenView heading="Game over" content={null}>
+      <ScreenView heading="Game over" content={null} message={session.message}>
         <ScreenScores rows={session.rows} />
       </ScreenView>
     )
@@ -119,6 +119,7 @@ export default function RemoteScreen() {
     <ScreenView
       heading={session.gameStatus === 'paused' ? 'Paused' : null}
       content={session.content}
+      message={session.message}
     >
       <PlayerTimers />
       <ScreenScores rows={session.rows} />

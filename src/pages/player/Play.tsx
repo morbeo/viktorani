@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
-import { Button } from '@/components/ui'
+import { X } from 'lucide-react'
+import { Button, Icon } from '@/components/ui'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { useTransportEvents } from '@/hooks/useTransport'
 import { isAbortError, retry, transportManager } from '@/transport'
@@ -8,6 +9,7 @@ import { MAX_NAME_LENGTH } from '@/transport/messages'
 import { PlayerTimers } from '@/components/timer/PlayerTimers'
 import { getDeviceId } from './device-id'
 import { getPlayerSession, startPlayerSession, usePlayerSession } from './player-session'
+import type { PlayerSession } from './player-session'
 import { PlayerQuestion } from './PlayerQuestion'
 
 // ── Main Play page ────────────────────────────────────────────────────────────
@@ -37,7 +39,7 @@ async function rejoin(roomId: string, name: string) {
  * a session (a reload or a shared link), or after losing the host, it reconnects and rejoins
  * by device id, retrying a few times before offering a Reconnect button. Reports
  * tab switches as FOCUS_CHANGE. Follows the host's pause, and shows the final score once
- * the game has ended.
+ * the game has ended. Shows the host's latest message until the player dismisses it.
  */
 export default function Play() {
   const { roomId = '' } = useParams<{ roomId: string }>()
@@ -47,6 +49,7 @@ export default function Play() {
   const session = usePlayerSession()
   const [problem, setProblem] = useState<Problem | null>(null)
   const [buzzed, setBuzzed] = useState(false)
+  const [dismissedMessage, setDismissedMessage] = useState<PlayerSession['message']>(null)
   const startedRef = useRef(false)
   const leftRef = useRef(false)
   const unmountedRef = useRef(false)
@@ -124,6 +127,7 @@ export default function Play() {
   const canBuzz = joined && !paused && !session.buzzerLocked && !buzzed
   const score = session.playerId ? (session.scores[session.playerId] ?? 0) : 0
   const teamScore = session.teamId ? session.scores[session.teamId] : undefined
+  const message = session.message !== dismissedMessage ? session.message : null
 
   return (
     <div
@@ -179,6 +183,30 @@ export default function Play() {
               Leave
             </Button>
           </header>
+
+          {message && (
+            <div
+              className="w-full max-w-sm flex items-start justify-between gap-3 rounded-lg border px-4 py-3"
+              style={{
+                borderColor: 'var(--color-gold)',
+                background: 'var(--color-gold-light)',
+                color: 'var(--color-ink)',
+              }}
+            >
+              <p role="status" className="text-sm whitespace-pre-wrap break-words">
+                <span className="font-semibold">From the host: </span>
+                {message.text}
+              </p>
+              <button
+                type="button"
+                aria-label="Dismiss message"
+                onClick={() => setDismissedMessage(message)}
+                className="shrink-0 rounded hover:bg-black/5"
+              >
+                <Icon icon={X} size="sm" />
+              </button>
+            </div>
+          )}
 
           {ended && <Status text="The game has ended. Thanks for playing!" />}
           {paused && <Status text="The host paused the game." />}

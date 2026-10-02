@@ -9,6 +9,8 @@ import { JoinPolicyPanel } from '@/components/gamemaster/JoinPolicyPanel'
 import { PendingJoinsPanel } from '@/components/gamemaster/PendingJoinsPanel'
 import { ScreensPanel } from '@/components/gamemaster/ScreensPanel'
 import type { ScreensPanelProps } from '@/components/gamemaster/ScreensPanel'
+import { MessagePanel } from '@/components/gamemaster/MessagePanel'
+import type { MessagePanelProps } from '@/components/gamemaster/MessagePanel'
 import { HostQuestionPanel } from '@/components/host/HostQuestionPanel'
 import { db } from '@/db'
 import { buildQuestionContent } from '@/pages/admin/gamemaster-utils'
@@ -35,6 +37,7 @@ export interface ActiveGameProps {
   /** Receives the screen's content for the current question, or `null` when there is none. */
   onScreenContent: (content: QuestionContent | null) => void
   screens: ScreensPanelProps
+  messages: MessagePanelProps
 }
 
 export type BuzzHandler = ReturnType<typeof useBuzzer>['handleIncomingBuzz']
@@ -51,6 +54,7 @@ export function ActiveGame({
   onQuestionContent,
   onScreenContent,
   screens,
+  messages,
 }: ActiveGameProps) {
   const [showBoundary, setShowBoundary] = useState(false)
   const [boundaryEntry, setBoundaryEntry] = useState<
@@ -252,6 +256,7 @@ export function ActiveGame({
           )}
           {!isEnded && <JoinPolicyPanel game={game} onGameChange={onGameChange} />}
           {!isEnded && <ScreensPanel {...screens} />}
+          {!isEnded && <MessagePanel {...messages} />}
 
           {/* Scoreboard — always visible; ScoreboardPanel itself gates on scoringEnabled */}
           <ScoreboardPanel game={game} />

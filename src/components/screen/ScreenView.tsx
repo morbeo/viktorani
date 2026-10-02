@@ -12,17 +12,29 @@ interface ScreenViewProps {
   /** Shown above the question, e.g. the round and question number. */
   heading: string | null
   content: QuestionContent | null
+  /** The host's message to the screens, shown above everything else. */
+  message?: string | null
   /** Timers and scores, below the question. */
   children?: ReactNode
 }
 
 /** The projector layout: the question as far as the screen may show it, then `children`. */
-export function ScreenView({ heading, content, children }: ScreenViewProps) {
+export function ScreenView({ heading, content, message, children }: ScreenViewProps) {
   return (
     <main
       className="min-h-screen px-12 py-10 flex flex-col items-center gap-10 text-center"
       style={{ background: 'var(--color-cream)', color: 'var(--color-ink)' }}
     >
+      {message && (
+        <p
+          role="status"
+          className="w-full max-w-5xl rounded-2xl px-10 py-6 text-4xl font-semibold whitespace-pre-wrap break-words"
+          style={{ background: 'var(--color-ink)', color: 'var(--color-cream)' }}
+        >
+          {message}
+        </p>
+      )}
+
       {heading && (
         <p className="text-2xl" style={{ color: 'var(--color-muted)' }}>{heading}</p>
       )}

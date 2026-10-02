@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { db } from '@/db'
 import type { Game, Player, Team } from '@/db'
 import type { PlayerEvent } from '@/transport/types'
-import { PlayerConnections, resolveJoin } from '@/pages/admin/player-connections'
+import { PlayerConnections, messageRecipients, resolveJoin } from '@/pages/admin/player-connections'
 import { MAX_LOBBY_TEAMS } from '@/transport/messages'
 
 const JOIN: Extract<PlayerEvent, { type: 'JOIN' }> = {
@@ -75,6 +75,38 @@ describe('PlayerConnections', () => {
     c.unbindPlayer('p1')
     expect(c.playerFor('dc1')).toBeUndefined()
     expect(c.playerFor('dc2')).toBe('p2')
+  })
+})
+
+describe('messageRecipients', () => {
+  const c = new PlayerConnections()
+  c.bind('conn-a', 'pa')
+  c.bind('conn-b', 'pb')
+  c.bind('conn-c', 'pc')
+  const screens = new Set(['screen-1'])
+  const players = [
+    player({ id: 'pa', teamId: 't1' }),
+    player({ id: 'pb', teamId: 't1' }),
+    player({ id: 'pc', teamId: 't2' }),
+    player({ id: 'pd', teamId: 't1' }), // not connected
+  ]
+  const to = (target: Parameters<typeof messageRecipients>[0]) =>
+    messageRecipients(target, c, screens, players).sort()
+
+  it('sends to every player and screen, or only one kind', () => {
+    expect(to({ kind: 'everyone' })).toEqual(['conn-a', 'conn-b', 'conn-c', 'screen-1'])
+    expect(to({ kind: 'players' })).toEqual(['conn-a', 'conn-b', 'conn-c'])
+    expect(to({ kind: 'screens' })).toEqual(['screen-1'])
+  })
+
+  it("sends to a team's connected members only", () => {
+    expect(to({ kind: 'team', teamId: 't1' })).toEqual(['conn-a', 'conn-b'])
+    expect(to({ kind: 'team', teamId: 'nobody' })).toEqual([])
+  })
+
+  it('sends to one player, or nobody when they are not connected', () => {
+    expect(to({ kind: 'player', playerId: 'pc' })).toEqual(['conn-c'])
+    expect(to({ kind: 'player', playerId: 'pd' })).toEqual([])
   })
 })
 

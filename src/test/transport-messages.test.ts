@@ -12,6 +12,7 @@ import {
   MAX_LABEL_LENGTH,
   MAX_LOBBY_TEAMS,
   MAX_MEDIA_LENGTH,
+  MAX_MESSAGE_LENGTH,
   MAX_NAME_LENGTH,
   MAX_OPTIONS,
   MAX_SCORE_ENTRIES,
@@ -94,6 +95,7 @@ const FIXTURES: { [K in TransportEvent['type']]: Extract<TransportEvent, { type:
   SCREEN_JOIN: { type: 'SCREEN_JOIN' },
   SCREEN_ACCEPTED: { type: 'SCREEN_ACCEPTED' },
   SCOREBOARD: { type: 'SCOREBOARD', rows: [{ id: 'p1', name: 'Ann', score: 10 }] },
+  MESSAGE: { type: 'MESSAGE', text: 'Two minutes to the next round' },
 }
 
 const CASES = Object.values(FIXTURES).map(f => [f.type, f] as const)
@@ -324,6 +326,12 @@ describe('size limits', () => {
       Array.from({ length: n }, (_, i) => ({ id: `p${i}`, name: 'Ann', score: i }))
     expect(accepts({ type: 'SCOREBOARD', rows: rows(MAX_SCOREBOARD_ROWS) })).toBe(true)
     expect(accepts({ type: 'SCOREBOARD', rows: rows(MAX_SCOREBOARD_ROWS + 1) })).toBe(false)
+  })
+
+  it('accepts a message at the length limit, rejects one longer, and accepts a clear', () => {
+    expect(accepts({ type: 'MESSAGE', text: 'x'.repeat(MAX_MESSAGE_LENGTH) })).toBe(true)
+    expect(accepts({ type: 'MESSAGE', text: 'x'.repeat(MAX_MESSAGE_LENGTH + 1) })).toBe(false)
+    expect(accepts({ type: 'MESSAGE', text: null })).toBe(true)
   })
 
   it('rejects an oversized scoreboard name', () => {
