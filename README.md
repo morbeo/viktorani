@@ -153,10 +153,14 @@ All data lives in **IndexedDB** (via Dexie.js) on the host device. Nothing is se
 any server.
 
 **Collections:** difficulties, tags, questions, rounds, games, teams, players,
-buzzEvents, layouts, widgets, notes, timers, gameQuestions.
+buzzEvents, layouts, widgets, notes, timers, gameQuestions, managedPlayers,
+managedTeams, managedLabels.
 
-**Backup:** export a full JSON snapshot from the Dashboard. Import it on any device to
-restore or share your question bank.
+**Backup:** export a JSON snapshot from **Settings → Data → Export JSON**. Import it on
+any device to restore or share your question bank. It holds difficulties, tags,
+questions, rounds, games, gameQuestions and notes. Live-game data (teams, players,
+buzzEvents, timers, layouts, widgets) and the managed players, teams and labels are not
+included.
 
 ---
 
