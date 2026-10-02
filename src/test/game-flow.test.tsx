@@ -288,4 +288,17 @@ describe('game flow', () => {
       expect(received.map(e => e.type)).toContain('JOIN_PENDING')
     }
   }, 20_000)
+
+  it('an ended game stays offline and admits no one', async () => {
+    await seedGame()
+    const { db } = await import('@/db')
+    await db.games.update('g1', { status: 'ended' })
+
+    const host = await mountSide('host', '/admin/game/g1')
+    await host.waitFor(() => expect(host.view.getByText(/read-only/i)).toBeInTheDocument())
+
+    // The host never registered the room, so a player cannot reach it
+    expect(hub.state.host).toBeNull()
+    await expect(connectClient()).rejects.toThrow('peer-unavailable')
+  }, 20_000)
 })

@@ -646,9 +646,11 @@ export default function GameMaster() {
       .then(ts => setTeams(ts))
   }, [id])
 
-  // Connect transport when game is loaded
+  // Connect transport when a live game is loaded. An ended game stays offline so it
+  // never re-registers the room or admits players and buzzes; restarting it reconnects.
+  const gameEnded = game?.status === 'ended'
   useEffect(() => {
-    if (!game) return
+    if (!game || gameEnded) return
 
     const unsub = transportManager.onStatusChange((s, t) => {
       setStatus(s)
@@ -679,7 +681,7 @@ export default function GameMaster() {
       unsub()
       transportManager.disconnect()
     }
-  }, [game?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [game?.id, gameEnded]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Save an accepted join (and the team it creates), bind the connection and send the
   // player the current state
