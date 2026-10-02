@@ -876,7 +876,7 @@ export default function GameMaster() {
           void handler({
             playerId,
             playerName: player.name,
-            teamId: null, // looked up in useBuzzer
+            teamId: player.teamId,
             timestamp: event.timestamp,
             receivedAt,
           })

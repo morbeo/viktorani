@@ -323,4 +323,27 @@ describe('game flow', () => {
     expect(hub.state.host).toBeNull()
     await expect(connectClient()).rejects.toThrow('peer-unavailable')
   }, 20_000)
+
+  it("records the buzzer's team with the buzz", async () => {
+    await seedGame()
+    const { db } = await import('@/db')
+    // The database is shared with earlier tests: drop their buzzes
+    await db.buzzEvents.clear()
+    const host = await mountSide('host', '/admin/game/g1')
+    await host.waitFor(() => expect(hub.state.host).not.toBeNull())
+
+    const { client, received } = await connectClient()
+    client.send({ ...JOIN, newTeamName: 'Owls' } as TransportEvent)
+    await host.waitFor(
+      () => expect(received.map(e => e.type)).toContain('JOIN_ACCEPTED'),
+      SLOW
+    )
+    client.send({ type: 'BUZZ', timestamp: Date.now() })
+    await host.waitFor(async () => expect(await db.buzzEvents.count()).toBe(1), SLOW)
+
+    const [team] = await db.teams.where('gameId').equals('g1').toArray()
+    const [buzz] = await db.buzzEvents.toArray()
+    expect(team.name).toBe('Owls')
+    expect(buzz.teamId).toBe(team.id)
+  }, 20_000)
 })
