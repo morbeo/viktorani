@@ -33,6 +33,8 @@ export const MAX_OPTIONS = 20
 export const MAX_LOBBY_TEAMS = 100
 /** Max number of rows in a `SCOREBOARD`. */
 export const MAX_SCOREBOARD_ROWS = 500
+/** Max length of a host MESSAGE. */
+export const MAX_MESSAGE_LENGTH = 280
 /** Max length of question media (base64 data URL or remote URL), in characters. */
 export const MAX_MEDIA_LENGTH = 10 * 1024 * 1024
 
@@ -134,6 +136,10 @@ export const GameEventSchemas = {
     type: z.literal('SCOREBOARD'),
     rows: z.array(z.strictObject({ id, name, score: z.number() })).max(MAX_SCOREBOARD_ROWS),
   }),
+  MESSAGE: z.strictObject({
+    type: z.literal('MESSAGE'),
+    text: z.string().max(MAX_MESSAGE_LENGTH).nullable(),
+  }),
 }
 
 /** Schemas for events sent by players to the GameMaster. */
@@ -178,6 +184,7 @@ export const TransportEventSchema = z.discriminatedUnion('type', [
   GameEventSchemas.QUESTION_CONTENT,
   GameEventSchemas.SCREEN_ACCEPTED,
   GameEventSchemas.SCOREBOARD,
+  GameEventSchemas.MESSAGE,
   PlayerEventSchemas.BUZZ,
   PlayerEventSchemas.JOIN,
   PlayerEventSchemas.LEAVE,

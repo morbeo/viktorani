@@ -25,6 +25,8 @@ export interface PlayerSession {
   question: QuestionContent | null
   /** From GAME_STATE and GAME_STATUS; `null` until the host says. */
   gameStatus: GameStatus | null
+  /** The host's latest MESSAGE; a new object per message, so a repeat of the same text is new. */
+  message: { text: string } | null
 }
 
 const INITIAL: PlayerSession = {
@@ -34,6 +36,7 @@ const INITIAL: PlayerSession = {
   scores: {},
   question: null,
   gameStatus: null,
+  message: null,
 }
 
 let session = INITIAL
@@ -69,6 +72,8 @@ export function reduceSession(s: PlayerSession, event: TransportEvent): PlayerSe
       return event.target === 'players' ? { ...s, question: event } : s
     case 'SLIDE_CHANGE':
       return { ...s, question: null }
+    case 'MESSAGE':
+      return { ...s, message: event.text ? { text: event.text } : null }
     default:
       return s
   }

@@ -24,6 +24,7 @@ const EMPTY: PlayerSession = {
   scores: {},
   question: null,
   gameStatus: null,
+  message: null,
 }
 
 function content(target: 'players' | 'screen'): QuestionContent {
@@ -45,6 +46,14 @@ function emit(event: TransportEvent) {
 }
 
 describe('reduceSession', () => {
+  it('keeps the latest host message, as a new object each time, and clears it', () => {
+    const first = reduceSession(EMPTY, { type: 'MESSAGE', text: 'Hi' })
+    expect(first.message).toEqual({ text: 'Hi' })
+    const again = reduceSession(first, { type: 'MESSAGE', text: 'Hi' })
+    expect(again.message).not.toBe(first.message)
+    expect(reduceSession(again, { type: 'MESSAGE', text: null }).message).toBeNull()
+  })
+
   it('follows the game status from GAME_STATE and GAME_STATUS', () => {
     const state = (status: string): TransportEvent => ({
       type: 'GAME_STATE',

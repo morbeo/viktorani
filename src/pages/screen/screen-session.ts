@@ -13,6 +13,8 @@ export interface ScreenSession {
   rows: ScoreboardRow[]
   /** From GAME_STATE and GAME_STATUS; `null` until the host says. */
   gameStatus: GameStatus | null
+  /** The host's latest MESSAGE to the screens; `null` when cleared. */
+  message: string | null
 }
 
 export const INITIAL_SCREEN: ScreenSession = {
@@ -21,6 +23,7 @@ export const INITIAL_SCREEN: ScreenSession = {
   content: null,
   rows: [],
   gameStatus: null,
+  message: null,
 }
 
 /** Drop media the screen must not load (see {@link isSafeMedia}). */
@@ -49,6 +52,8 @@ export function reduceScreen(s: ScreenSession, event: TransportEvent): ScreenSes
       return { ...s, gameStatus: knownStatus(event.state.status, s.gameStatus) }
     case 'GAME_STATUS':
       return { ...s, gameStatus: event.status }
+    case 'MESSAGE':
+      return { ...s, message: event.text || null }
     default:
       return s
   }

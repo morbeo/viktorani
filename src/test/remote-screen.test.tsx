@@ -72,6 +72,12 @@ beforeEach(() => {
 })
 
 describe('reduceScreen', () => {
+  it('keeps the host message and clears it', () => {
+    const s = reduceScreen(INITIAL_SCREEN, { type: 'MESSAGE', text: 'Break: 10 minutes' })
+    expect(s.message).toBe('Break: 10 minutes')
+    expect(reduceScreen(s, { type: 'MESSAGE', text: null }).message).toBeNull()
+  })
+
   it('follows GAME_STATUS', () => {
     const s = reduceScreen(INITIAL_SCREEN, { type: 'GAME_STATUS', status: 'paused' })
     expect(s.gameStatus).toBe('paused')

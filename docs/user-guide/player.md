@@ -71,6 +71,11 @@ updates live after each adjudication. The full ranking is shown on the game's sc
 If the GM starts a countdown timer, it appears on your screen automatically and counts down.
 You cannot pause or reset timers — only the GM can control them.
 
+### Messages from the host
+
+The host can send you a short message. It appears in a banner at the top marked
+**From the host**; tap **×** to dismiss it.
+
 ---
 
 ## 3. Offline / no-device play
