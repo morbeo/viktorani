@@ -675,6 +675,8 @@ export default function GameMaster() {
         roomId: game.roomId ?? '',
       })
       .catch(err => {
+        // Leaving (or remounting) before the room is ready cancels the connect on purpose
+        if (err instanceof DOMException && err.name === 'AbortError') return
         console.error('[GameMaster] Transport connect failed:', err)
       })
 
