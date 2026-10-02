@@ -22,11 +22,12 @@ afterEach(() => {
 })
 
 describe('PlayerTimers — TIMER_START', () => {
-  it('picks up a timer that was already running when the player joined', () => {
+  it('picks up a timer that was already running when the player joined', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(1_000_000)
     render(<PlayerTimers />)
     emit({ type: 'TIMER_START', id: 't1', duration: 60, label: 'Q', remaining: 15 })
-    expect(screen.getByText('00:15')).toBeInTheDocument()
+    // The countdown reads the new timer on the next display tick
+    expect(await screen.findByText('00:15')).toBeInTheDocument()
   })
 })
 
