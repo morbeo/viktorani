@@ -98,6 +98,20 @@ describe('Settings', () => {
     )
   })
 
+  it('saves the delete confirmation and a valid join URL base from General', async () => {
+    renderAt('/admin/settings/general')
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Confirm destructive actions' }))
+    expect(getSettings().confirmDestructive).toBe(false)
+
+    const base = screen.getByLabelText('Player join URL base')
+    fireEvent.change(base, { target: { value: 'ftp://lan' } })
+    expect(base).toHaveAttribute('aria-invalid', 'true')
+    expect(getSettings().joinUrlBase).toBe('')
+    fireEvent.change(base, { target: { value: 'http://192.168.1.20:5173/' } })
+    expect(base).toHaveAttribute('aria-invalid', 'false')
+    expect(getSettings().joinUrlBase).toBe('http://192.168.1.20:5173/')
+  })
+
   it('saves the defaults for new games', async () => {
     renderAt('/admin/settings/game-defaults')
     await userEvent.click(screen.getByRole('radio', { name: 'Pub quiz' }))

@@ -6,6 +6,7 @@ import {
   canStartGame,
   upsertPlayer,
   isConnected,
+  joinUrl,
 } from '@/pages/admin/gamemaster-utils'
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -366,5 +367,21 @@ describe('step', () => {
     const single = [SEQ[0]]
     expect(step(single, 0, 1)).toBe(0)
     expect(step(single, 0, -1)).toBe(0)
+  })
+})
+
+describe('joinUrl', () => {
+  it('uses the current address when no base is set', () => {
+    const { origin, pathname } = window.location
+    expect(joinUrl('ABC234')).toBe(`${origin}${pathname}#/join/ABC234`)
+  })
+
+  it('uses the configured base, without its query or hash', () => {
+    expect(joinUrl('ABC234', 'http://192.168.1.20:5173/quiz/?x=1#old')).toBe(
+      'http://192.168.1.20:5173/quiz/#/join/ABC234'
+    )
+    expect(joinUrl('ABC234', 'https://quiz.example.com')).toBe(
+      'https://quiz.example.com/#/join/ABC234'
+    )
   })
 })

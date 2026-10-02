@@ -16,10 +16,20 @@ export const MAX_TIMER_SECONDS = 99 * 60 + 59
  *   `app-theme`, `action-mode` and `gm-control-size` keys, which are then removed.
  * - **2**: sound (mute, volume) and defaults for new timers. A version 1 entry gets the
  *   defaults for the new fields.
- * - **3**: defaults for new games, including the tiebreaker mode. Older entries get the
- *   built-in game defaults.
+ * - **3**: defaults for new games, including the tiebreaker mode, whether deletes ask
+ *   first, and the base URL for join links. Older entries get the defaults.
  */
 const TimerNotifySchema = z.enum(['none', 'host', 'players', 'both'])
+
+/** True for an absolute http(s) URL. */
+export function isHttpUrl(value: string): boolean {
+  try {
+    const { protocol } = new URL(value)
+    return protocol === 'http:' || protocol === 'https:'
+  } catch {
+    return false
+  }
+}
 
 /** What the new-game wizard starts with. */
 export type GameDefaults = GameSettings & { tiebreakerMode: TiebreakerMode }
@@ -65,6 +75,14 @@ export const AppSettingsSchema = z.object({
   timerVisualNotify: TimerNotifySchema.catch('none'),
   timerAutoReset: z.enum(['none', 'question', 'round', 'any']).catch('none'),
   gameDefaults: GameDefaultsSchema.catch(() => GameDefaultsSchema.parse({})),
+  /** Ask before deleting questions, rounds and games, and before archiving in bulk. */
+  confirmDestructive: z.boolean().catch(true),
+  /** Base URL for the player join link and QR code; empty means the current address. */
+  joinUrlBase: z
+    .string()
+    .trim()
+    .refine(v => v === '' || isHttpUrl(v))
+    .catch(''),
 })
 
 export type AppSettings = z.infer<typeof AppSettingsSchema>

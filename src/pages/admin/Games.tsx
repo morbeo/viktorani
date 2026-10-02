@@ -5,6 +5,7 @@ import AdminLayout from '@/components/AdminLayout'
 import { Button, Badge, Input, Modal, Empty } from '@/components/ui'
 import { GameSettingsForm } from '@/components/game-settings/GameSettingsForm'
 import { getSettings } from '@/lib/app-settings'
+import { useAppSettings } from '@/hooks/useAppSettings'
 import type { GameDefaults } from '@/lib/app-settings'
 import { RoundBuilder } from '@/components/games/RoundBuilder'
 import type { DraftRound } from '@/components/games/RoundBuilder'
@@ -527,6 +528,7 @@ export default function Games() {
   const [params, setParams] = useSearchParams()
   const showWizard = wizard || params.get('new') === '1'
   const [deleting, setDeleting] = useState<Game | null>(null)
+  const [{ confirmDestructive }] = useAppSettings()
 
   function closeWizard() {
     setWizard(false)
@@ -636,7 +638,9 @@ export default function Games() {
                             variant="ghost"
                             size="sm"
                             style={{ color: 'var(--color-red)' }}
-                            onClick={() => setDeleting(game)}
+                            onClick={() =>
+                              confirmDestructive ? setDeleting(game) : void handleDelete(game)
+                            }
                           >
                             Delete
                           </Button>

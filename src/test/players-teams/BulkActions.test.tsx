@@ -4,6 +4,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { act } from 'react'
 import { db } from '@/db'
+import { setSettings } from '@/lib/app-settings'
 import PlayerList from '@/components/players-teams/PlayerList'
 
 async function clearAll() {
@@ -266,6 +267,22 @@ describe('BulkActions — archive', () => {
       const p = await db.managedPlayers.get('p1')
       expect(p?.archivedAt).toBeNull()
     })
+  })
+
+  it('archives without asking when confirmations are off', async () => {
+    await seedPlayers()
+    setSettings({ confirmDestructive: false })
+    try {
+      renderInRouter(<PlayerList />)
+      fireEvent.click(await screen.findByRole('checkbox', { name: /select ana/i }))
+      fireEvent.click(screen.getByRole('button', { name: /archive selected players/i }))
+      await waitFor(async () => {
+        expect((await db.managedPlayers.get('p1'))?.archivedAt).not.toBeNull()
+      })
+      expect(screen.queryByText(/archive players\?/i)).not.toBeInTheDocument()
+    } finally {
+      setSettings({ confirmDestructive: true })
+    }
   })
 
   it('clears selection after archiving', async () => {
