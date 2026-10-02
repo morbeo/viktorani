@@ -44,6 +44,7 @@ export function NavHeader({ pos, seq, onPrev, onNext }: NavHeaderProps) {
         onClick={onPrev}
         disabled={pos.isFirst}
         aria-label="Previous question"
+        title="Previous question (←)"
         className={`${arrowSize} rounded flex items-center justify-center transition-all hover:bg-black/5 disabled:opacity-30 disabled:cursor-not-allowed shrink-0`}
         style={{ color: 'var(--color-ink)' }}
       >
@@ -97,6 +98,7 @@ export function NavHeader({ pos, seq, onPrev, onNext }: NavHeaderProps) {
         onClick={onNext}
         disabled={pos.isLast}
         aria-label="Next question"
+        title="Next question (→)"
         className={`${arrowSize} rounded flex items-center justify-center transition-all hover:bg-black/5 disabled:opacity-30 disabled:cursor-not-allowed shrink-0`}
         style={{ color: 'var(--color-ink)' }}
       >
