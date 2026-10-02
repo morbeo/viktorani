@@ -8,6 +8,7 @@ const Dashboard = lazy(() => import('@/pages/admin/Dashboard'))
 const Questions = lazy(() => import('@/pages/admin/Questions'))
 const Games = lazy(() => import('@/pages/admin/Games'))
 const GameMaster = lazy(() => import('@/pages/admin/GameMaster'))
+const Screen = lazy(() => import('@/pages/admin/Screen'))
 const Layouts = lazy(() => import('@/pages/admin/Layouts'))
 const Notes = lazy(() => import('@/pages/admin/Notes'))
 const NoteDetail = lazy(() => import('@/pages/admin/NoteDetail'))
@@ -66,6 +67,7 @@ export default function App() {
             <Route path="/admin/questions" element={<Questions />} />
             <Route path="/admin/games" element={<Games />} />
             <Route path="/admin/game/:id" element={<GameMaster />} />
+            <Route path="/admin/game/:id/screen" element={<Screen />} />
             <Route path="/admin/layouts/:gameId" element={<Layouts />} />
             <Route path="/admin/players-teams" element={<PlayersTeams />} />
             <Route path="/admin/notes" element={<Notes />} />

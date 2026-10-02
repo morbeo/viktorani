@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pause, Play, Square, ChevronLeft } from 'lucide-react'
+import { Pause, Play, Square, ChevronLeft, Monitor } from 'lucide-react'
 import { Button, Icon, ControlSizePicker } from '@/components/ui'
 import { EndGameModal } from '@/components/gamemaster/EndGameModal'
 import type { Game } from '@/db'
@@ -17,6 +17,7 @@ interface GameControlsProps {
  * Toolbar strip shown at the top of the active-game view.
  *
  * - "Back to games" navigates to /admin/games (always visible).
+ * - "Open screen" opens the projector view in a second window.
  * - Pause / Resume toggle (active ↔ paused).
  * - End game button opens a confirmation modal.
  * - All controls are disabled when the game has ended.
@@ -47,6 +48,12 @@ export function GameControls({ game, onGameChange, lifecycle }: GameControlsProp
     } finally {
       setBusy(false)
     }
+  }
+
+  // A named window, so pressing again brings the same screen back instead of opening another
+  function handleOpenScreen() {
+    const { pathname, search } = window.location
+    window.open(`${pathname}${search}#/admin/game/${game.id}/screen`, `viktorani-screen-${game.id}`)
   }
 
   return (
@@ -93,6 +100,11 @@ export function GameControls({ game, onGameChange, lifecycle }: GameControlsProp
         )}
 
         <ControlSizePicker />
+
+        <Button variant="secondary" size="sm" onClick={handleOpenScreen}>
+          <Icon icon={Monitor} size="sm" />
+          Open screen
+        </Button>
 
         {/* Pause / Resume */}
         {!isEnded && (
