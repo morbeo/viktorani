@@ -114,6 +114,7 @@ beforeEach(async () => {
     db.players.clear(),
     db.teams.clear(),
     db.buzzEvents.clear(),
+    db.scoreEvents.clear(),
     db.questions.clear(),
     db.difficulties.clear(),
     db.gameQuestions.clear(),
@@ -304,6 +305,15 @@ describe('useBuzzer scoring (#246)', () => {
 
     expect((await db.teams.get('t1'))?.score).toBe(5)
     expect(mockSend).toHaveBeenCalledWith({ type: 'SCORE_UPDATE', scores: { p1: 1, t1: 5 } })
+    const logged = await db.scoreEvents.toArray()
+    const correct = { reason: 'correct', questionId: 'q1', gameId: 'g1' }
+    expect(logged).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ ...correct, targetId: 'p1', kind: 'player', from: 0, to: 1 }),
+        expect.objectContaining({ ...correct, targetId: 't1', kind: 'team', from: 4, to: 5 }),
+      ])
+    )
+    expect(logged).toHaveLength(2)
   })
 
   it('GAME_STATE after a correct answer has the new player and team scores (#292)', async () => {

@@ -172,9 +172,13 @@ Reaching the end of a round shows a round-boundary overlay before advancing.
 
 ### Manual score adjustments
 
-The scoreboard panel shows all players/teams with `+` and `−` buttons.
-Click them to apply a one-step delta (defaulting to the lowest difficulty score).
-Score changes are broadcast to players immediately.
+The scoreboard panel is a table of all players/teams, highest score first, with `+` and `−`
+buttons. Click them to apply a one-step delta (defaulting to the lowest difficulty score).
+To set an exact score, click the score, type the new value and press **Enter** (or click
+elsewhere); **Esc** cancels. Score changes are broadcast to players immediately.
+
+Every score change is logged, whether it came from `+`/`−`, a typed score or a correct
+answer. Open **Score history** under the table to see the latest changes, newest first.
 
 ### Sending a message
 

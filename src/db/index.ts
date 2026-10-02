@@ -255,6 +255,26 @@ export interface BuzzEvent {
   decidedAt: number | null
 }
 
+/** Why a score changed: a ± step, a value typed in, or a correct answer. */
+export type ScoreChangeReason = 'step' | 'set' | 'correct'
+
+/** One change to a player's or team's score; together they are a game's score history. */
+export interface ScoreEvent {
+  id: string
+  gameId: string
+  /** The player or team whose score changed. */
+  targetId: string
+  kind: 'player' | 'team'
+  /** The player's or team's name at the time of the change. */
+  name: string
+  from: number
+  to: number
+  reason: ScoreChangeReason
+  /** The question being played, or `null` when none was. */
+  questionId: string | null
+  timestamp: number
+}
+
 /**
  * A named arrangement of {@link Widget}s displayed on the GM screen.
  *
@@ -357,6 +377,8 @@ export interface GameQuestion {
  *   created) without declaring the older versions here.
  * - 6: same stores; back-fills the join policy fields on existing games.
  * - 7: same stores; moves `showQuestion / showAnswers / showMedia` into per-target `visibility`.
+ * - 8: same stores; replaces `Player.isAway` with `Player.presence`.
+ * - 9: adds `scoreEvents`, the log of score changes.
  *
  * To change the schema, add a new `this.version(N + 1)` block below; keep existing blocks.
  */
@@ -369,6 +391,7 @@ export class ViktoraniDB extends Dexie {
   teams!: EntityTable<Team, 'id'>
   players!: EntityTable<Player, 'id'>
   buzzEvents!: EntityTable<BuzzEvent, 'id'>
+  scoreEvents!: EntityTable<ScoreEvent, 'id'>
   layouts!: EntityTable<Layout, 'id'>
   widgets!: EntityTable<Widget, 'id'>
   notes!: EntityTable<Note, 'id'>
@@ -446,6 +469,8 @@ export class ViktoraniDB extends Dexie {
             delete p.isAway
           })
       )
+
+    this.version(9).stores({ scoreEvents: 'id, gameId, timestamp' })
   }
 }
 
@@ -523,6 +548,7 @@ export async function purgeDatabase(): Promise<void> {
       db.teams,
       db.players,
       db.buzzEvents,
+      db.scoreEvents,
       db.layouts,
       db.widgets,
       db.notes,
@@ -542,6 +568,7 @@ export async function purgeDatabase(): Promise<void> {
         db.teams.clear(),
         db.players.clear(),
         db.buzzEvents.clear(),
+        db.scoreEvents.clear(),
         db.layouts.clear(),
         db.widgets.clear(),
         db.notes.clear(),

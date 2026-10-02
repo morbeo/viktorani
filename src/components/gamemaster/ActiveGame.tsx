@@ -259,7 +259,7 @@ export function ActiveGame({
           {!isEnded && <MessagePanel {...messages} />}
 
           {/* Scoreboard — always visible; ScoreboardPanel itself gates on scoringEnabled */}
-          <ScoreboardPanel game={game} />
+          <ScoreboardPanel game={game} questionId={currentQuestionId} />
         </div>
       </div>
     </div>
