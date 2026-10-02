@@ -335,8 +335,9 @@ flowchart LR
   Z -- invalid --> Err[error, nothing written]
 ```
 
-A backup holds the question bank (questions, rounds, difficulties, tags), game definitions and
-notes; live per-game rows such as players and buzzes are not included. Import upserts rows by id,
+A backup holds the question bank (questions, rounds, difficulties, tags), game definitions with
+the questions each game plays (`gameQuestions`) and notes; live per-game rows such as players and
+buzzes are not included. Import upserts rows by id,
 so existing data with other ids is kept, and a failed write rolls back the whole import.
 `db/snapshot-schema.ts` accepts older backup versions and fills in defaults for fields added
 later, so old backups keep working. Question-only import/export and note files use the same
