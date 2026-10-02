@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import { NavHeader } from '@/components/NavHeader'
 import type { NavEntry, NavPosition } from '@/pages/admin/gamemaster-utils'
 import {
@@ -13,6 +13,7 @@ import {
   Empty,
   TransportPill,
   Steps,
+  HelpTip,
 } from '@/components/ui'
 
 // ── Button ────────────────────────────────────────────────────────────────────
@@ -433,5 +434,65 @@ describe('NavHeader', () => {
     const bar = screen.getByRole('progressbar')
     expect(bar).toHaveAttribute('aria-valuenow', '4')
     expect(bar).toHaveAttribute('aria-valuemax', '6')
+  })
+})
+
+// ── HelpTip ───────────────────────────────────────────────────────────────────
+
+describe('HelpTip', () => {
+  const TEXT = 'A player who drops comes back as themselves.'
+
+  function renderTip() {
+    render(<HelpTip label="About Allow rejoin" text={TEXT} />)
+    return screen.getByRole('button', { name: 'About Allow rejoin' })
+  }
+
+  it('describes its trigger with the help text, even while closed', () => {
+    const trigger = renderTip()
+    expect(trigger).toHaveAccessibleDescription(TEXT)
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+  })
+
+  it('opens after a short delay on focus and closes on Esc', () => {
+    vi.useFakeTimers()
+    try {
+      const trigger = renderTip()
+      act(() => trigger.focus())
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+      act(() => vi.advanceTimersByTime(300))
+      expect(screen.getByRole('tooltip')).toHaveTextContent(TEXT)
+      fireEvent.keyDown(window, { key: 'Escape' })
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('opens on hover and closes when the pointer leaves', () => {
+    vi.useFakeTimers()
+    try {
+      const trigger = renderTip()
+      fireEvent.mouseEnter(trigger.parentElement!)
+      act(() => vi.advanceTimersByTime(300))
+      expect(screen.getByRole('tooltip')).toBeInTheDocument()
+      fireEvent.mouseLeave(trigger.parentElement!)
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('opens at once on tap without toggling the surrounding label', () => {
+    const onToggle = vi.fn()
+    render(
+      <label>
+        <input type="checkbox" onChange={onToggle} />
+        Allow rejoin
+        <HelpTip label="About Allow rejoin" text={TEXT} />
+      </label>
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'About Allow rejoin' }))
+    expect(screen.getByRole('tooltip')).toBeInTheDocument()
+    expect(onToggle).not.toHaveBeenCalled()
   })
 })

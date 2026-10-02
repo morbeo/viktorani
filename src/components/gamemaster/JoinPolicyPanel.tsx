@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { db } from '@/db'
 import type { Game } from '@/db'
+import { HelpTip } from '@/components/ui'
+import { JOIN_POLICY_HELP } from './join-policy-help'
 
 type JoinPolicyKey = 'allowLateJoin' | 'allowRejoin' | 'requireApproval' | 'allowPlayerTeams'
 
@@ -55,7 +57,10 @@ export function JoinPolicyPanel({ game, onGameChange }: JoinPolicyPanelProps) {
       </p>
       {TOGGLES.map(({ key, label }) => (
         <label key={key} className="flex items-center justify-between gap-4 cursor-pointer">
-          <span className="text-sm">{label}</span>
+          <span className="flex items-center gap-1.5 text-sm">
+            {label}
+            <HelpTip label={`About ${label}`} text={JOIN_POLICY_HELP[key]} />
+          </span>
           <button
             role="switch"
             aria-checked={game[key]}
