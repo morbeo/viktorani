@@ -104,11 +104,13 @@ describe('useScoreboard', () => {
     ])
   })
 
-  it('clamps a set score to a whole number of at least 0', async () => {
+  it('clamps a set score to a whole number of at least 0 and ignores NaN', async () => {
     const { result } = renderHook(() => useScoreboard(game))
     await waitFor(() => expect(scoreOf(result, 't1')).toBe(0))
 
     await act(() => result.current.set('t1', 'team', 7.6))
+    expect((await db.teams.get('t1'))?.score).toBe(8)
+    await act(() => result.current.set('t1', 'team', NaN))
     expect((await db.teams.get('t1'))?.score).toBe(8)
     await act(() => result.current.set('t1', 'team', -3))
     expect((await db.teams.get('t1'))?.score).toBe(0)
