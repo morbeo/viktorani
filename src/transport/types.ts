@@ -29,7 +29,8 @@ export type GameEvent =
   /** Updated score map keyed by player or team ID. */
   | { type: 'SCORE_UPDATE'; scores: Record<string, number> }
   /** Starts a new countdown timer visible to players. */
-  | { type: 'TIMER_START'; id: string; duration: number; label: string }
+  /** `remaining` is the seconds left, for a timer already running; defaults to `duration`. */
+  | { type: 'TIMER_START'; id: string; duration: number; label: string; remaining?: number }
   /** Pauses the named timer. */
   | { type: 'TIMER_PAUSE'; id: string }
   /** Resumes the named timer from its paused position. */

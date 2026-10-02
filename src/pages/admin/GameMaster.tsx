@@ -41,7 +41,7 @@ import { useNavigation } from '@/hooks/useNavigation'
 import { useKeyNav } from '@/hooks/useKeyNav'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { hostNow, useBuzzer } from '@/hooks/useBuzzer'
-import { useTimerList } from '@/hooks/useTimer'
+import { runningTimerEvents, useTimerList } from '@/hooks/useTimer'
 import { useGameLifecycle } from '@/hooks/useGameLifecycle'
 import { buildScoreEntries, readScores } from '@/hooks/useScoreboard'
 import { PlayerConnections, resolveJoin } from '@/pages/admin/player-connections'
@@ -62,6 +62,12 @@ import type {
 function joinUrl(roomId: string): string {
   const base = window.location.origin + window.location.pathname
   return `${base}#/join/${roomId}`
+}
+
+/** Send a newly admitted player or screen the game's running timers. */
+async function sendRunningTimers(connId: string, gameId: string) {
+  const timers = await db.timers.where('gameId').equals(gameId).toArray()
+  runningTimerEvents(timers, Date.now()).forEach(e => transportManager.sendTo(connId, e))
 }
 
 const STATUS_LABEL: Record<TransportStatus, string> = {
@@ -713,6 +719,7 @@ export default function GameMaster() {
         })
       }
       if (questionContentRef.current) transportManager.sendTo(connId, questionContentRef.current)
+      if (g) await sendRunningTimers(connId, g.id)
       addToast(`${player.name} joined the game`, { variant: 'info', durationMs: 4000 })
     },
     [addToast]
@@ -946,7 +953,9 @@ export default function GameMaster() {
     transportManager.sendTo(connId, { type: 'SCREEN_ACCEPTED' })
     if (screenContentRef.current) transportManager.sendTo(connId, screenContentRef.current)
     transportManager.sendTo(connId, { type: 'SCOREBOARD', rows: scoreboardRef.current })
-    if (gameRef.current?.status === 'paused') {
+    const g = gameRef.current
+    if (g) void sendRunningTimers(connId, g.id)
+    if (g?.status === 'paused') {
       transportManager.sendTo(connId, { type: 'GAME_STATUS', status: 'paused' })
     }
   }, [updatePendingScreens])
