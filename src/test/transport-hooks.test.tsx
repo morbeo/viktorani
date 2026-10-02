@@ -2,15 +2,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useTransport, useTransportEvents } from '@/hooks/useTransport'
-import type { TransportStatus, TransportType } from '@/transport/types'
+import type { TransportEvent, TransportStatus, TransportType } from '@/transport/types'
 
-const mockManager = {
+type StatusListener = (s: TransportStatus, t: TransportType) => void
+type EventListener = (e: TransportEvent, from: string) => void
+
+// Hoisted so the vi.mock factory below can use it
+const mockManager = vi.hoisted(() => ({
   status: 'idle' as TransportStatus,
   transportType: null as TransportType,
   send: vi.fn(),
-  onStatusChange: vi.fn(() => vi.fn()),
-  onEvent: vi.fn(() => vi.fn()),
-}
+  onStatusChange: vi.fn<(cb: StatusListener) => () => void>(() => vi.fn()),
+  onEvent: vi.fn<(cb: EventListener) => () => void>(() => vi.fn()),
+}))
 
 vi.mock('@/transport', () => ({
   transportManager: mockManager,
@@ -35,8 +39,8 @@ describe('useTransport', () => {
   })
 
   it('updates status when transport status changes', () => {
-    let statusCallback: ((s: TransportStatus, t: TransportType) => void) | null = null
-    mockManager.onStatusChange.mockImplementation((cb: (s: TransportStatus, t: TransportType) => void) => {
+    let statusCallback: StatusListener | null = null
+    mockManager.onStatusChange.mockImplementation(cb => {
       statusCallback = cb
       return vi.fn()
     })

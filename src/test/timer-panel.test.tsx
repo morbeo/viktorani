@@ -67,7 +67,7 @@ describe('TimerPanel', () => {
 
   const mockHook: UseTimerListResult = {
     timers,
-    createTimer: vi.fn(async opts => ({
+    createTimer: vi.fn(async (opts): Promise<Timer> => ({
       id: 'new',
       gameId: opts.gameId,
       label: opts.label,

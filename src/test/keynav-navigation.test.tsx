@@ -88,15 +88,17 @@ describe('useKeyNav', () => {
   })
 })
 
-const mockDb = {
-  gameQuestions: { where: vi.fn() },
-  rounds: { toArray: vi.fn() },
-  games: { update: vi.fn() },
-}
-
-const mockTransportManager = {
-  send: vi.fn(),
-}
+// Hoisted so the vi.mock factories below can use them
+const { mockDb, mockTransportManager } = vi.hoisted(() => ({
+  mockDb: {
+    gameQuestions: { where: vi.fn() },
+    rounds: { toArray: vi.fn() },
+    games: { update: vi.fn() },
+  },
+  mockTransportManager: {
+    send: vi.fn(),
+  },
+}))
 
 vi.mock('@/db', () => ({ db: mockDb }))
 vi.mock('@/transport', () => ({ transportManager: mockTransportManager }))

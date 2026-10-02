@@ -112,7 +112,8 @@ describe('QrScanner', () => {
   })
 })
 
-const mockDb = {
+// Hoisted so the vi.mock factory below can use it
+const mockDb = vi.hoisted(() => ({
   players: {
     where: vi.fn().mockReturnValue({
       equals: vi.fn().mockReturnValue({
@@ -130,7 +131,7 @@ const mockDb = {
     }),
     add: vi.fn().mockResolvedValue('t1'),
   },
-}
+}))
 
 vi.mock('@/db', () => ({ db: mockDb }))
 
