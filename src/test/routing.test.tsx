@@ -97,6 +97,11 @@ describe('App routing', () => {
     expect(screen.getByText('Settings')).toBeInTheDocument()
   })
 
+  it('renders Settings at /admin/settings/:category', () => {
+    renderAt('/admin/settings/data')
+    expect(screen.getByText('Settings')).toBeInTheDocument()
+  })
+
   it('renders PlayersTeams at /admin/players-teams', () => {
     renderAt('/admin/players-teams')
     expect(screen.getByText('PlayersTeams')).toBeInTheDocument()

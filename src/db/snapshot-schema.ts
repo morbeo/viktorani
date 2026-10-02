@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { DifficultyLevel, Tag, Question, Round, Game, GameQuestion, Note } from '@/db'
+import { AppSettingsSchema } from '@/lib/app-settings'
 
 /**
  * Zod schemas for validating user-supplied JSON imports (backups and question files).
@@ -129,6 +130,7 @@ export const SnapshotSchema = z.object({
   games: z.array(GameSchema).default([]),
   gameQuestions: z.array(GameQuestionSchema).default([]),
   notes: z.array(NoteSchema).default([]),
+  settings: AppSettingsSchema.optional(),
 })
 
 /** Accept numbers where strings are expected (e.g. `answer: 4`), as the old importer did. */

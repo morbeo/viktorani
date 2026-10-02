@@ -18,10 +18,10 @@ describe('useActionMode', () => {
       result.current[1]('text')
     })
     expect(result.current[0]).toBe('text')
-    expect(localStorage.getItem('action-mode')).toBe('"text"')
+    expect(JSON.parse(localStorage.getItem('viktorani-settings') ?? '{}').actionMode).toBe('text')
   })
 
-  it('reads back persisted value on re-mount', () => {
+  it('picks up the value stored under the old key', () => {
     localStorage.setItem('action-mode', '"both"')
     const { result } = renderHook(() => useActionMode())
     expect(result.current[0]).toBe('both')

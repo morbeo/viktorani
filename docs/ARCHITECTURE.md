@@ -87,7 +87,7 @@ The app uses `HashRouter` so it works on GitHub Pages without server rewrites
 | `/admin/game/:id`                       | GameMaster     | Host    |
 | `/admin/players-teams`                  | PlayersTeams   | Host    |
 | `/admin/notes`, `/admin/notes/:id`      | Notes          | Host    |
-| `/admin/settings`                       | Settings       | Host    |
+| `/admin/settings/:category`             | Settings       | Host    |
 | `/admin/layouts/:gameId`                | Layouts (stub) | Host    |
 | `/join`, `/join/:roomId`                | Join           | Players |
 | `/play/:roomId`                         | Play           | Players |
@@ -109,8 +109,9 @@ src/
 │   ├── timer/               TimerPanel, TimerCard, modals, expiry overlay
 │   ├── scoreboard/          ScoreboardPanel
 │   ├── players-teams/       managed roster: lists, forms, QR, labels
-│   └── settings/            difficulties, tags, debug panel
+│   └── settings/            Settings categories: appearance, tags, difficulties, data
 ├── hooks/                   useBuzzer, useTimer, useNavigation, useScoreboard, …
+├── lib/                     app-settings.ts (versioned preferences store), format.ts
 ├── db/                      index.ts (schema), games.ts, players-teams.ts,
 │                            snapshot.ts + snapshot-schema.ts, demo.ts
 ├── transport/               types.ts, messages.ts, PeerJSTransport.ts, index.ts

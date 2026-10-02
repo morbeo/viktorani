@@ -2,6 +2,8 @@ import type { z } from 'zod'
 import { db } from '@/db'
 import type { DifficultyLevel, Tag, Question, Round, Game, GameQuestion, Note } from '@/db'
 import { SnapshotSchema, QuestionImportRowSchema } from '@/db/snapshot-schema'
+import { getSettings, setSettings } from '@/lib/app-settings'
+import type { AppSettings } from '@/lib/app-settings'
 
 /**
  * Full database snapshot used for backup and restore.
@@ -10,7 +12,8 @@ import { SnapshotSchema, QuestionImportRowSchema } from '@/db/snapshot-schema'
  * Version history:
  * - **v1**: Included a `categories` array (now ignored on import).
  * - **v2**: Categories removed; tags are the sole classifier. `gameQuestions` was
- *   added later; older v2 files without it restore games with no questions.
+ *   added later; older v2 files without it restore games with no questions. `settings`
+ *   (the app preferences) was added later still; files without it leave them unchanged.
  *
  * `gameQuestions` is included because it defines which questions each game plays.
  * Runtime-only collections (`players`, `teams`, `buzzEvents`, `scoreEvents`, `timers`,
@@ -27,6 +30,7 @@ export interface DatabaseSnapshot {
   games: Game[]
   gameQuestions: GameQuestion[]
   notes: Note[]
+  settings?: AppSettings
 }
 
 /**
@@ -47,6 +51,7 @@ export async function exportDatabase(): Promise<void> {
     games: await db.games.toArray(),
     gameQuestions: await db.gameQuestions.toArray(),
     notes: await db.notes.toArray(),
+    settings: getSettings(),
   }
 
   const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' })
@@ -124,6 +129,7 @@ export async function importDatabase(file: File): Promise<void> {
       if (snapshot.notes.length) await db.notes.bulkPut(snapshot.notes)
     }
   )
+  if (snapshot.settings) setSettings(snapshot.settings)
 }
 
 // ── Questions import/export ───────────────────────────────────────────────────

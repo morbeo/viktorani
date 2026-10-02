@@ -19,13 +19,13 @@ Everything you need to run a trivia night with Viktorani.
 
 ### Difficulties
 
-Go to **Settings → Difficulties** to define point values for your game.
+Go to **Settings → Library → Difficulty levels** to define point values for your game.
 The defaults are Easy (5 pts), Medium (10 pts), and Hard (15 pts).
 You can rename them, change their colours, and adjust their scores.
 
 ### Tags
 
-Go to **Settings → Tags** to create classifiers for your questions.
+Go to **Settings → Library → Tags** to create classifiers for your questions.
 Tags are used for filtering — you can include or exclude by tag when browsing questions.
 Example tags: `History`, `Pop Culture`, `Music`, `Local`.
 
@@ -238,4 +238,7 @@ When all rounds are complete (or you choose to end early):
 3. The game stays open read-only, with the final scoreboard.
 
 The game record remains in your local database until you delete it or purge all data
-via **Settings → Danger zone → Purge**.
+via **Settings → Data → Purge**.
+
+**Settings → Data → Export JSON** saves your questions, games and app settings (theme, action
+buttons, control size) to one file; **Import JSON** restores them.

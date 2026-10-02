@@ -3,18 +3,13 @@ import { Copy, Database } from 'lucide-react'
 import { Button, Icon, useToast } from '@/components/ui'
 import { db } from '@/db'
 import { buildInfo } from '@/buildInfo'
+import { formatBytes } from '@/lib/format'
 
 const REPO_URL = 'https://github.com/morbeo/viktorani'
 
 interface AsyncInfo {
   storage: string
   swRegistration: string
-}
-
-function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
-  return `${(n / 1024 / 1024).toFixed(1)} MB`
 }
 
 async function loadAsyncInfo(): Promise<AsyncInfo> {
