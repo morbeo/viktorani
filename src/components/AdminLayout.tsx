@@ -13,6 +13,8 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { Icon } from '@/components/ui'
+import { LiveGameIndicator } from '@/components/LiveGameIndicator'
+import { useLiveGames, liveGamesLabel } from '@/hooks/useLiveGames'
 
 interface Props {
   children: ReactNode
@@ -30,6 +32,7 @@ const nav: { to: string; label: string; icon: LucideIcon }[] = [
 
 export default function AdminLayout({ children, title }: Props) {
   const [collapsed, setCollapsed] = useLocalStorage('sidebar-collapsed', false)
+  const live = useLiveGames()
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--color-cream)' }}>
@@ -85,26 +88,32 @@ export default function AdminLayout({ children, title }: Props) {
           className="flex-1 flex flex-col gap-0.5"
           style={{ padding: collapsed ? '12px 6px' : '12px 8px' }}
         >
-          {nav.map(({ to, label, icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/admin'}
-              title={collapsed ? label : undefined}
-              className={({ isActive }) =>
-                `flex items-center rounded text-sm transition-all ${
-                  collapsed ? 'justify-center px-0 py-2' : 'gap-3 px-3 py-2'
-                } ${isActive ? 'font-semibold' : 'hover:bg-black/5'}`
-              }
-              style={({ isActive }) => ({
-                color: isActive ? 'var(--color-gold)' : 'var(--color-ink)',
-                background: isActive ? 'var(--color-gold-light)' : undefined,
-              })}
-            >
-              <Icon icon={icon} size={collapsed ? 'md' : 'sm'} className="shrink-0" />
-              {!collapsed && label}
-            </NavLink>
-          ))}
+          {nav.map(({ to, label, icon }) => {
+            const showLive = to === '/admin/games' && live.length > 0
+            return (
+              <div key={to} className="relative">
+                <NavLink
+                  to={to}
+                  end={to === '/admin'}
+                  aria-label={showLive ? `${label}, ${liveGamesLabel(live)}` : undefined}
+                  title={collapsed ? label : undefined}
+                  className={({ isActive }) =>
+                    `flex items-center rounded text-sm transition-all ${
+                      collapsed ? 'justify-center px-0 py-2' : 'gap-3 px-3 py-2'
+                    } ${isActive ? 'font-semibold' : 'hover:bg-black/5'}`
+                  }
+                  style={({ isActive }) => ({
+                    color: isActive ? 'var(--color-gold)' : 'var(--color-ink)',
+                    background: isActive ? 'var(--color-gold-light)' : undefined,
+                  })}
+                >
+                  <Icon icon={icon} size={collapsed ? 'md' : 'sm'} className="shrink-0" />
+                  {!collapsed && label}
+                </NavLink>
+                {showLive && <LiveGameIndicator live={live} collapsed={collapsed} />}
+              </div>
+            )
+          })}
         </nav>
 
         {/* Player join link */}
