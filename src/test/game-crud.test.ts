@@ -96,6 +96,7 @@ describe('deleteGame', () => {
       await db.players.add({ id: `p-${gameId}`, gameId } as never)
       await db.buzzEvents.add({ id: `b-${gameId}`, gameId } as never)
       await db.scoreEvents.add({ id: `s-${gameId}`, gameId } as never)
+      await db.gameLog.add({ id: `log-${gameId}`, gameId, at: 0 } as never)
       await db.timers.add({ id: `tm-${gameId}`, gameId } as never)
       await db.layouts.add({ id: `l-${gameId}`, gameId } as never)
       await db.widgets.add({ id: `w-${gameId}`, layoutId: `l-${gameId}` } as never)
@@ -109,6 +110,7 @@ describe('deleteGame', () => {
     expect(await db.players.get('p-g1')).toBeUndefined()
     expect(await db.buzzEvents.get('b-g1')).toBeUndefined()
     expect(await db.scoreEvents.get('s-g1')).toBeUndefined()
+    expect(await db.gameLog.get('log-g1')).toBeUndefined()
     expect(await db.timers.get('tm-g1')).toBeUndefined()
     expect(await db.layouts.get('l-g1')).toBeUndefined()
     expect(await db.widgets.get('w-g1')).toBeUndefined()
@@ -116,6 +118,7 @@ describe('deleteGame', () => {
     expect(await db.gameQuestions.where('gameId').equals('g2').count()).toBe(3)
     expect(await db.widgets.get('w-g2')).toBeDefined()
     expect(await db.scoreEvents.get('s-g2')).toBeDefined()
+    expect(await db.gameLog.get('log-g2')).toBeDefined()
   })
 })
 

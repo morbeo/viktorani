@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { db } from '@/db'
+import { logEvent } from '@/db/game-log'
 import { transportManager } from '@/transport'
 import { broadcastScores, writeScore } from '@/hooks/useScoreboard'
 import type { Game, BuzzEvent, GmDecision } from '@/db'
@@ -108,6 +109,7 @@ export function useBuzzer(
       gameRef.current = { ...gameRef.current, ...patch }
       onGameChange?.(patch)
       await db.games.update(gameRef.current.id, patch)
+      logEvent(gameRef.current.id, locked ? 'buzzer_locked' : 'buzzer_unlocked')
       transportManager.send(locked ? { type: 'BUZZER_LOCK' } : { type: 'BUZZER_UNLOCK' })
     },
     [onGameChange]
@@ -212,11 +214,12 @@ export function useBuzzer(
   // ── Clear ────────────────────────────────────────────────────────────────
 
   const clearBuzzes = useCallback(async (qId: string) => {
-    await db.buzzEvents
+    const count = await db.buzzEvents
       .where('gameId')
       .equals(gameRef.current.id)
       .and(b => b.questionId === qId)
       .delete()
+    logEvent(gameRef.current.id, 'buzzes_cleared', { subjectId: qId, data: { count } })
     setBuzzes([])
   }, [])
 
