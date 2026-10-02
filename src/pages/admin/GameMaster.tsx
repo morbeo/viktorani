@@ -47,7 +47,8 @@ import { buildScoreEntries, readScores } from '@/hooks/useScoreboard'
 import { PlayerConnections, resolveJoin } from '@/pages/admin/player-connections'
 import type { JoinResult, PendingJoin } from '@/pages/admin/player-connections'
 import { TimerPanel } from '@/components/timer/TimerPanel'
-import type { Game, Player, Team } from '@/db'
+import type { Game, GmDecision, Player, Team } from '@/db'
+import { updateQuestionStatus } from '@/db/games'
 import { MAX_SCOREBOARD_ROWS } from '@/transport/messages'
 import type {
   GameEvent,
@@ -400,6 +401,15 @@ function ActiveGame({
   const { displayBuzzes, buzzes, toggleLock, adjudicate, clearBuzzes, handleIncomingBuzz } =
     useBuzzer(game, currentQuestionId, onGameChange)
 
+  // Rule on the buzz, then record the result against the question shown
+  const handleAdjudicate = useCallback(
+    async (buzzId: string, decision: GmDecision) => {
+      await adjudicate(buzzId, decision)
+      if (currentGameQuestionId) await updateQuestionStatus(currentGameQuestionId, decision)
+    },
+    [adjudicate, currentGameQuestionId]
+  )
+
   const timerHook = useTimerList(game.id)
   const timerHookRef = useRef(timerHook)
   useEffect(() => {
@@ -529,7 +539,7 @@ function ActiveGame({
               buzzes={buzzes}
               displayBuzzes={displayBuzzes}
               onToggleLock={() => void toggleLock()}
-              onAdjudicate={(id, decision) => void adjudicate(id, decision)}
+              onAdjudicate={(id, decision) => void handleAdjudicate(id, decision)}
               onClear={() => currentQuestionId && void clearBuzzes(currentQuestionId)}
             />
           )}

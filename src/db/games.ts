@@ -1,5 +1,5 @@
 import { db } from './index'
-import type { Game, GameQuestion, Round } from './index'
+import type { Game, GameQuestion, GmDecision, Round } from './index'
 import { generateRoomId } from '@/transport'
 
 /**
@@ -88,4 +88,32 @@ export async function deleteGame(gameId: string): Promise<void> {
       await db.games.delete(gameId)
     }
   )
+}
+
+/**
+ * A game question's status after the GM rules on a buzz, or after the GM moves on
+ * (`'left'`). A correct answer stands, skipping a buzz changes nothing, and moving on
+ * from a question nobody answered marks it skipped.
+ */
+export function nextQuestionStatus(
+  current: GameQuestion['status'],
+  event: GmDecision | 'left'
+): GameQuestion['status'] {
+  if (event === 'Correct') return 'correct'
+  if (event === 'Incorrect') return current === 'correct' ? 'correct' : 'incorrect'
+  if (event === 'left') return current === 'pending' ? 'skipped' : current
+  return current
+}
+
+/** Record a ruling or the GM moving on against a game question (see {@link nextQuestionStatus}). */
+export async function updateQuestionStatus(
+  gameQuestionId: string,
+  event: GmDecision | 'left'
+): Promise<void> {
+  await db.transaction('rw', db.gameQuestions, async () => {
+    const gq = await db.gameQuestions.get(gameQuestionId)
+    if (!gq) return
+    const status = nextQuestionStatus(gq.status, event)
+    if (status !== gq.status) await db.gameQuestions.update(gameQuestionId, { status })
+  })
 }

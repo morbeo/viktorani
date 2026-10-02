@@ -414,6 +414,18 @@ describe('NavHeader', () => {
     expect(track.children).toHaveLength(3)
   })
 
+  it('marks each question in the current round with its result', () => {
+    const seq = makeSeq([4])
+    seq[0].questionStatus = 'correct'
+    seq[1].questionStatus = 'incorrect'
+    seq[2].questionStatus = 'skipped'
+    const pos = makePos(seq, 3)
+    render(<NavHeader pos={pos} seq={seq} onPrev={vi.fn()} onNext={vi.fn()} />)
+    expect(screen.getByTitle('Question 1: correct')).toBeInTheDocument()
+    expect(screen.getByTitle('Question 2: incorrect')).toBeInTheDocument()
+    expect(screen.getByTitle('Question 3: skipped')).toBeInTheDocument()
+  })
+
   it('sets correct aria attributes on the progress track', () => {
     const seq = makeSeq([3, 3])
     const pos = makePos(seq, 3)
