@@ -6,6 +6,7 @@ import { transportManager } from '@/transport'
 import { MAX_NAME_LENGTH } from '@/transport/messages'
 import type { GameEvent, TransportEvent } from '@/transport/types'
 import { getDeviceId } from './device-id'
+import { startPlayerSession } from './player-session'
 
 type LobbyInfo = Extract<GameEvent, { type: 'LOBBY_INFO' }>
 
@@ -93,6 +94,7 @@ export default function Join() {
   async function handleConnect() {
     setStage({ kind: 'connecting' })
     setLobby(null)
+    startPlayerSession()
     try {
       await transportManager.connect({ role: 'player', roomId: code })
     } catch {
