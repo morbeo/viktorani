@@ -21,7 +21,7 @@ const alice: Player = {
   name: 'Alice',
   teamId: 't1',
   score: 0,
-  isAway: false,
+  presence: 'connected',
   deviceId: 'd1',
   joinedAt: 0,
 }

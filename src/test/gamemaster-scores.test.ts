@@ -69,7 +69,7 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
     name: 'Alice',
     teamId: null,
     score: 0,
-    isAway: false,
+    presence: 'connected',
     deviceId: 'dev-1',
     joinedAt: 1000,
     ...overrides,

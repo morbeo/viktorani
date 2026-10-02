@@ -13,8 +13,8 @@ import {
   buildManagedImport,
   serialiseGameState,
   upsertPlayer,
-  markPlayerAway,
-  setPlayerAway,
+  setPlayerPresence,
+  isConnected,
   assignPlayerTeam,
 } from '@/pages/admin/gamemaster-utils'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
@@ -144,7 +144,14 @@ export default function GameMaster() {
       .where('gameId')
       .equals(id)
       .toArray()
-      .then(ps => setPlayers(ps.sort((a, b) => a.joinedAt - b.joinedAt)))
+      // The room is opened afresh, so nobody saved as connected is connected yet
+      .then(ps =>
+        setPlayers(
+          ps
+            .map(p => (isConnected(p) ? { ...p, presence: 'disconnected' as const } : p))
+            .sort((a, b) => a.joinedAt - b.joinedAt)
+        )
+      )
     db.teams
       .where('gameId')
       .equals(id)
@@ -209,10 +216,12 @@ export default function GameMaster() {
         await db.players.put(player)
       })
       if (newTeam) setTeams(prev => [...prev, newTeam])
-      // Closed while saving: keep the player, away and without a connection
+      // Closed while saving: keep the player, disconnected
       if (closedRef.current.has(connId)) {
-        await db.players.update(player.id, { isAway: true })
-        setPlayers(prev => markPlayerAway(upsertPlayer(prev, player), player.id))
+        await db.players.update(player.id, { presence: 'disconnected' })
+        setPlayers(prev =>
+          setPlayerPresence(upsertPlayer(prev, player), player.id, 'disconnected')
+        )
         return
       }
       kickedRef.current.delete(player.id)
@@ -361,13 +370,14 @@ export default function GameMaster() {
 
       if (event.type === 'LEAVE') {
         connectionsRef.current.unbindConnection(from)
-        await db.players.update(playerId, { isAway: true })
-        setPlayers(prev => markPlayerAway(prev, playerId))
+        await db.players.update(playerId, { presence: 'left' })
+        setPlayers(prev => setPlayerPresence(prev, playerId, 'left'))
       }
 
       if (event.type === 'FOCUS_CHANGE') {
-        await db.players.update(playerId, { isAway: event.away })
-        setPlayers(prev => setPlayerAway(prev, playerId, event.away))
+        const presence = event.away ? 'hidden' : 'connected'
+        await db.players.update(playerId, { presence })
+        setPlayers(prev => setPlayerPresence(prev, playerId, presence))
       }
 
       // Buzzes count only while the game runs, whatever a player's device shows
@@ -411,7 +421,7 @@ export default function GameMaster() {
     })
   }, [])
 
-  // A dropped connection marks its player away; they can rejoin from the same device
+  // A dropped connection marks its player disconnected; they can rejoin from the same device
   useEffect(() => {
     return transportManager.onPeerClose(connId => {
       closedRef.current.add(connId)
@@ -421,10 +431,10 @@ export default function GameMaster() {
       joinersRef.current.delete(connId)
       const playerId = connectionsRef.current.unbindConnection(connId)
       if (!playerId) return
-      setPlayers(prev => markPlayerAway(prev, playerId))
+      setPlayers(prev => setPlayerPresence(prev, playerId, 'disconnected'))
       db.players
-        .update(playerId, { isAway: true })
-        .catch(err => console.error('[GameMaster] Marking player away failed:', err))
+        .update(playerId, { presence: 'disconnected' })
+        .catch(err => console.error('[GameMaster] Marking player disconnected failed:', err))
     })
   }, [updatePendingJoins, updatePendingScreens])
 
@@ -482,14 +492,14 @@ export default function GameMaster() {
     })
   }, [updatePendingScreens])
 
-  // Kick player — mark as away in DB + state, broadcast updated game state
+  // Kick player — mark as kicked in DB + state, broadcast updated game state
   const handleKick = useCallback(async (playerId: string) => {
     const g = gameRef.current
     if (!g) return
     kickedRef.current.add(playerId)
     connectionsRef.current.unbindPlayer(playerId)
-    await db.players.update(playerId, { isAway: true })
-    setPlayers(prev => markPlayerAway(prev, playerId))
+    await db.players.update(playerId, { presence: 'kicked' })
+    setPlayers(prev => setPlayerPresence(prev, playerId, 'kicked'))
     const scores = await readScores(g.id)
     transportManager.send({ type: 'GAME_STATE', state: serialiseGameState(g, scores) })
   }, [])

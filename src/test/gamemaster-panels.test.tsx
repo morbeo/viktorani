@@ -155,7 +155,7 @@ describe('RosterPanel', () => {
       name: 'Alice',
       score: 10,
       teamId: 't1',
-      isAway: false,
+      presence: 'connected',
       joinedAt: Date.now(),
     },
     {
@@ -165,7 +165,7 @@ describe('RosterPanel', () => {
       name: 'Bob',
       score: 5,
       teamId: 't2',
-      isAway: false,
+      presence: 'connected',
       joinedAt: Date.now(),
     },
     {
@@ -175,14 +175,14 @@ describe('RosterPanel', () => {
       name: 'Charlie',
       score: 0,
       teamId: null,
-      isAway: true,
+      presence: 'disconnected',
       joinedAt: Date.now(),
     },
   ]
 
-  it('shows online count badge', () => {
+  it('counts connected players, with disconnected ones apart', () => {
     render(<RosterPanel players={players} teams={teams} onKick={vi.fn()} />)
-    expect(screen.getByLabelText('2 players online')).toHaveTextContent('2 online')
+    expect(screen.getByText('2 connected · 1 disconnected')).toBeInTheDocument()
   })
 
   it('renders all players with their details', () => {
@@ -195,16 +195,27 @@ describe('RosterPanel', () => {
     expect(screen.getByText('no team')).toBeInTheDocument()
   })
 
-  it('shows away status for offline players', () => {
-    render(<RosterPanel players={players} teams={teams} onKick={vi.fn()} />)
-    const awayIcon = screen.getByLabelText('Away')
-    expect(awayIcon).toBeInTheDocument()
-  })
-
-  it('shows online status for active players', () => {
-    render(<RosterPanel players={players} teams={teams} onKick={vi.fn()} />)
-    const onlineIcons = screen.getAllByLabelText('Online')
-    expect(onlineIcons).toHaveLength(2)
+  it('shows each presence with its own label and explanation', () => {
+    const presences = ['connected', 'hidden', 'disconnected', 'left', 'kicked'] as const
+    const everyone = presences.map((presence, i) => ({
+      ...players[0],
+      id: `p${i}`,
+      name: `Player ${i}`,
+      presence,
+    }))
+    render(<RosterPanel players={everyone} teams={teams} onKick={vi.fn()} />)
+    expect(screen.getByRole('img', { name: 'Connected' })).toHaveAttribute(
+      'title',
+      'Connected: Playing.'
+    )
+    expect(screen.getByRole('img', { name: 'Tab hidden' })).toHaveAttribute(
+      'title',
+      'Tab hidden: Connected, but looking at something else.'
+    )
+    expect(screen.getByRole('img', { name: 'Disconnected' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Left' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Kicked' })).toBeInTheDocument()
+    expect(screen.getByText('1 connected · 1 tab hidden · 1 disconnected')).toBeInTheDocument()
   })
 
   it('calls onKick when kick button is clicked', async () => {

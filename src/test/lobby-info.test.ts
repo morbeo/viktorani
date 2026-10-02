@@ -21,7 +21,7 @@ function member(id: string, teamId: string): Player {
     name: id,
     teamId,
     score: 0,
-    isAway: false,
+    presence: 'connected',
     deviceId: id,
     joinedAt: 0,
   }

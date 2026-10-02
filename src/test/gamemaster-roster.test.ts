@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest'
 import type { Player, Team } from '@/db'
 import {
-  setPlayerAway,
+  setPlayerPresence,
   assignPlayerTeam,
   canCreateTeam,
   canAssignToTeam,
@@ -17,7 +17,7 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
     name: 'Alice',
     teamId: null,
     score: 0,
-    isAway: false,
+    presence: 'connected',
     deviceId: 'dev-1',
     joinedAt: 1000,
     ...overrides,
@@ -36,41 +36,36 @@ function makeTeam(overrides: Partial<Team> = {}): Team {
   }
 }
 
-// ── setPlayerAway ─────────────────────────────────────────────────────────────
+// ── setPlayerPresence ─────────────────────────────────────────────────────────
 
-describe('setPlayerAway', () => {
-  it('marks the player as away when away=true', () => {
-    const players = [makePlayer({ id: 'p1', isAway: false })]
-    const result = setPlayerAway(players, 'p1', true)
-    expect(result[0].isAway).toBe(true)
-  })
-
-  it('marks the player as online when away=false', () => {
-    const players = [makePlayer({ id: 'p1', isAway: true })]
-    const result = setPlayerAway(players, 'p1', false)
-    expect(result[0].isAway).toBe(false)
+describe('setPlayerPresence', () => {
+  it('sets the player to each presence', () => {
+    const players = [makePlayer({ id: 'p1' })]
+    for (const presence of ['hidden', 'disconnected', 'left', 'kicked', 'connected'] as const) {
+      expect(setPlayerPresence(players, 'p1', presence)[0].presence).toBe(presence)
+    }
   })
 
   it('leaves other players unchanged', () => {
     const players = [makePlayer({ id: 'p1' }), makePlayer({ id: 'p2' })]
-    const result = setPlayerAway(players, 'p1', true)
-    expect(result.find(p => p.id === 'p2')?.isAway).toBe(false)
+    const result = setPlayerPresence(players, 'p1', 'hidden')
+    expect(result.find(p => p.id === 'p2')?.presence).toBe('connected')
   })
 
   it('is a no-op for an unknown playerId', () => {
     const players = [makePlayer({ id: 'p1' })]
-    const result = setPlayerAway(players, 'unknown', true)
-    expect(result[0].isAway).toBe(false)
+    const result = setPlayerPresence(players, 'unknown', 'left')
+    expect(result[0].presence).toBe('connected')
   })
 
   it('does not mutate the original array', () => {
     const players = [makePlayer({ id: 'p1' })]
-    setPlayerAway(players, 'p1', true)
-    expect(players[0].isAway).toBe(false)
+    setPlayerPresence(players, 'p1', 'kicked')
+    expect(players[0].presence).toBe('connected')
   })
 
   it('handles empty list', () => {
-    expect(setPlayerAway([], 'p1', true)).toHaveLength(0)
+    expect(setPlayerPresence([], 'p1', 'left')).toHaveLength(0)
   })
 })
 

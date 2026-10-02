@@ -137,7 +137,7 @@ describe('Screen', () => {
       name: 'Alice',
       teamId: null,
       score: 7,
-      isAway: false,
+      presence: 'connected',
       deviceId: 'd1',
       joinedAt: 0,
     })

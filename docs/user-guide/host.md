@@ -121,8 +121,19 @@ The QR code links directly to the join page with the room code pre-filled.
 
 ### Lobby
 
-The GM sees a list of connected players in real time. Each player appears as they join.
-Once everyone is in, click **Start** to begin the first round.
+The GM sees a list of players in real time. Each player appears as they join, with an icon
+showing where they stand (hover it for a description):
+
+| Icon | State | Meaning |
+|---|---|---|
+| Green dot | Connected | Playing |
+| Gold crossed-out eye | Tab hidden | Connected, but looking at something else |
+| Grey crossed-out Wi-Fi | Disconnected | The connection dropped, or they haven't joined from a device; they can rejoin if rejoining is allowed |
+| Grey exit arrow | Left | They pressed Leave |
+| Red crossed-out person | Kicked | You removed them |
+
+The count above the list shows connected players, with tab-hidden and disconnected
+players counted separately. Once everyone is in, click **Start** to begin the first round.
 
 > **Solo / offline play:** You can skip the lobby and start immediately by clicking
 > **Start Solo**. No players need to be connected.

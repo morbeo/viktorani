@@ -5,7 +5,7 @@ import {
   serialiseGameState,
   canStartGame,
   upsertPlayer,
-  markPlayerAway,
+  isConnected,
 } from '@/pages/admin/gamemaster-utils'
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -46,7 +46,7 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
     name: 'Alice',
     teamId: null,
     score: 0,
-    isAway: false,
+    presence: 'connected',
     deviceId: 'dev-1',
     joinedAt: 1000,
     ...overrides,
@@ -147,18 +147,18 @@ describe('upsertPlayer', () => {
     expect(result[0].name).toBe('Alice')
   })
 
-  it('sets score to 0 and isAway to false for new player', () => {
+  it('sets score to 0 and presence to connected for new player', () => {
     const result = upsertPlayer([], incoming)
     expect(result[0].score).toBe(0)
-    expect(result[0].isAway).toBe(false)
+    expect(result[0].presence).toBe('connected')
   })
 
-  it('updates name and marks as not-away for returning player', () => {
-    const existing = makePlayer({ id: 'p1', name: 'Old Name', isAway: true, score: 15 })
+  it('updates name and marks a returning player connected', () => {
+    const existing = makePlayer({ id: 'p1', name: 'Old Name', presence: 'disconnected', score: 15 })
     const result = upsertPlayer([existing], { ...incoming, name: 'Alice Updated' })
     expect(result).toHaveLength(1)
     expect(result[0].name).toBe('Alice Updated')
-    expect(result[0].isAway).toBe(false)
+    expect(result[0].presence).toBe('connected')
   })
 
   it('preserves existing score on rejoin', () => {
@@ -196,41 +196,18 @@ describe('upsertPlayer', () => {
   })
 })
 
-// ── markPlayerAway ────────────────────────────────────────────────────────────
+// ── isConnected ───────────────────────────────────────────────────────────────
 
-describe('markPlayerAway', () => {
-  it('marks the specified player as away', () => {
-    const players = [makePlayer({ id: 'p1' }), makePlayer({ id: 'p2' })]
-    const result = markPlayerAway(players, 'p1')
-    expect(result.find(p => p.id === 'p1')?.isAway).toBe(true)
+describe('isConnected', () => {
+  it('counts connected and tab-hidden players as connected', () => {
+    expect(isConnected(makePlayer({ presence: 'connected' }))).toBe(true)
+    expect(isConnected(makePlayer({ presence: 'hidden' }))).toBe(true)
   })
 
-  it('leaves other players unchanged', () => {
-    const players = [makePlayer({ id: 'p1' }), makePlayer({ id: 'p2' })]
-    const result = markPlayerAway(players, 'p1')
-    expect(result.find(p => p.id === 'p2')?.isAway).toBe(false)
-  })
-
-  it('is a no-op for an unknown playerId', () => {
-    const players = [makePlayer({ id: 'p1' })]
-    const result = markPlayerAway(players, 'unknown')
-    expect(result[0].isAway).toBe(false)
-  })
-
-  it('does not mutate the original array', () => {
-    const players = [makePlayer({ id: 'p1' })]
-    markPlayerAway(players, 'p1')
-    expect(players[0].isAway).toBe(false)
-  })
-
-  it('handles already-away player gracefully', () => {
-    const players = [makePlayer({ id: 'p1', isAway: true })]
-    const result = markPlayerAway(players, 'p1')
-    expect(result[0].isAway).toBe(true)
-  })
-
-  it('handles empty list', () => {
-    expect(markPlayerAway([], 'p1')).toHaveLength(0)
+  it('does not count disconnected, left or kicked players', () => {
+    expect(isConnected(makePlayer({ presence: 'disconnected' }))).toBe(false)
+    expect(isConnected(makePlayer({ presence: 'left' }))).toBe(false)
+    expect(isConnected(makePlayer({ presence: 'kicked' }))).toBe(false)
   })
 })
 
