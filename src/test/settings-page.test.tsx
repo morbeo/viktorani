@@ -1,0 +1,76 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import type { ReactNode } from 'react'
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import Settings from '@/pages/admin/Settings'
+import { getSettings } from '@/lib/app-settings'
+
+vi.mock('@/components/AdminLayout', () => ({
+  default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+}))
+vi.mock('@/components/settings/ManageTags', () => ({ default: () => <p>Tags list</p> }))
+vi.mock('@/components/settings/ManageDifficulties', () => ({
+  default: () => <p>Difficulties list</p>,
+}))
+vi.mock('@/components/players-teams/ManageLabels', () => ({ default: () => <p>Labels list</p> }))
+vi.mock('@/components/settings/DataSettings', () => ({ default: () => <p>Data panel</p> }))
+
+function renderAt(path: string) {
+  render(
+    <MemoryRouter initialEntries={[path]}>
+      <Routes>
+        <Route path="/admin/settings" element={<Settings />} />
+        <Route path="/admin/settings/:category" element={<Settings />} />
+      </Routes>
+    </MemoryRouter>
+  )
+}
+
+beforeEach(() => {
+  localStorage.clear()
+})
+
+describe('Settings', () => {
+  it('opens Appearance by default', () => {
+    renderAt('/admin/settings')
+    expect(screen.getByRole('link', { name: 'Appearance' })).toHaveAttribute(
+      'aria-current',
+      'page'
+    )
+    expect(screen.getByRole('heading', { name: 'Theme' })).toBeInTheDocument()
+  })
+
+  it('deep-links to a category', () => {
+    renderAt('/admin/settings/library')
+    expect(screen.getByRole('link', { name: 'Library' })).toHaveAttribute(
+      'aria-current',
+      'page'
+    )
+    expect(screen.getByText('Tags list')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Theme' })).not.toBeInTheDocument()
+  })
+
+  it('sends an unknown category to Appearance', () => {
+    renderAt('/admin/settings/nope')
+    expect(screen.getByRole('heading', { name: 'Theme' })).toBeInTheDocument()
+  })
+
+  it('switches category from the tabs', async () => {
+    renderAt('/admin/settings/appearance')
+    await userEvent.click(screen.getByRole('link', { name: 'Data' }))
+    expect(screen.getByText('Data panel')).toBeInTheDocument()
+  })
+
+  it('saves the theme and the control size to the settings store', async () => {
+    renderAt('/admin/settings/appearance')
+    await userEvent.click(screen.getByRole('button', { name: 'Always dark' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Large game master controls' }))
+    expect(getSettings()).toEqual(expect.objectContaining({ theme: 'dark', controlSize: 'lg' }))
+    expect(screen.getByRole('button', { name: 'Always dark' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+  })
+})
