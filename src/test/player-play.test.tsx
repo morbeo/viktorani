@@ -107,6 +107,26 @@ describe('Play', () => {
     expect(screen.getByRole('button', { name: 'Buzz' })).toBeEnabled()
   })
 
+  it('shows the question the host sends and clears it on the next slide', async () => {
+    await reachGame()
+    emit({
+      type: 'QUESTION_CONTENT',
+      target: 'players',
+      questionId: 'q1',
+      title: 'Capital of France?',
+      description: null,
+      options: ['Paris', 'Lyon'],
+      answer: null,
+      media: null,
+      mediaType: null,
+    })
+    expect(screen.getByRole('heading', { name: 'Capital of France?' })).toBeInTheDocument()
+    expect(screen.getByText('Paris')).toBeInTheDocument()
+
+    emit({ type: 'SLIDE_CHANGE', index: 1, roundIndex: 0 })
+    expect(screen.queryByRole('region', { name: 'Question' })).toBeNull()
+  })
+
   it('disables the buzz button while the host keeps the buzzer locked', async () => {
     await reachGame()
     emit({ type: 'BUZZER_LOCK' })

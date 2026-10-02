@@ -1,6 +1,8 @@
 import { useSyncExternalStore } from 'react'
 import { transportManager } from '@/transport'
-import type { TransportEvent } from '@/transport/types'
+import type { GameEvent, TransportEvent } from '@/transport/types'
+
+export type QuestionContent = Extract<GameEvent, { type: 'QUESTION_CONTENT' }>
 
 /** What a player knows about its own place in the game, as told by the host. */
 export interface PlayerSession {
@@ -10,9 +12,17 @@ export interface PlayerSession {
   buzzerLocked: boolean
   /** Scores keyed by player and team id, from GAME_STATE and SCORE_UPDATE. */
   scores: Record<string, number>
+  /** What the host currently shows players of the question; `null` between questions. */
+  question: QuestionContent | null
 }
 
-const INITIAL: PlayerSession = { playerId: null, teamId: null, buzzerLocked: true, scores: {} }
+const INITIAL: PlayerSession = {
+  playerId: null,
+  teamId: null,
+  buzzerLocked: true,
+  scores: {},
+  question: null,
+}
 
 let session = INITIAL
 let unsubscribe: (() => void) | null = null
@@ -36,6 +46,10 @@ export function reduceSession(s: PlayerSession, event: TransportEvent): PlayerSe
       return { ...s, buzzerLocked: false }
     case 'SCORE_UPDATE':
       return { ...s, scores: event.scores }
+    case 'QUESTION_CONTENT':
+      return event.target === 'players' ? { ...s, question: event } : s
+    case 'SLIDE_CHANGE':
+      return { ...s, question: null }
     default:
       return s
   }
@@ -45,8 +59,9 @@ export function reduceSession(s: PlayerSession, event: TransportEvent): PlayerSe
  * Clear the previous session and start listening to the host. Call before connecting.
  *
  * @remarks
- * The session lives outside React so the GAME_STATE the host sends right after
- * JOIN_ACCEPTED is kept while the join screen hands over to the lazily loaded play screen.
+ * The session lives outside React so the GAME_STATE and QUESTION_CONTENT the host sends
+ * right after JOIN_ACCEPTED are kept while the join screen hands over to the lazily loaded
+ * play screen.
  */
 export function startPlayerSession() {
   unsubscribe ??= transportManager.onEvent(event => {
