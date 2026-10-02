@@ -16,7 +16,8 @@ async function joinAsScreen(roomId: string) {
 /**
  * A projector screen on another device. Joins the room as a screen, waits for the GM to
  * approve it, then shows what the host sends to screens: the question as far as the
- * `screen` visibility allows, the timers and the scoreboard.
+ * `screen` visibility allows, the timers and the scoreboard. Once the game has ended it
+ * keeps the final scoreboard up.
  */
 export default function RemoteScreen() {
   const { roomId = '' } = useParams<{ roomId: string }>()
@@ -41,6 +42,17 @@ export default function RemoteScreen() {
     setLost(false)
     setSession(INITIAL_SCREEN)
     joinAsScreen(roomId).catch(() => setLost(true))
+  }
+
+  const ended = session.gameStatus === 'ended'
+
+  if (ended && session.status === 'accepted') {
+    // The host disconnects everyone right after ending the game; that is not a lost connection
+    return (
+      <ScreenView heading="Game over" content={null}>
+        <ScreenScores rows={session.rows} />
+      </ScreenView>
+    )
   }
 
   if (lost || session.status !== 'accepted') {
@@ -70,7 +82,10 @@ export default function RemoteScreen() {
   }
 
   return (
-    <ScreenView heading={null} content={session.content}>
+    <ScreenView
+      heading={session.gameStatus === 'paused' ? 'Paused' : null}
+      content={session.content}
+    >
       <PlayerTimers />
       <ScreenScores rows={session.rows} />
     </ScreenView>

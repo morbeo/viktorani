@@ -64,6 +64,11 @@ beforeEach(() => {
 })
 
 describe('reduceScreen', () => {
+  it('follows GAME_STATUS', () => {
+    const s = reduceScreen(INITIAL_SCREEN, { type: 'GAME_STATUS', status: 'paused' })
+    expect(s.gameStatus).toBe('paused')
+  })
+
   it('keeps screen content only and clears it on navigation', () => {
     const players = { ...CONTENT, target: 'players' as const }
     expect(reduceScreen(INITIAL_SCREEN, players)).toBe(INITIAL_SCREEN)
@@ -108,6 +113,26 @@ describe('RemoteScreen', () => {
     await waitFor(() => expect(transportManager.send).toHaveBeenCalled())
     emit({ type: 'JOIN_REJECTED', reason: 'The host declined the screen' })
     expect(screen.getByRole('alert')).toHaveTextContent('The host declined the screen')
+  })
+
+  it('says when the host pauses the game', async () => {
+    renderScreen()
+    await waitFor(() => expect(transportManager.send).toHaveBeenCalled())
+    emit({ type: 'SCREEN_ACCEPTED' })
+    emit({ type: 'GAME_STATUS', status: 'paused' })
+    expect(screen.getByText('Paused')).toBeInTheDocument()
+  })
+
+  it('keeps the final scoreboard up once the game ends', async () => {
+    renderScreen()
+    await waitFor(() => expect(transportManager.send).toHaveBeenCalled())
+    emit({ type: 'SCREEN_ACCEPTED' })
+    emit({ type: 'SCOREBOARD', rows: [{ id: 'p1', name: 'Ann', score: 7 }] })
+    emit({ type: 'GAME_STATUS', status: 'ended' })
+    act(() => bus.closeHandlers.forEach(h => h('host')))
+    expect(screen.getByText('Game over')).toBeInTheDocument()
+    expect(screen.getByText('Ann')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 })
 
