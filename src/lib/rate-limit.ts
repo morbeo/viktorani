@@ -4,11 +4,13 @@
  */
 export class RateLimiter {
   private hits = new Map<string, number[]>()
+  private readonly limit: number
+  private readonly windowMs: number
 
-  constructor(
-    private readonly limit: number,
-    private readonly windowMs: number
-  ) {}
+  constructor(limit: number, windowMs: number) {
+    this.limit = limit
+    this.windowMs = windowMs
+  }
 
   /** Record a hit for `key` and say whether it is within the limit. */
   allow(key: string, now = Date.now()): boolean {
