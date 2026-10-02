@@ -304,8 +304,9 @@ reporting a lost connection.
 
 ## Game master page
 
-`pages/admin/GameMaster.tsx` is the busiest part of the app. It renders the **Lobby** while the
-game is `waiting` and the **ActiveGame** view otherwise.
+`pages/admin/GameMaster.tsx` is the busiest part of the app. It owns the room, the joins and the
+game state, and renders the **Lobby** (`components/gamemaster/Lobby.tsx`) while the game is
+`waiting` and the **ActiveGame** view (`components/gamemaster/ActiveGame.tsx`) otherwise.
 
 ```mermaid
 flowchart TD
