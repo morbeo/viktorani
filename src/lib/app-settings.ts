@@ -1,5 +1,8 @@
 import { z } from 'zod'
 
+/** 99:59, the most the timer inputs can hold. */
+export const MAX_TIMER_SECONDS = 99 * 60 + 59
+
 /**
  * App preferences, kept in one versioned localStorage entry and included in backups.
  *
@@ -8,12 +11,24 @@ import { z } from 'zod'
  * hand-edited entry never breaks the app. Version history:
  * - **1**: theme, action buttons, game master control size. Read once from the old
  *   `app-theme`, `action-mode` and `gm-control-size` keys, which are then removed.
+ * - **2**: sound (mute, volume) and defaults for new timers. A version 1 entry gets the
+ *   defaults for the new fields.
  */
+const TimerNotifySchema = z.enum(['none', 'host', 'players', 'both'])
+
 export const AppSettingsSchema = z.object({
-  version: z.literal(1).catch(1),
+  version: z.literal(2).catch(2),
   theme: z.enum(['system', 'light', 'dark']).catch('system'),
   actionMode: z.enum(['icons', 'text', 'both']).catch('icons'),
   controlSize: z.enum(['sm', 'md', 'lg']).catch('sm'),
+  soundMuted: z.boolean().catch(false),
+  /** Percent, 0–100, applied to every sound the app plays. */
+  soundVolume: z.number().int().min(0).max(100).catch(100),
+  /** Seconds a new timer starts with. */
+  timerDuration: z.number().int().min(1).max(MAX_TIMER_SECONDS).catch(60),
+  timerAudioNotify: TimerNotifySchema.catch('none'),
+  timerVisualNotify: TimerNotifySchema.catch('none'),
+  timerAutoReset: z.enum(['none', 'question', 'round', 'any']).catch('none'),
 })
 
 export type AppSettings = z.infer<typeof AppSettingsSchema>

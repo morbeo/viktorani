@@ -232,6 +232,10 @@ Open a timer's **Timer settings** to choose:
 - **Auto-reset on screen change:** reset the timer when the question changes, the round
   changes, either, or never.
 
+New timers start from the defaults in **Settings → Timers**: the duration, both
+notifications and auto-reset. **Settings → Sound & notifications** mutes every sound on that
+device or sets its volume; **Test sound** plays the timer beep.
+
 ### Controls
 
 | Action | Effect |
@@ -258,4 +262,4 @@ The game record remains in your local database until you delete it or purge all 
 via **Settings → Data → Purge**.
 
 **Settings → Data → Export JSON** saves your questions, games and app settings (theme, action
-buttons, control size) to one file; **Import JSON** restores them.
+buttons, control size, sound, timer defaults) to one file; **Import JSON** restores them.

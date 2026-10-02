@@ -3,6 +3,7 @@ import { db } from '@/db'
 import { transportManager } from '@/transport'
 import type { Timer, TimerNotify, TimerAutoReset } from '@/db'
 import type { TransportEvent } from '@/transport/types'
+import { getSettings } from '@/lib/app-settings'
 
 export type { TimerNotify, TimerAutoReset }
 
@@ -88,9 +89,7 @@ export function useTimerList(gameId: string): UseTimerListResult {
         visible: true,
         paused: true,
         startedAt: null,
-        audioNotify: 'none',
-        visualNotify: 'none',
-        autoReset: 'none',
+        ...timerDefaults(),
       }
       await db.timers.add(timer)
       setTimers(prev => [...prev, timer])
@@ -291,8 +290,23 @@ export function useTimerExpiry(
   })
 }
 
-/** Plays a short 880 Hz sine beep via Web Audio API. No-ops in test envs. */
+/** Notify and auto-reset settings for a new timer, from the app settings. */
+function timerDefaults(): Pick<Timer, 'audioNotify' | 'visualNotify' | 'autoReset'> {
+  const s = getSettings()
+  return {
+    audioNotify: s.timerAudioNotify,
+    visualNotify: s.timerVisualNotify,
+    autoReset: s.timerAutoReset,
+  }
+}
+
+/**
+ * Plays a short 880 Hz sine beep via Web Audio API, at the volume set in the app
+ * settings. Silent when sound is muted. No-ops in test envs.
+ */
 export function playBeep(frequency = 880, durationMs = 600) {
+  const { soundMuted, soundVolume } = getSettings()
+  if (soundMuted || soundVolume === 0) return
   try {
     const ctx = new AudioContext()
     const osc = ctx.createOscillator()
@@ -301,7 +315,7 @@ export function playBeep(frequency = 880, durationMs = 600) {
     gain.connect(ctx.destination)
     osc.type = 'sine'
     osc.frequency.value = frequency
-    gain.gain.setValueAtTime(0.4, ctx.currentTime)
+    gain.gain.setValueAtTime(0.4 * (soundVolume / 100), ctx.currentTime)
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + durationMs / 1000)
     osc.start(ctx.currentTime)
     osc.stop(ctx.currentTime + durationMs / 1000)
