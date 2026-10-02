@@ -34,6 +34,7 @@ function TestRoutes() {
       <Route path="/admin/notes/:id" element={<div>NoteDetail</div>} />
       <Route path="/admin/players-teams" element={<div>PlayersTeams</div>} />
       <Route path="/admin/settings" element={<div>Settings</div>} />
+      <Route path="/admin/settings/:category" element={<div>Settings</div>} />
       <Route path="/admin/debug" element={<div>Debug</div>} />
       <Route path="/join" element={<div>Join</div>} />
       <Route path="/join/:roomId" element={<div>Join</div>} />
