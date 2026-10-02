@@ -562,6 +562,15 @@ export default function GameMaster() {
     gameRef.current = game
   }, [game])
 
+  // Broadcasts (scores, timers, buzzer, navigation) reach admitted players only, never
+  // connections that are still choosing a team or waiting for approval
+  useEffect(() => {
+    transportManager.setBroadcastFilter(
+      connId => connectionsRef.current.playerFor(connId) !== undefined
+    )
+    return () => transportManager.setBroadcastFilter(null)
+  }, [])
+
   useEffect(() => {
     pendingJoinsRef.current = pendingJoins
   }, [pendingJoins])
@@ -747,13 +756,13 @@ export default function GameMaster() {
     return transportManager.onEvent(handleEvent)
   }, [handleEvent])
 
-  // Send join choices to each new connection, and to everyone whenever they change so
-  // open join screens follow the settings live (joined players ignore LOBBY_INFO)
+  // Send join choices to each new connection, and to every connection whenever they change
+  // so open join screens follow the settings live (joined players ignore LOBBY_INFO)
   const lobbyInfo = game ? JSON.stringify(buildLobbyInfo(game, teams, players)) : null
   const lobbyInfoRef = useRef<string | null>(null)
   useEffect(() => {
     lobbyInfoRef.current = lobbyInfo
-    if (lobbyInfo) transportManager.send(JSON.parse(lobbyInfo) as TransportEvent)
+    if (lobbyInfo) transportManager.sendToAll(JSON.parse(lobbyInfo) as TransportEvent)
   }, [lobbyInfo])
 
   useEffect(() => {
