@@ -4,7 +4,7 @@ import { Button } from '@/components/ui'
 import { ScreenScores, ScreenView } from '@/components/screen/ScreenView'
 import { useTransportEvents } from '@/hooks/useTransport'
 import { isAbortError, retry, transportManager } from '@/transport'
-import { PlayerTimers } from '@/pages/player/Play'
+import { PlayerTimers } from '@/components/timer/PlayerTimers'
 import { INITIAL_SCREEN, reduceScreen } from './screen-session'
 import type { ScreenSession } from './screen-session'
 
