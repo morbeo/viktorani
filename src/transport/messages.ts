@@ -77,6 +77,7 @@ export const GameEventSchemas = {
     id,
     duration: z.number().nonnegative(),
     label,
+    remaining: z.number().nonnegative().optional(),
   }),
   TIMER_PAUSE: z.strictObject({ type: z.literal('TIMER_PAUSE'), id }),
   TIMER_RESUME: z.strictObject({ type: z.literal('TIMER_RESUME'), id }),

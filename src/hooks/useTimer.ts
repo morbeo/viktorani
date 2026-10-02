@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { db } from '@/db'
 import { transportManager } from '@/transport'
 import type { Timer, TimerNotify, TimerAutoReset } from '@/db'
+import type { TransportEvent } from '@/transport/types'
 
 export type { TimerNotify, TimerAutoReset }
 
@@ -206,6 +207,19 @@ export function useTimerList(gameId: string): UseTimerListResult {
     autoReset,
     remaining,
   }
+}
+
+/**
+ * TIMER_START events that bring a newly joined player or screen up to date with the
+ * timers running now. Paused timers are left out, as players do not show them.
+ */
+export function runningTimerEvents(timers: Timer[], now: number): TransportEvent[] {
+  return timers.flatMap((t): TransportEvent[] => {
+    if (t.paused || t.startedAt === null) return []
+    const remaining = t.remaining - (now - t.startedAt) / 1000
+    if (remaining <= 0) return []
+    return [{ type: 'TIMER_START', id: t.id, duration: t.duration, label: t.label, remaining }]
+  })
 }
 
 // ── Expiry detection ──────────────────────────────────────────────────────────

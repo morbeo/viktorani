@@ -1,7 +1,13 @@
 // @vitest-pool vmForks
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act, render, screen, fireEvent, within } from '@testing-library/react'
-import { useTimerList, useTimerExpiry, applyAutoReset, playBeep } from '@/hooks/useTimer'
+import {
+  useTimerList,
+  useTimerExpiry,
+  applyAutoReset,
+  playBeep,
+  runningTimerEvents,
+} from '@/hooks/useTimer'
 import { EditTimerModal } from '@/components/timer/EditTimerModal'
 import { db } from '@/db'
 import type { Timer } from '@/db'
@@ -236,6 +242,20 @@ describe('useTimerExpiry', () => {
     expect(transportManager.send).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'TIMER_EXPIRED', id: timer.id, label: 'Finals' })
     )
+  })
+})
+
+// ── runningTimerEvents ────────────────────────────────────────────────────────
+
+describe('runningTimerEvents', () => {
+  it('sends only running timers, with the time they have left', () => {
+    const now = 1_000_000
+    const running = makeTimer({ label: 'Run', paused: false, startedAt: now - 20_000 })
+    const paused = makeTimer({ paused: true, remaining: 30 })
+    const expired = makeTimer({ paused: false, startedAt: now - 90_000 })
+    expect(runningTimerEvents([running, paused, expired], now)).toEqual([
+      { type: 'TIMER_START', id: running.id, duration: 60, label: 'Run', remaining: 40 },
+    ])
   })
 })
 

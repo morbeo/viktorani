@@ -73,7 +73,7 @@ function usePlayerTimers() {
           id,
           label,
           duration,
-          remaining: duration,
+          remaining: event.remaining ?? duration,
           startedAt: Date.now(),
           paused: false,
         }

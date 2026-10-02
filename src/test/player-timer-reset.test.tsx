@@ -21,6 +21,15 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
+describe('PlayerTimers — TIMER_START', () => {
+  it('picks up a timer that was already running when the player joined', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1_000_000)
+    render(<PlayerTimers />)
+    emit({ type: 'TIMER_START', id: 't1', duration: 60, label: 'Q', remaining: 15 })
+    expect(screen.getByText('00:15')).toBeInTheDocument()
+  })
+})
+
 describe('PlayerTimers — TIMER_RESET (#285)', () => {
   it('resets a running timer to its full duration, paused', () => {
     const now = vi.spyOn(Date, 'now').mockReturnValue(1_000_000)
