@@ -71,7 +71,6 @@ describe('QrScanner', () => {
     const mockStream = {
       getTracks: () => [{ stop: vi.fn() }],
     }
-    const mockVideo = { play: vi.fn(), srcObject: null }
     const mockGetUserMedia = vi.fn().mockResolvedValue(mockStream)
     vi.stubGlobal('navigator', {
       mediaDevices: { getUserMedia: mockGetUserMedia },

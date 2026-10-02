@@ -36,9 +36,9 @@ const mockGame: Game = {
 }
 
 const mockLifecycle = {
-  pauseGame: vi.fn(async () => ({ status: 'paused' as const })),
-  resumeGame: vi.fn(async () => ({ status: 'active' as const })),
-  endGame: vi.fn(async () => ({ status: 'ended' as const })),
+  pauseGame: vi.fn(async () => ({ status: 'paused' as const, updatedAt: 0 })),
+  resumeGame: vi.fn(async () => ({ status: 'active' as const, updatedAt: 0 })),
+  endGame: vi.fn(async () => ({ status: 'ended' as const, updatedAt: 0 })),
 }
 
 vi.mock('react-router-dom', () => ({
@@ -52,7 +52,7 @@ describe('GameControls', () => {
 
   it('renders game name and controls', () => {
     render(
-      <GameControls game={mockGame} onGameChange={vi.fn()} lifecycle={mockLifecycle as any} />
+      <GameControls game={mockGame} onGameChange={vi.fn()} lifecycle={mockLifecycle} />
     )
     expect(screen.getByText('Test Game')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Pause game' })).toBeInTheDocument()
@@ -65,7 +65,7 @@ describe('GameControls', () => {
       <GameControls
         game={{ ...mockGame, status: 'paused' }}
         onGameChange={vi.fn()}
-        lifecycle={mockLifecycle as any}
+        lifecycle={mockLifecycle}
       />
     )
     expect(screen.getByText('Paused')).toBeInTheDocument()
@@ -77,7 +77,7 @@ describe('GameControls', () => {
       <GameControls
         game={{ ...mockGame, status: 'ended' }}
         onGameChange={vi.fn()}
-        lifecycle={mockLifecycle as any}
+        lifecycle={mockLifecycle}
       />
     )
     expect(screen.getByText('Ended')).toBeInTheDocument()
@@ -87,7 +87,7 @@ describe('GameControls', () => {
 
   it('pauses the game when pause button is clicked', async () => {
     const onChange = vi.fn()
-    render(<GameControls game={mockGame} onGameChange={onChange} lifecycle={mockLifecycle as any} />)
+    render(<GameControls game={mockGame} onGameChange={onChange} lifecycle={mockLifecycle} />)
     await userEvent.click(screen.getByRole('button', { name: 'Pause game' }))
     expect(mockLifecycle.pauseGame).toHaveBeenCalledWith(mockGame)
     expect(onChange).toHaveBeenCalledWith({ status: 'paused' })
@@ -99,7 +99,7 @@ describe('GameControls', () => {
       <GameControls
         game={{ ...mockGame, status: 'paused' }}
         onGameChange={onChange}
-        lifecycle={mockLifecycle as any}
+        lifecycle={mockLifecycle}
       />
     )
     await userEvent.click(screen.getByRole('button', { name: 'Resume game' }))
@@ -109,7 +109,7 @@ describe('GameControls', () => {
 
   it('opens end game modal when end button is clicked', async () => {
     render(
-      <GameControls game={mockGame} onGameChange={vi.fn()} lifecycle={mockLifecycle as any} />
+      <GameControls game={mockGame} onGameChange={vi.fn()} lifecycle={mockLifecycle} />
     )
     await userEvent.click(screen.getByRole('button', { name: 'End game' }))
     expect(screen.getByRole('heading', { name: 'End game' })).toBeInTheDocument()
@@ -117,7 +117,7 @@ describe('GameControls', () => {
 
   it('ends the game when confirmed', async () => {
     const onChange = vi.fn()
-    render(<GameControls game={mockGame} onGameChange={onChange} lifecycle={mockLifecycle as any} />)
+    render(<GameControls game={mockGame} onGameChange={onChange} lifecycle={mockLifecycle} />)
     await userEvent.click(screen.getByRole('button', { name: 'End game' }))
     await userEvent.click(screen.getByRole('button', { name: 'Confirm' }))
     expect(mockLifecycle.endGame).toHaveBeenCalledWith(mockGame)
@@ -128,7 +128,7 @@ describe('GameControls', () => {
     const openSpy = vi.fn()
     vi.stubGlobal('open', openSpy)
     render(
-      <GameControls game={mockGame} onGameChange={vi.fn()} lifecycle={mockLifecycle as any} />
+      <GameControls game={mockGame} onGameChange={vi.fn()} lifecycle={mockLifecycle} />
     )
     await userEvent.click(screen.getByText('Open screen'))
     expect(openSpy).toHaveBeenCalledWith(
