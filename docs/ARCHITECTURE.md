@@ -293,7 +293,9 @@ stateDiagram-v2
 ```
 
 Each transition is written to `games.status` and broadcast as `GAME_STATUS`
-(`hooks/useGameLifecycle.ts`). An ended game is read-only.
+(`hooks/useGameLifecycle.ts`). An ended game is read-only. Players and screens follow it:
+while paused the buzz button is held, and once ended they keep the final score up instead of
+reporting a lost connection.
 
 ## Game master page
 

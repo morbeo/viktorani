@@ -943,6 +943,9 @@ export default function GameMaster() {
     transportManager.sendTo(connId, { type: 'SCREEN_ACCEPTED' })
     if (screenContentRef.current) transportManager.sendTo(connId, screenContentRef.current)
     transportManager.sendTo(connId, { type: 'SCOREBOARD', rows: scoreboardRef.current })
+    if (gameRef.current?.status === 'paused') {
+      transportManager.sendTo(connId, { type: 'GAME_STATUS', status: 'paused' })
+    }
   }, [updatePendingScreens])
 
   const handleRejectScreen = useCallback((connId: string) => {

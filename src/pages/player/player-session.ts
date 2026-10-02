@@ -4,6 +4,15 @@ import type { GameEvent, TransportEvent } from '@/transport/types'
 
 export type QuestionContent = Extract<GameEvent, { type: 'QUESTION_CONTENT' }>
 
+export type GameStatus = 'waiting' | 'active' | 'paused' | 'ended'
+
+const GAME_STATUSES: readonly string[] = ['waiting', 'active', 'paused', 'ended']
+
+/** The game status a GAME_STATE carries, or `fallback` if it is not one we know. */
+export function knownStatus(status: string, fallback: GameStatus | null): GameStatus | null {
+  return GAME_STATUSES.includes(status) ? (status as GameStatus) : fallback
+}
+
 /** What a player knows about its own place in the game, as told by the host. */
 export interface PlayerSession {
   /** Host-assigned id; `null` until JOIN_ACCEPTED. */
@@ -14,6 +23,8 @@ export interface PlayerSession {
   scores: Record<string, number>
   /** What the host currently shows players of the question; `null` between questions. */
   question: QuestionContent | null
+  /** From GAME_STATE and GAME_STATUS; `null` until the host says. */
+  gameStatus: GameStatus | null
 }
 
 const INITIAL: PlayerSession = {
@@ -22,6 +33,7 @@ const INITIAL: PlayerSession = {
   buzzerLocked: true,
   scores: {},
   question: null,
+  gameStatus: null,
 }
 
 let session = INITIAL
@@ -39,7 +51,14 @@ export function reduceSession(s: PlayerSession, event: TransportEvent): PlayerSe
     case 'JOIN_ACCEPTED':
       return { ...s, playerId: event.playerId, teamId: event.teamId }
     case 'GAME_STATE':
-      return { ...s, buzzerLocked: event.state.buzzerLocked, scores: event.state.scores }
+      return {
+        ...s,
+        buzzerLocked: event.state.buzzerLocked,
+        scores: event.state.scores,
+        gameStatus: knownStatus(event.state.status, s.gameStatus),
+      }
+    case 'GAME_STATUS':
+      return { ...s, gameStatus: event.status }
     case 'BUZZER_LOCK':
       return { ...s, buzzerLocked: true }
     case 'BUZZER_UNLOCK':
