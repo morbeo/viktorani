@@ -2,6 +2,11 @@
 
 Everything you need to run a trivia night with Viktorani.
 
+> **Tip:** press **Ctrl+K** (**⌘+K** on a Mac) on any host page to open the command palette.
+> Type to jump to a page, start a new game or question, open a game or question by name, or, on
+> the game master page, run game commands such as **Next question**, **Lock buzzer** or
+> **Start timer**.
+
 ---
 
 ## Contents
