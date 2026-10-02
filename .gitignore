@@ -31,7 +31,3 @@ Thumbs.db
 # Scripts and stuff
 archives/
 deploy/
-
-# Playwright
-playwright-report/
-test-results/
