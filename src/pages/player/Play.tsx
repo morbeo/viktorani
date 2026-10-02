@@ -33,11 +33,6 @@ function usePlayerTimers() {
   const [expired, setExpired] = useState<ExpiredEntry | null>(null)
   const [tick, setTick] = useState(0)
   const rafRef = useRef<number | null>(null)
-  const timersRef = useRef<PlayerTimer[]>([])
-
-  useEffect(() => {
-    timersRef.current = timers
-  }, [timers])
 
   useEffect(() => {
     let last = performance.now()
@@ -57,12 +52,12 @@ function usePlayerTimers() {
   const remaining = useCallback(
     (id: string): number => {
       void tick
-      const t = timersRef.current.find(x => x.id === id)
+      const t = timers.find(x => x.id === id)
       if (!t) return 0
       if (t.paused || t.startedAt === null) return Math.max(0, t.remaining)
       return Math.max(0, t.remaining - (Date.now() - t.startedAt) / 1000)
     },
-    [tick]
+    [tick, timers]
   )
 
   const handleEvent = useCallback((event: GameEvent) => {
@@ -73,7 +68,7 @@ function usePlayerTimers() {
           id,
           label,
           duration,
-          remaining: duration,
+          remaining: event.remaining ?? duration,
           startedAt: Date.now(),
           paused: false,
         }
