@@ -266,6 +266,24 @@ describe('PeerJSTransport', () => {
     expect(received[0]).toEqual(event)
   })
 
+  it('player: closes connections from other peers and ignores their data', async () => {
+    const { PeerJSTransport } = await import('@/transport/PeerJSTransport')
+    const t = new PeerJSTransport()
+    // Never opened here; the connect timeout rejects later
+    t.connect(PEER_PLAYER_CONFIG).catch(() => {})
+
+    const received: TransportEvent[] = []
+    t.onEvent(e => received.push(e))
+
+    const conn = mockConn('intruder')
+    const peer = MockPeer.lastInstance as unknown as { emit(e: string, ...a: unknown[]): void }
+    peer.emit('connection', conn)
+
+    expect(conn.close).toHaveBeenCalled()
+    expect(conn.on).not.toHaveBeenCalled()
+    expect(received).toHaveLength(0)
+  })
+
   it('host: passes the connection id and sendTo reaches only that connection', async () => {
     const { PeerJSTransport } = await import('@/transport/PeerJSTransport')
     const t = new PeerJSTransport()
