@@ -58,6 +58,8 @@ describe('buildManagedImport', () => {
   it('produces different ids when importing the same roster into a second game', () => {
     const managedTeams = [managedTeam({ id: 'mt1' })]
     const managedPlayers = [managedPlayer({ id: 'mp1', teamIds: ['mt1'] })]
+    // One generator shared across both imports, standing in for unique crypto.randomUUID()
+    const newId = seqId()
 
     const first = buildManagedImport({
       managedTeams,
@@ -66,7 +68,7 @@ describe('buildManagedImport', () => {
       existingPlayerNames: [],
       gameId: 'g1',
       now: 0,
-      newId: seqId(),
+      newId,
     })
     const second = buildManagedImport({
       managedTeams,
@@ -75,7 +77,7 @@ describe('buildManagedImport', () => {
       existingPlayerNames: [],
       gameId: 'g2',
       now: 0,
-      newId: seqId(),
+      newId,
     })
 
     // No id collisions across games — this is what used to fail on the second import
