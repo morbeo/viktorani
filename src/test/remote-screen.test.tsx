@@ -10,20 +10,28 @@ const bus = vi.hoisted(() => ({
   closeHandlers: [] as Array<(id: string) => void>,
 }))
 
-vi.mock('@/transport', () => ({
-  transportManager: {
-    connect: vi.fn(),
-    send: vi.fn(),
-    onEvent: vi.fn((h: (e: TransportEvent, from: string) => void) => {
-      bus.handlers.push(h)
-      return () => bus.handlers.splice(bus.handlers.indexOf(h), 1)
-    }),
-    onPeerClose: vi.fn((h: (id: string) => void) => {
-      bus.closeHandlers.push(h)
-      return () => bus.closeHandlers.splice(bus.closeHandlers.indexOf(h), 1)
-    }),
-  },
-}))
+vi.mock('@/transport', async importOriginal => {
+  const actual = await importOriginal<typeof import('@/transport')>()
+  return {
+    ...actual,
+    // One immediate retry keeps the tests fast
+    retry: ((attempt, options) =>
+      actual.retry(attempt, { ...options, delays: [0] })) as typeof actual.retry,
+    transportManager: {
+      error: 'Cannot reach the connection server.',
+      connect: vi.fn(),
+      send: vi.fn(),
+      onEvent: vi.fn((h: (e: TransportEvent, from: string) => void) => {
+        bus.handlers.push(h)
+        return () => bus.handlers.splice(bus.handlers.indexOf(h), 1)
+      }),
+      onPeerClose: vi.fn((h: (id: string) => void) => {
+        bus.closeHandlers.push(h)
+        return () => bus.closeHandlers.splice(bus.closeHandlers.indexOf(h), 1)
+      }),
+    },
+  }
+})
 
 import { transportManager } from '@/transport'
 import RemoteScreen from '@/pages/screen/RemoteScreen'
@@ -133,6 +141,30 @@ describe('RemoteScreen', () => {
     expect(screen.getByText('Game over')).toBeInTheDocument()
     expect(screen.getByText('Ann')).toBeInTheDocument()
     expect(screen.queryByRole('alert')).toBeNull()
+    expect(transportManager.connect).toHaveBeenCalledTimes(1)
+  })
+
+  it('joins again on its own when the host connection drops', async () => {
+    renderScreen()
+    await waitFor(() => expect(transportManager.send).toHaveBeenCalled())
+    emit({ type: 'SCREEN_ACCEPTED' })
+    act(() => bus.closeHandlers.forEach(h => h('host')))
+    await waitFor(() => expect(transportManager.send).toHaveBeenCalledTimes(2))
+    expect(transportManager.connect).toHaveBeenCalledTimes(2)
+    expect(screen.getByRole('status')).toHaveTextContent('Connecting to the host…')
+  })
+
+  it('offers to reconnect, with the reason, once the retries fail', async () => {
+    vi.mocked(transportManager.connect).mockRejectedValue(new Error('network'))
+    renderScreen()
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Lost the connection to the host. Cannot reach the connection server.'
+    )
+    expect(transportManager.connect).toHaveBeenCalledTimes(2)
+
+    vi.mocked(transportManager.connect).mockResolvedValue(undefined)
+    await userEvent.click(screen.getByRole('button', { name: 'Reconnect' }))
+    await waitFor(() => expect(transportManager.send).toHaveBeenCalledWith({ type: 'SCREEN_JOIN' }))
   })
 })
 

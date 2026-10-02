@@ -97,6 +97,11 @@ function subscribe(listener: () => void) {
   }
 }
 
+/** The current player session, read outside React (e.g. in a transport callback). */
+export function getPlayerSession(): PlayerSession {
+  return session
+}
+
 /** The current player session; re-renders when the host changes it. */
 export function usePlayerSession(): PlayerSession {
   return useSyncExternalStore(subscribe, () => session)

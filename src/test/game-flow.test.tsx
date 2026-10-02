@@ -92,6 +92,10 @@ const hub = vi.hoisted(() => {
         this.closeHandlers = this.closeHandlers.filter(h => h !== handler)
       }
     }
+
+    onStatusChange() {
+      return () => {}
+    }
   }
 
   return { state, FakeTransport }

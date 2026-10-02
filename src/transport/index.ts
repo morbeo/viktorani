@@ -62,6 +62,79 @@ function cancelled(): DOMException {
   return new DOMException('Transport connect cancelled', 'AbortError')
 }
 
+// ── Errors and retries ────────────────────────────────────────────────────────
+
+/** Whether `err` is the AbortError a connect rejects with when it is cancelled on purpose. */
+export function isAbortError(err: unknown): boolean {
+  return err instanceof DOMException && err.name === 'AbortError'
+}
+
+/**
+ * A short, user-facing explanation of a transport error.
+ *
+ * @param err - A PeerJS error (which carries a `type`), a timeout, or anything else.
+ * @returns A sentence that can be shown as is.
+ */
+export function describeTransportError(err: unknown): string {
+  const type = (err as { type?: unknown } | null)?.type
+  switch (type) {
+    case 'peer-unavailable':
+      return 'The host is not online. Check the room code, or wait for the host to open the game.'
+    case 'unavailable-id':
+      return 'This room is already open in another tab or on another device.'
+    case 'browser-incompatible':
+      return 'This browser does not support the peer-to-peer connections the game needs.'
+    case 'network':
+    case 'server-error':
+    case 'socket-error':
+    case 'socket-closed':
+    case 'disconnected':
+      return 'Cannot reach the connection server. Check your internet connection.'
+  }
+  if (err instanceof Error && err.message === 'PeerJS connection timeout') {
+    return 'Timed out connecting. Check your internet connection.'
+  }
+  return 'The connection failed.'
+}
+
+/** Delays before each retry of {@link retry}: three more tries over about ten seconds. */
+export const RETRY_DELAYS = [1000, 3000, 6000]
+
+/**
+ * Run `attempt` until it resolves, waiting each of `delays` between tries.
+ *
+ * @remarks
+ * Gives up at once on an AbortError or once `cancelled` returns true (the page was
+ * left), rejecting with an AbortError, and otherwise rejects with the last error once
+ * the delays are used up.
+ *
+ * @param attempt - The operation to try, e.g. connecting and re-sending a JOIN.
+ * @param options.onRetry - Called before each wait with the retry number (from 1).
+ * @param options.cancelled - Checked after each failure and wait.
+ * @param options.delays - Defaults to {@link RETRY_DELAYS}.
+ */
+export async function retry<T>(
+  attempt: () => Promise<T>,
+  {
+    onRetry,
+    cancelled = () => false,
+    delays = RETRY_DELAYS,
+  }: { onRetry?: (n: number) => void; cancelled?: () => boolean; delays?: number[] } = {}
+): Promise<T> {
+  for (let i = 0; ; i++) {
+    try {
+      return await attempt()
+    } catch (err) {
+      if (isAbortError(err)) throw err
+      if (cancelled()) throw new DOMException('Retry cancelled', 'AbortError')
+      if (i >= delays.length) throw err
+      onRetry?.(i + 1)
+      await new Promise(resolve => setTimeout(resolve, delays[i]))
+      if (cancelled()) throw new DOMException('Retry cancelled', 'AbortError')
+    }
+  }
+}
+
 // ── Manager ───────────────────────────────────────────────────────────────────
 
 /** Callback invoked when the transport connection status or type changes. */
@@ -99,10 +172,16 @@ export class TransportManager {
   private openHandlers: Array<(connId: string) => void> = []
   private closeHandlers: Array<(connId: string) => void> = []
   private broadcastFilter: ((connId: string) => boolean) | null = null
+  private lastError: string | null = null
 
-  /** Current connection lifecycle state. `'idle'` when not connected. */
+  /** Current connection lifecycle state: `'idle'` when not connected, `'error'` after a failed connect. */
   get status(): TransportStatus {
-    return this.transport?.status ?? 'idle'
+    return this.transport?.status ?? (this.lastError ? 'error' : 'idle')
+  }
+
+  /** What went wrong with the connection, for showing to the user; `null` when nothing did. */
+  get error(): string | null {
+    return this.lastError
   }
 
   /** Which concrete transport is active, or `null` when not connected. */
@@ -121,6 +200,9 @@ export class TransportManager {
    * PeerJS is imported dynamically so it is excluded from the initial bundle
    * and loaded only when a connection is made.
    *
+   * A failed connect leaves the status at `'error'` with {@link TransportManager.error}
+   * set, and notifies status listeners; a cancelled one (AbortError) stays `'idle'`.
+   *
    * @param config - Room role and code.
    * @throws If PeerJS fails to connect.
    */
@@ -132,7 +214,15 @@ export class TransportManager {
 
     const { PeerJSTransport } = await import('./PeerJSTransport')
     if (generation !== this.generation) throw cancelled()
-    await this.tryTransport(new PeerJSTransport(), config, generation)
+    try {
+      await this.tryTransport(new PeerJSTransport(), config, generation)
+    } catch (err) {
+      if (!isAbortError(err)) {
+        this.lastError = describeTransportError(err)
+        this.notifyStatus()
+      }
+      throw err
+    }
 
     // Validate against the message contract, then forward to registered handlers
     this.transport!.onEvent((raw, from) => {
@@ -141,6 +231,10 @@ export class TransportManager {
     })
     this.transport!.onPeerOpen(connId => this.openHandlers.forEach(h => h(connId)))
     this.transport!.onPeerClose(connId => this.closeHandlers.forEach(h => h(connId)))
+    this.transport!.onStatusChange((status, err) => {
+      this.lastError = status === 'connected' || !err ? null : describeTransportError(err)
+      this.notifyStatus()
+    })
 
     this.notifyStatus()
   }
@@ -177,6 +271,7 @@ export class TransportManager {
     this.pending = null
     this.transport?.disconnect()
     this.transport = null
+    this.lastError = null
     this.notifyStatus()
   }
 
