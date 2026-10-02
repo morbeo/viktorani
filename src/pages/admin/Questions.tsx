@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import Fuse from 'fuse.js'
+import { useSearchParams } from 'react-router-dom'
 import AdminLayout from '@/components/AdminLayout'
 import { Button, Badge, Input, Select, Modal, Textarea, Empty, Icon } from '@/components/ui'
 import {
@@ -486,6 +487,18 @@ export default function Questions() {
   const [importing, setImporting] = useState(false)
   const importRef = useRef<HTMLInputElement>(null)
 
+  // ?new=1 and ?edit=<id> (from the command palette) open the form too
+  const [params, setParams] = useSearchParams()
+  const editId = params.get('edit')
+  const requested: Partial<Question> | false =
+    params.get('new') === '1' ? {} : (editId && questions.find(q => q.id === editId)) || false
+  const form = editing !== false ? editing : requested
+
+  function closeForm() {
+    setEditing(false)
+    if (params.has('new') || params.has('edit')) setParams({}, { replace: true })
+  }
+
   async function load() {
     const [qs, rs, diffs, ts] = await Promise.all([
       db.questions.orderBy('createdAt').reverse().toArray(),
@@ -617,7 +630,7 @@ export default function Questions() {
         updatedAt: now,
       } as Question)
     }
-    setEditing(false)
+    closeForm()
     load()
   }
 
@@ -996,13 +1009,13 @@ export default function Questions() {
       </div>
 
       {/* Question form */}
-      {editing !== false && (
+      {form !== false && (
         <QuestionForm
-          question={editing}
+          question={form}
           difficulties={difficulties}
           tags={tags}
           onSave={handleSave}
-          onClose={() => setEditing(false)}
+          onClose={closeForm}
         />
       )}
 

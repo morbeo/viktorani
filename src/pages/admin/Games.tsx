@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import AdminLayout from '@/components/AdminLayout'
 import { Button, Badge, Input, Modal, Empty, HelpTip } from '@/components/ui'
 import { JOIN_POLICY_HELP } from '@/components/gamemaster/join-policy-help'
@@ -718,7 +718,15 @@ export default function Games() {
   const [games, setGames] = useState<Game[]>([])
   const [rounds, setRounds] = useState<Round[]>([])
   const [wizard, setWizard] = useState(false)
+  // ?new=1 (from the command palette) opens the wizard too
+  const [params, setParams] = useSearchParams()
+  const showWizard = wizard || params.get('new') === '1'
   const [deleting, setDeleting] = useState<Game | null>(null)
+
+  function closeWizard() {
+    setWizard(false)
+    if (params.has('new')) setParams({}, { replace: true })
+  }
 
   async function load() {
     const [gs, rs] = await Promise.all([
@@ -838,12 +846,12 @@ export default function Games() {
         </div>
       )}
 
-      {wizard && (
+      {showWizard && (
         <GameWizard
           rounds={rounds}
-          onClose={() => setWizard(false)}
+          onClose={closeWizard}
           onCreated={id => {
-            setWizard(false)
+            closeWizard()
             navigate(`/admin/game/${id}`)
           }}
         />
