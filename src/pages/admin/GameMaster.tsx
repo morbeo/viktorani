@@ -211,8 +211,10 @@ export default function GameMaster() {
       if (newTeam) setTeams(prev => [...prev, newTeam])
       // Closed while saving: keep the player, away and without a connection
       if (closedRef.current.has(connId)) {
-        await db.players.update(player.id, { isAway: true })
         setPlayers(prev => markPlayerAway(upsertPlayer(prev, player), player.id))
+        db.players
+          .update(player.id, { isAway: true })
+          .catch(err => console.error('[GameMaster] Marking player away failed:', err))
         return
       }
       kickedRef.current.delete(player.id)
