@@ -31,6 +31,8 @@ export const MAX_TEXT_LENGTH = 5000
 export const MAX_OPTIONS = 20
 /** Max number of teams listed in `LOBBY_INFO`. */
 export const MAX_LOBBY_TEAMS = 100
+/** Max number of rows in a `SCOREBOARD`. */
+export const MAX_SCOREBOARD_ROWS = 500
 /** Max length of question media (base64 data URL or remote URL), in characters. */
 export const MAX_MEDIA_LENGTH = 10 * 1024 * 1024
 
@@ -124,6 +126,11 @@ export const GameEventSchemas = {
     media: z.string().max(MAX_MEDIA_LENGTH).nullable(),
     mediaType: z.enum(['image', 'audio', 'video']).nullable(),
   }),
+  SCREEN_ACCEPTED: z.strictObject({ type: z.literal('SCREEN_ACCEPTED') }),
+  SCOREBOARD: z.strictObject({
+    type: z.literal('SCOREBOARD'),
+    rows: z.array(z.strictObject({ id, name, score: z.number() })).max(MAX_SCOREBOARD_ROWS),
+  }),
 }
 
 /** Schemas for events sent by players to the GameMaster. */
@@ -144,6 +151,7 @@ export const PlayerEventSchemas = {
     type: z.literal('FOCUS_CHANGE'),
     away: z.boolean(),
   }),
+  SCREEN_JOIN: z.strictObject({ type: z.literal('SCREEN_JOIN') }),
 }
 
 /** Discriminated union of every transport message, keyed on `type`. */
@@ -165,10 +173,13 @@ export const TransportEventSchema = z.discriminatedUnion('type', [
   GameEventSchemas.JOIN_ACCEPTED,
   GameEventSchemas.JOIN_REJECTED,
   GameEventSchemas.QUESTION_CONTENT,
+  GameEventSchemas.SCREEN_ACCEPTED,
+  GameEventSchemas.SCOREBOARD,
   PlayerEventSchemas.BUZZ,
   PlayerEventSchemas.JOIN,
   PlayerEventSchemas.LEAVE,
   PlayerEventSchemas.FOCUS_CHANGE,
+  PlayerEventSchemas.SCREEN_JOIN,
 ])
 
 /**
