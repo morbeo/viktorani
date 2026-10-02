@@ -182,8 +182,9 @@ export interface ITransport {
    * Send an event to the other side: the host broadcasts to every player, a player
    * sends to the host.
    * @param event - Any {@link TransportEvent} variant.
+   * @param include - Host side only: when given, the broadcast skips connections it rejects.
    */
-  send(event: TransportEvent): void
+  send(event: TransportEvent, include?: (connId: string) => boolean): void
 
   /**
    * Send an event to one connection only (host side).

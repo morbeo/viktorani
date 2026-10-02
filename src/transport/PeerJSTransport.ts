@@ -111,11 +111,11 @@ export class PeerJSTransport implements ITransport {
     this._status = 'disconnected'
   }
 
-  send(event: TransportEvent) {
+  send(event: TransportEvent, include?: (connId: string) => boolean) {
     if (this.role === 'host') {
-      // Host broadcasts to all connected players
+      // Host broadcasts to all connected players the filter accepts
       this.connections.forEach(conn => {
-        if (conn.open) conn.send(event)
+        if (conn.open && (!include || include(conn.connectionId))) conn.send(event)
       })
     } else {
       // Player sends to host (first connection)
