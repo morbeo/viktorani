@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { db } from '@/db'
+import { useAppSettings } from '@/hooks/useAppSettings'
 import { exportQuestions, importQuestions, downloadExampleQuestions } from '@/db/snapshot'
 import type { ImportResult } from '@/db/snapshot'
 import type { Question, QuestionType, DifficultyLevel, Tag, Round } from '@/db'
@@ -483,6 +484,8 @@ export default function Questions() {
   const [editingRound, setEditingRound] = useState<Round | null>(null)
   const [editRoundName, setEditRoundName] = useState('')
   const [deletingRound, setDeletingRound] = useState<Round | null>(null)
+  const [deletingIds, setDeletingIds] = useState<string[] | null>(null)
+  const [{ confirmDestructive }] = useAppSettings()
   const [importResult, setImportResult] = useState<ImportResult | null>(null)
   const [importing, setImporting] = useState(false)
   const importRef = useRef<HTMLInputElement>(null)
@@ -634,6 +637,11 @@ export default function Questions() {
     load()
   }
 
+  function requestDelete(ids: string[]) {
+    if (confirmDestructive) setDeletingIds(ids)
+    else void handleDelete(ids)
+  }
+
   async function handleDelete(ids: string[]) {
     // Remove the questions and every reference to them (rounds, games) together
     await db.transaction('rw', [db.questions, db.rounds, db.gameQuestions], async () => {
@@ -650,6 +658,7 @@ export default function Questions() {
       await db.gameQuestions.filter(gq => ids.includes(gq.questionId)).delete()
     })
     setSelected(new Set())
+    setDeletingIds(null)
     load()
   }
 
@@ -686,10 +695,9 @@ export default function Questions() {
     load()
   }
 
-  async function handleDeleteRound() {
-    if (!deletingRound) return
-    await db.rounds.delete(deletingRound.id)
-    if (selectedRound === deletingRound.id) setSelectedRound(null)
+  async function handleDeleteRound(round: Round) {
+    await db.rounds.delete(round.id)
+    if (selectedRound === round.id) setSelectedRound(null)
     setDeletingRound(null)
     load()
   }
@@ -775,7 +783,9 @@ export default function Questions() {
             setEditingRound(r)
             setEditRoundName(r.name)
           }}
-          onDeleteRound={r => setDeletingRound(r)}
+          onDeleteRound={r =>
+            confirmDestructive ? setDeletingRound(r) : void handleDeleteRound(r)
+          }
           selectedQIds={[...selected]}
           onAddToRound={handleAddToRound}
         />
@@ -819,7 +829,7 @@ export default function Questions() {
                   <Icon icon={Download} size="sm" />
                   Export {selected.size}
                 </Button>
-                <Button variant="danger" size="sm" onClick={() => handleDelete([...selected])}>
+                <Button variant="danger" size="sm" onClick={() => requestDelete([...selected])}>
                   <Icon icon={Trash2} size="sm" />
                   Delete {selected.size}
                 </Button>
@@ -991,7 +1001,7 @@ export default function Questions() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDelete([q.id])}
+                          onClick={() => requestDelete([q.id])}
                           aria-label="Delete question"
                           title="Delete"
                           style={{ color: 'var(--color-red)' }}
@@ -1135,6 +1145,30 @@ export default function Questions() {
         </div>
       </Modal>
 
+      {/* Delete questions confirm modal */}
+      <Modal
+        open={!!deletingIds}
+        title={deletingIds?.length === 1 ? 'Delete question' : 'Delete questions'}
+        onClose={() => setDeletingIds(null)}
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-sm" style={{ color: 'var(--color-ink)' }}>
+            {deletingIds?.length === 1
+              ? 'Delete this question?'
+              : `Delete ${deletingIds?.length} questions?`}{' '}
+            They are removed from every round and game.
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setDeletingIds(null)}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={() => deletingIds && void handleDelete(deletingIds)}>
+              Delete
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
       {/* Delete round confirm modal */}
       <Modal open={!!deletingRound} title="Delete round" onClose={() => setDeletingRound(null)}>
         <div className="flex flex-col gap-4">
@@ -1145,7 +1179,10 @@ export default function Questions() {
             <Button variant="ghost" onClick={() => setDeletingRound(null)}>
               Cancel
             </Button>
-            <Button variant="danger" onClick={handleDeleteRound}>
+            <Button
+              variant="danger"
+              onClick={() => deletingRound && void handleDeleteRound(deletingRound)}
+            >
               Delete round
             </Button>
           </div>

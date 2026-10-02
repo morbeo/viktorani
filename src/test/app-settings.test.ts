@@ -24,7 +24,18 @@ describe('app settings', () => {
       timerVisualNotify: 'none',
       timerAutoReset: 'none',
       gameDefaults: { ...defaultSettings(), tiebreakerMode: 'serverOrder' },
+      confirmDestructive: true,
+      joinUrlBase: '',
     })
+  })
+
+  it('keeps only an http(s) join URL base', () => {
+    setSettings({ joinUrlBase: ' https://quiz.example.com/ ' })
+    expect(getSettings().joinUrlBase).toBe('https://quiz.example.com/')
+    for (const bad of ['javascript:alert(1)', 'ftp://host/', 'not a url']) {
+      setSettings({ joinUrlBase: bad })
+      expect(getSettings().joinUrlBase).toBe('')
+    }
   })
 
   it('upgrades a version 2 entry with the built-in game defaults', () => {

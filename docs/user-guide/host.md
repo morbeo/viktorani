@@ -143,6 +143,10 @@ Players can join by:
 
 The QR code links directly to the join page with the room code pre-filled.
 
+If players should use a different address, for example a custom domain or this computer's
+LAN IP, set **Settings → General → Player join URL base**. The join link and QR code then
+use it. It must start with `http://` or `https://`; leave it empty to use the current address.
+
 ### Lobby
 
 The GM sees a list of players in real time. Each player appears as they join, with an icon
@@ -268,5 +272,10 @@ When all rounds are complete (or you choose to end early):
 The game record remains in your local database until you delete it or purge all data
 via **Settings → Data → Purge**.
 
+Deleting a question, round or game, and archiving players or teams in bulk, asks first.
+Turn off **Settings → General → Confirm destructive actions** to skip those dialogs.
+Purging all data always asks.
+
 **Settings → Data → Export JSON** saves your questions, games and app settings (theme, action
-buttons, control size, sound, timer and game defaults) to one file; **Import JSON** restores them.
+buttons, control size, sound, timer and game defaults, general settings) to one file;
+**Import JSON** restores them.

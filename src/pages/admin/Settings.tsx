@@ -4,6 +4,7 @@ import ManageTags from '@/components/settings/ManageTags'
 import ManageDifficulties from '@/components/settings/ManageDifficulties'
 import ManageLabels from '@/components/players-teams/ManageLabels'
 import AppearanceSettings from '@/components/settings/AppearanceSettings'
+import GeneralSettings from '@/components/settings/GeneralSettings'
 import DataSettings from '@/components/settings/DataSettings'
 import SoundSettings from '@/components/settings/SoundSettings'
 import TimerSettings from '@/components/settings/TimerSettings'
@@ -21,6 +22,7 @@ function LibrarySettings() {
 
 const CATEGORIES = [
   { id: 'appearance', label: 'Appearance', element: <AppearanceSettings /> },
+  { id: 'general', label: 'General', element: <GeneralSettings /> },
   { id: 'sound', label: 'Sound & notifications', element: <SoundSettings /> },
   { id: 'timers', label: 'Timers', element: <TimerSettings /> },
   { id: 'game-defaults', label: 'Game defaults', element: <GameDefaultsSettings /> },

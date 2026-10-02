@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
+import { useAppSettings } from '@/hooks/useAppSettings'
 import { Button, Modal } from '@/components/ui'
 
 interface Props {
@@ -11,6 +12,7 @@ interface Props {
 type Action = 'add-label' | 'remove-label' | 'archive' | 'archive-confirm' | null
 
 export default function TeamBulkActionBar({ selectedIds, onDone }: Props) {
+  const [{ confirmDestructive }] = useAppSettings()
   const labels = useLiveQuery(() => db.managedLabels.orderBy('name').toArray(), [])
 
   const [action, setAction] = useState<Action>(null)
@@ -99,7 +101,7 @@ export default function TeamBulkActionBar({ selectedIds, onDone }: Props) {
           Remove label
         </button>
         <button
-          onClick={() => setAction('archive')}
+          onClick={() => (confirmDestructive ? setAction('archive') : void handleArchiveConfirm())}
           className="text-xs px-2.5 py-1.5 rounded border transition-colors hover:bg-black/5"
           style={{ borderColor: 'var(--color-red)', color: 'var(--color-red)' }}
           aria-label="Archive selected teams"
