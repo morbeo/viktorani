@@ -716,7 +716,7 @@ export default function GameMaster() {
       // Closed while saving: keep the player, away and without a connection
       if (closedRef.current.has(connId)) {
         await db.players.update(player.id, { isAway: true })
-        setPlayers(prev => upsertPlayer(prev, { ...player, isAway: true }))
+        setPlayers(prev => markPlayerAway(upsertPlayer(prev, player), player.id))
         return
       }
       kickedRef.current.delete(player.id)
