@@ -5,6 +5,8 @@ import ManageDifficulties from '@/components/settings/ManageDifficulties'
 import ManageLabels from '@/components/players-teams/ManageLabels'
 import AppearanceSettings from '@/components/settings/AppearanceSettings'
 import DataSettings from '@/components/settings/DataSettings'
+import SoundSettings from '@/components/settings/SoundSettings'
+import TimerSettings from '@/components/settings/TimerSettings'
 
 function LibrarySettings() {
   return (
@@ -18,6 +20,8 @@ function LibrarySettings() {
 
 const CATEGORIES = [
   { id: 'appearance', label: 'Appearance', element: <AppearanceSettings /> },
+  { id: 'sound', label: 'Sound & notifications', element: <SoundSettings /> },
+  { id: 'timers', label: 'Timers', element: <TimerSettings /> },
   { id: 'library', label: 'Library', element: <LibrarySettings /> },
   { id: 'data', label: 'Data', element: <DataSettings /> },
 ]

@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { formatTime, useTimerList } from '@/hooks/useTimer'
 import { db } from '@/db'
+import { setSettings } from '@/lib/app-settings'
 
 // ── Mock transport ────────────────────────────────────────────────────────────
 
@@ -75,6 +76,21 @@ describe('useTimerList', () => {
 
     const dbRecord = await db.timers.where('gameId').equals(GAME_ID).first()
     expect(dbRecord).toBeTruthy()
+  })
+
+  it('createTimer starts from the timer defaults in the app settings', async () => {
+    setSettings({ timerAudioNotify: 'both', timerVisualNotify: 'host', timerAutoReset: 'round' })
+    const { result } = renderHook(() => useTimerList(GAME_ID))
+    await flush()
+
+    await act(async () => {
+      await result.current.createTimer({ gameId: GAME_ID, label: 'D', duration: 60 })
+    })
+
+    expect(result.current.timers[0]).toEqual(
+      expect.objectContaining({ audioNotify: 'both', visualNotify: 'host', autoReset: 'round' })
+    )
+    localStorage.clear()
   })
 
   it('startTimer emits TIMER_START and marks timer running', async () => {
