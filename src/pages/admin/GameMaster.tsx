@@ -18,7 +18,7 @@ import {
   isConnected,
   assignPlayerTeam,
 } from '@/pages/admin/gamemaster-utils'
-import { useLocalStorage } from '@/hooks/useLocalStorage'
+import { useAppSettings } from '@/hooks/useAppSettings'
 import { hostNow } from '@/hooks/useBuzzer'
 import { runningTimerEvents } from '@/hooks/useTimer'
 import { useGameLifecycle } from '@/hooks/useGameLifecycle'
@@ -73,7 +73,12 @@ export default function GameMaster() {
   const [soloBypass, setSoloBypass] = useState(false)
   const [starting, setStarting] = useState(false)
   const [notFound, setNotFound] = useState(false)
-  const [controlSize, setControlSize] = useLocalStorage<ControlSize>('gm-control-size', 'sm')
+  const [appSettings, setAppSettings] = useAppSettings()
+  const controlSize = appSettings.controlSize
+  const setControlSize = useCallback(
+    (size: ControlSize) => setAppSettings({ controlSize: size }),
+    [setAppSettings]
+  )
 
   const lifecycle = useGameLifecycle()
 

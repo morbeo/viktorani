@@ -405,6 +405,24 @@ describe('importDatabase', () => {
     expect(await db.tags.count()).toBe(1)
   })
 
+  it('restores the app settings, and leaves them alone when the file has none', async () => {
+    const { importDatabase } = await import('@/db/snapshot')
+    const { getSettings, setSettings } = await import('@/lib/app-settings')
+    setSettings({ theme: 'light', controlSize: 'sm' })
+    await importDatabase(await makeFile({ version: 2, exportedAt: 0 }))
+    expect(getSettings().theme).toBe('light')
+    await importDatabase(
+      await makeFile({
+        version: 2,
+        exportedAt: 0,
+        settings: { version: 1, theme: 'dark', actionMode: 'text', controlSize: 'lg' },
+      })
+    )
+    expect(getSettings()).toEqual(
+      expect.objectContaining({ theme: 'dark', actionMode: 'text', controlSize: 'lg' })
+    )
+  })
+
   it('strips categoryId from imported questions', async () => {
     const { importDatabase } = await import('@/db/snapshot')
     const now = Date.now()
@@ -664,6 +682,23 @@ describe('exportDatabase', () => {
     await exportDatabase()
     const snapshot = JSON.parse(await (captured as unknown as Blob).text())
     expect(snapshot.gameQuestions).toEqual([expect.objectContaining({ id: 'gq1' })])
+  })
+
+  it('includes the app settings', async () => {
+    const { exportDatabase } = await import('@/db/snapshot')
+    const { setSettings } = await import('@/lib/app-settings')
+    setSettings({ theme: 'dark', actionMode: 'both' })
+    let captured: Blob | null = null
+    ;(URL.createObjectURL as ReturnType<typeof vi.fn>).mockImplementationOnce((blob: Blob) => {
+      captured = blob
+      return 'blob:captured'
+    })
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    await exportDatabase()
+    const snapshot = JSON.parse(await (captured as unknown as Blob).text())
+    expect(snapshot.settings).toEqual(
+      expect.objectContaining({ theme: 'dark', actionMode: 'both' })
+    )
   })
 
   it('revokes the object URL after download', async () => {
