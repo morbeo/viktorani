@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, act } from '@testing-library/react'
 import type { TransportEvent } from '@/transport/types'
-import { PlayerTimers } from '@/pages/player/Play'
+import { PlayerTimers } from '@/components/timer/PlayerTimers'
 
 const captured = vi.hoisted(() => ({ handler: null as ((e: TransportEvent) => void) | null }))
 
