@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import DataSettings from '@/components/settings/DataSettings'
 
 vi.mock('@/db', () => ({ purgeDatabase: vi.fn(), seedDefaults: vi.fn() }))
 vi.mock('@/db/snapshot', () => ({ exportDatabase: vi.fn(), importDatabase: vi.fn() }))
+vi.mock('@/lib/load-demo', () => ({ loadDemo: async () => 'Demo Night' }))
 
 afterEach(() => {
   Reflect.deleteProperty(navigator, 'storage')
@@ -27,5 +28,13 @@ describe('DataSettings', () => {
     render(<DataSettings />)
     expect(await screen.findByText('unavailable')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Export JSON/ })).toBeInTheDocument()
+  })
+
+  it('loads demo data', async () => {
+    render(<DataSettings />)
+    fireEvent.click(screen.getByRole('button', { name: /Load demo data/ }))
+    expect(
+      await screen.findByText('Demo data loaded: open "Demo Night" in Games')
+    ).toBeInTheDocument()
   })
 })

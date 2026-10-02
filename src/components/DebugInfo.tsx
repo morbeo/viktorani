@@ -4,6 +4,7 @@ import { Button, Icon, useToast } from '@/components/ui'
 import { db } from '@/db'
 import { buildInfo } from '@/buildInfo'
 import { formatBytes } from '@/lib/format'
+import { loadDemo } from '@/lib/load-demo'
 
 const REPO_URL = 'https://github.com/morbeo/viktorani'
 
@@ -88,9 +89,8 @@ export default function DebugInfo() {
   async function handleLoadDemo() {
     setLoadingDemo(true)
     try {
-      const { seedDemo, DEMO_GAME_NAME } = await import('@/db/demo')
-      await seedDemo()
-      addToast(`Demo data loaded: open "${DEMO_GAME_NAME}" in Games`)
+      const name = await loadDemo()
+      addToast(`Demo data loaded: open "${name}" in Games`)
     } catch {
       addToast('Could not load demo data', { variant: 'error' })
     } finally {

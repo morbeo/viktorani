@@ -5,6 +5,7 @@ import Fuse from 'fuse.js'
 import {
   Bug,
   CircleHelp,
+  Database,
   LayoutDashboard,
   NotebookPen,
   Play,
@@ -15,8 +16,9 @@ import {
   Users,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { Icon } from '@/components/ui'
+import { Icon, useToast } from '@/components/ui'
 import { db } from '@/db'
+import { loadDemo } from '@/lib/load-demo'
 import type { Command } from './commands'
 
 const MAX_RESULTS = 50
@@ -42,6 +44,7 @@ interface CommandPaletteProps {
 /** Ctrl/⌘+K palette: fuzzy search over navigation, create actions, games, questions and page commands. */
 export default function CommandPalette({ pageCommands, onClose }: CommandPaletteProps) {
   const navigate = useNavigate()
+  const { addToast } = useToast()
   const id = useId()
   const inputRef = useRef<HTMLInputElement>(null)
   const [query, setQuery] = useState('')
@@ -58,8 +61,22 @@ export default function CommandPalette({ pageCommands, onClose }: CommandPalette
   }, [])
 
   const baseCommands = useMemo<Command[]>(
-    () => PAGES.map(({ path, ...page }) => ({ ...page, run: () => navigate(path) })),
-    [navigate]
+    () => [
+      ...PAGES.map(({ path, ...page }) => ({ ...page, run: () => navigate(path) })),
+      {
+        id: 'action:demo',
+        label: 'Load demo data',
+        group: 'Action',
+        icon: Database,
+        keywords: 'test sample example seed',
+        run: () =>
+          loadDemo().then(
+            name => addToast(`Demo data loaded: open "${name}" in Games`),
+            () => addToast('Could not load demo data', { variant: 'error' })
+          ),
+      },
+    ],
+    [navigate, addToast]
   )
 
   const searchCommands = useMemo<Command[]>(
