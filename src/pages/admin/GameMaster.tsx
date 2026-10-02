@@ -9,6 +9,7 @@ import type { ScreensPanelProps } from '@/components/gamemaster/ScreensPanel'
 import type { MessagePanelProps } from '@/components/gamemaster/MessagePanel'
 import { db } from '@/db'
 import { logEvent } from '@/db/game-log'
+import { RateLimiter } from '@/lib/rate-limit'
 import { isAbortError, retry, transportManager } from '@/transport'
 import {
   buildLobbyInfo,
@@ -54,6 +55,9 @@ async function sendRunningTimers(connId: string, gameId: string) {
 // cannot fill the lobby
 const MAX_PENDING_JOINS = 100
 const MAX_PENDING_SCREENS = 10
+// At most this many tab switches per player are logged in any minute
+const FOCUS_LOG_LIMIT = 10
+const FOCUS_LOG_WINDOW_MS = 60_000
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -102,6 +106,8 @@ export default function GameMaster() {
   const resolvingRef = useRef(new Set<string>())
   // Connections that have closed: a JOIN or approval still queued for one must not admit it
   const closedRef = useRef(new Set<string>())
+  // Caps how many tab switches each player can add to the game log
+  const focusLogLimitRef = useRef(new RateLimiter(FOCUS_LOG_LIMIT, FOCUS_LOG_WINDOW_MS))
   // JOINs and approvals run one at a time so each sees the teams and players saved by
   // the one before (team limits, same-name team reuse)
   const joinQueueRef = useRef<Promise<void>>(Promise.resolve())
@@ -403,11 +409,12 @@ export default function GameMaster() {
 
       if (event.type === 'FOCUS_CHANGE') {
         const presence = event.away ? 'hidden' : 'connected'
-        // Log only real changes, so repeated events cannot flood the log
+        // Log only real changes, and only so many per player, so a client switching back
+        // and forth cannot flood the log
         const changed = (await db.players.get(playerId))?.presence !== presence
         await db.players.update(playerId, { presence })
         setPlayers(prev => setPlayerPresence(prev, playerId, presence))
-        if (changed) {
+        if (changed && focusLogLimitRef.current.allow(playerId)) {
           logEvent(g.id, event.away ? 'player_hidden' : 'player_back', {
             actorId: playerId,
             subjectId: playerId,
