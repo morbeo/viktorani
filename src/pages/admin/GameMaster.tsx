@@ -403,12 +403,16 @@ export default function GameMaster() {
 
       if (event.type === 'FOCUS_CHANGE') {
         const presence = event.away ? 'hidden' : 'connected'
+        // Log only real changes, so repeated events cannot flood the log
+        const changed = (await db.players.get(playerId))?.presence !== presence
         await db.players.update(playerId, { presence })
         setPlayers(prev => setPlayerPresence(prev, playerId, presence))
-        logEvent(g.id, event.away ? 'player_hidden' : 'player_back', {
-          actorId: playerId,
-          subjectId: playerId,
-        })
+        if (changed) {
+          logEvent(g.id, event.away ? 'player_hidden' : 'player_back', {
+            actorId: playerId,
+            subjectId: playerId,
+          })
+        }
       }
 
       // Buzzes count only while the game runs, whatever a player's device shows
