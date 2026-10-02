@@ -13,12 +13,14 @@ import {
   Search,
   Settings,
   Trophy,
+  User,
   Users,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Icon, useToast } from '@/components/ui'
 import { db } from '@/db'
 import { loadDemo } from '@/lib/load-demo'
+import { SETTINGS_CATEGORIES } from '@/components/settings/categories'
 import type { Command } from './commands'
 
 const MAX_RESULTS = 50
@@ -41,7 +43,10 @@ interface CommandPaletteProps {
   onClose: () => void
 }
 
-/** Ctrl/⌘+K palette: fuzzy search over navigation, create actions, games, questions and page commands. */
+/**
+ * Ctrl/⌘+K palette: fuzzy search over navigation, create actions, settings, games, questions,
+ * players, teams, notes and page commands.
+ */
 export default function CommandPalette({ pageCommands, onClose }: CommandPaletteProps) {
   const navigate = useNavigate()
   const { addToast } = useToast()
@@ -52,6 +57,9 @@ export default function CommandPalette({ pageCommands, onClose }: CommandPalette
 
   const games = useLiveQuery(() => db.games.toArray(), [])
   const questions = useLiveQuery(() => db.questions.toArray(), [])
+  const players = useLiveQuery(() => db.managedPlayers.filter(p => !p.archivedAt).toArray(), [])
+  const teams = useLiveQuery(() => db.managedTeams.filter(t => !t.archivedAt).toArray(), [])
+  const notes = useLiveQuery(() => db.notes.toArray(), [])
 
   // Focus the search box, and give focus back to where it was on close
   useEffect(() => {
@@ -81,13 +89,21 @@ export default function CommandPalette({ pageCommands, onClose }: CommandPalette
 
   const searchCommands = useMemo<Command[]>(
     () => [
+      ...SETTINGS_CATEGORIES.map(c => ({
+        id: `settings:${c.id}`,
+        label: c.label,
+        group: 'Settings',
+        icon: Settings,
+        keywords: 'settings',
+        run: () => navigate(`/admin/settings/${c.id}`),
+      })),
       ...(games ?? []).map(g => ({
         id: `game:${g.id}`,
         label: g.name,
         group: 'Game',
         icon: Play,
         keywords: 'open game',
-        run: () => navigate(`/admin/game/${g.id}`),
+        run: () => navigate(`/admin/game/${encodeURIComponent(g.id)}`),
       })),
       ...(questions ?? []).map(q => ({
         id: `question:${q.id}`,
@@ -97,8 +113,32 @@ export default function CommandPalette({ pageCommands, onClose }: CommandPalette
         keywords: 'question',
         run: () => navigate(`/admin/questions?edit=${encodeURIComponent(q.id)}`),
       })),
+      ...(players ?? []).map(p => ({
+        id: `player:${p.id}`,
+        label: p.name,
+        group: 'Player',
+        icon: User,
+        keywords: 'player',
+        run: () => navigate(`/admin/players-teams?player=${encodeURIComponent(p.id)}`),
+      })),
+      ...(teams ?? []).map(t => ({
+        id: `team:${t.id}`,
+        label: t.name,
+        group: 'Team',
+        icon: Users,
+        keywords: 'team',
+        run: () => navigate(`/admin/players-teams?team=${encodeURIComponent(t.id)}`),
+      })),
+      ...(notes ?? []).map(n => ({
+        id: `note:${n.id}`,
+        label: n.name,
+        group: 'Note',
+        icon: NotebookPen,
+        keywords: 'note',
+        run: () => navigate(`/admin/notes/${encodeURIComponent(n.id)}`),
+      })),
     ],
-    [games, questions, navigate]
+    [games, questions, players, teams, notes, navigate]
   )
 
   const all = useMemo(
@@ -120,7 +160,7 @@ export default function CommandPalette({ pageCommands, onClose }: CommandPalette
   )
 
   const q = query.trim()
-  // Without a query, list page commands and the fixed ones; games and questions need a search
+  // Without a query, list page commands and the fixed ones; everything else needs a search
   const results = (q ? fuse.search(q).map(r => r.item) : [...pageCommands, ...baseCommands]).slice(
     0,
     MAX_RESULTS
@@ -184,7 +224,7 @@ export default function CommandPalette({ pageCommands, onClose }: CommandPalette
             aria-autocomplete="list"
             aria-activedescendant={results.length ? optionId(current) : undefined}
             aria-label="Search commands"
-            placeholder="Type a command, game or question…"
+            placeholder="Type a command, setting, game, question, player, team or note…"
             value={query}
             onChange={e => {
               setQuery(e.target.value)

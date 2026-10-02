@@ -12,7 +12,7 @@ import {
 vi.mock('@/db', () => ({ db: {} }))
 const loadDemo = vi.fn(async () => 'Demo Night')
 vi.mock('@/lib/load-demo', () => ({ loadDemo: () => loadDemo() }))
-// One record that serves as both a game (name) and a question (title)
+// One record that serves as every searchable kind (questions use the title, the rest the name)
 vi.mock('dexie-react-hooks', () => ({
   useLiveQuery: () => [{ id: 'x1', name: 'Pub night', title: 'Capital of France' }],
 }))
@@ -93,6 +93,20 @@ describe('CommandPaletteHost', () => {
     fireEvent.change(input, { target: { value: 'capital' } })
     fireEvent.click(screen.getByRole('option', { name: /Capital of France/ }))
     expect(screen.getByTestId('where')).toHaveTextContent('/admin/questions?edit=x1')
+  })
+
+  it('finds settings, players, teams and notes', async () => {
+    renderAt('/admin')
+    const pick = async (query: string, option: RegExp) => {
+      ctrlK()
+      fireEvent.change(await screen.findByRole('combobox'), { target: { value: query } })
+      fireEvent.click(screen.getByRole('option', { name: option }))
+      return screen.getByTestId('where').textContent
+    }
+    expect(await pick('sound', /Sound & notifications\s*Settings/)).toBe('/admin/settings/sound')
+    expect(await pick('pub', /Pub night\s*Player/)).toBe('/admin/players-teams?player=x1')
+    expect(await pick('pub', /Pub night\s*Team/)).toBe('/admin/players-teams?team=x1')
+    expect(await pick('pub', /Pub night\s*Note/)).toBe('/admin/notes/x1')
   })
 
   it('loads demo data', async () => {

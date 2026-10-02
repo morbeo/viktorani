@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db } from '@/db'
 import AdminLayout from '@/components/AdminLayout'
 import TeamList from '@/components/players-teams/TeamList'
 import PlayerList from '@/components/players-teams/PlayerList'
@@ -30,6 +33,20 @@ export default function PlayersTeams() {
   const [activeTab, setActiveTab] = useState<TabId>('teams')
   const [scanOpen, setScanOpen] = useState(false)
   const [, setHighlightedIds] = useState<Set<string>>(new Set())
+
+  // ?player=<id> and ?team=<id> (from the command palette) open that player or team
+  const [params, setParams] = useSearchParams()
+  const playerParam = params.get('player')
+  const teamParam = params.get('team')
+  const linkedPlayer = useLiveQuery(
+    () => (playerParam ? db.managedPlayers.get(playerParam) : undefined),
+    [playerParam]
+  )
+  const linkedTeam = useLiveQuery(
+    () => (teamParam ? db.managedTeams.get(teamParam) : undefined),
+    [teamParam]
+  )
+  const clearLink = () => setParams({}, { replace: true })
 
   function handleImported(playerIds: string[]) {
     setHighlightedIds(new Set(playerIds))
@@ -166,6 +183,10 @@ export default function PlayersTeams() {
         onClose={() => setPlayerFormOpen(false)}
       />
       <ScanQrModal open={scanOpen} onClose={() => setScanOpen(false)} onImported={handleImported} />
+      {linkedPlayer && (
+        <PlayerForm key={linkedPlayer.id} open player={linkedPlayer} onClose={clearLink} />
+      )}
+      {linkedTeam && <TeamForm key={linkedTeam.id} open team={linkedTeam} onClose={clearLink} />}
     </AdminLayout>
   )
 }
