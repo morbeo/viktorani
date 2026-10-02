@@ -1,14 +1,22 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useState } from 'react'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { GameSettingsForm } from '@/components/game-settings/GameSettingsForm'
 import {
-  PRESETS,
+  BUILT_IN_PRESETS,
+  LIVE_PRESET_KEYS,
   defaultSettings,
   matchPreset,
   type GameSettings,
 } from '@/components/game-settings/game-settings'
+import { getSettings } from '@/lib/app-settings'
+
+beforeEach(() => {
+  localStorage.clear()
+})
+
+const classroom = BUILT_IN_PRESETS.find(p => p.id === 'classroom')!
 
 /** Renders the form with its own state, as the wizard does, and records every patch. */
 function Harness({
@@ -34,31 +42,29 @@ function Harness({
 }
 
 describe('matchPreset', () => {
-  it('recognises every preset', () => {
-    for (const p of PRESETS) {
-      expect(matchPreset({ ...defaultSettings(), ...p.settings })).toBe(p.id)
+  it('recognises every built-in preset', () => {
+    for (const p of BUILT_IN_PRESETS) {
+      expect(matchPreset(p.settings, BUILT_IN_PRESETS)?.id).toBe(p.id)
     }
   })
 
-  it('ignores scoring and visibility', () => {
+  it('compares every setting, or only joining and the buzzer during a game', () => {
     const s = defaultSettings()
     s.scoringEnabled = false
     s.visibility = { ...s.visibility, players: { ...s.visibility.players, showAnswers: true } }
-    expect(matchPreset(s)).toBe('open')
+    expect(matchPreset(s, BUILT_IN_PRESETS)).toBeNull()
+    expect(matchPreset(s, BUILT_IN_PRESETS, LIVE_PRESET_KEYS)?.id).toBe('open')
   })
 
   it('returns null for customised settings', () => {
-    expect(matchPreset({ ...defaultSettings(), maxTeams: 3 })).toBeNull()
+    expect(matchPreset({ ...defaultSettings(), maxTeams: 3 }, BUILT_IN_PRESETS)).toBeNull()
   })
 })
 
 describe('GameSettingsForm', () => {
   it('starts on the open lobby preset with the advanced settings collapsed', () => {
     render(<Harness />)
-    expect(screen.getByRole('radio', { name: 'Open lobby' })).toHaveAttribute(
-      'aria-checked',
-      'true'
-    )
+    expect(screen.getByRole('combobox', { name: 'Preset' })).toHaveValue('open')
     expect(screen.getByRole('switch', { name: 'Scoring' })).toBeInTheDocument()
     expect(screen.queryByRole('switch', { name: 'Allow late join' })).not.toBeInTheDocument()
   })
@@ -66,22 +72,36 @@ describe('GameSettingsForm', () => {
   it('applies a preset as one patch', async () => {
     const onChange = vi.fn()
     render(<Harness onChange={onChange} />)
-    await userEvent.click(screen.getByRole('radio', { name: 'Classroom' }))
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Preset' }), 'Classroom')
     expect(onChange).toHaveBeenCalledTimes(1)
-    expect(onChange).toHaveBeenCalledWith(PRESETS.find(p => p.id === 'classroom')?.settings)
-    expect(screen.getByRole('radio', { name: 'Classroom' })).toHaveAttribute(
-      'aria-checked',
-      'true'
-    )
+    expect(onChange).toHaveBeenCalledWith(classroom.settings)
+    expect(screen.getByRole('combobox', { name: 'Preset' })).toHaveValue('classroom')
+  })
+
+  it('during a game applies only the joining and buzzer settings of a preset', async () => {
+    const onChange = vi.fn()
+    render(<Harness mode="live" onChange={onChange} />)
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Preset' }), 'Classroom')
+    const patch = onChange.mock.calls[0][0]
+    expect(Object.keys(patch).sort()).toEqual([...LIVE_PRESET_KEYS].sort())
+    expect(patch.requireApproval).toBe(true)
+  })
+
+  it('saves the current settings as a new preset', async () => {
+    render(<Harness initial={{ ...defaultSettings(), maxPerTeam: 3 }} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Save as preset' }))
+    await userEvent.type(screen.getByLabelText('Preset name'), 'Trios{Enter}')
+    const saved = getSettings().gamePresets.at(-1)
+    expect(saved).toMatchObject({ label: 'Trios', settings: { maxPerTeam: 3 } })
+    expect(screen.getByRole('combobox', { name: 'Preset' })).toHaveValue(saved?.id)
   })
 
   it('shows Custom once a setting no longer matches a preset', async () => {
     render(<Harness />)
     await userEvent.click(screen.getByRole('button', { name: /Advanced/ }))
     await userEvent.click(screen.getByRole('switch', { name: 'Require approval' }))
-    expect(screen.getByText(/Custom/)).toBeInTheDocument()
-    const presets = screen.getByRole('radiogroup', { name: 'Preset' })
-    expect(within(presets).queryAllByRole('radio', { checked: true })).toHaveLength(0)
+    expect(screen.getByText(/^Custom:/)).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Preset' })).toHaveValue('')
   })
 
   it('edits visibility through the matrix', async () => {

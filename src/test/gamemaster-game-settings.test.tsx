@@ -84,7 +84,7 @@ describe('GameSettingsDrawer', () => {
 
   it('applies a preset in one save', async () => {
     const onGameChange = await openDrawer()
-    await userEvent.click(screen.getByRole('radio', { name: 'Pub quiz' }))
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Preset' }), 'Pub quiz')
     expect(db.games.update).toHaveBeenCalledTimes(1)
     expect(onGameChange).toHaveBeenCalledWith(
       expect.objectContaining({ allowIndividual: false, maxPerTeam: 6 })

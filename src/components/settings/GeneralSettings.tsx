@@ -28,8 +28,8 @@ export default function GeneralSettings() {
           Confirm destructive actions
         </label>
         <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
-          Ask before deleting questions, rounds and games, and before archiving players or teams
-          in bulk. Purging all data always asks.
+          Ask before deleting questions, rounds, games and presets, and before archiving players
+          or teams in bulk. Purging all data always asks.
         </p>
       </div>
       <div className="flex flex-col gap-1">

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { SETTINGS_KEY, getSettings, setSettings } from '@/lib/app-settings'
 import { useAppSettings } from '@/hooks/useAppSettings'
-import { defaultSettings } from '@/components/game-settings/game-settings'
+import { BUILT_IN_PRESETS, defaultSettings } from '@/components/game-settings/game-settings'
 
 const stored = () => JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? 'null')
 
@@ -13,7 +13,7 @@ beforeEach(() => {
 describe('app settings', () => {
   it('defaults every field', () => {
     expect(getSettings()).toEqual({
-      version: 3,
+      version: 4,
       theme: 'system',
       actionMode: 'icons',
       controlSize: 'sm',
@@ -24,6 +24,7 @@ describe('app settings', () => {
       timerVisualNotify: 'none',
       timerAutoReset: 'none',
       gameDefaults: { ...defaultSettings(), tiebreakerMode: 'serverOrder' },
+      gamePresets: BUILT_IN_PRESETS,
       confirmDestructive: true,
       joinUrlBase: '',
     })
@@ -42,7 +43,7 @@ describe('app settings', () => {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({ version: 2, soundVolume: 40 }))
     expect(getSettings()).toEqual(
       expect.objectContaining({
-        version: 3,
+        version: 4,
         soundVolume: 40,
         gameDefaults: { ...defaultSettings(), tiebreakerMode: 'serverOrder' },
       })
@@ -64,13 +65,39 @@ describe('app settings', () => {
     })
   })
 
+  it('gives a version 3 entry the built-in presets', () => {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ version: 3, theme: 'dark' }))
+    expect(getSettings()).toEqual(
+      expect.objectContaining({ version: 4, theme: 'dark', gamePresets: BUILT_IN_PRESETS })
+    )
+  })
+
+  it('drops invalid and duplicate presets and repairs bad settings', () => {
+    const valid = { id: 'a', label: ' Trios ', settings: { maxPerTeam: 3 } }
+    localStorage.setItem(
+      SETTINGS_KEY,
+      JSON.stringify({
+        version: 4,
+        gamePresets: [valid, { id: 'a', label: 'Copy' }, { id: 'b', label: '' }, 'junk'],
+      })
+    )
+    expect(getSettings().gamePresets).toEqual([
+      {
+        id: 'a',
+        label: 'Trios',
+        description: '',
+        settings: { ...defaultSettings(), maxPerTeam: 3 },
+      },
+    ])
+  })
+
   it('upgrades a version 1 entry with defaults for the new fields', () => {
     localStorage.setItem(
       SETTINGS_KEY,
       JSON.stringify({ version: 1, theme: 'dark', actionMode: 'text', controlSize: 'lg' })
     )
     expect(getSettings()).toEqual(
-      expect.objectContaining({ version: 3, theme: 'dark', soundVolume: 100, timerDuration: 60 })
+      expect.objectContaining({ version: 4, theme: 'dark', soundVolume: 100, timerDuration: 60 })
     )
   })
 

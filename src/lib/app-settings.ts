@@ -1,6 +1,10 @@
 import { z } from 'zod'
-import { MAX_LIMIT, defaultSettings } from '@/components/game-settings/game-settings'
-import type { GameSettings } from '@/components/game-settings/game-settings'
+import {
+  BUILT_IN_PRESETS,
+  MAX_LIMIT,
+  defaultSettings,
+} from '@/components/game-settings/game-settings'
+import type { GamePreset, GameSettings } from '@/components/game-settings/game-settings'
 import type { TiebreakerMode } from '@/db'
 
 /** 99:59, the most the timer inputs can hold. */
@@ -18,6 +22,7 @@ export const MAX_TIMER_SECONDS = 99 * 60 + 59
  *   defaults for the new fields.
  * - **3**: defaults for new games, including the tiebreaker mode, whether deletes ask
  *   first, and the base URL for join links. Older entries get the defaults.
+ * - **4**: game setting presets. Older entries get the built-in presets.
  */
 const TimerNotifySchema = z.enum(['none', 'host', 'players', 'both'])
 
@@ -43,7 +48,7 @@ const VisibilitySchema = z.object({
 })
 const LimitSchema = z.number().int().min(0).max(MAX_LIMIT)
 
-const GameDefaultsSchema = z.object({
+const GameSettingsSchema = z.object({
   scoringEnabled: z.boolean().catch(BUILT_IN_GAME.scoringEnabled),
   visibility: z
     .object({ players: VisibilitySchema, screen: VisibilitySchema })
@@ -58,11 +63,37 @@ const GameDefaultsSchema = z.object({
   autoLockOnFirstCorrect: z.boolean().catch(BUILT_IN_GAME.autoLockOnFirstCorrect),
   allowFalseStarts: z.boolean().catch(BUILT_IN_GAME.allowFalseStarts),
   buzzDeduplication: z.enum(['firstOnly', 'all']).catch(BUILT_IN_GAME.buzzDeduplication),
+}) satisfies z.ZodType<GameSettings>
+
+const GameDefaultsSchema = GameSettingsSchema.extend({
   tiebreakerMode: z.literal('serverOrder').catch(BUILT_IN_GAME.tiebreakerMode),
 }) satisfies z.ZodType<GameDefaults>
 
+/** The most presets kept; the rest are dropped. */
+export const MAX_PRESETS = 50
+
+const GamePresetSchema = z.object({
+  id: z.string().min(1).max(64),
+  label: z.string().trim().min(1).max(60),
+  description: z.string().trim().max(300).catch(''),
+  settings: GameSettingsSchema.catch(() => GameSettingsSchema.parse({})),
+}) satisfies z.ZodType<GamePreset>
+
+/** Keeps every valid preset, once per id, and drops the rest. */
+const PresetsSchema = z.array(z.unknown()).transform(items => {
+  const seen = new Set<string>()
+  const presets: GamePreset[] = []
+  for (const item of items) {
+    const parsed = GamePresetSchema.safeParse(item)
+    if (!parsed.success || seen.has(parsed.data.id)) continue
+    seen.add(parsed.data.id)
+    presets.push(parsed.data)
+  }
+  return presets.slice(0, MAX_PRESETS)
+})
+
 export const AppSettingsSchema = z.object({
-  version: z.literal(3).catch(3),
+  version: z.literal(4).catch(4),
   theme: z.enum(['system', 'light', 'dark']).catch('system'),
   actionMode: z.enum(['icons', 'text', 'both']).catch('icons'),
   controlSize: z.enum(['sm', 'md', 'lg']).catch('sm'),
@@ -75,7 +106,9 @@ export const AppSettingsSchema = z.object({
   timerVisualNotify: TimerNotifySchema.catch('none'),
   timerAutoReset: z.enum(['none', 'question', 'round', 'any']).catch('none'),
   gameDefaults: GameDefaultsSchema.catch(() => GameDefaultsSchema.parse({})),
-  /** Ask before deleting questions, rounds and games, and before archiving in bulk. */
+  /** Presets offered in the game settings form, in order. */
+  gamePresets: PresetsSchema.catch(() => JSON.parse(JSON.stringify(BUILT_IN_PRESETS))),
+  /** Ask before deleting questions, rounds, games and presets, and before archiving in bulk. */
   confirmDestructive: z.boolean().catch(true),
   /** Base URL for the player join link and QR code; empty means the current address. */
   joinUrlBase: z
