@@ -29,6 +29,7 @@ import { db } from '@/db'
 import { transportManager } from '@/transport'
 import {
   buildLobbyInfo,
+  buildManagedImport,
   buildQuestionContent,
   serialiseGameState,
   upsertPlayer,
@@ -988,41 +989,26 @@ export default function GameMaster() {
       db.managedPlayers.filter(p => !p.archivedAt).toArray(),
     ])
 
-    // Upsert teams — skip any already in the session (by id)
-    const existingTeamIds = new Set(
-      (await db.teams.where('gameId').equals(g.id).toArray()).map(t => t.id)
-    )
-    const newTeams: Team[] = managedTeams
-      .filter(mt => !existingTeamIds.has(mt.id))
-      .map(mt => ({
-        id: mt.id,
+    // Write teams and players atomically. Fresh game-scoped ids are minted so the same
+    // managed record can be imported into more than one game; membership is carried across
+    // by team name, and existing session members (matched by name) are skipped.
+    await db.transaction('rw', db.teams, db.players, async () => {
+      const [existingTeams, existingPlayers] = await Promise.all([
+        db.teams.where('gameId').equals(g.id).toArray(),
+        db.players.where('gameId').equals(g.id).toArray(),
+      ])
+      const { newTeams, newPlayers } = buildManagedImport({
+        managedTeams,
+        managedPlayers,
+        existingTeams,
+        existingPlayerNames: existingPlayers.map(p => p.name),
         gameId: g.id,
-        name: mt.name,
-        color: mt.color,
-        icon: mt.icon,
-        score: 0,
-      }))
-    if (newTeams.length > 0) await db.teams.bulkAdd(newTeams)
-
-    // Upsert players — skip any already in the session (by id)
-    const existingPlayerIds = new Set(
-      (await db.players.where('gameId').equals(g.id).toArray()).map(p => p.id)
-    )
-    const now = Date.now()
-    const newPlayers: import('@/db').Player[] = managedPlayers
-      .filter(mp => !existingPlayerIds.has(mp.id))
-      .map((mp, i) => ({
-        id: mp.id,
-        gameId: g.id,
-        name: mp.name,
-        // Assign to first matching session team
-        teamId: mp.teamIds.find(tid => managedTeams.some(mt => mt.id === tid)) ?? null,
-        score: 0,
-        isAway: false,
-        deviceId: '',
-        joinedAt: now + i,
-      }))
-    if (newPlayers.length > 0) await db.players.bulkAdd(newPlayers)
+        now: Date.now(),
+        newId: () => crypto.randomUUID(),
+      })
+      if (newTeams.length > 0) await db.teams.bulkAdd(newTeams)
+      if (newPlayers.length > 0) await db.players.bulkAdd(newPlayers)
+    })
 
     // Refresh state
     const [freshTeams, freshPlayers] = await Promise.all([

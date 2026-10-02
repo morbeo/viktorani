@@ -1,4 +1,4 @@
-import type { Game, Player, Question, TargetVisibility, Team } from '@/db'
+import type { Game, ManagedPlayer, ManagedTeam, Player, Question, TargetVisibility, Team } from '@/db'
 import type { GameEvent, SerializedGameState, VisibilityTarget } from '@/transport/types'
 import {
   MAX_LOBBY_TEAMS,
@@ -351,4 +351,60 @@ export function transitionQuestionStatus(
     throw new Error(`invalid transition: ${current} -> ${next}`)
   }
   return next
+}
+
+/**
+ * Builds the game-scoped teams and players to add when importing the managed
+ * (global) roster into a game session.
+ *
+ * Each imported record gets a **fresh** game-scoped id (via `newId`) so the same
+ * managed record can be imported into more than one game without a primary-key
+ * collision. Team membership is carried across by team *name*: a player is placed
+ * on the session team matching the name of its first managed team. Records whose
+ * name already exists in the session (teams or players) are skipped, so a repeat
+ * import into the same game does not duplicate them.
+ *
+ * Pure function — no DB access. The caller persists the result inside a transaction.
+ */
+export function buildManagedImport(params: {
+  managedTeams: ManagedTeam[]
+  managedPlayers: ManagedPlayer[]
+  existingTeams: Pick<Team, 'id' | 'name'>[]
+  existingPlayerNames: Iterable<string>
+  gameId: string
+  now: number
+  newId: () => string
+}): { newTeams: Team[]; newPlayers: Player[] } {
+  const { managedTeams, managedPlayers, existingTeams, gameId, now, newId } = params
+  const managedTeamById = new Map(managedTeams.map(mt => [mt.id, mt]))
+  const teamIdByName = new Map(existingTeams.map(t => [t.name, t.id]))
+
+  const newTeams: Team[] = []
+  for (const mt of managedTeams) {
+    if (teamIdByName.has(mt.name)) continue
+    const teamId = newId()
+    teamIdByName.set(mt.name, teamId)
+    newTeams.push({ id: teamId, gameId, name: mt.name, color: mt.color, icon: mt.icon, score: 0 })
+  }
+
+  const existingPlayerNames = new Set(params.existingPlayerNames)
+  const newPlayers: Player[] = managedPlayers
+    .filter(mp => !existingPlayerNames.has(mp.name))
+    .map((mp, i) => {
+      // Place the player on the session team named after its first managed team
+      const sourceTeamId = mp.teamIds.find(tid => managedTeamById.has(tid))
+      const teamName = sourceTeamId ? managedTeamById.get(sourceTeamId)!.name : null
+      return {
+        id: newId(),
+        gameId,
+        name: mp.name,
+        teamId: (teamName && teamIdByName.get(teamName)) || null,
+        score: 0,
+        isAway: false,
+        deviceId: '',
+        joinedAt: now + i,
+      }
+    })
+
+  return { newTeams, newPlayers }
 }
