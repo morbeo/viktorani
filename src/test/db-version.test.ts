@@ -81,11 +81,12 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(8)
-    expect(db.backendDB().version).toBe(80)
+    expect(db.verno).toBe(9)
+    expect(db.backendDB().version).toBe(90)
     expect(db.backendDB().objectStoreNames.contains('managedPlayers')).toBe(true)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
     expect(await db.managedLabels.count()).toBe(0)
+    expect(db.backendDB().objectStoreNames.contains('scoreEvents')).toBe(true)
   })
 
   it('upgrades a collapsed v1 database (native version 10) in place', async () => {
@@ -93,8 +94,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(8)
-    expect(db.backendDB().version).toBe(80)
+    expect(db.verno).toBe(9)
+    expect(db.backendDB().version).toBe(90)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
   })
 
