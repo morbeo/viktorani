@@ -2,6 +2,11 @@
 
 Everything you need to run a trivia night with Viktorani.
 
+> **Tip:** press **Ctrl+K** (**⌘+K** on a Mac) on any host page to open the command palette.
+> Type to jump to a page, start a new game or question, open a game or question by name, or, on
+> the game master page, run game commands such as **Next question**, **Lock buzzer** or
+> **Start timer**.
+
 ---
 
 ## Contents
@@ -152,7 +157,7 @@ showing where they stand (hover it for a description):
 | Gold crossed-out eye | Tab hidden | Connected, but looking at something else |
 | Grey crossed-out Wi-Fi | Disconnected | The connection dropped, or they haven't joined from a device; they can rejoin if rejoining is allowed |
 | Grey exit arrow | Left | They pressed Leave |
-| Red crossed-out person | Kicked | You removed them |
+| Red crossed-out person | Kicked | You removed them; if they rejoin, they wait for your approval, even after you reload the page |
 
 The count above the list shows connected players, with tab-hidden and disconnected
 players counted separately. Once everyone is in, click **Start** to begin the first round.
@@ -237,6 +242,10 @@ Open a timer's **Timer settings** to choose:
 - **Auto-reset on screen change:** reset the timer when the question changes, the round
   changes, either, or never.
 
+New timers start from the defaults in **Settings → Timers**: the duration, both
+notifications and auto-reset. **Settings → Sound & notifications** mutes every sound on that
+device or sets its volume; **Test sound** plays the timer beep.
+
 ### Controls
 
 | Action | Effect |
@@ -263,4 +272,4 @@ The game record remains in your local database until you delete it or purge all 
 via **Settings → Data → Purge**.
 
 **Settings → Data → Export JSON** saves your questions, games and app settings (theme, action
-buttons, control size) to one file; **Import JSON** restores them.
+buttons, control size, sound, timer defaults) to one file; **Import JSON** restores them.

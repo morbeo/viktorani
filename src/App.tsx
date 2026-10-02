@@ -2,6 +2,7 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { db, seedDefaults } from '@/db'
 import { ToastProvider } from '@/components/ui'
+import { CommandPaletteHost } from '@/components/command-palette/CommandPaletteHost'
 
 // Pages — Admin (lazy-loaded per route)
 const Dashboard = lazy(() => import('@/pages/admin/Dashboard'))
@@ -84,6 +85,7 @@ export default function App() {
             <Route path="*" element={<Navigate to="/admin" replace />} />
           </Routes>
         </Suspense>
+        <CommandPaletteHost />
       </HashRouter>
     </ToastProvider>
   )

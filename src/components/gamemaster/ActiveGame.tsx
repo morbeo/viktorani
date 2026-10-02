@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback, useRef, type RefObject } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef, type RefObject } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { ArrowLeft, ArrowRight, Lock, LockOpen, Pause, Play, Trophy } from 'lucide-react'
 import { NavHeader } from '@/components/NavHeader'
 import { RoundBoundary } from '@/components/RoundBoundary'
 import { BuzzerPanel } from '@/components/buzzer/BuzzerPanel'
@@ -19,6 +20,8 @@ import { useBuzzer } from '@/hooks/useBuzzer'
 import { useTimerList } from '@/hooks/useTimer'
 import type { PendingJoin } from '@/pages/admin/player-connections'
 import { TimerPanel } from '@/components/timer/TimerPanel'
+import { useRegisterCommands } from '@/components/command-palette/commands'
+import type { Command } from '@/components/command-palette/commands'
 import type { Game, GmDecision } from '@/db'
 import { updateQuestionStatus } from '@/db/games'
 import type { GameEvent } from '@/transport/types'
@@ -160,6 +163,74 @@ export function ActiveGame({
     enabled: game.status === 'active',
   })
 
+  // Game commands for the command palette
+  const scoreboardRef = useRef<HTMLDivElement>(null)
+  const { timers, startTimer, pauseTimer, resumeTimer } = timerHook
+  const commands = useMemo<Command[]>(() => {
+    const showScoreboard: Command = {
+      id: 'gm:scoreboard',
+      label: 'Show scoreboard',
+      group: 'Game',
+      icon: Trophy,
+      keywords: 'scores',
+      run: () => scoreboardRef.current?.scrollIntoView({ behavior: 'smooth' }),
+    }
+    if (game.status === 'ended') return [showScoreboard]
+    return [
+      {
+        id: 'gm:next',
+        label: 'Next question',
+        group: 'Game',
+        icon: ArrowRight,
+        shortcut: '→',
+        run: goNext,
+      },
+      {
+        id: 'gm:prev',
+        label: 'Previous question',
+        group: 'Game',
+        icon: ArrowLeft,
+        shortcut: '←',
+        run: goPrev,
+      },
+      {
+        id: 'gm:lock',
+        label: game.buzzerLocked ? 'Unlock buzzer' : 'Lock buzzer',
+        group: 'Game',
+        icon: game.buzzerLocked ? LockOpen : Lock,
+        shortcut: 'Space',
+        keywords: 'buzzer lock unlock',
+        run: () => void toggleLock(),
+      },
+      showScoreboard,
+      ...timers.map(t => {
+        const running = !t.paused && t.startedAt !== null
+        const neverStarted = t.paused && t.startedAt === null && t.remaining >= t.duration
+        const verb = running ? 'Pause' : neverStarted ? 'Start' : 'Resume'
+        const action = running ? pauseTimer : neverStarted ? startTimer : resumeTimer
+        return {
+          id: `gm:timer:${t.id}`,
+          label: `${verb} timer: ${t.label}`,
+          group: 'Timer',
+          icon: running ? Pause : Play,
+          keywords: 'timer',
+          run: () => void action(t.id),
+        }
+      }),
+    ]
+  }, [
+    game.status,
+    game.buzzerLocked,
+    goNext,
+    goPrev,
+    toggleLock,
+    timers,
+    startTimer,
+    pauseTimer,
+    resumeTimer,
+  ])
+  useRegisterCommands('active-game', commands)
+
   if (isEmpty) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -257,7 +328,9 @@ export function ActiveGame({
           {!isEnded && <MessagePanel {...messages} />}
 
           {/* Scoreboard — always visible; ScoreboardPanel itself gates on scoringEnabled */}
-          <ScoreboardPanel game={game} questionId={currentQuestionId} />
+          <div ref={scoreboardRef}>
+            <ScoreboardPanel game={game} questionId={currentQuestionId} />
+          </div>
         </div>
       </div>
     </div>

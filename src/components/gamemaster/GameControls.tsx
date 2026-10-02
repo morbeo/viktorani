@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Pause, Play, Square, ChevronLeft, Monitor } from 'lucide-react'
 import { Button, Icon, ControlSizePicker } from '@/components/ui'
@@ -6,6 +6,8 @@ import { EndGameModal } from '@/components/gamemaster/EndGameModal'
 import { GameSettingsDrawer } from '@/components/gamemaster/GameSettingsDrawer'
 import type { Game } from '@/db'
 import type { UseGameLifecycleResult } from '@/hooks/useGameLifecycle'
+import { useRegisterCommands } from '@/components/command-palette/commands'
+import type { Command } from '@/components/command-palette/commands'
 
 interface GameControlsProps {
   game: Game
@@ -56,6 +58,36 @@ export function GameControls({ game, onGameChange, lifecycle }: GameControlsProp
     const { pathname, search } = window.location
     window.open(`${pathname}${search}#/admin/game/${game.id}/screen`, `viktorani-screen-${game.id}`)
   }
+
+  // Palette commands call the latest handlers without re-registering on every render
+  const handlersRef = useRef({ handlePauseResume, handleOpenScreen })
+  useEffect(() => {
+    handlersRef.current = { handlePauseResume, handleOpenScreen }
+  })
+  const commands = useMemo<Command[]>(
+    () =>
+      isEnded
+        ? []
+        : [
+            {
+              id: 'gm:pause',
+              label: isPaused ? 'Resume game' : 'Pause game',
+              group: 'Game',
+              icon: isPaused ? Play : Pause,
+              run: () => void handlersRef.current.handlePauseResume(),
+            },
+            {
+              id: 'gm:screen',
+              label: 'Open screen',
+              group: 'Game',
+              icon: Monitor,
+              keywords: 'projector display window',
+              run: () => handlersRef.current.handleOpenScreen(),
+            },
+          ],
+    [isEnded, isPaused]
+  )
+  useRegisterCommands('game-controls', commands)
 
   return (
     <>

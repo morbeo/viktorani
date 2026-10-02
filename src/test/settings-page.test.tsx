@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { ReactNode } from 'react'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import Settings from '@/pages/admin/Settings'
@@ -72,5 +72,29 @@ describe('Settings', () => {
       'true'
     )
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+  })
+
+  it('saves mute and volume from Sound & notifications', async () => {
+    renderAt('/admin/settings/sound')
+    const volume = screen.getByRole('slider', { name: 'Volume' })
+    fireEvent.change(volume, { target: { value: '40' } })
+    expect(getSettings().soundVolume).toBe(40)
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Mute all sounds' }))
+    expect(getSettings().soundMuted).toBe(true)
+    expect(volume).toBeDisabled()
+  })
+
+  it('saves the defaults for new timers', async () => {
+    renderAt('/admin/settings/timers')
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Minutes' }), {
+      target: { value: '2' },
+    })
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Seconds' }), {
+      target: { value: '30' },
+    })
+    await userEvent.selectOptions(screen.getByLabelText('Auto-reset'), 'question')
+    expect(getSettings()).toEqual(
+      expect.objectContaining({ timerDuration: 150, timerAutoReset: 'question' })
+    )
   })
 })

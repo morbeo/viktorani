@@ -12,11 +12,37 @@ beforeEach(() => {
 describe('app settings', () => {
   it('defaults every field', () => {
     expect(getSettings()).toEqual({
-      version: 1,
+      version: 2,
       theme: 'system',
       actionMode: 'icons',
       controlSize: 'sm',
+      soundMuted: false,
+      soundVolume: 100,
+      timerDuration: 60,
+      timerAudioNotify: 'none',
+      timerVisualNotify: 'none',
+      timerAutoReset: 'none',
     })
+  })
+
+  it('upgrades a version 1 entry with defaults for the new fields', () => {
+    localStorage.setItem(
+      SETTINGS_KEY,
+      JSON.stringify({ version: 1, theme: 'dark', actionMode: 'text', controlSize: 'lg' })
+    )
+    expect(getSettings()).toEqual(
+      expect.objectContaining({ version: 2, theme: 'dark', soundVolume: 100, timerDuration: 60 })
+    )
+  })
+
+  it('rejects out-of-range sound and timer values', () => {
+    localStorage.setItem(
+      SETTINGS_KEY,
+      JSON.stringify({ soundVolume: 150, timerDuration: 0, timerAutoReset: 'never' })
+    )
+    expect(getSettings()).toEqual(
+      expect.objectContaining({ soundVolume: 100, timerDuration: 60, timerAutoReset: 'none' })
+    )
   })
 
   it('migrates the old keys once and removes them', () => {

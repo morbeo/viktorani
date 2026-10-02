@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui'
+import { getSettings } from '@/lib/app-settings'
 
 interface CreateTimerModalProps {
   onConfirm: (label: string, duration: number) => void
@@ -19,8 +20,9 @@ const PRESETS = [
  */
 export function CreateTimerModal({ onConfirm, onCancel }: CreateTimerModalProps) {
   const [label, setLabel] = useState('')
-  const [minutes, setMinutes] = useState(1)
-  const [seconds, setSeconds] = useState(0)
+  // Start from the default duration in the app settings
+  const [minutes, setMinutes] = useState(() => Math.floor(getSettings().timerDuration / 60))
+  const [seconds, setSeconds] = useState(() => getSettings().timerDuration % 60)
   const labelRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {

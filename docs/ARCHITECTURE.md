@@ -109,6 +109,7 @@ src/
 │   ├── buzzer/              BuzzerPanel, BuzzList, BuzzerLockButton
 │   ├── timer/               TimerPanel, TimerCard, modals, expiry overlay
 │   ├── scoreboard/          ScoreboardPanel
+│   ├── command-palette/     Ctrl/⌘+K palette and its command registry
 │   ├── players-teams/       managed roster: lists, forms, QR, labels
 │   └── settings/            Settings categories: appearance, tags, difficulties, data
 ├── hooks/                   useBuzzer, useTimer, useNavigation, useScoreboard, …
@@ -333,6 +334,12 @@ flowchart TD
   forwarded to hooks (for example, buzzes go to `useBuzzer` through `buzzHandlerRef`).
 - Control size (S / M / L) is a `ControlSizeContext` provided by `GameMaster` and read by
   `Button` and the larger custom controls.
+- `ActiveGame` and `GameControls` offer game commands (next question, buzzer lock, timers, pause,
+  open screen) to the command palette with `useRegisterCommands`. The palette
+  (`components/command-palette/`) is mounted once in `App.tsx`, opens with Ctrl/⌘+K on `/admin`
+  pages and is lazy-loaded on first use. Its "New game", "New question" and question results
+  navigate to `?new=1` or `?edit=<id>`, which the Games and Questions pages read to open their
+  forms.
 
 ## Backups and import
 
