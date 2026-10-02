@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import fc from 'fast-check'
 import {
   applyScoreDelta,
+  toScore,
   buildNavSequence,
   getNavPosition,
   step,
@@ -58,6 +59,19 @@ const dir = fc.constantFrom<1 | -1>(1, -1)
 // ── Scoring ───────────────────────────────────────────────────────────────────
 
 describe('scoring properties', () => {
+  it('a typed score is a safe whole number of at least 0, or null when not finite', () => {
+    fc.assert(
+      fc.property(fc.double(), value => {
+        const result = toScore(value)
+        if (!Number.isFinite(value)) expect(result).toBeNull()
+        else {
+          expect(Number.isSafeInteger(result)).toBe(true)
+          expect(result).toBeGreaterThanOrEqual(0)
+        }
+      })
+    )
+  })
+
   it('score never drops below 0 for any sequence of adjustments', () => {
     fc.assert(
       fc.property(score, fc.array(delta), (start, deltas) => {
