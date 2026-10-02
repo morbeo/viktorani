@@ -60,7 +60,8 @@ export function HelpTip({ text, label }: HelpTipProps) {
           // Inside a <label>, don't let the click reach the labelled control
           e.preventDefault()
           e.stopPropagation()
-          show(0)
+          clearTimeout(timer.current)
+          setOpen(true)
         }}
         className="inline-flex items-center justify-center rounded-full opacity-60 hover:opacity-100 focus-visible:opacity-100"
         style={{ color: 'inherit' }}
