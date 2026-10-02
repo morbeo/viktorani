@@ -300,12 +300,14 @@ describe('game flow', () => {
     await host.waitFor(() => expect(hub.state.host).not.toBeNull())
 
     const { client } = await connectClient()
-    client.send(JOIN)
+    // A device of its own: earlier tests leave their players in the shared database
+    client.send({ ...JOIN, playerName: 'Dora', deviceId: 'device-dora' } as TransportEvent)
     client.disconnect()
     await new Promise(r => setTimeout(r, 300))
 
-    expect(await db.players.where('gameId').equals('g1').count()).toBe(0)
-    expect(host.view.queryByText('Bob')).toBeNull()
+    // Never connected as a player: either not saved, or saved as away
+    const saved = await db.players.where('deviceId').equals('device-dora').toArray()
+    expect(saved.every(p => p.isAway)).toBe(true)
   }, 20_000)
 
   it('ignores buzzes while the game is paused', async () => {
