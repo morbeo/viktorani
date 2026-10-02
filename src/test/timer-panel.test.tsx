@@ -22,34 +22,66 @@ describe('TimerPanel', () => {
       id: 't1',
       gameId: 'g1',
       label: 'Round 1',
-      duration: 60000,
-      startedAt: now - 10000,
+      duration: 60,
+      remaining: 60,
+      target: 'all',
+      message: '',
+      visible: true,
       paused: false,
-      createdAt: now,
+      startedAt: now - 10000,
+      audioNotify: 'none',
+      visualNotify: 'none',
+      autoReset: 'none',
     },
     {
       id: 't2',
       gameId: 'g1',
       label: 'Bonus',
-      duration: 30000,
-      startedAt: null,
+      duration: 30,
+      remaining: 30,
+      target: 'all',
+      message: '',
+      visible: true,
       paused: false,
-      createdAt: now,
+      startedAt: null,
+      audioNotify: 'none',
+      visualNotify: 'none',
+      autoReset: 'none',
     },
     {
       id: 't3',
       gameId: 'g1',
       label: 'Paused Timer',
-      duration: 120000,
-      startedAt: now - 5000,
+      duration: 120,
+      remaining: 120,
+      target: 'all',
+      message: '',
+      visible: true,
       paused: true,
-      createdAt: now,
+      startedAt: now - 5000,
+      audioNotify: 'none',
+      visualNotify: 'none',
+      autoReset: 'none',
     },
   ]
 
   const mockHook: UseTimerListResult = {
     timers,
-    createTimer: vi.fn(async opts => ({ ...opts, id: 'new', createdAt: now, paused: false, startedAt: null })),
+    createTimer: vi.fn(async opts => ({
+      id: 'new',
+      gameId: opts.gameId,
+      label: opts.label,
+      duration: opts.duration,
+      remaining: opts.duration,
+      target: 'all',
+      message: '',
+      visible: true,
+      paused: false,
+      startedAt: null,
+      audioNotify: 'none',
+      visualNotify: 'none',
+      autoReset: 'none',
+    })),
     startTimer: vi.fn(async () => {}),
     pauseTimer: vi.fn(async () => {}),
     resumeTimer: vi.fn(async () => {}),
@@ -60,10 +92,11 @@ describe('TimerPanel', () => {
     resumeAll: vi.fn(async () => {}),
     restartAll: vi.fn(async () => {}),
     deleteAll: vi.fn(async () => {}),
+    autoReset: vi.fn(async () => {}),
     remaining: vi.fn(id => {
-      if (id === 't1') return 50000
-      if (id === 't2') return 30000
-      if (id === 't3') return 115000
+      if (id === 't1') return 50
+      if (id === 't2') return 30
+      if (id === 't3') return 115
       return 0
     }),
   }
@@ -111,20 +144,22 @@ describe('TimerPanel', () => {
   it('opens create modal when Add timer is clicked', async () => {
     render(<TimerPanel gameId="g1" hook={mockHook} />)
     await userEvent.click(screen.getByRole('button', { name: 'Add timer' }))
-    expect(screen.getByRole('heading', { name: 'Create timer' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'New Timer' })).toBeInTheDocument()
   })
 
   it('creates and starts a timer', async () => {
     render(<TimerPanel gameId="g1" hook={mockHook} />)
     await userEvent.click(screen.getByRole('button', { name: 'Add timer' }))
-    await userEvent.type(screen.getByLabelText('Label'), 'New Timer')
-    await userEvent.clear(screen.getByLabelText('Duration (seconds)'))
-    await userEvent.type(screen.getByLabelText('Duration (seconds)'), '45')
+    await userEvent.type(screen.getByLabelText('Label (optional)'), 'New Timer')
+    await userEvent.clear(screen.getByLabelText('Min'))
+    await userEvent.type(screen.getByLabelText('Min'), '0')
+    await userEvent.clear(screen.getByLabelText('Sec'))
+    await userEvent.type(screen.getByLabelText('Sec'), '45')
     await userEvent.click(screen.getByRole('button', { name: 'Create' }))
     expect(mockHook.createTimer).toHaveBeenCalledWith({
       gameId: 'g1',
       label: 'New Timer',
-      duration: 45000,
+      duration: 45,
     })
     expect(mockHook.startTimer).toHaveBeenCalledWith('new')
   })

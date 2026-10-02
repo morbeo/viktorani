@@ -10,19 +10,29 @@ const mockGame: Game = {
   id: 'g1',
   name: 'Test Game',
   status: 'active',
+  roomId: 'ABC123',
+  visibility: {
+    players: { showQuestion: true, showAnswers: false, showMedia: true },
+    screen: { showQuestion: true, showAnswers: true, showMedia: true },
+  },
   roundIds: [],
   currentRoundIdx: 0,
   currentQuestionIdx: 0,
-  joinPolicy: 'open',
+  maxTeams: 0,
+  maxPerTeam: 0,
+  allowIndividual: true,
   allowLateJoin: true,
+  allowRejoin: true,
+  requireApproval: false,
+  allowPlayerTeams: false,
   scoringEnabled: true,
   buzzerLocked: false,
   autoLockOnFirstCorrect: false,
   allowFalseStarts: false,
-  buzzDeduplication: 'first',
+  buzzDeduplication: 'firstOnly',
+  tiebreakerMode: 'serverOrder',
   createdAt: Date.now(),
   updatedAt: Date.now(),
-  startedAt: Date.now(),
 }
 
 vi.mock('@/hooks/useScoreboard', () => ({
@@ -57,9 +67,12 @@ describe('BuzzerPanel', () => {
       questionId: 'q1',
       playerId: 'p1',
       playerName: 'Alice',
+      teamId: null,
       timestamp: 100,
+      receivedAt: Date.now(),
+      isFalseStart: false,
       gmDecision: null,
-      createdAt: Date.now(),
+      decidedAt: null,
     },
     {
       id: 'b2',
@@ -67,9 +80,12 @@ describe('BuzzerPanel', () => {
       questionId: 'q1',
       playerId: 'p2',
       playerName: 'Bob',
+      teamId: null,
       timestamp: 200,
-      gmDecision: 'correct',
-      createdAt: Date.now(),
+      receivedAt: Date.now() + 100,
+      isFalseStart: false,
+      gmDecision: 'Correct',
+      decidedAt: Date.now() + 200,
     },
   ]
 
@@ -85,7 +101,7 @@ describe('BuzzerPanel', () => {
         onClear={vi.fn()}
       />
     )
-    expect(screen.getByRole('button', { name: /unlock/i })).toBeInTheDocument()
+    expect(screen.getByText('Buzzer Open')).toBeInTheDocument()
   })
 
   it('shows locked state when buzzer is locked', () => {
@@ -100,7 +116,7 @@ describe('BuzzerPanel', () => {
         onClear={vi.fn()}
       />
     )
-    expect(screen.getByRole('button', { name: /unlock/i })).toBeInTheDocument()
+    expect(screen.getByText('Buzzer Locked')).toBeInTheDocument()
   })
 
   it('calls onToggleLock when lock button is clicked', async () => {
@@ -116,7 +132,7 @@ describe('BuzzerPanel', () => {
         onClear={vi.fn()}
       />
     )
-    await userEvent.click(screen.getByRole('button', { name: /unlock/i }))
+    await userEvent.click(screen.getByRole('button', { name: /click to lock/i }))
     expect(onToggleLock).toHaveBeenCalled()
   })
 
@@ -201,7 +217,7 @@ describe('BuzzerPanel', () => {
         onClear={vi.fn()}
       />
     )
-    expect(screen.getByRole('button', { name: /unlock/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /click to lock/i })).toBeDisabled()
   })
 })
 

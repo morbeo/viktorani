@@ -36,7 +36,7 @@ describe('useTransport', () => {
 
   it('updates status when transport status changes', () => {
     let statusCallback: ((s: TransportStatus, t: TransportType) => void) | null = null
-    mockManager.onStatusChange.mockImplementation(cb => {
+    mockManager.onStatusChange.mockImplementation((cb: (s: TransportStatus, t: TransportType) => void) => {
       statusCallback = cb
       return vi.fn()
     })
@@ -45,11 +45,11 @@ describe('useTransport', () => {
     expect(result.current.status).toBe('idle')
 
     act(() => {
-      statusCallback?.('connected', 'webrtc')
+      statusCallback?.('connected', 'peer')
     })
 
     expect(result.current.status).toBe('connected')
-    expect(result.current.type).toBe('webrtc')
+    expect(result.current.type).toBe('peer')
   })
 
   it('provides a stable send function', () => {

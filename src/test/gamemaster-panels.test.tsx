@@ -10,19 +10,29 @@ const mockGame: Game = {
   id: 'g1',
   name: 'Test Game',
   status: 'active',
+  roomId: 'ABC123',
+  visibility: {
+    players: { showQuestion: true, showAnswers: false, showMedia: true },
+    screen: { showQuestion: true, showAnswers: true, showMedia: true },
+  },
   roundIds: [],
   currentRoundIdx: 0,
   currentQuestionIdx: 0,
-  joinPolicy: 'open',
+  maxTeams: 0,
+  maxPerTeam: 0,
+  allowIndividual: true,
   allowLateJoin: true,
+  allowRejoin: true,
+  requireApproval: false,
+  allowPlayerTeams: false,
   scoringEnabled: true,
   buzzerLocked: false,
   autoLockOnFirstCorrect: false,
   allowFalseStarts: false,
-  buzzDeduplication: 'first',
+  buzzDeduplication: 'firstOnly',
+  tiebreakerMode: 'serverOrder',
   createdAt: Date.now(),
   updatedAt: Date.now(),
-  startedAt: Date.now(),
 }
 
 const mockLifecycle = {
@@ -131,15 +141,15 @@ describe('GameControls', () => {
 
 describe('RosterPanel', () => {
   const teams: Team[] = [
-    { id: 't1', gameId: 'g1', name: 'Red Team', color: '#ff0000', icon: 'flame', members: [] },
-    { id: 't2', gameId: 'g1', name: 'Blue Team', color: '#0000ff', icon: 'star', members: [] },
+    { id: 't1', gameId: 'g1', name: 'Red Team', color: '#ff0000', icon: 'flame', score: 0 },
+    { id: 't2', gameId: 'g1', name: 'Blue Team', color: '#0000ff', icon: 'star', score: 0 },
   ]
 
   const players: Player[] = [
     {
       id: 'p1',
       gameId: 'g1',
-      peerId: 'peer1',
+      deviceId: 'device1',
       name: 'Alice',
       score: 10,
       teamId: 't1',
@@ -149,7 +159,7 @@ describe('RosterPanel', () => {
     {
       id: 'p2',
       gameId: 'g1',
-      peerId: 'peer2',
+      deviceId: 'device2',
       name: 'Bob',
       score: 5,
       teamId: 't2',
@@ -159,7 +169,7 @@ describe('RosterPanel', () => {
     {
       id: 'p3',
       gameId: 'g1',
-      peerId: 'peer3',
+      deviceId: 'device3',
       name: 'Charlie',
       score: 0,
       teamId: null,
