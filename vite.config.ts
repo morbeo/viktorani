@@ -75,7 +75,7 @@ export default defineConfig({
         name: 'Viktorani',
         short_name: 'Viktorani',
         description:
-          'Bar trivia PWA with WebRTC multiplayer, Reveal.js slides, and buzzer gameplay.',
+          'Bar trivia PWA with WebRTC multiplayer and buzzer gameplay.',
         theme_color: '#f5f0e8',
         background_color: '#f5f0e8',
         display: 'standalone',
