@@ -89,6 +89,7 @@ export class TransportManager {
   private eventHandlers: Array<(e: TransportEvent, from: string) => void> = []
   private openHandlers: Array<(connId: string) => void> = []
   private closeHandlers: Array<(connId: string) => void> = []
+  private broadcastFilter: ((connId: string) => boolean) | null = null
 
   /** Current connection lifecycle state. `'idle'` when not connected. */
   get status(): TransportStatus {
@@ -150,7 +151,8 @@ export class TransportManager {
   }
 
   /**
-   * Send an event to all peers in the room.
+   * Send an event to all peers in the room. On the host, only connections accepted by
+   * the broadcast filter receive it (see {@link TransportManager.setBroadcastFilter}).
    *
    * @remarks
    * Silently drops the event if not currently connected. Callers do not
@@ -159,7 +161,27 @@ export class TransportManager {
    * @param event - Any {@link TransportEvent} variant.
    */
   send(event: TransportEvent) {
+    this.transport?.send(event, this.broadcastFilter ?? undefined)
+  }
+
+  /**
+   * Host side: send an event to every open connection, ignoring the broadcast filter.
+   * Only for data anyone with the room code may see, such as LOBBY_INFO for join screens.
+   *
+   * @param event - Any {@link TransportEvent} variant.
+   */
+  sendToAll(event: TransportEvent) {
     this.transport?.send(event)
+  }
+
+  /**
+   * Host side: limit {@link TransportManager.send} to the connections `filter` accepts,
+   * e.g. admitted players. Kept across reconnects; pass `null` to broadcast to everyone.
+   *
+   * @param filter - Called with each connection id at send time.
+   */
+  setBroadcastFilter(filter: ((connId: string) => boolean) | null) {
+    this.broadcastFilter = filter
   }
 
   /**

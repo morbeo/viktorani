@@ -218,6 +218,12 @@ describe('PeerJSTransport', () => {
 
     expect(conn1.send).toHaveBeenCalledWith(event)
     expect(conn2.send).toHaveBeenCalledWith(event)
+
+    // With a filter, connections it rejects are skipped
+    const unlock: TransportEvent = { type: 'BUZZER_UNLOCK' }
+    t.send(unlock, connId => connId === conn1.connectionId)
+    expect(conn1.send).toHaveBeenCalledWith(unlock)
+    expect(conn2.send).not.toHaveBeenCalledWith(unlock)
   })
 
   it('send is a no-op when not connected', async () => {

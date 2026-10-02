@@ -145,11 +145,35 @@ describe('TransportManager', () => {
       internals(manager).transport = mock
       const event: TransportEvent = { type: 'BUZZER_LOCK' }
       manager.send(event)
-      expect(mock.send).toHaveBeenCalledWith(event)
+      expect(mock.send).toHaveBeenCalledWith(event, undefined)
+    })
+
+    it('passes the broadcast filter to the transport until it is cleared', () => {
+      const mock = makeMockTransport('peer')
+      internals(manager).transport = mock
+      const admitted = (connId: string) => connId === 'dc_1'
+      manager.setBroadcastFilter(admitted)
+      manager.send({ type: 'BUZZER_LOCK' })
+      expect(mock.send).toHaveBeenLastCalledWith({ type: 'BUZZER_LOCK' }, admitted)
+
+      manager.setBroadcastFilter(null)
+      manager.send({ type: 'BUZZER_UNLOCK' })
+      expect(mock.send).toHaveBeenLastCalledWith({ type: 'BUZZER_UNLOCK' }, undefined)
     })
 
     it('is a no-op when not connected', () => {
       expect(() => manager.send({ type: 'BUZZER_LOCK' })).not.toThrow()
+    })
+  })
+
+  describe('sendToAll', () => {
+    it('ignores the broadcast filter', () => {
+      const mock = makeMockTransport('peer')
+      internals(manager).transport = mock
+      manager.setBroadcastFilter(() => false)
+      const event: TransportEvent = { type: 'JOIN_PENDING' }
+      manager.sendToAll(event)
+      expect(mock.send).toHaveBeenCalledWith(event)
     })
   })
 
