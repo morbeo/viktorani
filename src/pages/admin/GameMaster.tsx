@@ -848,7 +848,8 @@ export default function GameMaster() {
         setPlayers(prev => setPlayerAway(prev, playerId, event.away))
       }
 
-      if (event.type === 'BUZZ') {
+      // Buzzes count only while the game runs, whatever a player's device shows
+      if (event.type === 'BUZZ' && gameRef.current?.status === 'active') {
         // Stamp arrival before any await, so a slow lookup cannot reorder buzzes
         const receivedAt = hostNow()
         // Delegate to the mounted ActiveGame's useBuzzer

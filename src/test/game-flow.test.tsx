@@ -289,6 +289,24 @@ describe('game flow', () => {
     }
   }, 20_000)
 
+  it('ignores buzzes while the game is paused', async () => {
+    await seedGame()
+    const { db } = await import('@/db')
+    await db.games.update('g1', { status: 'paused' })
+    const host = await mountSide('host', '/admin/game/g1')
+    await host.waitFor(() => expect(hub.state.host).not.toBeNull())
+
+    const { client, received } = await connectClient()
+    client.send(JOIN)
+    await host.waitFor(
+      () => expect(received.map(e => e.type)).toContain('JOIN_ACCEPTED'),
+      SLOW
+    )
+    client.send({ type: 'BUZZ', timestamp: Date.now() })
+    await new Promise(r => setTimeout(r, 200))
+    expect(host.view.queryByRole('button', { name: 'Mark correct' })).toBeNull()
+  }, 20_000)
+
   it('an ended game stays offline and admits no one', async () => {
     await seedGame()
     const { db } = await import('@/db')
