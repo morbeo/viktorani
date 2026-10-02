@@ -45,7 +45,7 @@ npm install
 npm run dev
 ```
 
-To try it with sample data, run `npm run demo` instead. It opens the admin panel with demo questions, rounds, teams, and a ready-to-run game named **Demo Night**. Running it again won't create duplicates.
+To try it with sample data, run `npm run demo` instead. It opens the admin panel with demo questions, rounds, teams, and a ready-to-run game named **Demo Night**. Running it again won't create duplicates. In a running app, use **Load demo data** in Settings → Data or the command palette (Ctrl/⌘+K).
 
 ### Available scripts
 

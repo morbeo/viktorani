@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Download, Trash2 } from 'lucide-react'
+import { Database, Download, Trash2 } from 'lucide-react'
 import { Button, Modal, Input, Icon } from '@/components/ui'
 import { exportDatabase, importDatabase } from '@/db/snapshot'
 import { purgeDatabase, seedDefaults } from '@/db'
 import { formatBytes } from '@/lib/format'
+import { loadDemo } from '@/lib/load-demo'
 
 interface StorageInfo {
   usage: string
@@ -28,7 +29,7 @@ async function loadStorageInfo(): Promise<StorageInfo> {
   return info
 }
 
-/** Storage usage, backup export and import, and purge. */
+/** Storage usage, backup export and import, demo data, and purge. */
 export default function DataSettings() {
   const [importing, setImporting] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
@@ -36,6 +37,7 @@ export default function DataSettings() {
   const [purgeConfirm, setPurgeConfirm] = useState('')
   const [purging, setPurging] = useState(false)
   const [storage, setStorage] = useState<StorageInfo | null>(null)
+  const [loadingDemo, setLoadingDemo] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -77,6 +79,19 @@ export default function DataSettings() {
       setMsg(`Purge failed: ${(err as Error).message}`)
     } finally {
       setPurging(false)
+    }
+  }
+
+  async function handleLoadDemo() {
+    setLoadingDemo(true)
+    try {
+      const name = await loadDemo()
+      setMsg(`Demo data loaded: open "${name}" in Games`)
+      setTimeout(() => setMsg(null), 4000)
+    } catch (err) {
+      setMsg(`Demo data failed: ${(err as Error).message}`)
+    } finally {
+      setLoadingDemo(false)
     }
   }
 
@@ -122,11 +137,11 @@ export default function DataSettings() {
             className="text-xs mb-3 px-3 py-2 rounded"
             style={{
               color:
-                msg.startsWith('Import failed') || msg.startsWith('Purge failed')
+                /^(Import|Purge|Demo data) failed/.test(msg)
                   ? 'var(--color-red)'
                   : 'var(--color-green)',
               background:
-                msg.startsWith('Import failed') || msg.startsWith('Purge failed')
+                /^(Import|Purge|Demo data) failed/.test(msg)
                   ? 'var(--color-red)1a'
                   : 'var(--color-green)1a',
             }}
@@ -160,6 +175,25 @@ export default function DataSettings() {
               disabled={importing}
             />
           </label>
+        </div>
+      </section>
+
+      {/* ── Demo data ────────────────────────────────────────── */}
+      <section>
+        <div className="mb-3 flex items-start justify-between gap-4">
+          <div>
+            <h2 className="font-semibold text-base" style={{ color: 'var(--color-ink)' }}>
+              Demo data
+            </h2>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
+              Adds sample questions, rounds, teams and a ready-to-run game to try things out.
+              Loading it twice adds nothing.
+            </p>
+          </div>
+          <Button variant="secondary" onClick={handleLoadDemo} disabled={loadingDemo}>
+            <Icon icon={Database} size="sm" />
+            {loadingDemo ? 'Loading…' : 'Load demo data'}
+          </Button>
         </div>
       </section>
 

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { CommandPaletteHost } from '@/components/command-palette/CommandPaletteHost'
+import { ToastProvider } from '@/components/ui'
 import {
   isPaletteShortcut,
   registerCommands,
@@ -9,6 +10,8 @@ import {
 } from '@/components/command-palette/commands'
 
 vi.mock('@/db', () => ({ db: {} }))
+const loadDemo = vi.fn(async () => 'Demo Night')
+vi.mock('@/lib/load-demo', () => ({ loadDemo: () => loadDemo() }))
 // One record that serves as both a game (name) and a question (title)
 vi.mock('dexie-react-hooks', () => ({
   useLiveQuery: () => [{ id: 'x1', name: 'Pub night', title: 'Capital of France' }],
@@ -21,12 +24,14 @@ function Where() {
 
 function renderAt(path: string) {
   return render(
-    <MemoryRouter initialEntries={[path]}>
-      <Routes>
-        <Route path="*" element={<Where />} />
-      </Routes>
-      <CommandPaletteHost />
-    </MemoryRouter>
+    <ToastProvider>
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path="*" element={<Where />} />
+        </Routes>
+        <CommandPaletteHost />
+      </MemoryRouter>
+    </ToastProvider>
   )
 }
 
@@ -88,6 +93,16 @@ describe('CommandPaletteHost', () => {
     fireEvent.change(input, { target: { value: 'capital' } })
     fireEvent.click(screen.getByRole('option', { name: /Capital of France/ }))
     expect(screen.getByTestId('where')).toHaveTextContent('/admin/questions?edit=x1')
+  })
+
+  it('loads demo data', async () => {
+    renderAt('/admin')
+    ctrlK()
+    const input = await screen.findByRole('combobox')
+    fireEvent.change(input, { target: { value: 'demo' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(loadDemo).toHaveBeenCalledOnce()
+    expect(await screen.findByText(/Demo data loaded/)).toBeInTheDocument()
   })
 
   it('lists page commands first and moves the selection with the arrows', async () => {
