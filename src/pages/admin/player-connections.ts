@@ -150,7 +150,7 @@ export async function resolveJoin(game: Game, join: JoinEvent): Promise<JoinResu
       teamId,
       deviceId: join.deviceId,
       score: existing?.score ?? 0,
-      isAway: false,
+      presence: 'connected',
       joinedAt: existing?.joinedAt ?? Date.now(),
     },
     newTeam,

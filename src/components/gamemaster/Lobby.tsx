@@ -8,7 +8,7 @@ import { JoinPolicyPanel } from '@/components/gamemaster/JoinPolicyPanel'
 import { PendingJoinsPanel } from '@/components/gamemaster/PendingJoinsPanel'
 import { ScreensPanel } from '@/components/gamemaster/ScreensPanel'
 import type { ScreensPanelProps } from '@/components/gamemaster/ScreensPanel'
-import { canStartGame } from '@/pages/admin/gamemaster-utils'
+import { canStartGame, isConnected } from '@/pages/admin/gamemaster-utils'
 import type { PendingJoin } from '@/pages/admin/player-connections'
 import type { Game, Player, Team } from '@/db'
 import type { TransportStatus, TransportType } from '@/transport/types'
@@ -67,7 +67,7 @@ export function Lobby({
   onRejectJoin,
   screens,
 }: LobbyProps) {
-  const activePlayers = players.filter(p => !p.isAway)
+  const activePlayers = players.filter(isConnected)
   const canStart = canStartGame({
     transportStatus: status,
     activePlayers: activePlayers.length,

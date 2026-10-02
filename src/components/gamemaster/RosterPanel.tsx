@@ -1,7 +1,8 @@
-import { CircleDot, Circle, UserX } from 'lucide-react'
+import { CircleDot, EyeOff, LogOut, UserX, WifiOff, type LucideIcon } from 'lucide-react'
 import { Icon, Button } from '@/components/ui'
 import { resolveIcon } from '@/components/players-teams/teamIcons'
-import type { Player, Team } from '@/db'
+import { isConnected } from '@/pages/admin/gamemaster-utils'
+import type { Player, PlayerPresence, Team } from '@/db'
 
 interface RosterPanelProps {
   players: Player[]
@@ -9,16 +10,53 @@ interface RosterPanelProps {
   onKick: (playerId: string) => void
 }
 
+/** How each presence is shown: icon, colour, short label and what it means. */
+const PRESENCE: Record<
+  PlayerPresence,
+  { icon: LucideIcon; color: string; label: string; meaning: string }
+> = {
+  connected: {
+    icon: CircleDot,
+    color: 'var(--color-green)',
+    label: 'Connected',
+    meaning: 'Playing.',
+  },
+  hidden: {
+    icon: EyeOff,
+    color: 'var(--color-gold)',
+    label: 'Tab hidden',
+    meaning: 'Connected, but looking at something else.',
+  },
+  disconnected: {
+    icon: WifiOff,
+    color: 'var(--color-muted)',
+    label: 'Disconnected',
+    meaning: 'Not connected. They can rejoin from their device if rejoining is allowed.',
+  },
+  left: { icon: LogOut, color: 'var(--color-muted)', label: 'Left', meaning: 'They left the game.' },
+  kicked: { icon: UserX, color: 'var(--color-red)', label: 'Kicked', meaning: 'You removed them.' },
+}
+
 /**
  * Live roster panel for the GameMaster lobby.
- * Shows each connected player's name, team badge, score, and online/away status.
- * Provides a kick action that marks the player as away.
+ * Shows each player's name, team badge, score, and presence (see {@link PRESENCE}).
+ * Provides a kick action.
  *
- * Count badge in the header reflects only non-away (online) players.
+ * The header counts connected players, with tab-hidden and disconnected ones listed apart.
  */
 export function RosterPanel({ players, teams, onKick }: RosterPanelProps) {
   const teamMap = new Map(teams.map(t => [t.id, t]))
-  const onlineCount = players.filter(p => !p.isAway).length
+  const count = (presence: PlayerPresence) => players.filter(p => p.presence === presence).length
+  const onlineCount = count('connected')
+  const hiddenCount = count('hidden')
+  const disconnectedCount = count('disconnected')
+  const summary = [
+    `${onlineCount} connected`,
+    hiddenCount > 0 && `${hiddenCount} tab hidden`,
+    disconnectedCount > 0 && `${disconnectedCount} disconnected`,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
   return (
     <div
@@ -43,9 +81,8 @@ export function RosterPanel({ players, teams, onKick }: RosterPanelProps) {
             color: onlineCount > 0 ? 'var(--color-green)' : 'var(--color-muted)',
           }}
           aria-live="polite"
-          aria-label={`${onlineCount} player${onlineCount !== 1 ? 's' : ''} online`}
         >
-          {onlineCount} online
+          {summary}
         </span>
       </div>
 
@@ -60,25 +97,28 @@ export function RosterPanel({ players, teams, onKick }: RosterPanelProps) {
         ) : (
           players.map(player => {
             const team = player.teamId ? teamMap.get(player.teamId) : undefined
+            const presence = PRESENCE[player.presence]
             return (
               <div
                 key={player.id}
                 className="flex items-center gap-3 px-4 py-2.5 border-b last:border-b-0"
                 style={{ borderColor: 'var(--color-border)' }}
               >
-                {/* Online/away dot */}
+                {/* Presence */}
                 <span
-                  style={{ color: player.isAway ? 'var(--color-muted)' : 'var(--color-green)' }}
-                  aria-label={player.isAway ? 'Away' : 'Online'}
+                  role="img"
+                  style={{ color: presence.color }}
+                  aria-label={presence.label}
+                  title={`${presence.label}: ${presence.meaning}`}
                   className="shrink-0"
                 >
-                  <Icon icon={player.isAway ? Circle : CircleDot} size="sm" aria-hidden={false} />
+                  <Icon icon={presence.icon} size="sm" aria-hidden />
                 </span>
 
                 {/* Name */}
                 <span
                   className="flex-1 text-sm truncate"
-                  style={{ color: player.isAway ? 'var(--color-muted)' : 'var(--color-ink)' }}
+                  style={{ color: isConnected(player) ? 'var(--color-ink)' : 'var(--color-muted)' }}
                 >
                   {player.name}
                 </span>

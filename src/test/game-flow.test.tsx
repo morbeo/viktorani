@@ -305,9 +305,9 @@ describe('game flow', () => {
     client.disconnect()
     await new Promise(r => setTimeout(r, 300))
 
-    // Never connected as a player: either not saved, or saved as away
+    // Never connected as a player: either not saved, or saved as disconnected
     const saved = await db.players.where('deviceId').equals('device-dora').toArray()
-    expect(saved.every(p => p.isAway)).toBe(true)
+    expect(saved.every(p => p.presence === 'disconnected')).toBe(true)
   }, 20_000)
 
   it('ignores buzzes while the game is paused', async () => {
@@ -362,5 +362,26 @@ describe('game flow', () => {
     const [buzz] = await db.buzzEvents.toArray()
     expect(team.name).toBe('Owls')
     expect(buzz.teamId).toBe(team.id)
+  }, 20_000)
+
+  it('records when a player hides their tab and when they leave', async () => {
+    await seedGame()
+    const { db } = await import('@/db')
+    const host = await mountSide('host', '/admin/game/g1')
+    await host.waitFor(() => expect(hub.state.host).not.toBeNull())
+
+    const { client, received } = await connectClient()
+    client.send({ ...JOIN, playerName: 'Eve', deviceId: 'device-eve' } as TransportEvent)
+    await host.waitFor(
+      () => expect(received.map(e => e.type)).toContain('JOIN_ACCEPTED'),
+      SLOW
+    )
+    const presence = async () =>
+      (await db.players.where('deviceId').equals('device-eve').first())?.presence
+
+    client.send({ type: 'FOCUS_CHANGE', away: true })
+    await host.waitFor(async () => expect(await presence()).toBe('hidden'))
+    client.send({ type: 'LEAVE' })
+    await host.waitFor(async () => expect(await presence()).toBe('left'))
   }, 20_000)
 })

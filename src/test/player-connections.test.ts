@@ -25,7 +25,7 @@ function player(overrides: Partial<Player>): Player {
     name: 'Alice',
     teamId: null,
     score: 0,
-    isAway: true,
+    presence: 'disconnected',
     deviceId: 'dev-a',
     joinedAt: 100,
     ...overrides,
@@ -143,7 +143,7 @@ describe('resolveJoin', () => {
       score: 30,
       teamId: 't1',
       joinedAt: 100,
-      isAway: false,
+      presence: 'connected',
     })
   })
 
