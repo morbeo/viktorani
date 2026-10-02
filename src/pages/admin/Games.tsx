@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AdminLayout from '@/components/AdminLayout'
-import { Button, Badge, Input, Modal, Empty, HelpTip } from '@/components/ui'
-import { JOIN_POLICY_HELP } from '@/components/gamemaster/join-policy-help'
+import { Button, Badge, Input, Modal, Empty } from '@/components/ui'
+import { GameSettingsForm } from '@/components/game-settings/GameSettingsForm'
+import { defaultSettings } from '@/components/game-settings/game-settings'
+import type { GameSettings } from '@/components/game-settings/game-settings'
 import { db } from '@/db'
-import type { Game, GameVisibility, Round, TargetVisibility } from '@/db'
+import type { Game, Round, TargetVisibility } from '@/db'
 import { generateRoomId } from '@/transport'
 import { createGame, cloneGame, deleteGame } from '@/db/games'
 
@@ -12,32 +14,14 @@ import { createGame, cloneGame, deleteGame } from '@/db/games'
 // Wizard state
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface WizardState {
+interface WizardState extends GameSettings {
   // Step 1
   name: string
-  scoringEnabled: boolean
-  visibility: GameVisibility
-  maxTeams: number
-  maxPerTeam: number
-  allowIndividual: boolean
-  allowLateJoin: boolean
-  allowRejoin: boolean
-  requireApproval: boolean
-  allowPlayerTeams: boolean
-  // Buzzer config
-  autoLockOnFirstCorrect: boolean
-  allowFalseStarts: boolean
-  buzzDeduplication: 'firstOnly' | 'all'
   // Step 2
   roundMode: 'existing' | 'custom'
   selectedRoundIds: string[]
   customRounds: { name: string; questionIds: string[] }[]
 }
-
-const VISIBILITY_TARGETS = [
-  { target: 'players', title: 'Players see' },
-  { target: 'screen', title: 'Screen shows' },
-] as const
 
 const VISIBILITY_FLAGS: Array<{ key: keyof TargetVisibility; label: string }> = [
   { key: 'showQuestion', label: 'Question text' },
@@ -53,21 +37,7 @@ function describeVisibility(v: TargetVisibility): string {
 function defaultWizard(): WizardState {
   return {
     name: '',
-    scoringEnabled: true,
-    visibility: {
-      players: { showQuestion: true, showAnswers: false, showMedia: true },
-      screen: { showQuestion: true, showAnswers: false, showMedia: true },
-    },
-    maxTeams: 0,
-    maxPerTeam: 0,
-    allowIndividual: true,
-    allowLateJoin: true,
-    allowRejoin: true,
-    requireApproval: false,
-    allowPlayerTeams: true,
-    autoLockOnFirstCorrect: false,
-    allowFalseStarts: false,
-    buzzDeduplication: 'firstOnly',
+    ...defaultSettings(),
     roundMode: 'existing',
     selectedRoundIds: [],
     customRounds: [],
@@ -120,226 +90,22 @@ function Steps({ current }: { current: number }) {
 function Step1({
   state,
   set,
+  update,
 }: {
   state: WizardState
   set: (k: keyof WizardState, v: unknown) => void
+  update: (patch: Partial<WizardState>) => void
 }) {
-  const [showAdvanced, setShowAdvanced] = useState(false)
-
   return (
     <div className="flex flex-col gap-4">
-      {/* Game name — primary field, full width */}
       <Input
         label="Game name *"
         value={state.name}
         onChange={e => set('name', e.target.value)}
         placeholder="e.g. Friday Night Trivia"
       />
-
-      <Toggle
-        label="Scoring"
-        checked={state.scoringEnabled}
-        onChange={v => set('scoringEnabled', v)}
-      />
-
-      {/* Visibility toggles — one block per target */}
-      <div className="grid grid-cols-2 gap-3">
-        {VISIBILITY_TARGETS.map(({ target, title }) => (
-          <div
-            key={target}
-            className="flex flex-col gap-0 rounded-lg border overflow-hidden"
-            style={{ borderColor: 'var(--color-border)' }}
-          >
-            <div
-              className="px-3 py-1.5 border-b"
-              style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-            >
-              <p
-                className="text-xs font-semibold uppercase tracking-wider"
-                style={{ color: 'var(--color-muted)' }}
-              >
-                {title}
-              </p>
-            </div>
-            <div className="px-3 py-2 flex flex-col gap-2">
-              {VISIBILITY_FLAGS.map(({ key, label }) => (
-                <Toggle
-                  key={key}
-                  label={label}
-                  checked={state.visibility[target][key]}
-                  onChange={v =>
-                    set('visibility', {
-                      ...state.visibility,
-                      [target]: { ...state.visibility[target], [key]: v },
-                    })
-                  }
-                />
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Advanced — collapsed by default */}
-      <button
-        className="flex items-center gap-2 text-xs text-left transition-opacity hover:opacity-70"
-        style={{ color: 'var(--color-muted)' }}
-        onClick={() => setShowAdvanced(s => !s)}
-      >
-        <span
-          style={{
-            transform: showAdvanced ? 'rotate(90deg)' : 'none',
-            display: 'inline-block',
-            transition: 'transform 0.15s',
-          }}
-        >
-          ▶
-        </span>
-        Teams & joining
-      </button>
-
-      {showAdvanced && (
-        <div
-          className="flex flex-col gap-3 rounded-lg border p-3"
-          style={{ borderColor: 'var(--color-border)' }}
-        >
-          <Toggle
-            label="Allow individual play (no team)"
-            help={JOIN_POLICY_HELP.allowIndividual}
-            checked={state.allowIndividual}
-            onChange={v => set('allowIndividual', v)}
-          />
-          <Toggle
-            label="Players may create their own team"
-            help={JOIN_POLICY_HELP.allowPlayerTeams}
-            checked={state.allowPlayerTeams}
-            onChange={v => set('allowPlayerTeams', v)}
-          />
-          <Toggle
-            label="Allow joining after the game starts"
-            help={JOIN_POLICY_HELP.allowLateJoin}
-            checked={state.allowLateJoin}
-            onChange={v => set('allowLateJoin', v)}
-          />
-          <Toggle
-            label="Allow players to rejoin"
-            help={JOIN_POLICY_HELP.allowRejoin}
-            checked={state.allowRejoin}
-            onChange={v => set('allowRejoin', v)}
-          />
-          <Toggle
-            label="Require approval to join"
-            help={JOIN_POLICY_HELP.requireApproval}
-            checked={state.requireApproval}
-            onChange={v => set('requireApproval', v)}
-          />
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="Max teams (0 = ∞)"
-              help="Players can't create a new team once the game has this many teams. 0: no limit."
-              type="number"
-              min={0}
-              value={state.maxTeams}
-              onChange={e => set('maxTeams', +e.target.value)}
-            />
-            <Input
-              label="Max per team (0 = ∞)"
-              help="Players can't join a team that already has this many members. 0: no limit."
-              type="number"
-              min={0}
-              value={state.maxPerTeam}
-              onChange={e => set('maxPerTeam', +e.target.value)}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Buzzer configuration */}
-      <div
-        className="flex flex-col gap-3 rounded-lg border p-3"
-        style={{ borderColor: 'var(--color-border)' }}
-      >
-        <p
-          className="text-xs font-semibold uppercase tracking-wider"
-          style={{ color: 'var(--color-muted)' }}
-        >
-          Buzzer behaviour
-        </p>
-        <Toggle
-          label="Auto-lock after first correct answer"
-          help="When you rule a buzz correct, the buzzer locks so nobody else can buzz until you unlock it."
-          checked={state.autoLockOnFirstCorrect}
-          onChange={v => set('autoLockOnFirstCorrect', v)}
-        />
-        <Toggle
-          label="Record false starts (buzzes before unlock)"
-          help="Buzzes pressed while the buzzer is locked are kept and marked as false starts in the buzz list. Off: they are ignored."
-          checked={state.allowFalseStarts}
-          onChange={v => set('allowFalseStarts', v)}
-        />
-        <div className="flex flex-col gap-1">
-          <span className="flex items-center gap-1.5 text-sm">
-            Buzz display
-            <HelpTip
-              label="About Buzz display"
-              text="First buzz per player: each player is listed once, at their first buzz. All attempts: every press is listed. Every buzz is recorded either way."
-            />
-          </span>
-          <div className="flex gap-2">
-            {(['firstOnly', 'all'] as const).map(mode => (
-              <button
-                key={mode}
-                onClick={() => set('buzzDeduplication', mode)}
-                className="px-3 py-1.5 rounded text-xs font-medium border transition-all"
-                style={{
-                  borderColor:
-                    state.buzzDeduplication === mode ? 'var(--color-ink)' : 'var(--color-border)',
-                  background: state.buzzDeduplication === mode ? 'var(--color-ink)' : 'transparent',
-                  color:
-                    state.buzzDeduplication === mode ? 'var(--color-cream)' : 'var(--color-muted)',
-                }}
-              >
-                {mode === 'firstOnly' ? 'First buzz per player' : 'All attempts'}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      <GameSettingsForm value={state} onChange={update} mode="create" />
     </div>
-  )
-}
-
-function Toggle({
-  label,
-  help,
-  checked,
-  onChange,
-}: {
-  label: string
-  help?: string
-  checked: boolean
-  onChange: (v: boolean) => void
-}) {
-  return (
-    <label className="flex items-center justify-between cursor-pointer gap-4">
-      <span className="flex items-center gap-1.5 text-sm">
-        {label}
-        {help && <HelpTip label={`About ${label}`} text={help} />}
-      </span>
-      <button
-        role="switch"
-        aria-checked={checked}
-        aria-label={label}
-        onClick={() => onChange(!checked)}
-        className="w-10 h-5 rounded-full transition-all relative shrink-0"
-        style={{ background: checked ? 'var(--color-ink)' : 'var(--color-border)' }}
-      >
-        <span
-          className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all"
-          style={{ left: checked ? '1.25rem' : '0.125rem' }}
-        />
-      </button>
-    </label>
   )
 }
 
@@ -498,12 +264,15 @@ function Step3({ state, rounds }: { state: WizardState; rounds: Round[] }) {
     ['Players see', describeVisibility(state.visibility.players)],
     ['Screen shows', describeVisibility(state.visibility.screen)],
     ['Individual play', state.allowIndividual ? 'Allowed' : 'Teams only'],
-    ['Max teams', state.maxTeams === 0 ? 'Unlimited' : String(state.maxTeams)],
-    ['Max per team', state.maxPerTeam === 0 ? 'Unlimited' : String(state.maxPerTeam)],
+    ['Max teams', state.maxTeams === 0 ? 'No limit' : String(state.maxTeams)],
+    ['Max per team', state.maxPerTeam === 0 ? 'No limit' : String(state.maxPerTeam)],
     ['Player-made teams', state.allowPlayerTeams ? 'Allowed' : 'No'],
     ['Late join', state.allowLateJoin ? 'Allowed' : 'No'],
     ['Rejoin', state.allowRejoin ? 'Allowed' : 'No'],
     ['Join approval', state.requireApproval ? 'Required' : 'Not required'],
+    ['Auto-lock after a correct answer', state.autoLockOnFirstCorrect ? 'On' : 'Off'],
+    ['False starts', state.allowFalseStarts ? 'Recorded' : 'Ignored'],
+    ['Buzz display', state.buzzDeduplication === 'all' ? 'All attempts' : 'First per player'],
     ['Rounds', `${selectedRounds.length} round${selectedRounds.length !== 1 ? 's' : ''}`],
     ['Questions', `${totalQ} total`],
   ]
@@ -573,6 +342,10 @@ function GameWizard({
 
   function set(key: keyof WizardState, value: unknown) {
     setState(s => ({ ...s, [key]: value }))
+  }
+
+  function update(patch: Partial<WizardState>) {
+    setState(s => ({ ...s, ...patch }))
   }
 
   const canNext =
@@ -662,7 +435,7 @@ function GameWizard({
 
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto px-6 py-3">
-          {step === 0 && <Step1 state={state} set={set} />}
+          {step === 0 && <Step1 state={state} set={set} update={update} />}
           {step === 1 && <Step2 state={state} set={set} rounds={rounds} />}
           {step === 2 && <Step3 state={state} rounds={rounds} />}
         </div>
