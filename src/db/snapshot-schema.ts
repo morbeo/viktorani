@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { DifficultyLevel, Tag, Question, Round, Game, Note } from '@/db'
+import type { DifficultyLevel, Tag, Question, Round, Game, GameQuestion, Note } from '@/db'
 
 /**
  * Zod schemas for validating user-supplied JSON imports (backups and question files).
@@ -100,6 +100,15 @@ export const GameSchema = z
     return { ...game, visibility: visibility ?? { players: { ...flags }, screen: { ...flags } } }
   }) satisfies z.ZodType<Game>
 
+export const GameQuestionSchema = z.object({
+  id: z.string(),
+  gameId: z.string(),
+  questionId: z.string(),
+  roundId: z.string(),
+  order: z.number(),
+  status: z.enum(['pending', 'correct', 'incorrect', 'skipped']),
+}) satisfies z.ZodType<GameQuestion>
+
 export const NoteSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -118,6 +127,7 @@ export const SnapshotSchema = z.object({
   questions: z.array(QuestionSchema).default([]),
   rounds: z.array(RoundSchema).default([]),
   games: z.array(GameSchema).default([]),
+  gameQuestions: z.array(GameQuestionSchema).default([]),
   notes: z.array(NoteSchema).default([]),
 })
 

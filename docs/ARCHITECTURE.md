@@ -293,7 +293,9 @@ stateDiagram-v2
 ```
 
 Each transition is written to `games.status` and broadcast as `GAME_STATUS`
-(`hooks/useGameLifecycle.ts`). An ended game is read-only.
+(`hooks/useGameLifecycle.ts`). An ended game is read-only. Players and screens follow it:
+while paused the buzz button is held, and once ended they keep the final score up instead of
+reporting a lost connection.
 
 ## Game master page
 
@@ -335,8 +337,9 @@ flowchart LR
   Z -- invalid --> Err[error, nothing written]
 ```
 
-A backup holds the question bank (questions, rounds, difficulties, tags), game definitions and
-notes; live per-game rows such as players and buzzes are not included. Import upserts rows by id,
+A backup holds the question bank (questions, rounds, difficulties, tags), game definitions with
+the questions each game plays (`gameQuestions`) and notes; live per-game rows such as players and
+buzzes are not included. Import upserts rows by id,
 so existing data with other ids is kept, and a failed write rolls back the whole import.
 `db/snapshot-schema.ts` accepts older backup versions and fills in defaults for fields added
 later, so old backups keep working. Question-only import/export and note files use the same

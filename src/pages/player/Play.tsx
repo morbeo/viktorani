@@ -105,10 +105,9 @@ function usePlayerTimers() {
       )
     }
     if (event.type === 'TIMER_EXPIRED') {
-      // Host controls audio/visual flags via transport; players always get both
-      // (the host already filtered — if this event arrived, players should react)
-      playBeep()
-      setExpired({ id: event.id, label: event.label })
+      // The host says which of the timer's notifications are meant for players
+      if (event.audio) playBeep()
+      if (event.visual) setExpired({ id: event.id, label: event.label })
     }
   }, [])
 
@@ -238,7 +237,8 @@ async function rejoin(roomId: string, name: string) {
  * The player's game screen: the question as far as the host shows it, a buzz button that
  * follows the host's buzzer lock, the player's score and the host's timers. Opened without
  * a session (a reload or a shared link), it reconnects and rejoins by device id. Reports
- * tab switches as FOCUS_CHANGE.
+ * tab switches as FOCUS_CHANGE. Follows the host's pause, and shows the final score once
+ * the game has ended.
  */
 export default function Play() {
   const { roomId = '' } = useParams<{ roomId: string }>()
@@ -246,11 +246,15 @@ export default function Play() {
   const [storedName] = useLocalStorage('viktorani-player-name', '')
   const name = storedName.trim().slice(0, MAX_NAME_LENGTH)
   const session = usePlayerSession()
-  const [problem, setProblem] = useState<Problem | null>(null)
+  const [lastProblem, setProblem] = useState<Problem | null>(null)
   const [buzzed, setBuzzed] = useState(false)
   const startedRef = useRef(false)
   const leftRef = useRef(false)
   const joined = session.playerId !== null
+  const ended = session.gameStatus === 'ended'
+  const paused = session.gameStatus === 'paused'
+  // The host disconnects everyone right after ending the game; that is not a lost connection
+  const problem = ended && lastProblem?.kind === 'lost' ? null : lastProblem
 
   // Opened without a session: rejoin once (refs survive StrictMode's second effect run)
   useEffect(() => {
@@ -305,7 +309,7 @@ export default function Play() {
 
   if (!name && !joined) return <Navigate to={`/join/${roomId}`} replace />
 
-  const canBuzz = joined && !session.buzzerLocked && !buzzed
+  const canBuzz = joined && !paused && !session.buzzerLocked && !buzzed
   const score = session.playerId ? (session.scores[session.playerId] ?? 0) : 0
   const teamScore = session.teamId ? session.scores[session.teamId] : undefined
 
@@ -360,23 +364,28 @@ export default function Play() {
             </Button>
           </header>
 
-          {session.question && <PlayerQuestion question={session.question} />}
+          {ended && <Status text="The game has ended. Thanks for playing!" />}
+          {paused && <Status text="The host paused the game." />}
 
-          <button
-            type="button"
-            aria-label="Buzz"
-            disabled={!canBuzz}
-            onClick={handleBuzz}
-            className="w-64 h-64 rounded-full text-4xl font-black shadow-lg transition-colors"
-            style={{
-              background: canBuzz ? 'var(--color-red)' : 'var(--color-border)',
-              color: canBuzz ? '#fff' : 'var(--color-muted)',
-            }}
-          >
-            {buzzed ? 'Buzzed!' : session.buzzerLocked ? 'Locked' : 'BUZZ'}
-          </button>
+          {!ended && session.question && <PlayerQuestion question={session.question} />}
 
-          <PlayerTimers />
+          {!ended && (
+            <button
+              type="button"
+              aria-label="Buzz"
+              disabled={!canBuzz}
+              onClick={handleBuzz}
+              className="w-64 h-64 rounded-full text-4xl font-black shadow-lg transition-colors"
+              style={{
+                background: canBuzz ? 'var(--color-red)' : 'var(--color-border)',
+                color: canBuzz ? '#fff' : 'var(--color-muted)',
+              }}
+            >
+              {buzzed ? 'Buzzed!' : paused ? 'Paused' : session.buzzerLocked ? 'Locked' : 'BUZZ'}
+            </button>
+          )}
+
+          {!ended && <PlayerTimers />}
         </>
       )}
     </div>

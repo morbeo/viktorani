@@ -234,7 +234,7 @@ export interface ExpiryEvent {
 /**
  * Fires once per timer run when remaining hits zero.
  * - Plays a beep if audioNotify includes 'host'
- * - Emits TIMER_EXPIRED so players can react
+ * - Emits TIMER_EXPIRED if audioNotify or visualNotify includes 'players'
  * - Calls onExpire for host-side visual overlay
  *
  * Remaining is computed directly from the timer object (not via the
@@ -276,7 +276,11 @@ export function useTimerExpiry(
       firedRef.current.add(runKey)
 
       if (t.audioNotify === 'host' || t.audioNotify === 'both') playBeep()
-      transportManager.send({ type: 'TIMER_EXPIRED', id: t.id, label: t.label })
+      const audio = t.audioNotify === 'players' || t.audioNotify === 'both'
+      const visual = t.visualNotify === 'players' || t.visualNotify === 'both'
+      if (audio || visual) {
+        transportManager.send({ type: 'TIMER_EXPIRED', id: t.id, label: t.label, audio, visual })
+      }
       onExpire({
         id: t.id,
         label: t.label,

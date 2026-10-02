@@ -57,6 +57,11 @@ export function generateRoomId(): string {
   return Array.from({ length: 6 }, () => CHARS[secureRandomInt(CHARS.length)]).join('')
 }
 
+/** The error a connect() rejects with when disconnect() overtakes it. */
+function cancelled(): DOMException {
+  return new DOMException('Transport connect cancelled', 'AbortError')
+}
+
 // ── Manager ───────────────────────────────────────────────────────────────────
 
 /** Callback invoked when the transport connection status or type changes. */
@@ -85,6 +90,10 @@ export type StatusListener = (status: TransportStatus, type: TransportType) => v
  */
 export class TransportManager {
   private transport: ITransport | null = null
+  // The transport still connecting, so disconnect() can tear it down before it is ready
+  private pending: ITransport | null = null
+  // Bumped by every disconnect(); a connect() that started before it is stale
+  private generation = 0
   private statusListeners: StatusListener[] = []
   private eventHandlers: Array<(e: TransportEvent, from: string) => void> = []
   private openHandlers: Array<(connId: string) => void> = []
@@ -116,10 +125,14 @@ export class TransportManager {
    * @throws If PeerJS fails to connect.
    */
   async connect(config: TransportConfig): Promise<void> {
-    await this.disconnect()
+    const previous = this.disconnect()
+    // Read before awaiting, so a disconnect() that lands while this awaits makes it stale
+    const generation = this.generation
+    await previous
 
     const { PeerJSTransport } = await import('./PeerJSTransport')
-    await this.tryTransport(new PeerJSTransport(), config)
+    if (generation !== this.generation) throw cancelled()
+    await this.tryTransport(new PeerJSTransport(), config, generation)
 
     // Validate against the message contract, then forward to registered handlers
     this.transport!.onEvent((raw, from) => {
@@ -132,8 +145,22 @@ export class TransportManager {
     this.notifyStatus()
   }
 
-  private async tryTransport(t: ITransport, config: TransportConfig): Promise<void> {
-    await t.connect(config)
+  private async tryTransport(
+    t: ITransport,
+    config: TransportConfig,
+    generation: number
+  ): Promise<void> {
+    this.pending = t
+    try {
+      await t.connect(config)
+    } finally {
+      if (this.pending === t) this.pending = null
+    }
+    // disconnect() or a newer connect() ran meanwhile: release this peer instead of keeping it
+    if (generation !== this.generation) {
+      t.disconnect()
+      throw cancelled()
+    }
     this.transport = t
   }
 
@@ -145,6 +172,9 @@ export class TransportManager {
    * Status listeners are notified after disconnection.
    */
   async disconnect(): Promise<void> {
+    this.generation++
+    this.pending?.disconnect()
+    this.pending = null
     this.transport?.disconnect()
     this.transport = null
     this.notifyStatus()

@@ -1,6 +1,6 @@
 import type { z } from 'zod'
 import { db } from '@/db'
-import type { DifficultyLevel, Tag, Question, Round, Game, Note } from '@/db'
+import type { DifficultyLevel, Tag, Question, Round, Game, GameQuestion, Note } from '@/db'
 import { SnapshotSchema, QuestionImportRowSchema } from '@/db/snapshot-schema'
 
 /**
@@ -9,11 +9,13 @@ import { SnapshotSchema, QuestionImportRowSchema } from '@/db/snapshot-schema'
  * @remarks
  * Version history:
  * - **v1**: Included a `categories` array (now ignored on import).
- * - **v2**: Categories removed; tags are the sole classifier.
+ * - **v2**: Categories removed; tags are the sole classifier. `gameQuestions` was
+ *   added later; older v2 files without it restore games with no questions.
  *
- * Runtime-only collections (`players`, `teams`, `buzzEvents`, `timers`,
- * `gameQuestions`, `layouts`, `widgets`) are intentionally excluded —
- * they represent transient session state that is not meaningful to restore.
+ * `gameQuestions` is included because it defines which questions each game plays.
+ * Runtime-only collections (`players`, `teams`, `buzzEvents`, `timers`, `layouts`,
+ * `widgets`) are intentionally excluded — they represent transient session state
+ * that is not meaningful to restore.
  */
 export interface DatabaseSnapshot {
   version: number
@@ -23,6 +25,7 @@ export interface DatabaseSnapshot {
   questions: Question[]
   rounds: Round[]
   games: Game[]
+  gameQuestions: GameQuestion[]
   notes: Note[]
 }
 
@@ -42,6 +45,7 @@ export async function exportDatabase(): Promise<void> {
     questions: await db.questions.toArray(),
     rounds: await db.rounds.toArray(),
     games: await db.games.toArray(),
+    gameQuestions: await db.gameQuestions.toArray(),
     notes: await db.notes.toArray(),
   }
 
@@ -109,13 +113,14 @@ export async function importDatabase(file: File): Promise<void> {
 
   await db.transaction(
     'rw',
-    [db.difficulties, db.tags, db.questions, db.rounds, db.games, db.notes],
+    [db.difficulties, db.tags, db.questions, db.rounds, db.games, db.gameQuestions, db.notes],
     async () => {
       if (snapshot.difficulties.length) await db.difficulties.bulkPut(snapshot.difficulties)
       if (snapshot.tags.length) await db.tags.bulkPut(snapshot.tags)
       if (snapshot.questions.length) await db.questions.bulkPut(snapshot.questions)
       if (snapshot.rounds.length) await db.rounds.bulkPut(snapshot.rounds)
       if (snapshot.games.length) await db.games.bulkPut(snapshot.games)
+      if (snapshot.gameQuestions.length) await db.gameQuestions.bulkPut(snapshot.gameQuestions)
       if (snapshot.notes.length) await db.notes.bulkPut(snapshot.notes)
     }
   )

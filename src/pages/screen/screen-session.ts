@@ -1,5 +1,6 @@
 import type { ScoreboardRow, TransportEvent } from '@/transport/types'
-import type { QuestionContent } from '@/pages/player/player-session'
+import { knownStatus } from '@/pages/player/player-session'
+import type { GameStatus, QuestionContent } from '@/pages/player/player-session'
 import { isSafeMedia } from '@/pages/player/safe-media'
 
 /** What a networked screen knows about the game, as told by the host. */
@@ -10,6 +11,8 @@ export interface ScreenSession {
   /** What the host currently shows on the screen; `null` between questions. */
   content: QuestionContent | null
   rows: ScoreboardRow[]
+  /** From GAME_STATE and GAME_STATUS; `null` until the host says. */
+  gameStatus: GameStatus | null
 }
 
 export const INITIAL_SCREEN: ScreenSession = {
@@ -17,6 +20,7 @@ export const INITIAL_SCREEN: ScreenSession = {
   reason: null,
   content: null,
   rows: [],
+  gameStatus: null,
 }
 
 /** Drop media the screen must not load (see {@link isSafeMedia}). */
@@ -41,6 +45,10 @@ export function reduceScreen(s: ScreenSession, event: TransportEvent): ScreenSes
       return { ...s, content: null }
     case 'SCOREBOARD':
       return { ...s, rows: event.rows }
+    case 'GAME_STATE':
+      return { ...s, gameStatus: knownStatus(event.state.status, s.gameStatus) }
+    case 'GAME_STATUS':
+      return { ...s, gameStatus: event.status }
     default:
       return s
   }

@@ -23,6 +23,7 @@ const EMPTY: PlayerSession = {
   buzzerLocked: true,
   scores: {},
   question: null,
+  gameStatus: null,
 }
 
 function content(target: 'players' | 'screen'): QuestionContent {
@@ -44,6 +45,30 @@ function emit(event: TransportEvent) {
 }
 
 describe('reduceSession', () => {
+  it('follows the game status from GAME_STATE and GAME_STATUS', () => {
+    const state = (status: string): TransportEvent => ({
+      type: 'GAME_STATE',
+      state: {
+        gameId: 'g1',
+        status,
+        currentRoundIdx: 0,
+        currentQuestionIdx: 0,
+        buzzerLocked: true,
+        visibility: {
+          players: { showQuestion: true, showAnswers: false, showMedia: true },
+          screen: { showQuestion: true, showAnswers: false, showMedia: true },
+        },
+        scores: {},
+      },
+    })
+    let s = reduceSession(EMPTY, state('paused'))
+    expect(s.gameStatus).toBe('paused')
+    s = reduceSession(s, state('unknown'))
+    expect(s.gameStatus).toBe('paused')
+    s = reduceSession(s, { type: 'GAME_STATUS', status: 'ended' })
+    expect(s.gameStatus).toBe('ended')
+  })
+
   it('records the host-assigned player and team on JOIN_ACCEPTED', () => {
     const s = reduceSession(EMPTY, { type: 'JOIN_ACCEPTED', playerId: 'p1', teamId: 't1' })
     expect(s).toMatchObject({ playerId: 'p1', teamId: 't1' })

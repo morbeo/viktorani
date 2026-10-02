@@ -495,6 +495,34 @@ describe('importDatabase', () => {
     expect(await db.rounds.get('r1')).toBeDefined()
   })
 
+  it('imports the questions each game plays', async () => {
+    const { importDatabase } = await import('@/db/snapshot')
+    await importDatabase(
+      await makeFile({
+        version: 2,
+        exportedAt: Date.now(),
+        gameQuestions: [
+          { id: 'gq1', gameId: 'g1', questionId: 'q1', roundId: 'r1', order: 0, status: 'pending' },
+        ],
+      })
+    )
+    expect(await db.gameQuestions.get('gq1')).toMatchObject({ gameId: 'g1', order: 0 })
+  })
+
+  it('rejects a game question with an unknown status', async () => {
+    const { importDatabase } = await import('@/db/snapshot')
+    await expect(
+      importDatabase(
+        await makeFile({
+          version: 2,
+          gameQuestions: [
+            { id: 'gq1', gameId: 'g1', questionId: 'q1', roundId: 'r1', order: 0, status: 'bogus' },
+          ],
+        })
+      )
+    ).rejects.toThrow(/Invalid backup file/)
+  })
+
   it('imports games', async () => {
     const { importDatabase } = await import('@/db/snapshot')
     const now = Date.now()
@@ -615,6 +643,27 @@ describe('exportDatabase', () => {
     expect(URL.createObjectURL).toHaveBeenCalled()
     expect(clickSpy).toHaveBeenCalled()
     clickSpy.mockRestore()
+  })
+
+  it('includes the questions each game plays', async () => {
+    const { exportDatabase } = await import('@/db/snapshot')
+    await db.gameQuestions.put({
+      id: 'gq1',
+      gameId: 'g1',
+      questionId: 'q1',
+      roundId: 'r1',
+      order: 0,
+      status: 'pending',
+    })
+    let captured: Blob | null = null
+    ;(URL.createObjectURL as ReturnType<typeof vi.fn>).mockImplementationOnce((blob: Blob) => {
+      captured = blob
+      return 'blob:captured'
+    })
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    await exportDatabase()
+    const snapshot = JSON.parse(await (captured as unknown as Blob).text())
+    expect(snapshot.gameQuestions).toEqual([expect.objectContaining({ id: 'gq1' })])
   })
 
   it('revokes the object URL after download', async () => {

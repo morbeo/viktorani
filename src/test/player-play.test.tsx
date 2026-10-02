@@ -176,4 +176,25 @@ describe('Play', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Reconnect' }))
     await waitFor(() => expect(transportManager.connect).toHaveBeenCalledTimes(2))
   })
+
+  it('holds the buzzer while the host pauses the game', async () => {
+    await reachGame()
+    emit({ type: 'GAME_STATUS', status: 'paused' })
+    expect(screen.getByRole('status')).toHaveTextContent('The host paused the game.')
+    expect(screen.getByRole('button', { name: 'Buzz' })).toHaveTextContent('Paused')
+    expect(screen.getByRole('button', { name: 'Buzz' })).toBeDisabled()
+
+    emit({ type: 'GAME_STATUS', status: 'active' })
+    expect(screen.getByRole('button', { name: 'Buzz' })).toBeEnabled()
+  })
+
+  it('shows the final score instead of a lost connection once the game ends', async () => {
+    await reachGame()
+    emit({ type: 'GAME_STATUS', status: 'ended' })
+    act(() => bus.closeHandlers.forEach(h => h('host')))
+    expect(screen.getByRole('status')).toHaveTextContent('The game has ended')
+    expect(screen.getByText('4')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Buzz' })).toBeNull()
+  })
 })
