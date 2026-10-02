@@ -56,14 +56,15 @@ The GM controls what's visible to you:
 When the GM unlocks the buzzer, a **Buzz** button appears.
 
 1. Tap **Buzz** as fast as you can.
-2. Your buzz is recorded with a high-precision timestamp.
+2. The host receives your buzz; buzzes are ranked in the order they arrive.
 3. The GM sees buzzes in arrival order and rules each one: Correct / Incorrect / Skip.
 4. If your buzz is ruled Incorrect, the buzzer may reopen for others depending on the game settings.
 
-### Scoreboard
+### Score
 
-The scoreboard updates live after each adjudication.
-Scores are sorted in descending order so you can see the rankings at a glance.
+Your score, and your team's score if you are on a team, is shown on your screen and
+updates live after each adjudication. The full ranking is shown on the game's screen
+(projector), not on your phone.
 
 ### Timers
 

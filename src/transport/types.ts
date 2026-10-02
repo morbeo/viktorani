@@ -110,7 +110,10 @@ export interface LobbyTeam {
  * arrived on (see `TransportManager.onEvent`'s `from` argument).
  */
 export type PlayerEvent =
-  /** Player pressed the buzzer. `timestamp` is a `performance.now()` value for ordering. */
+  /**
+   * Player pressed the buzzer. `timestamp` is the player's `Date.now()`; the host ranks
+   * buzzes by when they arrive, not by this value.
+   */
   | { type: 'BUZZ'; timestamp: number }
   /**
    * Player asks to join. `deviceId` is a stable browser-local UUID, used only to match
