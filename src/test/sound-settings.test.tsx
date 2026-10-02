@@ -5,23 +5,26 @@ import { setSettings } from '@/lib/app-settings'
 import { CreateTimerModal } from '@/components/timer/CreateTimerModal'
 
 const setValueAtTime = vi.fn()
-const MockAudioContext = vi.fn().mockImplementation(() => ({
-  currentTime: 0,
-  destination: {},
-  createOscillator: () => ({
-    connect: vi.fn(),
-    start: vi.fn(),
-    stop: vi.fn(),
-    frequency: { value: 0 },
-    type: '',
-    onended: null,
-  }),
-  createGain: () => ({
-    connect: vi.fn(),
-    gain: { setValueAtTime, exponentialRampToValueAtTime: vi.fn() },
-  }),
-  close: vi.fn().mockResolvedValue(undefined),
-}))
+// A regular function, so `new AudioContext()` can construct it
+const MockAudioContext = vi.fn().mockImplementation(function () {
+  return {
+    currentTime: 0,
+    destination: {},
+    createOscillator: () => ({
+      connect: vi.fn(),
+      start: vi.fn(),
+      stop: vi.fn(),
+      frequency: { value: 0 },
+      type: '',
+      onended: null,
+    }),
+    createGain: () => ({
+      connect: vi.fn(),
+      gain: { setValueAtTime, exponentialRampToValueAtTime: vi.fn() },
+    }),
+    close: vi.fn().mockResolvedValue(undefined),
+  }
+})
 
 beforeEach(() => {
   localStorage.clear()
