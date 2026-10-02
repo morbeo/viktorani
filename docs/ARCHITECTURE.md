@@ -346,7 +346,8 @@ module. `db/demo.ts` seeds a demo game from the Settings debug panel.
 
 - **Vitest** with jsdom and `fake-indexeddb`; each suite starts with `// @vitest-pool vmForks`
   ([ADR 0012](adr/0012-vitest-vmforks-pool.md)). Tests live in `src/test/`.
-- **Playwright** e2e specs live in `e2e/`.
+- `game-flow.test.tsx` renders the real host and player screens, linked by an in-memory
+  transport, and plays one buzz from join to score.
 - CI runs typecheck, lint, tests with coverage, build and a bundle size check on every PR.
 
 ## Known rough edges

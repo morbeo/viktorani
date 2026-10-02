@@ -275,23 +275,6 @@ Two tsconfigs keep app and test types separate:
 - `tsconfig.app.json` — excludes `src/test/`, no vitest globals
 - `tsconfig.test.json` — includes only `src/test/`, adds `vitest/globals` and `@testing-library/jest-dom`
 
-### End-to-end tests (Playwright)
-
-E2E tests live in `e2e/` and run against the production build served by
-`vite preview`. They are **local-only** — there is no CI workflow for them.
-Install Playwright browsers once, then build and run:
-
-```bash
-npx playwright install chromium --with-deps
-npm run build
-npm run test:e2e        # headless
-npm run test:e2e:ui     # interactive UI mode
-npm run test:e2e:report # open last HTML report
-```
-
-> `npm run test:e2e` is intentionally separate from `npm run test` so
-> Vitest and Playwright never run in the same command.
-
 ---
 
 ## Contributing
