@@ -151,11 +151,11 @@ Reaching the end of a round shows a round-boundary overlay before advancing.
 ### Managing the buzzer
 
 1. Click **Unlock** to open the buzzer — players can now buzz in.
-2. The buzz list shows players in arrival order (timestamp-sorted).
+2. The buzz list shows players in the order their buzzes reached you.
 3. Click **Correct**, **Incorrect**, or **Skip** next to a player's name.
    - **Correct** awards points (if scoring is enabled) and optionally auto-locks.
    - **Incorrect** marks the buzz but leaves the buzzer open for others.
-   - **Skip** dismisses the buzz without recording a ruling.
+   - **Skip** records the buzz as skipped, with no points, and leaves the buzzer open.
 4. Click **Lock** to close the buzzer manually at any time.
 5. Click **Clear buzzes** to reset the list for the current question.
 
@@ -173,21 +173,36 @@ Timers can be used for timed rounds, thinking time, or dramatic effect.
 
 ### Creating a timer
 
-1. In the GM view, open the **Timers** widget.
-2. Click **Add Timer**.
-3. Set the label (e.g. `"Thinking time"`), duration in seconds, and target audience.
-4. Click **Start**.
+1. In the GM view, open the **Timers** panel.
+2. Click **Add timer**.
+3. Set an optional label (e.g. `"Thinking time"`) and a duration, or pick a preset
+   (30 s, 1 m, 2 m, 5 m).
+4. Click **Start** on the new timer.
 
-The timer is broadcast to all players (or a specific team) and counts down live.
+Every running timer is shown to all players and screens and counts down live.
+
+### Notifications and auto-reset
+
+Open a timer's **Timer settings** to choose:
+
+- **Audio notification:** who hears a beep when it expires: no one, the host, players,
+  or both.
+- **Visual notification (popup):** who sees the expiry popup: no one, the host,
+  players, or both.
+- **Auto-reset on screen change:** reset the timer when the question changes, the round
+  changes, either, or never.
 
 ### Controls
 
 | Action | Effect |
 |---|---|
-| Pause | Freeze the countdown at its current value |
-| Resume | Continue from where it paused |
-| Reset | Return to the full duration |
-| Stop / Remove | End the timer and hide it from players |
+| Start / Pause / Resume | Start the countdown, freeze it, or continue from where it paused |
+| Restart | Start again from the full duration |
+| Timer settings | Change the label, notifications and auto-reset |
+| Delete | Remove the timer and hide it from players |
+
+The panel header also has **Pause all** / **Resume all**, **Restart all** and
+**Clear all**.
 
 ---
 
@@ -195,9 +210,9 @@ The timer is broadcast to all players (or a specific team) and counts down live.
 
 When all rounds are complete (or you choose to end early):
 
-1. Click **End Game** in the GM view.
-2. The scoreboard widget shows the final rankings.
-3. Click **Export Results** to download a JSON file with all scores and buzz history.
+1. Click **End game** in the GM view and confirm.
+2. Players and screens see the final scores.
+3. The game stays open read-only, with the final scoreboard.
 
 The game record remains in your local database until you delete it or purge all data
-via **Settings → Database → Purge**.
+via **Settings → Danger zone → Purge**.
