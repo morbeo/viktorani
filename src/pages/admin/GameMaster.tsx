@@ -700,6 +700,9 @@ export default function GameMaster() {
           pendingJoins={pendingJoins}
           onApproveJoin={id => void handleApproveJoin(id)}
           onRejectJoin={handleRejectJoin}
+          players={players}
+          teams={teams}
+          onKick={handleKick}
           onQuestionContent={handleQuestionContent}
           onScreenContent={handleScreenContent}
           screens={screens}

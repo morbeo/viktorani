@@ -291,6 +291,20 @@ describe('game flow', () => {
     for (const { received } of clients.slice(0, 10)) {
       expect(received.map(e => e.type)).toContain('JOIN_PENDING')
     }
+
+    // The People tab counts the waiting screens; switching tabs hides the People panel
+    await host.waitFor(() => {
+      for (const tab of host.view.getAllByRole('tab', { name: /People/ })) {
+        expect(tab).toHaveTextContent('People10')
+      }
+    })
+    const side = host.view.getByRole('tablist', { name: 'Side panel' })
+    const messagesTab = Array.from(side.querySelectorAll('[role="tab"]')).find(
+      t => t.textContent === 'Messages'
+    )
+    await userEvent.setup().click(messagesTab as HTMLElement)
+    expect(host.view.getByRole('tabpanel', { name: 'People', hidden: true })).not.toBeVisible()
+    expect(host.view.getByRole('tabpanel', { name: 'Messages' })).toBeVisible()
   }, 20_000)
 
   it('does not admit a connection that closed while its join was queued', async () => {
