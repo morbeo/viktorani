@@ -15,9 +15,29 @@ vi.mock('@/transport', () => ({
 }))
 
 import { reduceSession, startPlayerSession, usePlayerSession } from '@/pages/player/player-session'
-import type { PlayerSession } from '@/pages/player/player-session'
+import type { PlayerSession, QuestionContent } from '@/pages/player/player-session'
 
-const EMPTY: PlayerSession = { playerId: null, teamId: null, buzzerLocked: true, scores: {} }
+const EMPTY: PlayerSession = {
+  playerId: null,
+  teamId: null,
+  buzzerLocked: true,
+  scores: {},
+  question: null,
+}
+
+function content(target: 'players' | 'screen'): QuestionContent {
+  return {
+    type: 'QUESTION_CONTENT',
+    target,
+    questionId: 'q1',
+    title: 'Capital of France?',
+    description: null,
+    options: null,
+    answer: null,
+    media: null,
+    mediaType: null,
+  }
+}
 
 function emit(event: TransportEvent) {
   act(() => bus.handlers.forEach(h => h(event)))
@@ -52,6 +72,14 @@ describe('reduceSession', () => {
     expect(s.buzzerLocked).toBe(false)
     s = reduceSession(s, { type: 'SCORE_UPDATE', scores: { p1: 5, t1: 9 } })
     expect(s.scores).toEqual({ p1: 5, t1: 9 })
+  })
+
+  it('keeps the players question until the slide changes', () => {
+    let s = reduceSession(EMPTY, content('players'))
+    expect(s.question?.title).toBe('Capital of France?')
+    expect(reduceSession(s, content('screen'))).toBe(s)
+    s = reduceSession(s, { type: 'SLIDE_CHANGE', index: 1, roundIndex: 0 })
+    expect(s.question).toBeNull()
   })
 
   it('returns the same session for unrelated events', () => {

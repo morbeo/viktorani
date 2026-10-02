@@ -10,6 +10,7 @@ import { TimerExpiredOverlay } from '@/components/timer/TimerExpiredOverlay'
 import type { GameEvent } from '@/transport/types'
 import { getDeviceId } from './device-id'
 import { startPlayerSession, usePlayerSession } from './player-session'
+import { PlayerQuestion } from './PlayerQuestion'
 
 // ── Player-side timer state ───────────────────────────────────────────────────
 
@@ -239,9 +240,10 @@ async function rejoin(roomId: string, name: string) {
 }
 
 /**
- * The player's game screen: a buzz button that follows the host's buzzer lock, the
- * player's score and the host's timers. Opened without a session (a reload or a shared
- * link), it reconnects and rejoins by device id. Reports tab switches as FOCUS_CHANGE.
+ * The player's game screen: the question as far as the host shows it, a buzz button that
+ * follows the host's buzzer lock, the player's score and the host's timers. Opened without
+ * a session (a reload or a shared link), it reconnects and rejoins by device id. Reports
+ * tab switches as FOCUS_CHANGE.
  */
 export default function Play() {
   const { roomId = '' } = useParams<{ roomId: string }>()
@@ -362,6 +364,8 @@ export default function Play() {
               Leave
             </Button>
           </header>
+
+          {session.question && <PlayerQuestion question={session.question} />}
 
           <button
             type="button"
