@@ -1,13 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import { remarkDefinitionList, defListHastHandlers } from 'remark-definition-list'
-import rehypeRaw from 'rehype-raw'
-import rehypeSanitize from 'rehype-sanitize'
 import { db } from '@/db'
 import type { Game, Timer } from '@/db'
+import { ScreenScores, ScreenView } from '@/components/screen/ScreenView'
 import { useScoreboard } from '@/hooks/useScoreboard'
 import { formatTime } from '@/hooks/useTimer'
 import { buildNavSequence, buildQuestionContent, orderRounds } from '@/pages/admin/gamemaster-utils'
@@ -51,20 +47,9 @@ function ScreenTimers({ gameId }: { gameId: string }) {
   )
 }
 
-function ScreenScores({ game }: { game: Game }) {
+function LocalScores({ game }: { game: Game }) {
   const { entries } = useScoreboard(game)
-  if (!game.scoringEnabled || entries.length === 0) return null
-
-  return (
-    <ol className="w-full max-w-3xl flex flex-col gap-2">
-      {entries.map(e => (
-        <li key={e.id} className="flex items-baseline justify-between gap-6 text-3xl">
-          <span className="truncate">{e.name}</span>
-          <span className="mono font-bold tabular-nums">{e.score}</span>
-        </li>
-      ))}
-    </ol>
-  )
+  return <ScreenScores rows={game.scoringEnabled ? entries : []} />
 }
 
 /**
@@ -107,65 +92,14 @@ export default function Screen() {
 
   const content = question ? buildQuestionContent(question, 'screen', game.visibility.screen) : null
   const inRound = entry ? seq.filter(e => e.roundId === entry.roundId) : []
+  const heading = entry
+    ? `${entry.roundName} · Question ${inRound.indexOf(entry) + 1} of ${inRound.length}`
+    : game.name
 
   return (
-    <main
-      className="min-h-screen px-12 py-10 flex flex-col items-center gap-10 text-center"
-      style={{ background: 'var(--color-cream)', color: 'var(--color-ink)' }}
-    >
-      <p className="text-2xl" style={{ color: 'var(--color-muted)' }}>
-        {entry
-          ? `${entry.roundName} · Question ${inRound.indexOf(entry) + 1} of ${inRound.length}`
-          : game.name}
-      </p>
-
-      {content?.title && (
-        <h1 className="text-6xl font-bold" style={{ fontFamily: 'Playfair Display, serif' }}>
-          {content.title}
-        </h1>
-      )}
-
-      {content?.description && (
-        <div className="note-prose text-3xl max-w-4xl">
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm, remarkDefinitionList]}
-            remarkRehypeOptions={{ handlers: defListHastHandlers }}
-            rehypePlugins={[rehypeRaw, rehypeSanitize]}
-          >
-            {content.description}
-          </ReactMarkdown>
-        </div>
-      )}
-
-      {content?.media && content.mediaType === 'image' && (
-        <img src={content.media} alt="Question media" className="max-h-[50vh] object-contain" />
-      )}
-      {content?.media && content.mediaType === 'audio' && (
-        <audio controls src={content.media} className="w-full max-w-2xl" />
-      )}
-      {content?.media && content.mediaType === 'video' && (
-        <video controls src={content.media} className="max-h-[50vh]" />
-      )}
-
-      {content?.options && (
-        <ol className="grid grid-cols-2 gap-4 w-full max-w-4xl text-3xl text-left">
-          {content.options.map((option, i) => (
-            <li
-              key={i}
-              className="rounded-xl border px-6 py-4"
-              style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-            >
-              <span className="mono mr-4" style={{ color: 'var(--color-muted)' }}>
-                {String.fromCharCode(65 + i)}
-              </span>
-              {option}
-            </li>
-          ))}
-        </ol>
-      )}
-
+    <ScreenView heading={heading} content={content}>
       <ScreenTimers gameId={game.id} />
-      <ScreenScores game={game} />
-    </main>
+      <LocalScores game={game} />
+    </ScreenView>
   )
 }

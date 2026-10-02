@@ -78,9 +78,20 @@ export type GameEvent =
       media: string | null
       mediaType: 'image' | 'audio' | 'video' | null
     }
+  /** The SCREEN_JOIN was approved; the connection now receives what the screen shows. */
+  | { type: 'SCREEN_ACCEPTED' }
+  /** Ranked scores with names, sent to approved screens only. Empty when scoring is off. */
+  | { type: 'SCOREBOARD'; rows: ScoreboardRow[] }
 
 /** Where question content is shown: the projector/screen or player phones. */
 export type VisibilityTarget = 'players' | 'screen'
+
+/** One player or team on the screen's scoreboard. */
+export interface ScoreboardRow {
+  id: string
+  name: string
+  score: number
+}
 
 /** A team a joining player can pick, as listed in `LOBBY_INFO`. */
 export interface LobbyTeam {
@@ -114,6 +125,8 @@ export type PlayerEvent =
   | { type: 'LEAVE' }
   /** Player's tab visibility changed — used to flag distracted players. */
   | { type: 'FOCUS_CHANGE'; away: boolean }
+  /** A projector screen asks to follow the game. Needs GM approval, like a player JOIN. */
+  | { type: 'SCREEN_JOIN' }
 
 /** Union of all events that flow through the transport layer. */
 export type TransportEvent = GameEvent | PlayerEvent
