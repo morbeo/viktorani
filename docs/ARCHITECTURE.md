@@ -252,6 +252,11 @@ sequenceDiagram
 - **Every incoming message is validated.** `transport/messages.ts` holds strict zod schemas with
   size limits; `TransportManager` drops anything that fails `parseTransportEvent()`.
 - **`send()`** broadcasts to every player; **`sendTo(connId)`** replies to one.
+- **Failures are shown and retried.** `TransportManager` keeps a readable `error` and reports
+  status changes after connecting. The host re-registers with the PeerJS server on its own if it
+  loses it (open data channels survive), and retries opening the room before showing a Retry
+  banner. Players and screens rejoin a few times (`retry()`) after losing the host before they
+  offer a Reconnect button.
 
 ### Messages
 

@@ -3,9 +3,10 @@ import { useParams } from 'react-router-dom'
 import { Button } from '@/components/ui'
 import { ScreenScores, ScreenView } from '@/components/screen/ScreenView'
 import { useTransportEvents } from '@/hooks/useTransport'
-import { transportManager } from '@/transport'
+import { isAbortError, retry, transportManager } from '@/transport'
 import { PlayerTimers } from '@/pages/player/Play'
 import { INITIAL_SCREEN, reduceScreen } from './screen-session'
+import type { ScreenSession } from './screen-session'
 
 /** Connect to the room and ask the host to let this screen follow the game. */
 async function joinAsScreen(roomId: string) {
@@ -17,37 +18,68 @@ async function joinAsScreen(roomId: string) {
  * A projector screen on another device. Joins the room as a screen, waits for the GM to
  * approve it, then shows what the host sends to screens: the question as far as the
  * `screen` visibility allows, the timers and the scoreboard. Once the game has ended it
- * keeps the final scoreboard up.
+ * keeps the final scoreboard up. A lost connection is retried a few times (the screen then
+ * waits for approval again) before it offers a Reconnect button.
  */
 export default function RemoteScreen() {
   const { roomId = '' } = useParams<{ roomId: string }>()
   const [session, setSession] = useState(INITIAL_SCREEN)
+  // Mirrors `session` for the connection-close handler, which runs outside React
+  const sessionRef = useRef(INITIAL_SCREEN)
   const [lost, setLost] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [reconnecting, setReconnecting] = useState<number | null>(null)
   const startedRef = useRef(false)
+  const unmountedRef = useRef(false)
 
-  useTransportEvents(useCallback(event => setSession(s => reduceScreen(s, event)), []))
+  const updateSession = useCallback((next: ScreenSession) => {
+    sessionRef.current = next
+    setSession(next)
+  }, [])
+
+  useTransportEvents(
+    useCallback(event => updateSession(reduceScreen(sessionRef.current, event)), [updateSession])
+  )
 
   useEffect(() => {
-    return transportManager.onPeerClose(() => setLost(true))
+    unmountedRef.current = false
+    return () => {
+      unmountedRef.current = true
+    }
   }, [])
+
+  const connect = useCallback(() => {
+    setLost(false)
+    updateSession(INITIAL_SCREEN)
+    retry(() => joinAsScreen(roomId), {
+      cancelled: () => unmountedRef.current,
+      onRetry: setReconnecting,
+    })
+      .catch(err => {
+        if (isAbortError(err)) return
+        setError(transportManager.error)
+        setLost(true)
+      })
+      .finally(() => setReconnecting(null))
+  }, [roomId, updateSession])
+
+  // The host disconnects everyone right after ending the game; that is not a lost connection
+  useEffect(() => {
+    return transportManager.onPeerClose(() => {
+      if (sessionRef.current.gameStatus !== 'ended') connect()
+    })
+  }, [connect])
 
   // Connect once (refs survive StrictMode's second effect run)
   useEffect(() => {
     if (startedRef.current) return
     startedRef.current = true
-    joinAsScreen(roomId).catch(() => setLost(true))
-  }, [roomId])
-
-  function handleReconnect() {
-    setLost(false)
-    setSession(INITIAL_SCREEN)
-    joinAsScreen(roomId).catch(() => setLost(true))
-  }
+    connect()
+  }, [connect])
 
   const ended = session.gameStatus === 'ended'
 
   if (ended && session.status === 'accepted') {
-    // The host disconnects everyone right after ending the game; that is not a lost connection
     return (
       <ScreenView heading="Game over" content={null}>
         <ScreenScores rows={session.rows} />
@@ -63,11 +95,13 @@ export default function RemoteScreen() {
       >
         {lost ? (
           <>
-            <p role="alert">Lost the connection to the host.</p>
-            <Button variant="primary" onClick={handleReconnect}>
+            <p role="alert">{`Lost the connection to the host. ${error ?? ''}`.trim()}</p>
+            <Button variant="primary" onClick={connect}>
               Reconnect
             </Button>
           </>
+        ) : reconnecting !== null ? (
+          <p role="status">Lost the connection to the host. Reconnecting… (retry {reconnecting})</p>
         ) : session.status === 'rejected' ? (
           <p role="alert">The host declined this screen: {session.reason}</p>
         ) : (

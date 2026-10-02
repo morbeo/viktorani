@@ -61,6 +61,7 @@ vi.mock('peerjs', () => {
     }
 
     destroy = vi.fn()
+    reconnect = vi.fn()
   }
 
   return { default: MockPeer }
@@ -76,6 +77,7 @@ const MockPeer = Peer as unknown as {
       open: boolean
       peer: string
     }
+    reconnect: ReturnType<typeof vi.fn>
   }
 }
 
@@ -172,6 +174,108 @@ describe('PeerJSTransport', () => {
 
     MockPeer.lastInstance.emit('disconnected')
     expect(t.status).toBe('disconnected')
+  })
+
+  it('re-registers with the signalling server after losing it, and reports each step', async () => {
+    vi.useFakeTimers()
+    try {
+      const { PeerJSTransport, RECONNECT_DELAYS } = await import('@/transport/PeerJSTransport')
+      const t = new PeerJSTransport()
+      const connectPromise = t.connect(PEER_HOST_CONFIG)
+      const peer = MockPeer.lastInstance
+      peer.emit('open')
+      await connectPromise
+      const statuses: string[] = []
+      t.onStatusChange(s => statuses.push(s))
+
+      const lost = Object.assign(new Error('Lost connection to server.'), { type: 'network' })
+      peer.emit('error', lost)
+      peer.emit('disconnected')
+      expect(t.status).toBe('disconnected')
+      expect(peer.reconnect).not.toHaveBeenCalled()
+
+      vi.advanceTimersByTime(RECONNECT_DELAYS[0])
+      expect(peer.reconnect).toHaveBeenCalledTimes(1)
+      peer.emit('open')
+      expect(t.status).toBe('connected')
+      expect(statuses).toEqual(['disconnected', 'connected'])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('gives up with an error once the reconnect delays are used up', async () => {
+    vi.useFakeTimers()
+    try {
+      const { PeerJSTransport, RECONNECT_DELAYS } = await import('@/transport/PeerJSTransport')
+      const t = new PeerJSTransport()
+      const connectPromise = t.connect(PEER_HOST_CONFIG)
+      const peer = MockPeer.lastInstance
+      peer.emit('open')
+      await connectPromise
+      const handler = vi.fn()
+      t.onStatusChange(handler)
+
+      const lost = Object.assign(new Error('Lost connection to server.'), { type: 'network' })
+      for (const delay of RECONNECT_DELAYS) {
+        peer.emit('error', lost)
+        peer.emit('disconnected')
+        vi.advanceTimersByTime(delay)
+      }
+      expect(peer.reconnect).toHaveBeenCalledTimes(RECONNECT_DELAYS.length)
+      peer.emit('error', lost)
+      peer.emit('disconnected')
+      expect(t.status).toBe('error')
+      expect(handler).toHaveBeenLastCalledWith('error', lost)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('does not retry once disconnect() has been called', async () => {
+    vi.useFakeTimers()
+    try {
+      const { PeerJSTransport, RECONNECT_DELAYS } = await import('@/transport/PeerJSTransport')
+      const t = new PeerJSTransport()
+      const connectPromise = t.connect(PEER_HOST_CONFIG)
+      const peer = MockPeer.lastInstance
+      peer.emit('open')
+      await connectPromise
+      peer.emit('disconnected')
+      t.disconnect()
+      peer.emit('disconnected')
+
+      vi.advanceTimersByTime(RECONNECT_DELAYS[RECONNECT_DELAYS.length - 1])
+      expect(peer.reconnect).not.toHaveBeenCalled()
+      expect(t.status).toBe('disconnected')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('player: reports a disconnect when the connection to the host closes', async () => {
+    const { PeerJSTransport } = await import('@/transport/PeerJSTransport')
+    const t = new PeerJSTransport()
+    const connectPromise = t.connect(PEER_PLAYER_CONFIG)
+    const peer = MockPeer.lastInstance as unknown as {
+      emit(e: string, ...a: unknown[]): void
+      connect: (id: string) => { emit(e: string, ...a: unknown[]): void }
+    }
+    let conn: ReturnType<typeof peer.connect> | null = null
+    const origConnect = peer.connect.bind(peer)
+    peer.connect = (id: string) => {
+      conn = origConnect(id)
+      return conn
+    }
+    peer.emit('open')
+    conn!.emit('open')
+    await connectPromise
+    const handler = vi.fn()
+    t.onStatusChange(handler)
+
+    conn!.emit('close')
+    expect(t.status).toBe('disconnected')
+    expect(handler).toHaveBeenCalledWith('disconnected', null)
   })
 
   it('disconnect: calls peer.destroy and clears connections', async () => {

@@ -3,13 +3,13 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/ui'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { useTransportEvents } from '@/hooks/useTransport'
-import { transportManager } from '@/transport'
+import { isAbortError, retry, transportManager } from '@/transport'
 import { MAX_NAME_LENGTH } from '@/transport/messages'
 import { formatTime, playBeep } from '@/hooks/useTimer'
 import { TimerExpiredOverlay } from '@/components/timer/TimerExpiredOverlay'
 import type { GameEvent } from '@/transport/types'
 import { getDeviceId } from './device-id'
-import { startPlayerSession, usePlayerSession } from './player-session'
+import { getPlayerSession, startPlayerSession, usePlayerSession } from './player-session'
 import { PlayerQuestion } from './PlayerQuestion'
 
 // ── Player-side timer state ───────────────────────────────────────────────────
@@ -218,7 +218,11 @@ export function PlayerTimers() {
 
 // ── Main Play page ────────────────────────────────────────────────────────────
 
-type Problem = { kind: 'pending' } | { kind: 'rejected'; reason: string } | { kind: 'lost' }
+type Problem =
+  | { kind: 'pending' }
+  | { kind: 'rejected'; reason: string }
+  | { kind: 'reconnecting'; retry: number }
+  | { kind: 'lost'; error: string | null }
 
 /** Connect to the room and ask the host to restore this device's player. */
 async function rejoin(roomId: string, name: string) {
@@ -236,7 +240,8 @@ async function rejoin(roomId: string, name: string) {
 /**
  * The player's game screen: the question as far as the host shows it, a buzz button that
  * follows the host's buzzer lock, the player's score and the host's timers. Opened without
- * a session (a reload or a shared link), it reconnects and rejoins by device id. Reports
+ * a session (a reload or a shared link), or after losing the host, it reconnects and rejoins
+ * by device id, retrying a few times before offering a Reconnect button. Reports
  * tab switches as FOCUS_CHANGE. Follows the host's pause, and shows the final score once
  * the game has ended.
  */
@@ -246,22 +251,39 @@ export default function Play() {
   const [storedName] = useLocalStorage('viktorani-player-name', '')
   const name = storedName.trim().slice(0, MAX_NAME_LENGTH)
   const session = usePlayerSession()
-  const [lastProblem, setProblem] = useState<Problem | null>(null)
+  const [problem, setProblem] = useState<Problem | null>(null)
   const [buzzed, setBuzzed] = useState(false)
   const startedRef = useRef(false)
   const leftRef = useRef(false)
+  const unmountedRef = useRef(false)
   const joined = session.playerId !== null
   const ended = session.gameStatus === 'ended'
   const paused = session.gameStatus === 'paused'
-  // The host disconnects everyone right after ending the game; that is not a lost connection
-  const problem = ended && lastProblem?.kind === 'lost' ? null : lastProblem
+
+  useEffect(() => {
+    unmountedRef.current = false
+    return () => {
+      unmountedRef.current = true
+    }
+  }, [])
+
+  // Rejoin, retrying a few times; JOIN_ACCEPTED (or JOIN_PENDING) then replaces the problem
+  const reconnect = useCallback(() => {
+    setProblem(null)
+    retry(() => rejoin(roomId, name), {
+      cancelled: () => unmountedRef.current || leftRef.current,
+      onRetry: n => setProblem({ kind: 'reconnecting', retry: n }),
+    }).catch(err => {
+      if (!isAbortError(err)) setProblem({ kind: 'lost', error: transportManager.error })
+    })
+  }, [roomId, name])
 
   // Opened without a session: rejoin once (refs survive StrictMode's second effect run)
   useEffect(() => {
     if (startedRef.current || joined || !name) return
     startedRef.current = true
-    rejoin(roomId, name).catch(() => setProblem({ kind: 'lost' }))
-  }, [roomId, name, joined])
+    reconnect()
+  }, [name, joined, reconnect])
 
   useTransportEvents(
     useCallback(
@@ -275,11 +297,12 @@ export default function Play() {
     )
   )
 
+  // The host disconnects everyone right after ending the game; that is not a lost connection
   useEffect(() => {
     return transportManager.onPeerClose(() => {
-      if (!leftRef.current) setProblem({ kind: 'lost' })
+      if (!leftRef.current && getPlayerSession().gameStatus !== 'ended') reconnect()
     })
-  }, [])
+  }, [reconnect])
 
   // Tell the host when the player switches away from the tab and back
   useEffect(() => {
@@ -293,11 +316,6 @@ export default function Play() {
   function handleBuzz() {
     transportManager.send({ type: 'BUZZ', timestamp: Date.now() })
     setBuzzed(true)
-  }
-
-  function handleReconnect() {
-    setProblem(null)
-    rejoin(roomId, name).catch(() => setProblem({ kind: 'lost' }))
   }
 
   function handleLeave() {
@@ -329,10 +347,14 @@ export default function Play() {
         </>
       )}
 
+      {problem?.kind === 'reconnecting' && (
+        <Status text={`Lost the connection to the host. Reconnecting… (retry ${problem.retry})`} />
+      )}
+
       {problem?.kind === 'lost' && (
         <>
-          <Alert text="Lost the connection to the host." />
-          <Button variant="primary" onClick={handleReconnect}>
+          <Alert text={`Lost the connection to the host. ${problem.error ?? ''}`.trim()} />
+          <Button variant="primary" onClick={reconnect}>
             Reconnect
           </Button>
           <Button variant="ghost" onClick={handleLeave}>
