@@ -97,4 +97,14 @@ describe('Settings', () => {
       expect.objectContaining({ timerDuration: 150, timerAutoReset: 'question' })
     )
   })
+
+  it('saves the defaults for new games', async () => {
+    renderAt('/admin/settings/game-defaults')
+    await userEvent.click(screen.getByRole('radio', { name: 'Pub quiz' }))
+    await userEvent.click(screen.getByRole('switch', { name: 'Scoring' }))
+    expect(getSettings().gameDefaults).toEqual(
+      expect.objectContaining({ scoringEnabled: false, maxPerTeam: 6, allowIndividual: false })
+    )
+    expect(screen.getByLabelText('Tiebreaker')).toHaveValue('serverOrder')
+  })
 })

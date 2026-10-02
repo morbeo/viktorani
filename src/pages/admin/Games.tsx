@@ -4,8 +4,8 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import AdminLayout from '@/components/AdminLayout'
 import { Button, Badge, Input, Modal, Empty } from '@/components/ui'
 import { GameSettingsForm } from '@/components/game-settings/GameSettingsForm'
-import { defaultSettings } from '@/components/game-settings/game-settings'
-import type { GameSettings } from '@/components/game-settings/game-settings'
+import { getSettings } from '@/lib/app-settings'
+import type { GameDefaults } from '@/lib/app-settings'
 import { RoundBuilder } from '@/components/games/RoundBuilder'
 import type { DraftRound } from '@/components/games/RoundBuilder'
 import { db } from '@/db'
@@ -17,7 +17,7 @@ import { createGame, cloneGame, deleteGame } from '@/db/games'
 // Wizard state
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface WizardState extends GameSettings {
+interface WizardState extends GameDefaults {
   // Step 1
   name: string
   // Step 2
@@ -40,7 +40,7 @@ function describeVisibility(v: TargetVisibility): string {
 function defaultWizard(): WizardState {
   return {
     name: '',
-    ...defaultSettings(),
+    ...getSettings().gameDefaults,
     roundMode: 'existing',
     selectedRoundIds: [],
     customRounds: [],
@@ -406,7 +406,7 @@ function GameWizard({
         autoLockOnFirstCorrect: state.autoLockOnFirstCorrect,
         allowFalseStarts: state.allowFalseStarts,
         buzzDeduplication: state.buzzDeduplication,
-        tiebreakerMode: 'serverOrder' as const,
+        tiebreakerMode: state.tiebreakerMode,
         createdAt: now,
         updatedAt: now,
       }

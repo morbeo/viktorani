@@ -421,6 +421,14 @@ describe('importDatabase', () => {
     expect(getSettings()).toEqual(
       expect.objectContaining({ theme: 'dark', actionMode: 'text', controlSize: 'lg' })
     )
+    await importDatabase(
+      await makeFile({
+        version: 2,
+        exportedAt: 0,
+        settings: { version: 3, gameDefaults: { requireApproval: true } },
+      })
+    )
+    expect(getSettings().gameDefaults.requireApproval).toBe(true)
   })
 
   it('strips categoryId from imported questions', async () => {
@@ -688,6 +696,8 @@ describe('exportDatabase', () => {
     const { exportDatabase } = await import('@/db/snapshot')
     const { setSettings } = await import('@/lib/app-settings')
     setSettings({ theme: 'dark', actionMode: 'both' })
+    const { getSettings } = await import('@/lib/app-settings')
+    setSettings({ gameDefaults: { ...getSettings().gameDefaults, maxPerTeam: 4 } })
     let captured: Blob | null = null
     ;(URL.createObjectURL as ReturnType<typeof vi.fn>).mockImplementationOnce((blob: Blob) => {
       captured = blob
@@ -699,6 +709,7 @@ describe('exportDatabase', () => {
     expect(snapshot.settings).toEqual(
       expect.objectContaining({ theme: 'dark', actionMode: 'both' })
     )
+    expect(snapshot.settings.gameDefaults.maxPerTeam).toBe(4)
   })
 
   it('revokes the object URL after download', async () => {

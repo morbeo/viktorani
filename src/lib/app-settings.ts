@@ -1,4 +1,7 @@
 import { z } from 'zod'
+import { MAX_LIMIT, defaultSettings } from '@/components/game-settings/game-settings'
+import type { GameSettings } from '@/components/game-settings/game-settings'
+import type { TiebreakerMode } from '@/db'
 
 /** 99:59, the most the timer inputs can hold. */
 export const MAX_TIMER_SECONDS = 99 * 60 + 59
@@ -13,11 +16,43 @@ export const MAX_TIMER_SECONDS = 99 * 60 + 59
  *   `app-theme`, `action-mode` and `gm-control-size` keys, which are then removed.
  * - **2**: sound (mute, volume) and defaults for new timers. A version 1 entry gets the
  *   defaults for the new fields.
+ * - **3**: defaults for new games, including the tiebreaker mode. Older entries get the
+ *   built-in game defaults.
  */
 const TimerNotifySchema = z.enum(['none', 'host', 'players', 'both'])
 
+/** What the new-game wizard starts with. */
+export type GameDefaults = GameSettings & { tiebreakerMode: TiebreakerMode }
+
+const BUILT_IN_GAME: GameDefaults = { ...defaultSettings(), tiebreakerMode: 'serverOrder' }
+
+const VisibilitySchema = z.object({
+  showQuestion: z.boolean(),
+  showAnswers: z.boolean(),
+  showMedia: z.boolean(),
+})
+const LimitSchema = z.number().int().min(0).max(MAX_LIMIT)
+
+const GameDefaultsSchema = z.object({
+  scoringEnabled: z.boolean().catch(BUILT_IN_GAME.scoringEnabled),
+  visibility: z
+    .object({ players: VisibilitySchema, screen: VisibilitySchema })
+    .catch(BUILT_IN_GAME.visibility),
+  maxTeams: LimitSchema.catch(BUILT_IN_GAME.maxTeams),
+  maxPerTeam: LimitSchema.catch(BUILT_IN_GAME.maxPerTeam),
+  allowIndividual: z.boolean().catch(BUILT_IN_GAME.allowIndividual),
+  allowPlayerTeams: z.boolean().catch(BUILT_IN_GAME.allowPlayerTeams),
+  allowLateJoin: z.boolean().catch(BUILT_IN_GAME.allowLateJoin),
+  allowRejoin: z.boolean().catch(BUILT_IN_GAME.allowRejoin),
+  requireApproval: z.boolean().catch(BUILT_IN_GAME.requireApproval),
+  autoLockOnFirstCorrect: z.boolean().catch(BUILT_IN_GAME.autoLockOnFirstCorrect),
+  allowFalseStarts: z.boolean().catch(BUILT_IN_GAME.allowFalseStarts),
+  buzzDeduplication: z.enum(['firstOnly', 'all']).catch(BUILT_IN_GAME.buzzDeduplication),
+  tiebreakerMode: z.literal('serverOrder').catch(BUILT_IN_GAME.tiebreakerMode),
+}) satisfies z.ZodType<GameDefaults>
+
 export const AppSettingsSchema = z.object({
-  version: z.literal(2).catch(2),
+  version: z.literal(3).catch(3),
   theme: z.enum(['system', 'light', 'dark']).catch('system'),
   actionMode: z.enum(['icons', 'text', 'both']).catch('icons'),
   controlSize: z.enum(['sm', 'md', 'lg']).catch('sm'),
@@ -29,6 +64,7 @@ export const AppSettingsSchema = z.object({
   timerAudioNotify: TimerNotifySchema.catch('none'),
   timerVisualNotify: TimerNotifySchema.catch('none'),
   timerAutoReset: z.enum(['none', 'question', 'round', 'any']).catch('none'),
+  gameDefaults: GameDefaultsSchema.catch(() => GameDefaultsSchema.parse({})),
 })
 
 export type AppSettings = z.infer<typeof AppSettingsSchema>
