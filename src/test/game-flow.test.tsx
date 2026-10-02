@@ -291,6 +291,21 @@ describe('game flow', () => {
     for (const { received } of clients.slice(0, 10)) {
       expect(received.map(e => e.type)).toContain('JOIN_PENDING')
     }
+
+    // The People tab counts the waiting screens; switching tabs hides the People panel
+    await host.waitFor(() => {
+      for (const tab of host.view.getAllByRole('tab', { name: /People/ })) {
+        expect(tab).toHaveTextContent('People10')
+      }
+    })
+    const side = host.view.getByRole('tablist', { name: 'Side panel' })
+    const messagesTab = Array.from(side.querySelectorAll('[role="tab"]')).find(
+      t => t.textContent === 'Messages'
+    )
+    await userEvent.setup().click(messagesTab as HTMLElement)
+    // A hidden panel has no accessible name, so find it by id
+    expect(document.getElementById('host-panel-people')).not.toBeVisible()
+    expect(host.view.getByRole('tabpanel', { name: 'Messages' })).toBeVisible()
   }, 20_000)
 
   it('does not admit a connection that closed while its join was queued', async () => {
@@ -308,6 +323,32 @@ describe('game flow', () => {
     // Never connected as a player: either not saved, or saved as disconnected
     const saved = await db.players.where('deviceId').equals('device-dora').toArray()
     expect(saved.every(p => p.presence === 'disconnected')).toBe(true)
+  }, 20_000)
+
+  it('sends a player kicked before a host reload to approval when they rejoin', async () => {
+    await seedGame()
+    const { db } = await import('@/db')
+    // Kicked in an earlier host session: only the saved record remembers it. A device of
+    // its own, since the database is shared between tests
+    await db.players.put({
+      id: 'p-fay',
+      gameId: 'g1',
+      name: 'Fay',
+      teamId: null,
+      deviceId: 'device-fay',
+      score: 0,
+      presence: 'kicked',
+      joinedAt: 1,
+    })
+    const host = await mountSide('host', '/admin/game/g1')
+    await host.waitFor(() => expect(hub.state.host).not.toBeNull())
+
+    const { client, received } = await connectClient()
+    client.send({ ...JOIN, playerName: 'Fay', deviceId: 'device-fay' } as TransportEvent)
+
+    await host.waitFor(() => expect(received.map(e => e.type)).toContain('JOIN_PENDING'), SLOW)
+    expect(received.map(e => e.type)).not.toContain('JOIN_ACCEPTED')
+    expect((await db.players.get('p-fay'))?.presence).toBe('kicked')
   }, 20_000)
 
   it('ignores buzzes while the game is paused', async () => {

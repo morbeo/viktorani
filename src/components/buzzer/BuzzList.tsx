@@ -152,6 +152,7 @@ export function BuzzList({ buzzes, allBuzzes, onAdjudicate, showAll }: BuzzListP
                   title="Mark correct"
                 >
                   <Icon icon={CircleCheck} size="sm" />
+                  <span>Correct</span>
                 </Button>
                 <Button
                   size="sm"
@@ -166,6 +167,7 @@ export function BuzzList({ buzzes, allBuzzes, onAdjudicate, showAll }: BuzzListP
                   title="Mark incorrect"
                 >
                   <Icon icon={CircleX} size="sm" />
+                  <span>Wrong</span>
                 </Button>
                 <Button
                   size="sm"

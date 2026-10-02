@@ -93,6 +93,11 @@ A game contains one or more rounds. Each round is an ordered list of questions.
 3. Click **Add Questions** to search and select questions from your bank.
 4. Drag rows to reorder questions within a round.
 
+You can also build rounds in step 2 of the **New game** wizard: choose **Create new rounds**,
+then **Add round**. Name each round, open its question count to search or filter by tag and
+tick questions, and use the arrows to reorder rounds. Every round needs a name and at least one
+question. The rounds are saved with the game and show up on the Questions page afterwards.
+
 ### Configure the game
 
 The first step of the **New game** wizard holds the game settings. They start from
@@ -154,7 +159,7 @@ showing where they stand (hover it for a description):
 | Gold crossed-out eye | Tab hidden | Connected, but looking at something else |
 | Grey crossed-out Wi-Fi | Disconnected | The connection dropped, or they haven't joined from a device; they can rejoin if rejoining is allowed |
 | Grey exit arrow | Left | They pressed Leave |
-| Red crossed-out person | Kicked | You removed them |
+| Red crossed-out person | Kicked | You removed them; if they rejoin, they wait for your approval, even after you reload the page |
 
 The count above the list shows connected players, with tab-hidden and disconnected
 players counted separately. Once everyone is in, click **Start** to begin the first round.
@@ -165,6 +170,21 @@ players counted separately. Once everyone is in, click **Start** to begin the fi
 ---
 
 ## 4. During a round
+
+### Layout
+
+The top bar holds the game name and status, game settings, **Open screen**, **Pause** and
+**End game**. Below it, the screen is split in two:
+
+- **Play** (left): the current question, the buzzer and the timers.
+- **Side panel** (right), with three tabs:
+  - **People**: join requests, screens waiting for approval, and the roster, where you can
+    kick a player. The tab shows how many joins and screens are waiting.
+  - **Messages**: the message panel.
+  - **Scoreboard**: scores and the score history.
+
+On narrow screens, **Play** is a fourth tab instead of a column. Hover over a button to see
+its keyboard shortcut, or press **Ctrl+K** (**⌘K** on a Mac) to open the command palette.
 
 ### Displaying a question
 
@@ -187,16 +207,16 @@ Reaching the end of a round shows a round-boundary overlay before advancing.
 
 1. Click **Unlock** to open the buzzer — players can now buzz in.
 2. The buzz list shows players in the order their buzzes reached you.
-3. Click **Correct**, **Incorrect**, or **Skip** next to a player's name.
+3. Click **Correct**, **Wrong**, or **Skip** next to a player's name.
    - **Correct** awards points (if scoring is enabled) and optionally auto-locks.
-   - **Incorrect** marks the buzz but leaves the buzzer open for others.
+   - **Wrong** marks the buzz but leaves the buzzer open for others.
    - **Skip** records the buzz as skipped, with no points, and leaves the buzzer open.
 4. Click **Lock** to close the buzzer manually at any time.
 5. Click **Clear buzzes** to reset the list for the current question.
 
 ### Manual score adjustments
 
-The scoreboard panel is a table of all players/teams, highest score first, with `+` and `−`
+The **Scoreboard** tab is a table of all players/teams, highest score first, with `+` and `−`
 buttons. Click them to apply a one-step delta (defaulting to the lowest difficulty score).
 To set an exact score, click the score, type the new value and press **Enter** (or click
 elsewhere); **Esc** cancels. Score changes are broadcast to players immediately.
@@ -206,7 +226,7 @@ answer. Open **Score history** under the table to see the latest changes, newest
 
 ### Sending a message
 
-The **Message** panel (in the lobby and during the game) sends a short plain-text note of up
+The **Message** panel (in the lobby, and on the **Messages** tab during the game) sends a short plain-text note of up
 to 280 characters. Pick who gets it under **To**: everyone (players and screens), all players,
 the screens, one team, or one connected player. Players see it in a banner they can dismiss;
 screens show it at the top until you send another message or click **Clear everywhere**.
