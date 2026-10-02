@@ -7,6 +7,7 @@ import AppearanceSettings from '@/components/settings/AppearanceSettings'
 import DataSettings from '@/components/settings/DataSettings'
 import SoundSettings from '@/components/settings/SoundSettings'
 import TimerSettings from '@/components/settings/TimerSettings'
+import GameDefaultsSettings from '@/components/settings/GameDefaultsSettings'
 
 function LibrarySettings() {
   return (
@@ -22,6 +23,7 @@ const CATEGORIES = [
   { id: 'appearance', label: 'Appearance', element: <AppearanceSettings /> },
   { id: 'sound', label: 'Sound & notifications', element: <SoundSettings /> },
   { id: 'timers', label: 'Timers', element: <TimerSettings /> },
+  { id: 'game-defaults', label: 'Game defaults', element: <GameDefaultsSettings /> },
   { id: 'library', label: 'Library', element: <LibrarySettings /> },
   { id: 'data', label: 'Data', element: <DataSettings /> },
 ]
