@@ -9,12 +9,14 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  Bug,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { Icon } from '@/components/ui'
 import { LiveGameIndicator } from '@/components/LiveGameIndicator'
 import { useLiveGames, liveGamesLabel } from '@/hooks/useLiveGames'
+import { buildInfo } from '@/buildInfo'
 
 interface Props {
   children: ReactNode
@@ -29,6 +31,8 @@ const nav: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/admin/notes', label: 'Notes', icon: NotebookPen },
   { to: '/admin/settings', label: 'Settings', icon: Settings },
 ]
+
+const versionLabel = `v${buildInfo.version} · ${buildInfo.commit.slice(0, 7)}`
 
 export default function AdminLayout({ children, title }: Props) {
   const [collapsed, setCollapsed] = useLocalStorage('sidebar-collapsed', false)
@@ -129,6 +133,30 @@ export default function AdminLayout({ children, title }: Props) {
             <Icon icon={Users} size={collapsed ? 'md' : 'sm'} className="shrink-0" />
             {!collapsed && 'Player view'}
           </a>
+        </div>
+
+        {/* Version — opens the debug info */}
+        <div
+          className="border-t"
+          style={{ borderColor: 'var(--color-border)', padding: collapsed ? '8px 6px' : '8px' }}
+        >
+          <NavLink
+            to="/admin/debug"
+            aria-label={`Debug info, ${versionLabel}`}
+            title={collapsed ? `Debug info (${versionLabel})` : 'Debug info'}
+            className={({ isActive }) =>
+              `flex items-center rounded text-xs transition-all ${
+                collapsed ? 'justify-center px-0 py-2' : 'gap-2 px-3 py-1.5'
+              } ${isActive ? 'font-semibold' : 'hover:bg-black/5'}`
+            }
+            style={({ isActive }) => ({
+              color: isActive ? 'var(--color-gold)' : 'var(--color-muted)',
+              background: isActive ? 'var(--color-gold-light)' : undefined,
+            })}
+          >
+            <Icon icon={Bug} size="sm" className="shrink-0" />
+            {!collapsed && <span className="mono truncate">{versionLabel}</span>}
+          </NavLink>
         </div>
       </aside>
 
