@@ -313,13 +313,14 @@ describe('game flow', () => {
   it('sends a player kicked before a host reload to approval when they rejoin', async () => {
     await seedGame()
     const { db } = await import('@/db')
-    // Kicked in an earlier host session: only the saved record remembers it
+    // Kicked in an earlier host session: only the saved record remembers it. A device of
+    // its own, since the database is shared between tests
     await db.players.put({
-      id: 'p-eve',
+      id: 'p-fay',
       gameId: 'g1',
-      name: 'Eve',
+      name: 'Fay',
       teamId: null,
-      deviceId: 'device-eve',
+      deviceId: 'device-fay',
       score: 0,
       presence: 'kicked',
       joinedAt: 1,
@@ -328,11 +329,11 @@ describe('game flow', () => {
     await host.waitFor(() => expect(hub.state.host).not.toBeNull())
 
     const { client, received } = await connectClient()
-    client.send({ ...JOIN, playerName: 'Eve', deviceId: 'device-eve' } as TransportEvent)
+    client.send({ ...JOIN, playerName: 'Fay', deviceId: 'device-fay' } as TransportEvent)
 
     await host.waitFor(() => expect(received.map(e => e.type)).toContain('JOIN_PENDING'), SLOW)
     expect(received.map(e => e.type)).not.toContain('JOIN_ACCEPTED')
-    expect((await db.players.get('p-eve'))?.presence).toBe('kicked')
+    expect((await db.players.get('p-fay'))?.presence).toBe('kicked')
   }, 20_000)
 
   it('ignores buzzes while the game is paused', async () => {
