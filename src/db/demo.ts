@@ -197,6 +197,7 @@ export async function seedDemo(): Promise<void> {
     currentQuestionIdx: 0,
     buzzerLocked: true,
     scoringEnabled: true,
+    buzzerEnabled: true,
     autoLockOnFirstCorrect: true,
     allowFalseStarts: false,
     buzzDeduplication: 'firstOnly',

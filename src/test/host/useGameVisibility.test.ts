@@ -16,6 +16,7 @@ const BASE_GAME: Game = {
   status: 'active',
   roomId: 'ABC',
   scoringEnabled: true,
+  buzzerEnabled: true,
   visibility: {
     players: { showQuestion: true, showAnswers: false, showMedia: true },
     screen: { showQuestion: true, showAnswers: false, showMedia: true },

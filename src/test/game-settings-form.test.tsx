@@ -135,6 +135,15 @@ describe('GameSettingsForm', () => {
     expect(onChange).toHaveBeenCalledWith({ buzzDeduplication: 'all' })
   })
 
+  it('hides the rest of the buzzer section when the buzzer is turned off', async () => {
+    render(<Harness mode="live" />)
+    expect(screen.getByRole('switch', { name: 'Record false starts' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('switch', { name: 'Buzzer' }))
+    expect(screen.queryByRole('switch', { name: 'Auto-lock after a correct answer' })).toBeNull()
+    expect(screen.queryByRole('switch', { name: 'Record false starts' })).toBeNull()
+    expect(screen.queryByRole('radiogroup', { name: 'Buzz display' })).toBeNull()
+  })
+
   it('in live mode shows joining and buzzer, locks scoring and hides visibility', () => {
     render(<Harness mode="live" />)
     expect(screen.getByRole('switch', { name: 'Allow late join' })).toBeInTheDocument()

@@ -40,6 +40,7 @@ function makeGame(overrides: Partial<Game> = {}): Game {
     currentQuestionIdx: 0,
     buzzerLocked: true,
     scoringEnabled: true,
+    buzzerEnabled: true,
     autoLockOnFirstCorrect: false,
     allowFalseStarts: false,
     buzzDeduplication: 'firstOnly',

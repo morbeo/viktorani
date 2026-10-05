@@ -185,7 +185,7 @@ export default function Play() {
 
           {!ended && session.question && <PlayerQuestion question={session.question} />}
 
-          {!ended && (
+          {!ended && session.buzzerEnabled && (
             <button
               type="button"
               aria-label="Buzz"

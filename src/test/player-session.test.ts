@@ -20,6 +20,7 @@ import type { PlayerSession, QuestionContent } from '@/pages/player/player-sessi
 const EMPTY: PlayerSession = {
   playerId: null,
   teamId: null,
+  buzzerEnabled: true,
   buzzerLocked: true,
   scores: {},
   question: null,
@@ -62,6 +63,7 @@ describe('reduceSession', () => {
         status,
         currentRoundIdx: 0,
         currentQuestionIdx: 0,
+        buzzerEnabled: true,
         buzzerLocked: true,
         visibility: {
           players: { showQuestion: true, showAnswers: false, showMedia: true },
@@ -91,6 +93,7 @@ describe('reduceSession', () => {
         status: 'active',
         currentRoundIdx: 0,
         currentQuestionIdx: 0,
+        buzzerEnabled: true,
         buzzerLocked: false,
         visibility: {
           players: { showQuestion: true, showAnswers: false, showMedia: true },
