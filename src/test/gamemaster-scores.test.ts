@@ -117,6 +117,7 @@ describe('serialiseGameState — score map', () => {
       color: '#000',
       icon: 'Zap',
       score: 7,
+      notes: '',
     })
     const state = serialiseGameState(makeGame(), await readScores('g1'))
     expect(state.scores).toEqual({ p1: 10, p2: 0, t1: 7 })

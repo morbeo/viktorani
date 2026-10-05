@@ -213,6 +213,7 @@ export async function seedDemo(): Promise<void> {
     color: t.color,
     icon: t.icon,
     score: 0,
+    notes: '',
   }))
   const players: Player[] = TEAMS.flatMap((t, i) =>
     t.players.map(name => ({

@@ -215,6 +215,8 @@ export interface Team {
   /** Lucide icon key (e.g. 'Zap', 'Shield'). Defaults to 'Shield' if not set. */
   icon: string
   score: number
+  /** Free-text notes for the host's own use (e.g. a running bonus, a house rule). */
+  notes: string
 }
 
 /** A player connected to a {@link Game} session. */
@@ -432,6 +434,7 @@ export interface GameQuestion {
  * - 9: adds `scoreEvents`, the log of score changes.
  * - 10: adds `gameLog`, the log of everything else that happens in a game.
  * - 11: same stores; back-fills `Game.buzzerEnabled` (`true`) on existing games.
+ * - 12: same stores; back-fills `Team.notes` (`''`) on existing teams.
  *
  * To change the schema, add a new `this.version(N + 1)` block below; keep existing blocks.
  */
@@ -536,6 +539,17 @@ export class ViktoraniDB extends Dexie {
           .toCollection()
           .modify((g: Partial<Game>) => {
             g.buzzerEnabled ??= true
+          })
+      )
+
+    this.version(12)
+      .stores({})
+      .upgrade(tx =>
+        tx
+          .table('teams')
+          .toCollection()
+          .modify((t: Partial<Team>) => {
+            t.notes ??= ''
           })
       )
   }

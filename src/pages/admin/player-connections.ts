@@ -161,6 +161,7 @@ export async function resolveJoin(game: Game, join: JoinEvent): Promise<JoinResu
         color: PLAYER_TEAM_COLORS[teams.length % PLAYER_TEAM_COLORS.length],
         icon: 'Shield',
         score: 0,
+        notes: '',
       }
       teamId = newTeam.id
     }
