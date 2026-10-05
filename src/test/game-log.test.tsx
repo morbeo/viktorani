@@ -4,7 +4,8 @@ import { render, screen, fireEvent, within } from '@testing-library/react'
 import { db } from '@/db'
 import type { BuzzEvent, Game, GameLogEntry, ScoreEvent } from '@/db'
 import { logEvent } from '@/db/game-log'
-import { buildLogRows, logRowsToCsv } from '@/lib/game-log-rows'
+import { buildLogRows, logRowsToCsv, toPublicLogEntries } from '@/lib/game-log-rows'
+import type { LogRow } from '@/lib/game-log-rows'
 import { GameLogPanel } from '@/components/gamemaster/GameLogPanel'
 
 beforeEach(async () => {
@@ -115,6 +116,44 @@ describe('buildLogRows', () => {
     expect(rows.find(r => r.kind === 'game_started')?.round).toBe('')
     expect(rows.find(r => r.kind === 'buzz')?.round).toBe('Round One')
     expect(rows.find(r => r.kind === 'score_changed')?.round).toBe('Round One')
+  })
+})
+
+describe('toPublicLogEntries', () => {
+  const row = (over: Partial<LogRow>): LogRow => ({
+    id: 'r1',
+    at: 0,
+    kind: 'buzz',
+    who: '',
+    details: '',
+    ...over,
+  })
+
+  it('keeps only public kinds, newest first, up to the limit', () => {
+    const rows: LogRow[] = [
+      row({ id: 'r1', at: 30, kind: 'join_rejected', who: 'Ann' }),
+      row({ id: 'r2', at: 20, kind: 'buzz', who: 'Bob' }),
+      row({ id: 'r3', at: 10, kind: 'player_kicked', who: 'Cid' }),
+    ]
+    expect(toPublicLogEntries(rows, 10)).toEqual([
+      { id: 'r2', at: 20, kind: 'buzz', who: 'Bob', details: '' },
+      { id: 'r3', at: 10, kind: 'player_kicked', who: 'Cid', details: '' },
+    ])
+  })
+
+  it('caps the result at the given limit', () => {
+    const rows = [row({ id: 'a', kind: 'buzz' }), row({ id: 'b', kind: 'buzz' })]
+    expect(toPublicLogEntries(rows, 1)).toEqual([
+      { id: 'a', at: 0, kind: 'buzz', who: '', details: '' },
+    ])
+  })
+
+  it('truncates oversized who/details text', () => {
+    const long = 'x'.repeat(300)
+    const rows = [row({ who: long, details: long })]
+    const [entry] = toPublicLogEntries(rows, 10)
+    expect(entry.who).toHaveLength(200)
+    expect(entry.details).toHaveLength(200)
   })
 })
 

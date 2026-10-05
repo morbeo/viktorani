@@ -1,4 +1,7 @@
 import type { BuzzEvent, GameLogEntry, GameLogKind, GmDecision, ScoreEvent } from '@/db'
+import { MAX_LOG_TEXT_LENGTH } from '@/transport/messages'
+import { PUBLIC_LOG_KINDS } from '@/transport/types'
+import type { LogEntry, PublicLogKind } from '@/transport/types'
 
 /** A row of the game log view: a log entry, a buzz, a ruling or a score change. */
 export type LogRowKind = GameLogKind | 'buzz' | 'false_start' | 'ruling' | 'score_changed'
@@ -196,4 +199,30 @@ export function downloadGameLog(rows: LogRow[], gameName: string, format: 'csv' 
   a.download = `${safeName}-log-${new Date().toISOString().slice(0, 10)}.${format}`
   a.click()
   URL.revokeObjectURL(url)
+}
+
+const PUBLIC_LOG_KIND_SET = new Set<string>(PUBLIC_LOG_KINDS)
+
+function isPublicLogKind(kind: LogRowKind): kind is PublicLogKind {
+  return PUBLIC_LOG_KIND_SET.has(kind)
+}
+
+/**
+ * The most recent rows safe to broadcast to screens (see {@link PUBLIC_LOG_KINDS}), in the
+ * `LOG` transport shape, capped to `limit` entries. `rows` must be newest first.
+ */
+export function toPublicLogEntries(rows: LogRow[], limit: number): LogEntry[] {
+  const out: LogEntry[] = []
+  for (const r of rows) {
+    if (out.length >= limit) break
+    if (!isPublicLogKind(r.kind)) continue
+    out.push({
+      id: r.id,
+      at: r.at,
+      kind: r.kind,
+      who: r.who.slice(0, MAX_LOG_TEXT_LENGTH),
+      details: r.details.slice(0, MAX_LOG_TEXT_LENGTH),
+    })
+  }
+  return out
 }
