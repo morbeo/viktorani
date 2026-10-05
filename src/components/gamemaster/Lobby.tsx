@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Rocket } from 'lucide-react'
 import { Button, TransportPill, Icon, ControlSizePicker } from '@/components/ui'
 import { RosterPanel } from '@/components/gamemaster/RosterPanel'
@@ -38,6 +39,9 @@ export interface LobbyProps {
   onAdjustScore: (playerId: string, delta: number) => Promise<void>
   onCreateTeam: (name: string, color: string, icon: string) => Promise<void>
   onImportFromManaged: () => Promise<void>
+  onRenameTeam: (teamId: string, name: string) => Promise<void>
+  onDeleteTeam: (teamId: string) => Promise<void>
+  onUpdateTeamNotes: (teamId: string, notes: string) => Promise<void>
   onGameChange: (patch: Partial<Game>) => void
   pendingJoins: PendingJoin[]
   onApproveJoin: (connId: string) => void
@@ -62,6 +66,9 @@ export function Lobby({
   onAdjustScore,
   onCreateTeam,
   onImportFromManaged,
+  onRenameTeam,
+  onDeleteTeam,
+  onUpdateTeamNotes,
   onGameChange,
   pendingJoins,
   onApproveJoin,
@@ -69,12 +76,17 @@ export function Lobby({
   screens,
   messages,
 }: LobbyProps) {
+  const [selectedPlayerIds, setSelectedPlayerIds] = useState<Set<string>>(new Set())
   const activePlayers = players.filter(isConnected)
   const canStart = canStartGame({
     transportStatus: status,
     activePlayers: activePlayers.length,
     soloBypass,
   })
+
+  function selectTeamMembers(teamId: string) {
+    setSelectedPlayerIds(new Set(players.filter(p => p.teamId === teamId).map(p => p.id)))
+  }
 
   return (
     <div className="max-w-3xl mx-auto flex flex-col gap-8 py-6">
@@ -116,6 +128,8 @@ export function Lobby({
             onAddPlayer={onAddPlayer}
             onAssignPlayer={onAssignPlayer}
             onAdjustScore={onAdjustScore}
+            selected={selectedPlayerIds}
+            onSelectedChange={setSelectedPlayerIds}
           />
           <TeamManagerPanel
             game={game}
@@ -123,6 +137,10 @@ export function Lobby({
             players={players}
             onCreateTeam={onCreateTeam}
             onImportFromManaged={onImportFromManaged}
+            onRenameTeam={onRenameTeam}
+            onDeleteTeam={onDeleteTeam}
+            onUpdateTeamNotes={onUpdateTeamNotes}
+            onSelectTeam={selectTeamMembers}
           />
         </div>
       </div>

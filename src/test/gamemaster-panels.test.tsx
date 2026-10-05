@@ -142,8 +142,24 @@ describe('RosterPanel', () => {
   })
 
   const teams: Team[] = [
-    { id: 't1', gameId: 'g1', name: 'Red Team', color: '#ff0000', icon: 'flame', score: 0 },
-    { id: 't2', gameId: 'g1', name: 'Blue Team', color: '#0000ff', icon: 'star', score: 0 },
+    {
+      id: 't1',
+      gameId: 'g1',
+      name: 'Red Team',
+      color: '#ff0000',
+      icon: 'flame',
+      score: 0,
+      notes: '',
+    },
+    {
+      id: 't2',
+      gameId: 'g1',
+      name: 'Blue Team',
+      color: '#0000ff',
+      icon: 'star',
+      score: 0,
+      notes: '',
+    },
   ]
 
   const players: Player[] = [

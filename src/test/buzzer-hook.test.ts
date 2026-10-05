@@ -296,7 +296,15 @@ describe('useBuzzer scoring (#246)', () => {
     await Promise.all([
       db.games.add(game),
       db.players.add({ ...player, teamId: 't1' }),
-      db.teams.add({ id: 't1', gameId: 'g1', name: 'Owls', color: '#000', icon: 'Zap', score: 4 }),
+      db.teams.add({
+        id: 't1',
+        gameId: 'g1',
+        name: 'Owls',
+        color: '#000',
+        icon: 'Zap',
+        score: 4,
+        notes: '',
+      }),
       db.questions.add({ ...question, difficulty: null }),
     ])
     const { result } = renderBuzzer(game)
@@ -322,7 +330,15 @@ describe('useBuzzer scoring (#246)', () => {
     await Promise.all([
       db.games.add(game),
       db.players.add({ ...player, teamId: 't1' }),
-      db.teams.add({ id: 't1', gameId: 'g1', name: 'Owls', color: '#000', icon: 'Zap', score: 4 }),
+      db.teams.add({
+        id: 't1',
+        gameId: 'g1',
+        name: 'Owls',
+        color: '#000',
+        icon: 'Zap',
+        score: 4,
+        notes: '',
+      }),
       db.questions.add({ ...question, difficulty: null }),
     ])
     const { result } = renderBuzzer(game)

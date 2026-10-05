@@ -20,7 +20,7 @@ function player(id: string, overrides: Partial<Player> = {}): Player {
 }
 
 const TEAMS: Team[] = [
-  { id: 't1', gameId: 'g1', name: 'Owls', color: '#000', icon: 'Shield', score: 0 },
+  { id: 't1', gameId: 'g1', name: 'Owls', color: '#000', icon: 'Shield', score: 0, notes: '' },
 ]
 const PLAYERS = [player('Ann'), player('Bob', { presence: 'left' })]
 

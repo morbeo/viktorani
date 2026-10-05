@@ -294,6 +294,7 @@ describe('DB schema', () => {
       name: 'Red Team',
       color: '#f00',
       score: 0,
+      notes: '',
     })
     await db.teams.add({
       id: 't2',
@@ -302,6 +303,7 @@ describe('DB schema', () => {
       name: 'Blue Team',
       color: '#00f',
       score: 0,
+      notes: '',
     })
     const teams = await db.teams.where('gameId').equals('g1').toArray()
     expect(teams).toHaveLength(1)

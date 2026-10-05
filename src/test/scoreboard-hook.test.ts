@@ -26,7 +26,15 @@ const alice: Player = {
   joinedAt: 0,
 }
 
-const team: Team = { id: 't1', gameId: 'g1', name: 'Owls', color: '#000', icon: 'Zap', score: 0 }
+const team: Team = {
+  id: 't1',
+  gameId: 'g1',
+  name: 'Owls',
+  color: '#000',
+  icon: 'Zap',
+  score: 0,
+  notes: '',
+}
 
 const scoreOf = (result: { current: ReturnType<typeof useScoreboard> }, id: string) =>
   result.current.entries.find(e => e.id === id)?.score

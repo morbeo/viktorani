@@ -32,6 +32,7 @@ function makeTeam(overrides: Partial<Team> = {}): Team {
     name: 'Red Team',
     color: '#e74c3c',
     score: 0,
+    notes: '',
     ...overrides,
   }
 }
