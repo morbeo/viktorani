@@ -10,6 +10,8 @@ export interface LogRow {
   /** The player or team involved; empty for host-only actions. */
   who: string
   details: string
+  /** The round name, when the row can be tied to one; empty otherwise. */
+  round?: string
 }
 
 export const LOG_KIND_LABELS: Record<LogRowKind, string> = {
@@ -86,15 +88,23 @@ function logDetails(e: GameLogEntry): string {
   }
 }
 
+function logRound(e: GameLogEntry, roundByQuestion: Map<string, string>): string {
+  if (e.kind === 'round_changed') return typeof e.data.round === 'string' ? e.data.round : ''
+  return (e.subjectId && roundByQuestion.get(e.subjectId)) || ''
+}
+
 /**
  * Combine a game's log with its buzzes, rulings and score changes, newest first.
  * `names` maps player and team ids to their current names, for entries that store none.
+ * `roundByQuestion` maps question ids to the name of the round they belong to, so rows
+ * tied to a question (or the round-change event itself) can be filtered by round.
  */
 export function buildLogRows(
   log: GameLogEntry[],
   buzzes: BuzzEvent[],
   scores: ScoreEvent[],
-  names: Map<string, string>
+  names: Map<string, string>,
+  roundByQuestion: Map<string, string> = new Map()
 ): LogRow[] {
   const rows: LogRow[] = log.map(e => ({
     id: e.id,
@@ -105,6 +115,7 @@ export function buildLogRows(
         ? e.data.name
         : (names.get(e.subjectId ?? e.actorId ?? '') ?? ''),
     details: logDetails(e),
+    round: logRound(e, roundByQuestion),
   }))
   for (const b of buzzes) {
     rows.push({
@@ -113,6 +124,7 @@ export function buildLogRows(
       kind: b.isFalseStart ? 'false_start' : 'buzz',
       who: b.playerName,
       details: '',
+      round: roundByQuestion.get(b.questionId) ?? '',
     })
     if (b.gmDecision && b.decidedAt !== null) {
       rows.push({
@@ -121,6 +133,7 @@ export function buildLogRows(
         kind: 'ruling',
         who: b.playerName,
         details: RULINGS[b.gmDecision],
+        round: roundByQuestion.get(b.questionId) ?? '',
       })
     }
   }
@@ -131,6 +144,7 @@ export function buildLogRows(
       kind: 'score_changed',
       who: s.name,
       details: `${s.from} → ${s.to} (${SCORE_REASONS[s.reason]})`,
+      round: (s.questionId && roundByQuestion.get(s.questionId)) || '',
     })
   }
   return rows.sort((a, b) => b.at - a.at)

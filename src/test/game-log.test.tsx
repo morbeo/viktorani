@@ -1,6 +1,6 @@
 // @vitest-pool vmForks
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 import { db } from '@/db'
 import type { BuzzEvent, Game, GameLogEntry, ScoreEvent } from '@/db'
 import { logEvent } from '@/db/game-log'
@@ -96,6 +96,26 @@ describe('buildLogRows', () => {
       ['player_kicked', 'Ann', ''],
     ])
   })
+
+  it('resolves the round for rows tied to a question, from the gameQuestions/rounds lookup', () => {
+    const roundByQuestion = new Map([['q1', 'Round One']])
+    const rows = buildLogRows(
+      [
+        entry({ kind: 'question_shown', subjectId: 'q1', data: { round: 'One', question: 1 } }),
+        entry({ kind: 'round_changed', data: { round: 'Round Two' } }),
+        entry({ kind: 'game_started' }),
+      ],
+      [buzz({ questionId: 'q1' })],
+      [score],
+      new Map(),
+      roundByQuestion
+    )
+    expect(rows.find(r => r.kind === 'question_shown')?.round).toBe('Round One')
+    expect(rows.find(r => r.kind === 'round_changed')?.round).toBe('Round Two')
+    expect(rows.find(r => r.kind === 'game_started')?.round).toBe('')
+    expect(rows.find(r => r.kind === 'buzz')?.round).toBe('Round One')
+    expect(rows.find(r => r.kind === 'score_changed')?.round).toBe('Round One')
+  })
 })
 
 describe('logRowsToCsv', () => {
@@ -114,8 +134,35 @@ describe('GameLogPanel', () => {
     await db.gameLog.add(entry({ at: 10, kind: 'buzzer_unlocked' }))
     await db.buzzEvents.add(buzz({ receivedAt: 20 }))
     render(<GameLogPanel game={{ id: 'g1', name: 'Quiz' } as Game} />)
-    expect(await screen.findByText('Buzzer unlocked')).toBeInTheDocument()
-    expect(screen.getByText('Buzz')).toBeInTheDocument()
+    const table = await screen.findByRole('table')
+    expect(within(table).getByText('Buzzer unlocked')).toBeInTheDocument()
+    expect(within(table).getByText('Buzz')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /CSV/ })).toBeEnabled()
+  })
+
+  it('narrows rows to those matching the search text', async () => {
+    await db.gameLog.add(entry({ at: 10, kind: 'buzzer_unlocked' }))
+    await db.buzzEvents.add(buzz({ receivedAt: 20, playerName: 'Ann' }))
+    render(<GameLogPanel game={{ id: 'g1', name: 'Quiz' } as Game} />)
+    await screen.findByRole('table')
+
+    fireEvent.change(screen.getByPlaceholderText('Search…'), { target: { value: 'ann' } })
+
+    const table = screen.getByRole('table')
+    expect(within(table).getByText('Ann')).toBeInTheDocument()
+    expect(within(table).queryByText('Buzzer unlocked')).not.toBeInTheDocument()
+  })
+
+  it('narrows rows to a kind selected from the filter chips', async () => {
+    await db.gameLog.add(entry({ at: 10, kind: 'buzzer_unlocked' }))
+    await db.buzzEvents.add(buzz({ receivedAt: 20 }))
+    render(<GameLogPanel game={{ id: 'g1', name: 'Quiz' } as Game} />)
+    await screen.findByRole('table')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Buzz' }))
+
+    const table = screen.getByRole('table')
+    expect(within(table).getByText('Buzz')).toBeInTheDocument()
+    expect(within(table).queryByText('Buzzer unlocked')).not.toBeInTheDocument()
   })
 })
