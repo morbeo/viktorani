@@ -117,8 +117,10 @@ export type JoinResult =
  *   (id, score, team, join time) and skips the late join check. Without it the device
  *   joins as a new player. An empty `deviceId` (players imported by the host have one)
  *   never matches.
- * - `rejoinWindowSeconds` (when above `0`) further limits a rejoin to within that many
- *   seconds of the player's `disconnectedAt`; past the window the device joins as new.
+ * - `rejoinWindowSeconds` (when above `0`) further limits an ordinary rejoin to within that
+ *   many seconds of the player's `disconnectedAt`; past the window the device joins as new.
+ *   A kicked player always matches regardless of the window, so the caller's kicked check
+ *   (and the approval queue) still applies rather than being bypassed by a stale timestamp.
  * - New players are refused once the game has started unless `allowLateJoin` is on.
  * - New players are refused once the game has `maxPlayers` already, regardless of teams.
  * - `teamId` must name a team of this game with room left (`maxPerTeam`); `newTeamName`
@@ -138,10 +140,16 @@ export async function resolveJoin(game: Game, join: JoinEvent): Promise<JoinResu
   // Imported players have an empty deviceId; never let a JOIN claim them
   const sameDevice = join.deviceId ? players.filter(p => p.deviceId === join.deviceId) : []
   const previous = sameDevice.sort((a, b) => b.joinedAt - a.joinedAt)[0]
-  const rejoinOk =
-    game.allowRejoin &&
-    (game.rejoinWindowSeconds <= 0 ||
-      Date.now() - (previous?.disconnectedAt ?? 0) <= game.rejoinWindowSeconds * 1000)
+  // A kicked player always matches (so the caller's kicked check below can queue them for
+  // approval again) regardless of the window — the window only limits an ordinary rejoin.
+  // A `disconnectedAt` of null (never disconnected, e.g. still shown connected) is never
+  // treated as "infinitely long ago": it always matches, so a fast reload before the host
+  // notices the drop doesn't create a duplicate player.
+  const withinRejoinWindow =
+    game.rejoinWindowSeconds <= 0 ||
+    previous?.disconnectedAt == null ||
+    Date.now() - previous.disconnectedAt <= game.rejoinWindowSeconds * 1000
+  const rejoinOk = game.allowRejoin && (previous?.presence === 'kicked' || withinRejoinWindow)
   const existing = rejoinOk ? previous : undefined
 
   if (!existing && game.status !== 'waiting' && !game.allowLateJoin) {

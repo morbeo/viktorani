@@ -293,6 +293,23 @@ describe('resolveJoin', () => {
     expect(pastWindow.player.id).not.toBe('p1')
   })
 
+  it('still matches a kicked player within a rejoin window, so they queue for approval again', async () => {
+    // Kicked while connected: presence is 'kicked' but disconnectedAt was never stamped
+    await db.players.add(player({ presence: 'kicked', disconnectedAt: null }))
+    const joined = await accepted(game({ rejoinWindowSeconds: 10 }), JOIN)
+    expect(joined.rejoin).toBe(true)
+    expect(joined.kicked).toBe(true)
+    expect(joined.player.id).toBe('p1')
+  })
+
+  it('does not treat a null disconnectedAt as infinitely long ago for a non-kicked player', async () => {
+    // Still shown connected (e.g. a fast reload before the host notices the drop)
+    await db.players.add(player({ presence: 'connected', disconnectedAt: null }))
+    const joined = await accepted(game({ rejoinWindowSeconds: 10 }), JOIN)
+    expect(joined.rejoin).toBe(true)
+    expect(joined.player.id).toBe('p1')
+  })
+
   it('creates a player team only when allowed and within the team limit', async () => {
     const join = { ...JOIN, newTeamName: ' Owls ' }
     const created = await accepted(game(), join)
