@@ -268,6 +268,14 @@ export interface ITransport {
   sendTo(connId: string, event: TransportEvent): void
 
   /**
+   * Host side: forcibly close one connection, e.g. to disconnect a screen. A no-op if the
+   * connection is already gone. Does not guarantee {@link ITransport.onPeerClose} fires for
+   * it afterwards — callers that need cleanup should do it directly, not rely on the event.
+   * @param connId - The `from` value passed to {@link ITransport.onEvent} handlers.
+   */
+  closeConnection(connId: string): void
+
+  /**
    * Subscribe to incoming events.
    * @param handler - Called for every event received, with the id of the connection
    *   it arrived on.

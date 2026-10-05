@@ -321,6 +321,16 @@ export class TransportManager {
   }
 
   /**
+   * Host side: forcibly close one connection, e.g. to disconnect a screen. A no-op if not
+   * connected or the connection is already gone.
+   *
+   * @param connId - The `from` value an {@link TransportManager.onEvent} handler received.
+   */
+  closeConnection(connId: string) {
+    this.transport?.closeConnection(connId)
+  }
+
+  /**
    * Subscribe to incoming transport events.
    *
    * @param handler - Invoked for every valid event received from the room, with the
