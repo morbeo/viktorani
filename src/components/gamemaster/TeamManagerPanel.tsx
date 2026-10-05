@@ -1,24 +1,10 @@
 import { useState } from 'react'
-import { Plus, Download, Pencil, StickyNote, Trash2, Check, X } from 'lucide-react'
+import { Plus, Download, NotebookText, Pencil, StickyNote, Trash2, Check, X } from 'lucide-react'
 import { Icon, Button, Input, Modal } from '@/components/ui'
 import { canCreateTeam } from '@/pages/admin/gamemaster-utils'
-import { resolveIcon, TEAM_ICONS } from '@/components/players-teams/teamIcons'
+import { resolveIcon, TEAM_COLOURS, TEAM_ICONS } from '@/components/players-teams/teamIcons'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import type { Game, Player, Team } from '@/db'
-
-// Palette of quick-select colours for new teams
-const TEAM_COLOURS = [
-  '#e74c3c',
-  '#e67e22',
-  '#f1c40f',
-  '#2ecc71',
-  '#1abc9c',
-  '#3498db',
-  '#9b59b6',
-  '#e91e8c',
-  '#607d8b',
-  '#795548',
-]
 
 interface TeamManagerPanelProps {
   game: Game
@@ -410,7 +396,7 @@ function TeamRow({
               title="Notes"
               style={{ padding: '0.25rem', color: team.notes ? 'var(--color-gold)' : undefined }}
             >
-              <Icon icon={StickyNote} size="sm" aria-hidden />
+              <Icon icon={team.notes ? NotebookText : StickyNote} size="sm" aria-hidden />
             </Button>
             <Button
               variant="ghost"

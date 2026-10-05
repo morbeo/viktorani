@@ -192,13 +192,15 @@ describe('GameLogPanel', () => {
     expect(within(table).queryByText('Buzzer unlocked')).not.toBeInTheDocument()
   })
 
-  it('narrows rows to a kind selected from the filter chips', async () => {
+  it('narrows rows to a kind selected from the filter popover', async () => {
     await db.gameLog.add(entry({ at: 10, kind: 'buzzer_unlocked' }))
     await db.buzzEvents.add(buzz({ receivedAt: 20 }))
     render(<GameLogPanel game={{ id: 'g1', name: 'Quiz' } as Game} />)
     await screen.findByRole('table')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Buzz' }))
+    fireEvent.click(screen.getByRole('button', { name: /Kinds/ }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Buzz' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
 
     const table = screen.getByRole('table')
     expect(within(table).getByText('Buzz')).toBeInTheDocument()

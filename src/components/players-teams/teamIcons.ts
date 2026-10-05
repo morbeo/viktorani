@@ -208,3 +208,17 @@ export const TEAM_ICONS: IconEntry[] = [
 export function resolveIcon(key: string): LucideIcon {
   return TEAM_ICONS.find(e => e.key === key)?.icon ?? Shield
 }
+
+/** Palette of quick-select colours for new teams. */
+export const TEAM_COLOURS = [
+  '#e74c3c',
+  '#e67e22',
+  '#f1c40f',
+  '#2ecc71',
+  '#1abc9c',
+  '#3498db',
+  '#9b59b6',
+  '#e91e8c',
+  '#607d8b',
+  '#795548',
+]

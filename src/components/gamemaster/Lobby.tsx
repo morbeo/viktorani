@@ -131,6 +131,7 @@ export function Lobby({
             onAssignPlayer={onAssignPlayer}
             onAdjustScore={onAdjustScore}
             onUpdatePlayerNotes={onUpdatePlayerNotes}
+            onCreateTeam={onCreateTeam}
             selected={selectedPlayerIds}
             onSelectedChange={setSelectedPlayerIds}
           />
