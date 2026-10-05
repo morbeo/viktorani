@@ -1,0 +1,34 @@
+name: Dependabot auto-merge
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  automerge:
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find matching Dependabot PR
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          number=$(gh pr list --repo "${{ github.repository }}" --state open \
+            --json number,headRefOid,author \
+            --jq ".[] | select(.headRefOid == \"$HEAD_SHA\" and .author.login == \"dependabot[bot]\") | .number")
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+
+      - name: Enable auto-merge
+        if: steps.pr.outputs.number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr merge "${{ steps.pr.outputs.number }}" --repo "${{ github.repository }}" --squash --auto
