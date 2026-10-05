@@ -122,6 +122,13 @@ export function GameSettingsForm({
         disabled={disabled}
         onChange={v => onChange({ maxPerTeam: v })}
       />
+      <LimitStepper
+        label="Max players"
+        help="No more players, teamed or not, can join once the game has this many."
+        value={value.maxPlayers}
+        disabled={disabled}
+        onChange={v => onChange({ maxPlayers: v })}
+      />
     </Section>
   )
 

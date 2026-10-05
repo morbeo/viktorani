@@ -7,6 +7,7 @@ export type GameSettings = Pick<
   | 'visibility'
   | 'maxTeams'
   | 'maxPerTeam'
+  | 'maxPlayers'
   | 'allowIndividual'
   | 'allowPlayerTeams'
   | 'allowLateJoin'
@@ -32,6 +33,7 @@ export const GAME_SETTINGS_KEYS = [
   'visibility',
   'maxTeams',
   'maxPerTeam',
+  'maxPlayers',
   'allowIndividual',
   'allowPlayerTeams',
   'allowLateJoin',
@@ -93,6 +95,7 @@ export function defaultSettings(): GameSettings {
     requireApproval: false,
     maxTeams: 0,
     maxPerTeam: 0,
+    maxPlayers: 0,
     buzzerEnabled: true,
     autoLockOnFirstCorrect: false,
     allowFalseStarts: false,

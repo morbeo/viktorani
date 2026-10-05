@@ -55,6 +55,7 @@ const GameSettingsSchema = z.object({
     .catch(BUILT_IN_GAME.visibility),
   maxTeams: LimitSchema.catch(BUILT_IN_GAME.maxTeams),
   maxPerTeam: LimitSchema.catch(BUILT_IN_GAME.maxPerTeam),
+  maxPlayers: LimitSchema.catch(BUILT_IN_GAME.maxPlayers),
   allowIndividual: z.boolean().catch(BUILT_IN_GAME.allowIndividual),
   allowPlayerTeams: z.boolean().catch(BUILT_IN_GAME.allowPlayerTeams),
   allowLateJoin: z.boolean().catch(BUILT_IN_GAME.allowLateJoin),
