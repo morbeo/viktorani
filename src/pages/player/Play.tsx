@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
-import { X } from 'lucide-react'
-import { Button, Icon } from '@/components/ui'
+import { Button } from '@/components/ui'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { useTransportEvents } from '@/hooks/useTransport'
 import { isAbortError, retry, transportManager } from '@/transport'
@@ -9,8 +8,8 @@ import { MAX_NAME_LENGTH } from '@/transport/messages'
 import { PlayerTimers } from '@/components/timer/PlayerTimers'
 import { getDeviceId } from './device-id'
 import { getPlayerSession, startPlayerSession, usePlayerSession } from './player-session'
-import type { PlayerSession } from './player-session'
 import { PlayerQuestion } from './PlayerQuestion'
+import { AnnouncementBanner } from './AnnouncementBanner'
 
 // ── Main Play page ────────────────────────────────────────────────────────────
 
@@ -49,7 +48,6 @@ export default function Play() {
   const session = usePlayerSession()
   const [problem, setProblem] = useState<Problem | null>(null)
   const [buzzed, setBuzzed] = useState(false)
-  const [dismissedMessage, setDismissedMessage] = useState<PlayerSession['message']>(null)
   const startedRef = useRef(false)
   const leftRef = useRef(false)
   const unmountedRef = useRef(false)
@@ -83,15 +81,12 @@ export default function Play() {
   }, [name, joined, reconnect])
 
   useTransportEvents(
-    useCallback(
-      event => {
-        if (event.type === 'JOIN_ACCEPTED') setProblem(null)
-        if (event.type === 'JOIN_PENDING') setProblem({ kind: 'pending' })
-        if (event.type === 'JOIN_REJECTED') setProblem({ kind: 'rejected', reason: event.reason })
-        if (event.type === 'BUZZER_UNLOCK' || event.type === 'SLIDE_CHANGE') setBuzzed(false)
-      },
-      []
-    )
+    useCallback(event => {
+      if (event.type === 'JOIN_ACCEPTED') setProblem(null)
+      if (event.type === 'JOIN_PENDING') setProblem({ kind: 'pending' })
+      if (event.type === 'JOIN_REJECTED') setProblem({ kind: 'rejected', reason: event.reason })
+      if (event.type === 'BUZZER_UNLOCK' || event.type === 'SLIDE_CHANGE') setBuzzed(false)
+    }, [])
   )
 
   // The host disconnects everyone right after ending the game; that is not a lost connection
@@ -127,7 +122,6 @@ export default function Play() {
   const canBuzz = joined && !paused && !session.buzzerLocked && !buzzed
   const score = session.playerId ? (session.scores[session.playerId] ?? 0) : 0
   const teamScore = session.teamId ? session.scores[session.teamId] : undefined
-  const message = session.message !== dismissedMessage ? session.message : null
 
   return (
     <div
@@ -184,29 +178,7 @@ export default function Play() {
             </Button>
           </header>
 
-          {message && (
-            <div
-              className="w-full max-w-sm flex items-start justify-between gap-3 rounded-lg border px-4 py-3"
-              style={{
-                borderColor: 'var(--color-gold)',
-                background: 'var(--color-gold-light)',
-                color: 'var(--color-ink)',
-              }}
-            >
-              <p role="status" className="text-sm whitespace-pre-wrap break-words">
-                <span className="font-semibold">From the host: </span>
-                {message.text}
-              </p>
-              <button
-                type="button"
-                aria-label="Dismiss message"
-                onClick={() => setDismissedMessage(message)}
-                className="shrink-0 rounded hover:bg-black/5"
-              >
-                <Icon icon={X} size="sm" />
-              </button>
-            </div>
-          )}
+          <AnnouncementBanner message={session.message} />
 
           {ended && <Status text="The game has ended. Thanks for playing!" />}
           {paused && <Status text="The host paused the game." />}

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { NavHeader } from '@/components/NavHeader'
+import { RoundInfo } from '@/components/gamemaster/RoundInfo'
 import { RoundBoundary } from '@/components/RoundBoundary'
 import { BuzzerPanel } from '@/components/buzzer/BuzzerPanel'
 import { ScoreboardPanel } from '@/components/scoreboard/ScoreboardPanel'
@@ -383,12 +384,7 @@ export function ActiveGame({
         >
           <div className="max-w-3xl mx-auto flex flex-col gap-6">
             {/* Question context */}
-            <div style={{ color: 'var(--color-muted)' }} className="text-sm">
-              {seq[pos.flatIndex]?.roundName} · Q {pos.questionIdx + 1} of {pos.roundQuestions}
-              <span className="ml-3 text-xs">
-                ({pos.flatIndex + 1} / {seq.length} total)
-              </span>
-            </div>
+            <RoundInfo pos={pos} seq={seq} />
 
             {question && gameQuestion && (
               <HostQuestionPanel
@@ -482,12 +478,7 @@ export function ActiveGame({
             >
               <ScoreboardPanel game={game} questionId={currentQuestionId} />
             </div>
-            <div
-              id="host-panel-log"
-              role="tabpanel"
-              aria-label="Log"
-              hidden={activeSide !== 'log'}
-            >
+            <div id="host-panel-log" role="tabpanel" aria-label="Log" hidden={activeSide !== 'log'}>
               <GameLogPanel game={game} />
             </div>
           </div>
