@@ -99,6 +99,12 @@ describe('reduceScreen', () => {
     expect(content?.media).toBeNull()
     expect(content?.mediaType).toBeNull()
   })
+
+  it('keeps the latest LOG feed', () => {
+    const entries = [{ id: 'e1', at: 1, kind: 'buzz' as const, who: 'Ann', details: '' }]
+    const s = reduceScreen(INITIAL_SCREEN, { type: 'LOG', entries })
+    expect(s.logEntries).toEqual(entries)
+  })
 })
 
 describe('RemoteScreen', () => {
@@ -120,6 +126,17 @@ describe('RemoteScreen', () => {
     expect(screen.getByText('Paris')).toBeInTheDocument()
     expect(screen.getByText('Ann')).toBeInTheDocument()
     expect(screen.getByText('7')).toBeInTheDocument()
+  })
+
+  it('shows the public log feed once approved', async () => {
+    renderScreen()
+    await waitFor(() => expect(transportManager.send).toHaveBeenCalled())
+    emit({ type: 'SCREEN_ACCEPTED' })
+    emit({
+      type: 'LOG',
+      entries: [{ id: 'e1', at: 1, kind: 'player_kicked', who: 'Bob', details: '' }],
+    })
+    expect(screen.getByText('Kicked').closest('li')).toHaveTextContent('Kicked · Bob')
   })
 
   it('shows the rejection reason', async () => {

@@ -11,6 +11,8 @@ import {
   MAX_ID_LENGTH,
   MAX_LABEL_LENGTH,
   MAX_LOBBY_TEAMS,
+  MAX_LOG_ENTRIES,
+  MAX_LOG_TEXT_LENGTH,
   MAX_MEDIA_LENGTH,
   MAX_MESSAGE_LENGTH,
   MAX_NAME_LENGTH,
@@ -96,6 +98,13 @@ const FIXTURES: { [K in TransportEvent['type']]: Extract<TransportEvent, { type:
   SCREEN_ACCEPTED: { type: 'SCREEN_ACCEPTED' },
   SCOREBOARD: { type: 'SCOREBOARD', rows: [{ id: 'p1', name: 'Ann', score: 10 }] },
   MESSAGE: { type: 'MESSAGE', text: 'Two minutes to the next round' },
+  LOG: {
+    type: 'LOG',
+    entries: [
+      { id: 'e1', at: 1000, kind: 'buzz', who: 'Ann', details: '' },
+      { id: 'e2', at: 2000, kind: 'player_kicked', who: 'Bob', details: '' },
+    ],
+  },
 }
 
 const CASES = Object.values(FIXTURES).map(f => [f.type, f] as const)
@@ -332,6 +341,40 @@ describe('size limits', () => {
     expect(accepts({ type: 'MESSAGE', text: 'x'.repeat(MAX_MESSAGE_LENGTH) })).toBe(true)
     expect(accepts({ type: 'MESSAGE', text: 'x'.repeat(MAX_MESSAGE_LENGTH + 1) })).toBe(false)
     expect(accepts({ type: 'MESSAGE', text: null })).toBe(true)
+  })
+
+  it('accepts a LOG at the entry limit and rejects one more', () => {
+    const entry = (i: number) => ({ id: `e${i}`, at: i, kind: 'buzz', who: 'Ann', details: '' })
+    const many = (n: number) => Array.from({ length: n }, (_, i) => entry(i))
+    expect(accepts({ type: 'LOG', entries: many(MAX_LOG_ENTRIES) })).toBe(true)
+    expect(accepts({ type: 'LOG', entries: many(MAX_LOG_ENTRIES + 1) })).toBe(false)
+  })
+
+  it('bounds LOG entry who/details length', () => {
+    const base = { id: 'e1', at: 0, kind: 'buzz' as const }
+    expect(
+      accepts({
+        type: 'LOG',
+        entries: [{ ...base, who: 'x'.repeat(MAX_LOG_TEXT_LENGTH), details: '' }],
+      })
+    ).toBe(true)
+    expect(
+      accepts({
+        type: 'LOG',
+        entries: [{ ...base, who: 'x'.repeat(MAX_LOG_TEXT_LENGTH + 1), details: '' }],
+      })
+    ).toBe(false)
+    expect(
+      accepts({
+        type: 'LOG',
+        entries: [{ ...base, who: '', details: 'x'.repeat(MAX_LOG_TEXT_LENGTH + 1) }],
+      })
+    ).toBe(false)
+  })
+
+  it('rejects a LOG entry kind that is not on the public allow-list', () => {
+    const entries = [{ id: 'e1', at: 0, kind: 'join_rejected', who: '', details: '' }]
+    expect(accepts({ type: 'LOG', entries })).toBe(false)
   })
 
   it('rejects an oversized scoreboard name', () => {
