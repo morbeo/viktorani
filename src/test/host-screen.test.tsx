@@ -141,6 +141,7 @@ describe('Screen', () => {
       presence: 'connected',
       deviceId: 'd1',
       joinedAt: 0,
+      notes: '',
     })
     renderScreen()
     expect(await screen.findByText('Answer time')).toBeInTheDocument()

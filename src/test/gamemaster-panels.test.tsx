@@ -172,6 +172,7 @@ describe('RosterPanel', () => {
       teamId: 't1',
       presence: 'connected',
       joinedAt: Date.now(),
+      notes: '',
     },
     {
       id: 'p2',
@@ -182,6 +183,7 @@ describe('RosterPanel', () => {
       teamId: 't2',
       presence: 'connected',
       joinedAt: Date.now(),
+      notes: '',
     },
     {
       id: 'p3',
@@ -192,6 +194,7 @@ describe('RosterPanel', () => {
       teamId: null,
       presence: 'disconnected',
       joinedAt: Date.now(),
+      notes: '',
     },
   ]
 
@@ -205,6 +208,7 @@ describe('RosterPanel', () => {
         onAddPlayer={vi.fn()}
         onAssignPlayer={vi.fn()}
         onAdjustScore={vi.fn()}
+        onUpdatePlayerNotes={vi.fn()}
       />
     )
     expect(screen.getByText('2 connected · 1 disconnected')).toBeInTheDocument()
@@ -220,6 +224,7 @@ describe('RosterPanel', () => {
         onAddPlayer={vi.fn()}
         onAssignPlayer={vi.fn()}
         onAdjustScore={vi.fn()}
+        onUpdatePlayerNotes={vi.fn()}
       />
     )
     expect(screen.getByText('Alice')).toBeInTheDocument()
@@ -247,6 +252,7 @@ describe('RosterPanel', () => {
         onAddPlayer={vi.fn()}
         onAssignPlayer={vi.fn()}
         onAdjustScore={vi.fn()}
+        onUpdatePlayerNotes={vi.fn()}
       />
     )
     expect(screen.getByRole('img', { name: 'Connected' })).toHaveAttribute(
@@ -274,6 +280,7 @@ describe('RosterPanel', () => {
         onAddPlayer={vi.fn()}
         onAssignPlayer={vi.fn()}
         onAdjustScore={vi.fn()}
+        onUpdatePlayerNotes={vi.fn()}
       />
     )
     await userEvent.click(screen.getByRole('button', { name: 'Kick Alice' }))
@@ -290,6 +297,7 @@ describe('RosterPanel', () => {
         onAddPlayer={vi.fn()}
         onAssignPlayer={vi.fn()}
         onAdjustScore={vi.fn()}
+        onUpdatePlayerNotes={vi.fn()}
       />
     )
     expect(screen.getByText('No players yet')).toBeInTheDocument()
@@ -305,6 +313,7 @@ describe('RosterPanel', () => {
         onAddPlayer={vi.fn()}
         onAssignPlayer={vi.fn()}
         onAdjustScore={vi.fn()}
+        onUpdatePlayerNotes={vi.fn()}
       />
     )
     expect(screen.getByText('10')).toBeInTheDocument()
@@ -322,6 +331,7 @@ describe('RosterPanel', () => {
         onAddPlayer={onAddPlayer}
         onAssignPlayer={vi.fn()}
         onAdjustScore={vi.fn()}
+        onUpdatePlayerNotes={vi.fn()}
       />
     )
     await userEvent.click(screen.getByRole('button', { name: 'Add player' }))
@@ -341,6 +351,7 @@ describe('RosterPanel', () => {
         onAddPlayer={vi.fn()}
         onAssignPlayer={onAssignPlayer}
         onAdjustScore={vi.fn()}
+        onUpdatePlayerNotes={vi.fn()}
       />
     )
     await userEvent.selectOptions(screen.getByLabelText('Assign Charlie to team'), 't1')
@@ -358,6 +369,7 @@ describe('RosterPanel', () => {
         onAddPlayer={vi.fn()}
         onAssignPlayer={onAssignPlayer}
         onAdjustScore={vi.fn()}
+        onUpdatePlayerNotes={vi.fn()}
       />
     )
     await userEvent.click(screen.getByLabelText('Select Alice'))
@@ -379,11 +391,33 @@ describe('RosterPanel', () => {
         onAddPlayer={vi.fn()}
         onAssignPlayer={vi.fn()}
         onAdjustScore={vi.fn()}
+        onUpdatePlayerNotes={vi.fn()}
       />
     )
     await userEvent.click(screen.getByLabelText('Select Alice'))
     await userEvent.click(screen.getByRole('button', { name: 'Kick selected players' }))
     await userEvent.click(screen.getByRole('button', { name: 'Kick' }))
     expect(onKick).toHaveBeenCalledWith('p1')
+  })
+
+  it('shows and saves notes for a player', async () => {
+    const onUpdatePlayerNotes = vi.fn()
+    render(
+      <RosterPanel
+        game={mockGame}
+        players={players}
+        teams={teams}
+        onKick={vi.fn()}
+        onAddPlayer={vi.fn()}
+        onAssignPlayer={vi.fn()}
+        onAdjustScore={vi.fn()}
+        onUpdatePlayerNotes={onUpdatePlayerNotes}
+      />
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Alice notes' }))
+    const textarea = screen.getByLabelText('Notes for Alice')
+    await userEvent.type(textarea, 'Allergic to trick questions')
+    await userEvent.tab()
+    expect(onUpdatePlayerNotes).toHaveBeenCalledWith('p1', 'Allergic to trick questions')
   })
 })
