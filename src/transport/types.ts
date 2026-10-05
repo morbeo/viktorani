@@ -201,6 +201,8 @@ export interface SerializedGameState {
   status: string
   currentRoundIdx: number
   currentQuestionIdx: number
+  /** Whether this game has a buzzer at all. */
+  buzzerEnabled: boolean
   buzzerLocked: boolean
   /** What each target shows, as last set by the GM (see `VISIBILITY`). */
   visibility: GameVisibility

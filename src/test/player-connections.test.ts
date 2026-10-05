@@ -117,6 +117,7 @@ function game(overrides: Partial<Game> = {}): Game {
     status: 'waiting',
     roomId: 'ROOM01',
     scoringEnabled: true,
+    buzzerEnabled: true,
     visibility: {
       players: { showQuestion: true, showAnswers: false, showMedia: true },
       screen: { showQuestion: true, showAnswers: false, showMedia: true },
@@ -219,17 +220,13 @@ describe('resolveJoin', () => {
     await db.players.add(player({}))
     const g = game({ status: 'paused', allowLateJoin: false })
     expect((await accepted(g, JOIN)).player.id).toBe('p1')
-    expect(await rejection({ ...g, allowRejoin: false }, JOIN)).toBe(
-      'The game has already started'
-    )
+    expect(await rejection({ ...g, allowRejoin: false }, JOIN)).toBe('The game has already started')
   })
 
   it('accepts a team from this game and refuses others', async () => {
     await db.teams.bulkAdd([team('t1', 'g1'), team('t2', 'g2')])
     expect((await accepted(game(), { ...JOIN, teamId: 't1' })).player.teamId).toBe('t1')
-    expect(await rejection(game(), { ...JOIN, teamId: 't2' })).toBe(
-      'That team is not in this game'
-    )
+    expect(await rejection(game(), { ...JOIN, teamId: 't2' })).toBe('That team is not in this game')
     expect(await rejection(game(), { ...JOIN, teamId: 'nope' })).toBe(
       'That team is not in this game'
     )

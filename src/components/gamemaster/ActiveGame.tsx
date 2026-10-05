@@ -409,8 +409,8 @@ export function ActiveGame({
               </div>
             )}
 
-            {/* Buzzer panel — hidden when ended */}
-            {!isEnded && (
+            {/* Buzzer panel — hidden when ended or when this game has no buzzer */}
+            {!isEnded && game.buzzerEnabled && (
               <BuzzerPanel
                 game={game}
                 questionId={currentQuestionId}

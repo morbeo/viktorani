@@ -45,6 +45,7 @@ const STATE: TransportEvent = {
     status: 'active',
     currentRoundIdx: 0,
     currentQuestionIdx: 0,
+    buzzerEnabled: true,
     buzzerLocked: false,
     visibility: {
       players: { showQuestion: true, showAnswers: false, showMedia: true },
@@ -113,6 +114,14 @@ describe('Play', () => {
     emit({ type: 'BUZZER_LOCK' })
     emit({ type: 'BUZZER_UNLOCK' })
     expect(screen.getByRole('button', { name: 'Buzz' })).toBeEnabled()
+  })
+
+  it('hides the buzz button when the game has no buzzer', async () => {
+    renderPlay()
+    await waitFor(() => expect(transportManager.send).toHaveBeenCalled())
+    emit({ type: 'JOIN_ACCEPTED', playerId: 'p1', teamId: 't1' })
+    emit({ ...STATE, state: { ...STATE.state, buzzerEnabled: false } })
+    expect(screen.queryByRole('button', { name: 'Buzz' })).toBeNull()
   })
 
   it('shows the question the host sends and clears it on the next slide', async () => {

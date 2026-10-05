@@ -26,6 +26,7 @@ const mockGame: Game = {
   requireApproval: false,
   allowPlayerTeams: false,
   scoringEnabled: true,
+  buzzerEnabled: true,
   buzzerLocked: false,
   autoLockOnFirstCorrect: false,
   allowFalseStarts: false,
@@ -48,10 +49,16 @@ vi.mock('@/hooks/useScoreboard', () => ({
     entries: [
       { id: 'p1', name: 'Alice', score: 10, kind: 'player' as const },
       { id: 'p2', name: 'Bob', score: 5, kind: 'player' as const },
-      { id: 't1', name: 'Team A', score: 15, kind: 'team' as const, members: [
-        { id: 'p3', name: 'Charlie', score: 10 },
-        { id: 'p4', name: 'Diana', score: 5 },
-      ]},
+      {
+        id: 't1',
+        name: 'Team A',
+        score: 15,
+        kind: 'team' as const,
+        members: [
+          { id: 'p3', name: 'Charlie', score: 10 },
+          { id: 'p4', name: 'Diana', score: 5 },
+        ],
+      },
     ],
     adjust: vi.fn(async () => {}),
     set: mockSet,
@@ -306,7 +313,16 @@ describe('ScoreboardPanel', () => {
   it('lists the score history, newest first, when opened', async () => {
     const change = { gameId: 'g1', kind: 'player' as const, questionId: null }
     mockHistory.current = [
-      { ...change, id: 's2', targetId: 'p2', name: 'Bob', from: 0, to: 5, reason: 'set', timestamp: 2 },
+      {
+        ...change,
+        id: 's2',
+        targetId: 'p2',
+        name: 'Bob',
+        from: 0,
+        to: 5,
+        reason: 'set',
+        timestamp: 2,
+      },
       {
         ...change,
         id: 's1',

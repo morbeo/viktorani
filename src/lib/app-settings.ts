@@ -60,6 +60,7 @@ const GameSettingsSchema = z.object({
   allowLateJoin: z.boolean().catch(BUILT_IN_GAME.allowLateJoin),
   allowRejoin: z.boolean().catch(BUILT_IN_GAME.allowRejoin),
   requireApproval: z.boolean().catch(BUILT_IN_GAME.requireApproval),
+  buzzerEnabled: z.boolean().catch(BUILT_IN_GAME.buzzerEnabled),
   autoLockOnFirstCorrect: z.boolean().catch(BUILT_IN_GAME.autoLockOnFirstCorrect),
   allowFalseStarts: z.boolean().catch(BUILT_IN_GAME.allowFalseStarts),
   buzzDeduplication: z.enum(['firstOnly', 'all']).catch(BUILT_IN_GAME.buzzDeduplication),

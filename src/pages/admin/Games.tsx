@@ -263,9 +263,7 @@ function Step3({ state, rounds }: { state: WizardState; rounds: Round[] }) {
   const selectedRounds: Array<Pick<Round, 'id' | 'name' | 'questionIds'>> =
     state.roundMode === 'custom'
       ? state.customRounds
-      : (state.selectedRoundIds
-          .map(id => rounds.find(r => r.id === id))
-          .filter(Boolean) as Round[])
+      : (state.selectedRoundIds.map(id => rounds.find(r => r.id === id)).filter(Boolean) as Round[])
   const totalQ = selectedRounds.reduce((s, r) => s + r.questionIds.length, 0)
 
   const rows = [
@@ -398,12 +396,12 @@ function GameWizard({
         allowRejoin: state.allowRejoin,
         requireApproval: state.requireApproval,
         allowPlayerTeams: state.allowPlayerTeams,
-        roundIds:
-          state.roundMode === 'custom' ? newRounds.map(r => r.id) : state.selectedRoundIds,
+        roundIds: state.roundMode === 'custom' ? newRounds.map(r => r.id) : state.selectedRoundIds,
         currentRoundIdx: 0,
         currentQuestionIdx: 0,
         buzzerLocked: true,
         scoringEnabled: state.scoringEnabled,
+        buzzerEnabled: state.buzzerEnabled,
         autoLockOnFirstCorrect: state.autoLockOnFirstCorrect,
         allowFalseStarts: state.allowFalseStarts,
         buzzDeduplication: state.buzzDeduplication,

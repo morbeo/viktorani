@@ -130,6 +130,7 @@ const GAME: Game = {
   currentQuestionIdx: 0,
   buzzerLocked: false,
   scoringEnabled: true,
+  buzzerEnabled: true,
   autoLockOnFirstCorrect: false,
   allowFalseStarts: false,
   buzzDeduplication: 'firstOnly',

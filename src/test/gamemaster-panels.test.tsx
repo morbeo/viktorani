@@ -26,6 +26,7 @@ const mockGame: Game = {
   requireApproval: false,
   allowPlayerTeams: false,
   scoringEnabled: true,
+  buzzerEnabled: true,
   buzzerLocked: false,
   autoLockOnFirstCorrect: false,
   allowFalseStarts: false,
@@ -51,9 +52,7 @@ describe('GameControls', () => {
   })
 
   it('renders game name and controls', () => {
-    render(
-      <GameControls game={mockGame} onGameChange={vi.fn()} lifecycle={mockLifecycle} />
-    )
+    render(<GameControls game={mockGame} onGameChange={vi.fn()} lifecycle={mockLifecycle} />)
     expect(screen.getByText('Test Game')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Pause game' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'End game' })).toBeInTheDocument()
@@ -108,9 +107,7 @@ describe('GameControls', () => {
   })
 
   it('opens end game modal when end button is clicked', async () => {
-    render(
-      <GameControls game={mockGame} onGameChange={vi.fn()} lifecycle={mockLifecycle} />
-    )
+    render(<GameControls game={mockGame} onGameChange={vi.fn()} lifecycle={mockLifecycle} />)
     await userEvent.click(screen.getByRole('button', { name: 'End game' }))
     expect(screen.getByRole('heading', { name: 'End game?' })).toBeInTheDocument()
   })
@@ -129,9 +126,7 @@ describe('GameControls', () => {
   it('opens projector screen in a named window', async () => {
     const openSpy = vi.fn()
     vi.stubGlobal('open', openSpy)
-    render(
-      <GameControls game={mockGame} onGameChange={vi.fn()} lifecycle={mockLifecycle} />
-    )
+    render(<GameControls game={mockGame} onGameChange={vi.fn()} lifecycle={mockLifecycle} />)
     await userEvent.click(screen.getByText('Open screen'))
     expect(openSpy).toHaveBeenCalledWith(
       expect.stringContaining('/admin/game/g1/screen'),

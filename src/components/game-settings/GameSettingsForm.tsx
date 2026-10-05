@@ -128,31 +128,42 @@ export function GameSettingsForm({
   const buzzer = (
     <Section title="Buzzer">
       <Toggle
-        label="Auto-lock after a correct answer"
-        help="When you rule a buzz correct, the buzzer locks so nobody else can buzz until you unlock it."
-        checked={value.autoLockOnFirstCorrect}
+        label="Buzzer"
+        help="Off for host-paced formats with no buzzing — players don't see a buzz button, and scoring is entirely manual from the scoreboard."
+        checked={value.buzzerEnabled}
         disabled={disabled}
-        onChange={v => onChange({ autoLockOnFirstCorrect: v })}
+        onChange={v => onChange({ buzzerEnabled: v })}
       />
-      <Toggle
-        label="Record false starts"
-        help="Buzzes pressed while the buzzer is locked are kept and marked as false starts in the buzz list. Off: they are ignored."
-        checked={value.allowFalseStarts}
-        disabled={disabled}
-        onChange={v => onChange({ allowFalseStarts: v })}
-      />
-      <Row
-        label="Buzz display"
-        help="First per player: each player is listed once, at their first buzz. All attempts: every press is listed. Every buzz is recorded either way."
-      >
-        <Segmented
-          label="Buzz display"
-          options={DEDUP_OPTIONS}
-          value={value.buzzDeduplication}
-          disabled={disabled}
-          onChange={v => onChange({ buzzDeduplication: v })}
-        />
-      </Row>
+      {value.buzzerEnabled && (
+        <>
+          <Toggle
+            label="Auto-lock after a correct answer"
+            help="When you rule a buzz correct, the buzzer locks so nobody else can buzz until you unlock it."
+            checked={value.autoLockOnFirstCorrect}
+            disabled={disabled}
+            onChange={v => onChange({ autoLockOnFirstCorrect: v })}
+          />
+          <Toggle
+            label="Record false starts"
+            help="Buzzes pressed while the buzzer is locked are kept and marked as false starts in the buzz list. Off: they are ignored."
+            checked={value.allowFalseStarts}
+            disabled={disabled}
+            onChange={v => onChange({ allowFalseStarts: v })}
+          />
+          <Row
+            label="Buzz display"
+            help="First per player: each player is listed once, at their first buzz. All attempts: every press is listed. Every buzz is recorded either way."
+          >
+            <Segmented
+              label="Buzz display"
+              options={DEDUP_OPTIONS}
+              value={value.buzzDeduplication}
+              disabled={disabled}
+              onChange={v => onChange({ buzzDeduplication: v })}
+            />
+          </Row>
+        </>
+      )}
     </Section>
   )
 

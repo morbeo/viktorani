@@ -23,6 +23,7 @@ function makeGame(overrides: Partial<Game> = {}): Game {
     status: 'active',
     roomId: 'ABC123',
     scoringEnabled: true,
+    buzzerEnabled: true,
     visibility: {
       players: { showQuestion: true, showAnswers: false, showMedia: true },
       screen: { showQuestion: true, showAnswers: false, showMedia: true },
@@ -151,7 +152,10 @@ describe('useGameLifecycle — endGame', () => {
       (args: unknown[]) => (args[0] as { type: string }).type === 'GAME_STATE'
     )
     expect(stateCall).toBeDefined()
-    const stateEvent = stateCall![0] as { type: string; state: { status: string; scores: Record<string, number> } }
+    const stateEvent = stateCall![0] as {
+      type: string
+      state: { status: string; scores: Record<string, number> }
+    }
     expect(stateEvent.state.status).toBe('ended')
     expect(stateEvent.state.scores).toEqual({ p1: 42, t1: 9 })
   })

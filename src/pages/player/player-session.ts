@@ -18,6 +18,8 @@ export interface PlayerSession {
   /** Host-assigned id; `null` until JOIN_ACCEPTED. */
   playerId: string | null
   teamId: string | null
+  /** Whether this game has a buzzer at all; `false` hides the buzz button entirely. */
+  buzzerEnabled: boolean
   buzzerLocked: boolean
   /** Scores keyed by player and team id, from GAME_STATE and SCORE_UPDATE. */
   scores: Record<string, number>
@@ -32,6 +34,7 @@ export interface PlayerSession {
 const INITIAL: PlayerSession = {
   playerId: null,
   teamId: null,
+  buzzerEnabled: true,
   buzzerLocked: true,
   scores: {},
   question: null,
@@ -56,6 +59,7 @@ export function reduceSession(s: PlayerSession, event: TransportEvent): PlayerSe
     case 'GAME_STATE':
       return {
         ...s,
+        buzzerEnabled: event.state.buzzerEnabled,
         buzzerLocked: event.state.buzzerLocked,
         scores: event.state.scores,
         gameStatus: knownStatus(event.state.status, s.gameStatus),

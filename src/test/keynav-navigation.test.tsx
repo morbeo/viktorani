@@ -126,6 +126,7 @@ describe('useNavigation', () => {
     requireApproval: false,
     allowPlayerTeams: false,
     scoringEnabled: true,
+    buzzerEnabled: true,
     buzzerLocked: false,
     autoLockOnFirstCorrect: false,
     allowFalseStarts: false,
@@ -249,7 +250,9 @@ describe('useNavigation', () => {
     ])
 
     const onRoundBoundary = vi.fn()
-    const { result } = renderHook(() => useNavigation({ ...game, roundIds: ['r1', 'r2'] }, onRoundBoundary))
+    const { result } = renderHook(() =>
+      useNavigation({ ...game, roundIds: ['r1', 'r2'] }, onRoundBoundary)
+    )
 
     await vi.waitFor(() => {
       expect(result.current.isReady).toBe(true)

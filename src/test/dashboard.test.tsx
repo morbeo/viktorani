@@ -33,6 +33,7 @@ function makeGame(overrides: Partial<Game> = {}): Game {
     currentQuestionIdx: 0,
     buzzerLocked: false,
     scoringEnabled: true,
+    buzzerEnabled: true,
     autoLockOnFirstCorrect: false,
     allowFalseStarts: false,
     buzzDeduplication: 'firstOnly',
@@ -75,14 +76,32 @@ describe('Dashboard', () => {
       ])
       await db.questions.bulkAdd([
         {
-          id: 'q1', title: 'Q1', type: 'open_ended', options: [], answer: 'A',
-          description: '', difficulty: null, tags: [], media: null, mediaType: null,
-          createdAt: Date.now(), updatedAt: Date.now(),
+          id: 'q1',
+          title: 'Q1',
+          type: 'open_ended',
+          options: [],
+          answer: 'A',
+          description: '',
+          difficulty: null,
+          tags: [],
+          media: null,
+          mediaType: null,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
         },
         {
-          id: 'q2', title: 'Q2', type: 'open_ended', options: [], answer: 'B',
-          description: '', difficulty: null, tags: [], media: null, mediaType: null,
-          createdAt: Date.now(), updatedAt: Date.now(),
+          id: 'q2',
+          title: 'Q2',
+          type: 'open_ended',
+          options: [],
+          answer: 'B',
+          description: '',
+          difficulty: null,
+          tags: [],
+          media: null,
+          mediaType: null,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
         },
       ])
     })
@@ -112,12 +131,37 @@ describe('Dashboard', () => {
   it('shows player count and team sub-label', async () => {
     await act(async () => {
       await db.managedTeams.bulkAdd([
-        { id: 't1', name: 'Alpha', color: '#f00', icon: 'Zap', labelIds: [], playerIds: [], archivedAt: null, totalScore: 0, gameLog: [] },
-        { id: 't2', name: 'Beta',  color: '#0f0', icon: 'Zap', labelIds: [], playerIds: [], archivedAt: null, totalScore: 0, gameLog: [] },
+        {
+          id: 't1',
+          name: 'Alpha',
+          color: '#f00',
+          icon: 'Zap',
+          labelIds: [],
+          playerIds: [],
+          archivedAt: null,
+          totalScore: 0,
+          gameLog: [],
+        },
+        {
+          id: 't2',
+          name: 'Beta',
+          color: '#0f0',
+          icon: 'Zap',
+          labelIds: [],
+          playerIds: [],
+          archivedAt: null,
+          totalScore: 0,
+          gameLog: [],
+        },
       ])
       await db.managedPlayers.add({
-        id: 'p1', name: 'Alice', teamIds: ['t1'], labelIds: [],
-        archivedAt: null, totalScore: 0, gameLog: [],
+        id: 'p1',
+        name: 'Alice',
+        teamIds: ['t1'],
+        labelIds: [],
+        archivedAt: null,
+        totalScore: 0,
+        gameLog: [],
       })
     })
     render(<Dashboard />, { wrapper: Wrapper })
