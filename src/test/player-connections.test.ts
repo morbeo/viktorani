@@ -26,6 +26,7 @@ function player(overrides: Partial<Player>): Player {
     teamId: null,
     score: 0,
     presence: 'disconnected',
+    disconnectedAt: null,
     deviceId: 'dev-a',
     joinedAt: 100,
     notes: '',
@@ -129,6 +130,7 @@ function game(overrides: Partial<Game> = {}): Game {
     allowIndividual: true,
     allowLateJoin: true,
     allowRejoin: true,
+    rejoinWindowSeconds: 0,
     requireApproval: false,
     allowPlayerTeams: true,
     roundIds: [],
@@ -139,6 +141,10 @@ function game(overrides: Partial<Game> = {}): Game {
     allowFalseStarts: false,
     buzzDeduplication: 'firstOnly',
     tiebreakerMode: 'serverOrder',
+    confirmUnruledNavigation: false,
+    autoStartTimerOnQuestionShow: false,
+    defaultTimerDuration: 60,
+    soundEffectsMuted: false,
     createdAt: 0,
     updatedAt: 0,
     ...overrides,
@@ -247,6 +253,44 @@ describe('resolveJoin', () => {
     const g = game({ maxPlayers: 1 })
     expect(await rejection(g, JOIN)).toBe('This game is full')
     expect(await rejection(g, { ...JOIN, deviceId: 'dev-b' })).toBeNull()
+  })
+
+  it('rejoins a disconnected player within the rejoin window', async () => {
+    await db.players.add(player({ presence: 'disconnected', disconnectedAt: Date.now() - 1000 }))
+    const joined = await accepted(game({ rejoinWindowSeconds: 10 }), JOIN)
+    expect(joined.rejoin).toBe(true)
+    expect(joined.player.id).toBe('p1')
+  })
+
+  it('treats a disconnected player past the rejoin window as a new join', async () => {
+    await db.players.add(player({ presence: 'disconnected', disconnectedAt: Date.now() - 20_000 }))
+    const joined = await accepted(game({ rejoinWindowSeconds: 10 }), JOIN)
+    expect(joined.rejoin).toBe(false)
+    expect(joined.player.id).not.toBe('p1')
+  })
+
+  it('always rejoins when rejoinWindowSeconds is 0, however long ago disconnectedAt was', async () => {
+    await db.players.add(player({ presence: 'disconnected', disconnectedAt: Date.now() - 1e9 }))
+    const joined = await accepted(game({ rejoinWindowSeconds: 0 }), JOIN)
+    expect(joined.rejoin).toBe(true)
+    expect(joined.player.id).toBe('p1')
+
+    await db.players.put(player({ presence: 'disconnected', disconnectedAt: null }))
+    const joinedNullDisconnect = await accepted(game({ rejoinWindowSeconds: 0 }), JOIN)
+    expect(joinedNullDisconnect.rejoin).toBe(true)
+    expect(joinedNullDisconnect.player.id).toBe('p1')
+  })
+
+  it('gates a player who explicitly left by the rejoin window too, not an outright block', async () => {
+    await db.players.add(player({ presence: 'left', disconnectedAt: Date.now() - 1000 }))
+    const withinWindow = await accepted(game({ rejoinWindowSeconds: 10 }), JOIN)
+    expect(withinWindow.rejoin).toBe(true)
+    expect(withinWindow.player.id).toBe('p1')
+
+    await db.players.put(player({ presence: 'left', disconnectedAt: Date.now() - 20_000 }))
+    const pastWindow = await accepted(game({ rejoinWindowSeconds: 10 }), JOIN)
+    expect(pastWindow.rejoin).toBe(false)
+    expect(pastWindow.player.id).not.toBe('p1')
   })
 
   it('creates a player team only when allowed and within the team limit', async () => {

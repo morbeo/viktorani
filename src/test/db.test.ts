@@ -211,6 +211,7 @@ describe('DB schema', () => {
       allowIndividual: true,
       allowLateJoin: true,
       allowRejoin: true,
+      rejoinWindowSeconds: 0,
       requireApproval: false,
       allowPlayerTeams: true,
       roundIds: [],
@@ -221,6 +222,10 @@ describe('DB schema', () => {
       allowFalseStarts: false,
       buzzDeduplication: 'firstOnly',
       tiebreakerMode: 'serverOrder',
+      confirmUnruledNavigation: false,
+      autoStartTimerOnQuestionShow: false,
+      defaultTimerDuration: 60,
+      soundEffectsMuted: false,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     })
