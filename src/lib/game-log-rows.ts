@@ -46,6 +46,7 @@ export const LOG_KIND_LABELS: Record<LogRowKind, string> = {
   screen_approved: 'Screen approved',
   screen_rejected: 'Screen rejected',
   screen_disconnected: 'Screen disconnected',
+  message_sent: 'Message',
   buzz: 'Buzz',
   false_start: 'False start',
   ruling: 'Ruling',

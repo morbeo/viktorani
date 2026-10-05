@@ -210,9 +210,10 @@ describe('RosterPanel', () => {
         onAssignPlayer={vi.fn()}
         onAdjustScore={vi.fn()}
         onUpdatePlayerNotes={vi.fn()}
+        onCreateTeam={vi.fn()}
       />
     )
-    expect(screen.getByText('2 connected · 1 disconnected')).toBeInTheDocument()
+    expect(screen.getByText('Connected 2/3')).toBeInTheDocument()
   })
 
   it('renders all players with their details', () => {
@@ -226,6 +227,7 @@ describe('RosterPanel', () => {
         onAssignPlayer={vi.fn()}
         onAdjustScore={vi.fn()}
         onUpdatePlayerNotes={vi.fn()}
+        onCreateTeam={vi.fn()}
       />
     )
     expect(screen.getByText('Alice')).toBeInTheDocument()
@@ -254,6 +256,7 @@ describe('RosterPanel', () => {
         onAssignPlayer={vi.fn()}
         onAdjustScore={vi.fn()}
         onUpdatePlayerNotes={vi.fn()}
+        onCreateTeam={vi.fn()}
       />
     )
     expect(screen.getByRole('img', { name: 'Connected' })).toHaveAttribute(
@@ -267,7 +270,7 @@ describe('RosterPanel', () => {
     expect(screen.getByRole('img', { name: 'Disconnected' })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Left' })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Kicked' })).toBeInTheDocument()
-    expect(screen.getByText('1 connected · 1 tab hidden · 1 disconnected')).toBeInTheDocument()
+    expect(screen.getByText('Connected 1/5 · 1 tab hidden')).toBeInTheDocument()
   })
 
   it('calls onKick when kick button is clicked', async () => {
@@ -282,6 +285,7 @@ describe('RosterPanel', () => {
         onAssignPlayer={vi.fn()}
         onAdjustScore={vi.fn()}
         onUpdatePlayerNotes={vi.fn()}
+        onCreateTeam={vi.fn()}
       />
     )
     await userEvent.click(screen.getByRole('button', { name: 'Kick Alice' }))
@@ -299,6 +303,7 @@ describe('RosterPanel', () => {
         onAssignPlayer={vi.fn()}
         onAdjustScore={vi.fn()}
         onUpdatePlayerNotes={vi.fn()}
+        onCreateTeam={vi.fn()}
       />
     )
     expect(screen.getByText('No players yet')).toBeInTheDocument()
@@ -315,6 +320,7 @@ describe('RosterPanel', () => {
         onAssignPlayer={vi.fn()}
         onAdjustScore={vi.fn()}
         onUpdatePlayerNotes={vi.fn()}
+        onCreateTeam={vi.fn()}
       />
     )
     expect(screen.getByText('10')).toBeInTheDocument()
@@ -333,6 +339,7 @@ describe('RosterPanel', () => {
         onAssignPlayer={vi.fn()}
         onAdjustScore={vi.fn()}
         onUpdatePlayerNotes={vi.fn()}
+        onCreateTeam={vi.fn()}
       />
     )
     await userEvent.click(screen.getByRole('button', { name: 'Add player' }))
@@ -353,6 +360,7 @@ describe('RosterPanel', () => {
         onAssignPlayer={onAssignPlayer}
         onAdjustScore={vi.fn()}
         onUpdatePlayerNotes={vi.fn()}
+        onCreateTeam={vi.fn()}
       />
     )
     await userEvent.selectOptions(screen.getByLabelText('Assign Charlie to team'), 't1')
@@ -371,6 +379,7 @@ describe('RosterPanel', () => {
         onAssignPlayer={onAssignPlayer}
         onAdjustScore={vi.fn()}
         onUpdatePlayerNotes={vi.fn()}
+        onCreateTeam={vi.fn()}
       />
     )
     await userEvent.click(screen.getByLabelText('Select Alice'))
@@ -393,6 +402,7 @@ describe('RosterPanel', () => {
         onAssignPlayer={vi.fn()}
         onAdjustScore={vi.fn()}
         onUpdatePlayerNotes={vi.fn()}
+        onCreateTeam={vi.fn()}
       />
     )
     await userEvent.click(screen.getByLabelText('Select Alice'))
@@ -413,6 +423,7 @@ describe('RosterPanel', () => {
         onAssignPlayer={vi.fn()}
         onAdjustScore={vi.fn()}
         onUpdatePlayerNotes={onUpdatePlayerNotes}
+        onCreateTeam={vi.fn()}
       />
     )
     await userEvent.click(screen.getByRole('button', { name: 'Alice notes' }))

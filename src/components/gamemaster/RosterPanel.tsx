@@ -3,6 +3,7 @@ import {
   CircleDot,
   EyeOff,
   LogOut,
+  NotebookText,
   Plus,
   StickyNote,
   UserX,
@@ -10,7 +11,8 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { Icon, Button, Input } from '@/components/ui'
-import { canAssignToTeam, isConnected } from '@/pages/admin/gamemaster-utils'
+import { canAssignToTeam, canCreateTeam, isConnected } from '@/pages/admin/gamemaster-utils'
+import { resolveIcon, TEAM_COLOURS } from '@/components/players-teams/teamIcons'
 import { RosterBulkActionBar } from './RosterBulkActionBar'
 import type { Game, Player, PlayerPresence, Team } from '@/db'
 
@@ -23,6 +25,7 @@ interface RosterPanelProps {
   onAssignPlayer: (playerId: string, teamId: string | null) => Promise<void>
   onAdjustScore: (playerId: string, delta: number) => Promise<void>
   onUpdatePlayerNotes: (playerId: string, notes: string) => Promise<void>
+  onCreateTeam: (name: string, color: string, icon: string) => Promise<void>
   /**
    * Controls the selection from outside (e.g. clicking a team row elsewhere selects its
    * members). Omit both to let the panel manage its own selection.
@@ -80,6 +83,7 @@ export function RosterPanel({
   onAssignPlayer,
   onAdjustScore,
   onUpdatePlayerNotes,
+  onCreateTeam,
   selected: controlledSelected,
   onSelectedChange,
 }: RosterPanelProps) {
@@ -89,20 +93,22 @@ export function RosterPanel({
   const [adding, setAdding] = useState(false)
   const [newName, setNewName] = useState('')
   const [newTeamId, setNewTeamId] = useState('')
+  const [addingTeam, setAddingTeam] = useState(false)
+  const [newTeamName, setNewTeamName] = useState('')
   const [busy, setBusy] = useState(false)
 
-  const teamMap = new Map(teams.map(t => [t.id, t]))
-  const count = (presence: PlayerPresence) => players.filter(p => p.presence === presence).length
-  const onlineCount = count('connected')
-  const hiddenCount = count('hidden')
-  const disconnectedCount = count('disconnected')
-  const summary = [
-    `${onlineCount} connected`,
-    hiddenCount > 0 && `${hiddenCount} tab hidden`,
-    disconnectedCount > 0 && `${disconnectedCount} disconnected`,
-  ]
-    .filter(Boolean)
-    .join(' · ')
+  const onlineCount = players.filter(p => p.presence === 'connected').length
+  const hiddenCount = players.filter(p => p.presence === 'hidden').length
+  const summary =
+    `Connected ${onlineCount}/${players.length}` +
+    (hiddenCount > 0 ? ` · ${hiddenCount} tab hidden` : '')
+
+  const groups = teams.map(team => ({
+    team,
+    members: players.filter(p => p.teamId === team.id),
+  }))
+  const noTeam = players.filter(p => !p.teamId)
+  const teamAtCap = !canCreateTeam(game, teams.length)
 
   const allIds = players.map(p => p.id)
   const allSelected = allIds.length > 0 && allIds.every(id => selected.has(id))
@@ -118,6 +124,10 @@ export function RosterPanel({
     setSelected(allSelected ? new Set() : new Set(allIds))
   }
 
+  function selectTeamMembers(teamId: string) {
+    setSelected(new Set(players.filter(p => p.teamId === teamId).map(p => p.id)))
+  }
+
   async function handleAdd() {
     const trimmed = newName.trim()
     if (!trimmed) return
@@ -127,6 +137,20 @@ export function RosterPanel({
       setNewName('')
       setNewTeamId('')
       setAdding(false)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleAddTeam() {
+    const trimmed = newTeamName.trim()
+    if (!trimmed || teamAtCap) return
+    setBusy(true)
+    try {
+      const color = TEAM_COLOURS[teams.length % TEAM_COLOURS.length]
+      await onCreateTeam(trimmed, color, 'Shield')
+      setNewTeamName('')
+      setAddingTeam(false)
     } finally {
       setBusy(false)
     }
@@ -159,12 +183,55 @@ export function RosterPanel({
           >
             {summary}
           </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setAddingTeam(a => !a)}
+            disabled={teamAtCap}
+          >
+            <Icon icon={Plus} size="sm" />
+            Add team
+          </Button>
           <Button size="sm" variant="ghost" onClick={() => setAdding(a => !a)}>
             <Icon icon={Plus} size="sm" />
             Add player
           </Button>
         </div>
       </div>
+
+      {/* Add team form */}
+      {addingTeam && (
+        <div
+          className="px-4 py-3 border-b flex items-end gap-2"
+          style={{ borderColor: 'var(--color-border)' }}
+        >
+          <div className="flex-1">
+            <Input
+              label="Name"
+              placeholder="Team name"
+              value={newTeamName}
+              onChange={e => setNewTeamName(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') void handleAddTeam()
+              }}
+              maxLength={40}
+              autoFocus
+              aria-label="New team name"
+            />
+          </div>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => void handleAddTeam()}
+            disabled={busy || !newTeamName.trim()}
+          >
+            Add
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setAddingTeam(false)}>
+            Cancel
+          </Button>
+        </div>
+      )}
 
       {/* Add player form */}
       {adding && (
@@ -239,8 +306,8 @@ export function RosterPanel({
         </div>
       )}
 
-      {/* Player rows */}
-      <div className="flex-1 overflow-y-auto" style={{ maxHeight: 320 }}>
+      {/* Player rows, grouped by team */}
+      <div className="flex-1 overflow-y-auto" style={{ maxHeight: 400 }}>
         {players.length === 0 ? (
           <div className="flex items-center justify-center py-10">
             <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
@@ -248,21 +315,61 @@ export function RosterPanel({
             </p>
           </div>
         ) : (
-          players.map(player => (
-            <PlayerRow
-              key={player.id}
-              game={game}
-              player={player}
-              players={players}
-              team={player.teamId ? teamMap.get(player.teamId) : undefined}
-              teams={teams}
-              checked={selected.has(player.id)}
-              onToggle={() => toggleOne(player.id)}
-              onAssignPlayer={onAssignPlayer}
-              onKick={onKick}
-              onUpdateNotes={onUpdatePlayerNotes}
-            />
-          ))
+          <>
+            {groups.map(({ team, members }) => (
+              <div key={team.id}>
+                <TeamGroupHeader
+                  team={team}
+                  connected={members.filter(p => p.presence === 'connected').length}
+                  total={members.length}
+                  onSelect={() => selectTeamMembers(team.id)}
+                />
+                {members.map(player => (
+                  <PlayerRow
+                    key={player.id}
+                    game={game}
+                    player={player}
+                    players={players}
+                    team={team}
+                    teams={teams}
+                    checked={selected.has(player.id)}
+                    onToggle={() => toggleOne(player.id)}
+                    onAssignPlayer={onAssignPlayer}
+                    onKick={onKick}
+                    onUpdateNotes={onUpdatePlayerNotes}
+                  />
+                ))}
+              </div>
+            ))}
+
+            {noTeam.length > 0 && (
+              <div>
+                {teams.length > 0 && (
+                  <div
+                    className="px-4 py-1.5 text-xs font-semibold uppercase tracking-wider"
+                    style={{ color: 'var(--color-muted)', background: 'var(--color-cream)' }}
+                  >
+                    No team
+                  </div>
+                )}
+                {noTeam.map(player => (
+                  <PlayerRow
+                    key={player.id}
+                    game={game}
+                    player={player}
+                    players={players}
+                    team={undefined}
+                    teams={teams}
+                    checked={selected.has(player.id)}
+                    onToggle={() => toggleOne(player.id)}
+                    onAssignPlayer={onAssignPlayer}
+                    onKick={onKick}
+                    onUpdateNotes={onUpdatePlayerNotes}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -278,6 +385,49 @@ export function RosterPanel({
           />
         </div>
       )}
+    </div>
+  )
+}
+
+/** A clickable team header within the grouped roster: click to select all its members. */
+function TeamGroupHeader({
+  team,
+  connected,
+  total,
+  onSelect,
+}: {
+  team: Team
+  connected: number
+  total: number
+  onSelect: () => void
+}) {
+  const TeamIcon = resolveIcon(team.icon)
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onSelect}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onSelect()
+        }
+      }}
+      aria-label={`Select ${team.name}'s members`}
+      className="flex items-center gap-2 px-4 py-1.5 cursor-pointer transition-colors hover:bg-black/5"
+      style={{ background: 'var(--color-cream)' }}
+    >
+      <span
+        className="w-5 h-5 rounded flex items-center justify-center shrink-0 text-white"
+        style={{ background: team.color }}
+        aria-hidden
+      >
+        <Icon icon={TeamIcon} size="sm" />
+      </span>
+      <span className="flex-1 text-xs font-semibold truncate">{team.name}</span>
+      <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
+        Connected {connected}/{total}
+      </span>
     </div>
   )
 }
@@ -384,7 +534,7 @@ function PlayerRow({
           title="Notes"
           style={{ padding: '0.25rem', color: player.notes ? 'var(--color-gold)' : undefined }}
         >
-          <Icon icon={StickyNote} size="sm" aria-hidden />
+          <Icon icon={player.notes ? NotebookText : StickyNote} size="sm" aria-hidden />
         </Button>
 
         {/* Kick button */}

@@ -49,6 +49,22 @@ async function sendRunningTimers(connId: string, gameId: string) {
   runningTimerEvents(timers, Date.now()).forEach(e => transportManager.sendTo(connId, e))
 }
 
+/** A short, readable description of who a MESSAGE went to, for the game log. */
+function describeMessageTarget(target: MessageTarget, players: Player[], teams: Team[]): string {
+  switch (target.kind) {
+    case 'everyone':
+      return 'Everyone'
+    case 'players':
+      return 'All players'
+    case 'screens':
+      return 'Screens'
+    case 'team':
+      return teams.find(t => t.id === target.teamId)?.name ?? 'A team'
+    case 'player':
+      return players.find(p => p.id === target.playerId)?.name ?? 'A player'
+  }
+}
+
 // Requests waiting for the GM beyond these are turned away, so a flood of connections
 // cannot fill the lobby
 const MAX_PENDING_JOINS = 100
@@ -607,9 +623,15 @@ export default function GameMaster() {
         players
       )
       for (const connId of recipients) transportManager.sendTo(connId, { type: 'MESSAGE', text })
+      const g = gameRef.current
+      if (g && text) {
+        logEvent(g.id, 'message_sent', {
+          data: { name: describeMessageTarget(target, players, teams), label: text },
+        })
+      }
       return recipients.length
     },
-    [players]
+    [players, teams]
   )
 
   // Kick player — mark as kicked in DB + state, broadcast updated game state
@@ -866,6 +888,7 @@ export default function GameMaster() {
           onAssignPlayer={handleAssignPlayer}
           onAdjustScore={handleAdjustScore}
           onUpdatePlayerNotes={handleUpdatePlayerNotes}
+          onCreateTeam={handleCreateTeam}
           onQuestionContent={handleQuestionContent}
           onScreenContent={handleScreenContent}
           screens={screens}

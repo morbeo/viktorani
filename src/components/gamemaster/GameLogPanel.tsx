@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import Fuse from 'fuse.js'
-import { ArrowDown, ArrowUp, Download, X } from 'lucide-react'
-import { Button, Icon, Input, Select } from '@/components/ui'
+import { ArrowDown, ArrowUp, Download, Filter } from 'lucide-react'
+import { Button, Icon, Input, Modal, Select } from '@/components/ui'
 import { db } from '@/db'
 import type { Game } from '@/db'
 import {
@@ -58,27 +58,61 @@ function SortHeader({
   )
 }
 
-function KindChip({
-  kind,
-  active,
+function KindFilterButton({
+  kinds,
+  selected,
   onToggle,
+  onClear,
 }: {
-  kind: LogRowKind
-  active: boolean
+  kinds: LogRowKind[]
+  selected: Set<LogRowKind>
   onToggle: (kind: LogRowKind) => void
+  onClear: () => void
 }) {
+  const [open, setOpen] = useState(false)
   return (
-    <button
-      onClick={() => onToggle(kind)}
-      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border transition-all"
-      style={{
-        borderColor: active ? 'var(--color-gold)' : 'var(--color-border)',
-        background: active ? 'var(--color-gold)' : 'transparent',
-        color: active ? '#fff' : 'var(--color-muted)',
-      }}
-    >
-      {LOG_KIND_LABELS[kind]}
-    </button>
+    <>
+      <Button
+        size="sm"
+        variant={selected.size > 0 ? 'primary' : 'secondary'}
+        onClick={() => setOpen(true)}
+      >
+        <Icon icon={Filter} size="sm" />
+        Kinds{selected.size > 0 ? ` (${selected.size})` : ''}
+      </Button>
+      <Modal open={open} onClose={() => setOpen(false)} title="Filter by kind" maxWidth="320px">
+        <div className="flex flex-col gap-1.5" style={{ maxHeight: 320, overflowY: 'auto' }}>
+          {kinds.map(k => (
+            <label key={k} className="flex items-center gap-2 text-sm cursor-pointer py-0.5">
+              <input
+                type="checkbox"
+                checked={selected.has(k)}
+                onChange={() => onToggle(k)}
+                className="w-4 h-4 cursor-pointer"
+                style={{ accentColor: 'var(--color-ink)' }}
+              />
+              {LOG_KIND_LABELS[k]}
+            </label>
+          ))}
+        </div>
+        <div
+          className="flex items-center justify-between pt-3 mt-2 border-t"
+          style={{ borderColor: 'var(--color-border)' }}
+        >
+          <button
+            onClick={onClear}
+            disabled={selected.size === 0}
+            className="text-xs underline disabled:no-underline disabled:opacity-40"
+            style={{ color: 'var(--color-muted)' }}
+          >
+            Clear
+          </button>
+          <Button size="sm" variant="primary" onClick={() => setOpen(false)}>
+            Done
+          </Button>
+        </div>
+      </Modal>
+    </>
   )
 }
 
@@ -239,32 +273,28 @@ export function GameLogPanel({ game }: { game: Game }) {
             ...roundOptions.map(r => ({ value: r, label: r })),
           ]}
         />
+        {kindsPresent.length > 0 && (
+          <KindFilterButton
+            kinds={kindsPresent}
+            selected={selectedKinds}
+            onToggle={toggleKind}
+            onClear={() => setSelectedKinds(new Set())}
+          />
+        )}
+        {hasFilters && (
+          <button
+            onClick={() => {
+              setSelectedKinds(new Set())
+              setSelectedWho('')
+              setSelectedRound('')
+            }}
+            className="text-xs underline"
+            style={{ color: 'var(--color-muted)' }}
+          >
+            Clear filters
+          </button>
+        )}
       </div>
-
-      {kindsPresent.length > 0 && (
-        <div
-          className="px-4 py-2 border-b flex flex-wrap items-center gap-1.5"
-          style={{ borderColor: 'var(--color-border)' }}
-        >
-          {kindsPresent.map(k => (
-            <KindChip key={k} kind={k} active={selectedKinds.has(k)} onToggle={toggleKind} />
-          ))}
-          {hasFilters && (
-            <button
-              onClick={() => {
-                setSelectedKinds(new Set())
-                setSelectedWho('')
-                setSelectedRound('')
-              }}
-              className="inline-flex items-center gap-1 text-xs"
-              style={{ color: 'var(--color-muted)' }}
-            >
-              <Icon icon={X} size="sm" aria-hidden />
-              Clear filters
-            </button>
-          )}
-        </div>
-      )}
 
       {rows.length === 0 ? (
         <p className="text-sm text-center py-8" style={{ color: 'var(--color-muted)' }}>

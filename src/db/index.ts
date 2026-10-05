@@ -313,6 +313,7 @@ export type GameLogKind =
   | 'screen_approved'
   | 'screen_rejected'
   | 'screen_disconnected'
+  | 'message_sent'
 
 /**
  * One entry in a game's log. Buzzes, rulings and score changes are not copied here: the
