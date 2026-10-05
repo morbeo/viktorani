@@ -92,11 +92,18 @@ export function messageRecipients(
 /** Colours given to teams players create themselves, in creation order. */
 const PLAYER_TEAM_COLORS = ['#e74c3c', '#2ecc71', '#3a57b7', '#f1c40f', '#8e44ad', '#1abc9c']
 
+/** An existing player whose stored device doesn't match the device that just joined. */
+export interface DeviceMismatch {
+  playerId: string
+  previousDeviceId: string
+}
+
 /**
  * Outcome of a JOIN under the game's join policy. An accepted join carries the player
  * record to save and, when the player asked for a new team, the team to create first.
  * `rejoin` is `true` when the device's earlier player record was restored, and `kicked`
- * when that record was saved as kicked.
+ * when that record was saved as kicked. `deviceMismatch` is set when another player in
+ * this game already has the same name but a different, non-empty device id.
  */
 export type JoinResult =
   | {
@@ -105,6 +112,7 @@ export type JoinResult =
       newTeam: Team | null
       rejoin: boolean
       kicked: boolean
+      deviceMismatch: DeviceMismatch | null
     }
   | { status: 'rejected'; reason: string }
 
@@ -128,6 +136,9 @@ export type JoinResult =
  *   `MAX_LOBBY_TEAMS`), and joins an existing team of the same name. Joining without a
  *   team needs `allowIndividual`.
  * - `requireApproval` is not checked here: the caller queues accepted new players.
+ * - `deviceMismatch` flags a same-name, different-device collision: an existing player in
+ *   this game (connected or not) has the same name, trimmed and case-insensitive, but a
+ *   different, non-empty device id. It never blocks the join — it's a signal for the host.
  *
  * The caller must handle one JOIN at a time and save the result before resolving the
  * next, or concurrent joins could exceed the team limits.
@@ -151,6 +162,22 @@ export async function resolveJoin(game: Game, join: JoinEvent): Promise<JoinResu
     Date.now() - previous.disconnectedAt <= game.rejoinWindowSeconds * 1000
   const rejoinOk = game.allowRejoin && (previous?.presence === 'kicked' || withinRejoinWindow)
   const existing = rejoinOk ? previous : undefined
+
+  // Someone else in this game already has this name, from a different device — surfaced to
+  // the host as a warning, never blocked. A matched `existing` player's own deviceId equals
+  // `join.deviceId` by definition, so it never flags itself.
+  const normalizedName = join.playerName.trim().toLowerCase()
+  const nameCollision = normalizedName
+    ? players.find(
+        p =>
+          p.name.trim().toLowerCase() === normalizedName &&
+          p.deviceId !== '' &&
+          p.deviceId !== join.deviceId
+      )
+    : undefined
+  const deviceMismatch: DeviceMismatch | null = nameCollision
+    ? { playerId: nameCollision.id, previousDeviceId: nameCollision.deviceId }
+    : null
 
   if (!existing && game.status !== 'waiting' && !game.allowLateJoin) {
     return { status: 'rejected', reason: 'The game has already started' }
@@ -219,5 +246,6 @@ export async function resolveJoin(game: Game, join: JoinEvent): Promise<JoinResu
     newTeam,
     rejoin: !!existing,
     kicked: existing?.presence === 'kicked',
+    deviceMismatch,
   }
 }
