@@ -74,6 +74,7 @@ export const GameSchema = z
       .optional(),
     maxTeams: z.number().default(0),
     maxPerTeam: z.number().default(0),
+    maxPlayers: z.number().default(0),
     allowIndividual: z.boolean().default(true),
     allowLateJoin: z.boolean().default(true),
     allowRejoin: z.boolean().default(true),

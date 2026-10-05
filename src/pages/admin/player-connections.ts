@@ -118,6 +118,7 @@ export type JoinResult =
  *   joins as a new player. An empty `deviceId` (players imported by the host have one)
  *   never matches.
  * - New players are refused once the game has started unless `allowLateJoin` is on.
+ * - New players are refused once the game has `maxPlayers` already, regardless of teams.
  * - `teamId` must name a team of this game with room left (`maxPerTeam`); `newTeamName`
  *   needs `allowPlayerTeams` and room for another team (`maxTeams`, and never more than
  *   `MAX_LOBBY_TEAMS`), and joins an existing team of the same name. Joining without a
@@ -139,6 +140,9 @@ export async function resolveJoin(game: Game, join: JoinEvent): Promise<JoinResu
 
   if (!existing && game.status !== 'waiting' && !game.allowLateJoin) {
     return { status: 'rejected', reason: 'The game has already started' }
+  }
+  if (!existing && game.maxPlayers > 0 && players.length >= game.maxPlayers) {
+    return { status: 'rejected', reason: 'This game is full' }
   }
 
   let teamId: string | null = null

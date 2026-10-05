@@ -125,6 +125,7 @@ function game(overrides: Partial<Game> = {}): Game {
     },
     maxTeams: 0,
     maxPerTeam: 0,
+    maxPlayers: 0,
     allowIndividual: true,
     allowLateJoin: true,
     allowRejoin: true,
@@ -239,6 +240,13 @@ describe('resolveJoin', () => {
     const g = game({ maxPerTeam: 1 })
     expect(await rejection(g, { ...JOIN, teamId: 't1' })).toBe('That team is full')
     expect(await rejection(g, { ...JOIN, deviceId: 'dev-b', teamId: 't1' })).toBeNull()
+  })
+
+  it('refuses a new player once the game is full but lets an existing one rejoin', async () => {
+    await db.players.add(player({ id: 'p2', deviceId: 'dev-b' }))
+    const g = game({ maxPlayers: 1 })
+    expect(await rejection(g, JOIN)).toBe('This game is full')
+    expect(await rejection(g, { ...JOIN, deviceId: 'dev-b' })).toBeNull()
   })
 
   it('creates a player team only when allowed and within the team limit', async () => {

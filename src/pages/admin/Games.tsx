@@ -391,6 +391,7 @@ function GameWizard({
         visibility: state.visibility,
         maxTeams: state.maxTeams,
         maxPerTeam: state.maxPerTeam,
+        maxPlayers: state.maxPlayers,
         allowIndividual: state.allowIndividual,
         allowLateJoin: state.allowLateJoin,
         allowRejoin: state.allowRejoin,

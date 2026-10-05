@@ -125,7 +125,7 @@ describe('GameSettingsForm', () => {
     expect(onChange).toHaveBeenLastCalledWith({ maxTeams: 2 })
     await userEvent.click(screen.getByRole('button', { name: 'No limit for Max teams' }))
     expect(onChange).toHaveBeenLastCalledWith({ maxTeams: 0 })
-    expect(screen.getAllByText('No limit')).toHaveLength(2)
+    expect(screen.getAllByText('No limit')).toHaveLength(3)
   })
 
   it('changes the buzz display with the segmented control', async () => {

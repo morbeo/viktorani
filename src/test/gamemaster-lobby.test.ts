@@ -24,6 +24,7 @@ const BASE_GAME: Game = {
   },
   maxTeams: 0,
   maxPerTeam: 0,
+  maxPlayers: 0,
   allowIndividual: true,
   allowLateJoin: true,
   allowRejoin: true,

@@ -174,6 +174,8 @@ export interface Game {
   maxTeams: number
   /** Maximum players per team; `0` means unlimited. */
   maxPerTeam: number
+  /** Maximum total players in the game, teamed or not; `0` means unlimited. */
+  maxPlayers: number
   allowIndividual: boolean
   // Join policy (the GM can change these mid-game)
   /** Players may join after the game has started. */
@@ -438,6 +440,7 @@ export interface GameQuestion {
  * - 11: same stores; back-fills `Game.buzzerEnabled` (`true`) on existing games.
  * - 12: same stores; back-fills `Team.notes` (`''`) on existing teams.
  * - 13: same stores; back-fills `Player.notes` (`''`) on existing players.
+ * - 14: same stores; back-fills `Game.maxPlayers` (`0`, unlimited) on existing games.
  *
  * To change the schema, add a new `this.version(N + 1)` block below; keep existing blocks.
  */
@@ -564,6 +567,17 @@ export class ViktoraniDB extends Dexie {
           .toCollection()
           .modify((p: Partial<Player>) => {
             p.notes ??= ''
+          })
+      )
+
+    this.version(14)
+      .stores({})
+      .upgrade(tx =>
+        tx
+          .table('games')
+          .toCollection()
+          .modify((g: Partial<Game>) => {
+            g.maxPlayers ??= 0
           })
       )
   }
