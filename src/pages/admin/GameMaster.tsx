@@ -24,7 +24,7 @@ import { useAppSettings } from '@/hooks/useAppSettings'
 import { hostNow } from '@/hooks/useBuzzer'
 import { runningTimerEvents } from '@/hooks/useTimer'
 import { useGameLifecycle } from '@/hooks/useGameLifecycle'
-import { buildScoreEntries, readScores } from '@/hooks/useScoreboard'
+import { adjustScore, buildScoreEntries, readScores } from '@/hooks/useScoreboard'
 import { buildLogRows, toPublicLogEntries } from '@/lib/game-log-rows'
 import { PlayerConnections, messageRecipients, resolveJoin } from '@/pages/admin/player-connections'
 import type { JoinResult, MessageTarget, PendingJoin } from '@/pages/admin/player-connections'
@@ -692,6 +692,33 @@ export default function GameMaster() {
     transportManager.send({ type: 'GAME_STATE', state: serialiseGameState(g, scores) })
   }, [])
 
+  // Host-added player: no device or connection, created directly from the roster
+  const handleAddPlayer = useCallback(async (name: string, teamId: string | null) => {
+    const g = gameRef.current
+    if (!g) return
+    const player: Player = {
+      id: crypto.randomUUID(),
+      gameId: g.id,
+      name,
+      teamId,
+      score: 0,
+      presence: 'connected',
+      deviceId: crypto.randomUUID(),
+      joinedAt: Date.now(),
+    }
+    await db.players.add(player)
+    setPlayers(prev => upsertPlayer(prev, player))
+    logEvent(g.id, 'player_joined', { actorId: player.id, subjectId: player.id, data: { name } })
+  }, [])
+
+  const handleAdjustScore = useCallback(async (playerId: string, delta: number) => {
+    const g = gameRef.current
+    if (!g) return
+    await adjustScore(g.id, playerId, 'player', delta)
+    const updated = await db.players.get(playerId)
+    if (updated) setPlayers(prev => upsertPlayer(prev, updated))
+  }, [])
+
   // Start the game
   async function handleStart() {
     if (!game) return
@@ -771,8 +798,10 @@ export default function GameMaster() {
             onStart={handleStart}
             starting={starting}
             onKick={handleKick}
-            onCreateTeam={handleCreateTeam}
+            onAddPlayer={handleAddPlayer}
             onAssignPlayer={handleAssignPlayer}
+            onAdjustScore={handleAdjustScore}
+            onCreateTeam={handleCreateTeam}
             onImportFromManaged={handleImportFromManaged}
             onGameChange={applyGamePatch}
             pendingJoins={pendingJoins}
@@ -802,6 +831,9 @@ export default function GameMaster() {
           players={players}
           teams={teams}
           onKick={handleKick}
+          onAddPlayer={handleAddPlayer}
+          onAssignPlayer={handleAssignPlayer}
+          onAdjustScore={handleAdjustScore}
           onQuestionContent={handleQuestionContent}
           onScreenContent={handleScreenContent}
           screens={screens}

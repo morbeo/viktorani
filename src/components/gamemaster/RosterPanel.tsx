@@ -1,13 +1,18 @@
-import { CircleDot, EyeOff, LogOut, UserX, WifiOff, type LucideIcon } from 'lucide-react'
-import { Icon, Button } from '@/components/ui'
-import { resolveIcon } from '@/components/players-teams/teamIcons'
-import { isConnected } from '@/pages/admin/gamemaster-utils'
-import type { Player, PlayerPresence, Team } from '@/db'
+import { useState } from 'react'
+import { CircleDot, EyeOff, LogOut, Plus, UserX, WifiOff, type LucideIcon } from 'lucide-react'
+import { Icon, Button, Input } from '@/components/ui'
+import { canAssignToTeam, isConnected } from '@/pages/admin/gamemaster-utils'
+import { RosterBulkActionBar } from './RosterBulkActionBar'
+import type { Game, Player, PlayerPresence, Team } from '@/db'
 
 interface RosterPanelProps {
+  game: Game
   players: Player[]
   teams: Team[]
   onKick: (playerId: string) => void
+  onAddPlayer: (name: string, teamId: string | null) => Promise<void>
+  onAssignPlayer: (playerId: string, teamId: string | null) => Promise<void>
+  onAdjustScore: (playerId: string, delta: number) => Promise<void>
 }
 
 /** How each presence is shown: icon, colour, short label and what it means. */
@@ -33,18 +38,38 @@ const PRESENCE: Record<
     label: 'Disconnected',
     meaning: 'Not connected. They can rejoin from their device if rejoining is allowed.',
   },
-  left: { icon: LogOut, color: 'var(--color-muted)', label: 'Left', meaning: 'They left the game.' },
+  left: {
+    icon: LogOut,
+    color: 'var(--color-muted)',
+    label: 'Left',
+    meaning: 'They left the game.',
+  },
   kicked: { icon: UserX, color: 'var(--color-red)', label: 'Kicked', meaning: 'You removed them.' },
 }
 
 /**
- * Live roster panel for the GameMaster lobby.
- * Shows each player's name, team badge, score, and presence (see {@link PRESENCE}).
- * Provides a kick action.
+ * Live roster panel for the GameMaster.
+ * Shows each player's name, team (assignable here), score, and presence (see {@link PRESENCE}).
+ * Players can be added directly, multi-selected for bulk team assignment, score adjustment
+ * and kicking (see {@link RosterBulkActionBar}), or kicked one at a time.
  *
  * The header counts connected players, with tab-hidden and disconnected ones listed apart.
  */
-export function RosterPanel({ players, teams, onKick }: RosterPanelProps) {
+export function RosterPanel({
+  game,
+  players,
+  teams,
+  onKick,
+  onAddPlayer,
+  onAssignPlayer,
+  onAdjustScore,
+}: RosterPanelProps) {
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [adding, setAdding] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newTeamId, setNewTeamId] = useState('')
+  const [busy, setBusy] = useState(false)
+
   const teamMap = new Map(teams.map(t => [t.id, t]))
   const count = (presence: PlayerPresence) => players.filter(p => p.presence === presence).length
   const onlineCount = count('connected')
@@ -58,6 +83,36 @@ export function RosterPanel({ players, teams, onKick }: RosterPanelProps) {
     .filter(Boolean)
     .join(' · ')
 
+  const allIds = players.map(p => p.id)
+  const allSelected = allIds.length > 0 && allIds.every(id => selected.has(id))
+
+  function toggleOne(id: string) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleAll() {
+    setSelected(allSelected ? new Set() : new Set(allIds))
+  }
+
+  async function handleAdd() {
+    const trimmed = newName.trim()
+    if (!trimmed) return
+    setBusy(true)
+    try {
+      await onAddPlayer(trimmed, newTeamId || null)
+      setNewName('')
+      setNewTeamId('')
+      setAdding(false)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div
       className="rounded-xl border flex flex-col"
@@ -65,7 +120,7 @@ export function RosterPanel({ players, teams, onKick }: RosterPanelProps) {
     >
       {/* Header */}
       <div
-        className="px-4 py-3 border-b flex items-center justify-between"
+        className="px-4 py-3 border-b flex items-center justify-between gap-2"
         style={{ borderColor: 'var(--color-border)' }}
       >
         <span
@@ -74,17 +129,96 @@ export function RosterPanel({ players, teams, onKick }: RosterPanelProps) {
         >
           Players
         </span>
-        <span
-          className="text-xs font-bold px-2 py-0.5 rounded-full"
-          style={{
-            background: onlineCount > 0 ? 'var(--color-green)22' : 'var(--color-border)',
-            color: onlineCount > 0 ? 'var(--color-green)' : 'var(--color-muted)',
-          }}
-          aria-live="polite"
-        >
-          {summary}
-        </span>
+        <div className="flex items-center gap-2">
+          <span
+            className="text-xs font-bold px-2 py-0.5 rounded-full"
+            style={{
+              background: onlineCount > 0 ? 'var(--color-green)22' : 'var(--color-border)',
+              color: onlineCount > 0 ? 'var(--color-green)' : 'var(--color-muted)',
+            }}
+            aria-live="polite"
+          >
+            {summary}
+          </span>
+          <Button size="sm" variant="ghost" onClick={() => setAdding(a => !a)}>
+            <Icon icon={Plus} size="sm" />
+            Add player
+          </Button>
+        </div>
       </div>
+
+      {/* Add player form */}
+      {adding && (
+        <div
+          className="px-4 py-3 border-b flex items-end gap-2"
+          style={{ borderColor: 'var(--color-border)' }}
+        >
+          <div className="flex-1">
+            <Input
+              label="Name"
+              placeholder="Player name"
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') void handleAdd()
+              }}
+              maxLength={40}
+              autoFocus
+              aria-label="New player name"
+            />
+          </div>
+          {teams.length > 0 && (
+            <select
+              value={newTeamId}
+              onChange={e => setNewTeamId(e.target.value)}
+              className="text-xs rounded border px-2 py-2"
+              style={{
+                borderColor: 'var(--color-border)',
+                background: 'var(--color-cream)',
+                color: 'var(--color-ink)',
+              }}
+              aria-label="New player's team"
+            >
+              <option value="">No team</option>
+              {teams.map(team => (
+                <option key={team.id} value={team.id}>
+                  {team.name}
+                </option>
+              ))}
+            </select>
+          )}
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => void handleAdd()}
+            disabled={busy || !newName.trim()}
+          >
+            Add
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setAdding(false)}>
+            Cancel
+          </Button>
+        </div>
+      )}
+
+      {/* Select all */}
+      {players.length > 0 && (
+        <div
+          className="px-4 py-1.5 border-b flex items-center gap-2"
+          style={{ borderColor: 'var(--color-border)' }}
+        >
+          <input
+            type="checkbox"
+            checked={allSelected}
+            onChange={toggleAll}
+            aria-label="Select all players"
+            className="w-3.5 h-3.5 cursor-pointer"
+          />
+          <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
+            {selected.size > 0 ? `${selected.size} selected` : 'Select all'}
+          </span>
+        </div>
+      )}
 
       {/* Player rows */}
       <div className="flex-1 overflow-y-auto" style={{ maxHeight: 320 }}>
@@ -104,6 +238,14 @@ export function RosterPanel({ players, teams, onKick }: RosterPanelProps) {
                 className="flex items-center gap-3 px-4 py-2.5 border-b last:border-b-0"
                 style={{ borderColor: 'var(--color-border)' }}
               >
+                <input
+                  type="checkbox"
+                  checked={selected.has(player.id)}
+                  onChange={() => toggleOne(player.id)}
+                  aria-label={`Select ${player.name}`}
+                  className="w-3.5 h-3.5 cursor-pointer shrink-0"
+                />
+
                 {/* Presence */}
                 <span
                   role="img"
@@ -123,20 +265,31 @@ export function RosterPanel({ players, teams, onKick }: RosterPanelProps) {
                   {player.name}
                 </span>
 
-                {/* Team badge */}
-                {team ? (
-                  <span
-                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium text-white shrink-0"
-                    style={{ background: team.color, maxWidth: 108 }}
-                  >
-                    <Icon icon={resolveIcon(team.icon)} size="sm" aria-hidden />
-                    <span className="truncate">{team.name}</span>
-                  </span>
-                ) : (
-                  <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
-                    no team
-                  </span>
-                )}
+                {/* Team assignment */}
+                <select
+                  value={player.teamId ?? ''}
+                  onChange={e => void onAssignPlayer(player.id, e.target.value || null)}
+                  className="text-xs rounded border px-1.5 py-1 shrink-0"
+                  style={{
+                    borderColor: 'var(--color-border)',
+                    background: team ? team.color : 'var(--color-cream)',
+                    color: team ? '#fff' : 'var(--color-ink)',
+                    maxWidth: 108,
+                  }}
+                  aria-label={`Assign ${player.name} to team`}
+                >
+                  <option value="">No team</option>
+                  {teams.map(t => {
+                    const blocked =
+                      player.teamId !== t.id && !canAssignToTeam(game, t, players, player.id)
+                    return (
+                      <option key={t.id} value={t.id} disabled={blocked}>
+                        {t.name}
+                        {blocked ? ' (full)' : ''}
+                      </option>
+                    )
+                  })}
+                </select>
 
                 {/* Score */}
                 <span
@@ -162,6 +315,19 @@ export function RosterPanel({ players, teams, onKick }: RosterPanelProps) {
           })
         )}
       </div>
+
+      {selected.size > 0 && (
+        <div className="px-4 pb-3">
+          <RosterBulkActionBar
+            selectedIds={selected}
+            teams={teams}
+            onAssignPlayer={onAssignPlayer}
+            onAdjustScore={onAdjustScore}
+            onKick={onKick}
+            onDone={() => setSelected(new Set())}
+          />
+        </div>
+      )}
     </div>
   )
 }

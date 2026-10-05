@@ -53,6 +53,9 @@ export interface ActiveGameProps {
   players: Player[]
   teams: Team[]
   onKick: (playerId: string) => void
+  onAddPlayer: (name: string, teamId: string | null) => Promise<void>
+  onAssignPlayer: (playerId: string, teamId: string | null) => Promise<void>
+  onAdjustScore: (playerId: string, delta: number) => Promise<void>
   /** Receives the players' content for the current question, or `null` when there is none. */
   onQuestionContent: (content: QuestionContent | null) => void
   /** Receives the screen's content for the current question, or `null` when there is none. */
@@ -136,6 +139,9 @@ export function ActiveGame({
   players,
   teams,
   onKick,
+  onAddPlayer,
+  onAssignPlayer,
+  onAdjustScore,
   onQuestionContent,
   onScreenContent,
   screens,
@@ -456,7 +462,15 @@ export function ActiveGame({
                   onReject={onRejectJoin}
                 />
                 <ScreensPanel {...screens} />
-                <RosterPanel players={players} teams={teams} onKick={onKick} />
+                <RosterPanel
+                  game={game}
+                  players={players}
+                  teams={teams}
+                  onKick={onKick}
+                  onAddPlayer={onAddPlayer}
+                  onAssignPlayer={onAssignPlayer}
+                  onAdjustScore={onAdjustScore}
+                />
               </div>
             )}
             {!isEnded && (

@@ -91,6 +91,27 @@ export function changeScore(change: ScoreChange): Promise<boolean> {
   return db.transaction('rw', [db.players, db.teams, db.scoreEvents], () => writeScore(change))
 }
 
+/**
+ * Apply a score delta to a player or team and broadcast the result, outside the
+ * {@link useScoreboard} hook (e.g. from the roster's bulk actions, with no current question).
+ */
+export async function adjustScore(
+  gameId: string,
+  id: string,
+  kind: 'player' | 'team',
+  delta: number
+): Promise<void> {
+  const changed = await changeScore({
+    gameId,
+    id,
+    kind,
+    next: score => applyScoreDelta(score, delta),
+    reason: 'step',
+    questionId: null,
+  })
+  if (changed) await broadcastScores(gameId)
+}
+
 /** A game's score changes, newest first; empty while loading. */
 export function useScoreHistory(gameId: string): ScoreEvent[] {
   return (
