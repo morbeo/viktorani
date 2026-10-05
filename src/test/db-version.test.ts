@@ -83,8 +83,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(14)
-    expect(db.backendDB().version).toBe(140)
+    expect(db.verno).toBe(15)
+    expect(db.backendDB().version).toBe(150)
     expect(db.backendDB().objectStoreNames.contains('managedPlayers')).toBe(true)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
     expect(await db.managedLabels.count()).toBe(0)
@@ -97,8 +97,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(14)
-    expect(db.backendDB().version).toBe(140)
+    expect(db.verno).toBe(15)
+    expect(db.backendDB().version).toBe(150)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
   })
 
@@ -187,5 +187,21 @@ describe('Dexie schema version', () => {
     await db.open()
 
     expect(await db.games.get('g-old')).toMatchObject({ maxPlayers: 0 })
+  })
+
+  it('back-fills sound, confirm-navigation, timer and rejoin defaults (v15)', async () => {
+    const base = { gameId: 'g-old', teamId: null, score: 0, deviceId: 'd', joinedAt: 1 }
+    await seedRawDb(130, V1_STORES, {}, [{ ...base, id: 'p-old', name: 'Old player' }])
+
+    await db.open()
+
+    expect(await db.games.get('g-old')).toMatchObject({
+      soundEffectsMuted: false,
+      confirmUnruledNavigation: false,
+      autoStartTimerOnQuestionShow: false,
+      defaultTimerDuration: 60,
+      rejoinWindowSeconds: 0,
+    })
+    expect(await db.players.get('p-old')).toMatchObject({ disconnectedAt: null })
   })
 })

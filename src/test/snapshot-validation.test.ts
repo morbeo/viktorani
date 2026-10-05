@@ -24,6 +24,7 @@ const GAME = {
   allowIndividual: true,
   allowLateJoin: true,
   allowRejoin: true,
+  rejoinWindowSeconds: 0,
   requireApproval: false,
   allowPlayerTeams: true,
   roundIds: [],
@@ -36,6 +37,10 @@ const GAME = {
   allowFalseStarts: false,
   buzzDeduplication: 'firstOnly',
   tiebreakerMode: 'serverOrder',
+  confirmUnruledNavigation: false,
+  autoStartTimerOnQuestionShow: false,
+  defaultTimerDuration: 60,
+  soundEffectsMuted: false,
   createdAt: now,
   updatedAt: now,
 }

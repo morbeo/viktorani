@@ -13,6 +13,7 @@ function player(id: string, overrides: Partial<Player> = {}): Player {
     teamId: null,
     score: 0,
     presence: 'connected',
+    disconnectedAt: null,
     deviceId: `dev-${id}`,
     joinedAt: 0,
     notes: '',

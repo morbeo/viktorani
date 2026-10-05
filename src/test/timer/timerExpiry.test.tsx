@@ -260,6 +260,68 @@ describe('useTimerExpiry', () => {
     renderHook(() => useTimerExpiry([timer], vi.fn().mockReturnValue(0), vi.fn()))
     expect(transportManager.send).not.toHaveBeenCalled()
   })
+
+  it('does not beep when muted, unlike the unmuted default', () => {
+    const MockAudioContext = vi.fn().mockImplementation(() => ({
+      createOscillator: () => ({
+        connect: vi.fn(),
+        start: vi.fn(),
+        stop: vi.fn(),
+        frequency: { value: 0 },
+        type: '',
+        onended: null,
+      }),
+      createGain: () => ({
+        connect: vi.fn(),
+        gain: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+      }),
+      destination: {},
+      currentTime: 0,
+      close: vi.fn().mockResolvedValue(undefined),
+    }))
+    vi.stubGlobal('AudioContext', MockAudioContext)
+
+    const muted = makeTimer({ paused: false, startedAt: 11111, audioNotify: 'host' })
+    renderHook(() => useTimerExpiry([muted], vi.fn().mockReturnValue(0), vi.fn(), true))
+    expect(MockAudioContext).not.toHaveBeenCalled()
+
+    const unmuted = makeTimer({ paused: false, startedAt: 22222, audioNotify: 'host' })
+    renderHook(() => useTimerExpiry([unmuted], vi.fn().mockReturnValue(0), vi.fn(), false))
+    expect(MockAudioContext).toHaveBeenCalled()
+
+    vi.unstubAllGlobals()
+  })
+
+  it.each(['host', 'both', 'players'] as const)(
+    'sends audio:false in TIMER_EXPIRED when muted, even with audioNotify %s',
+    audioNotify => {
+      vi.mocked(transportManager.send).mockClear()
+      const timer = makeTimer({
+        paused: false,
+        startedAt: 33333,
+        audioNotify,
+        visualNotify: 'players',
+      })
+      renderHook(() => useTimerExpiry([timer], vi.fn().mockReturnValue(0), vi.fn(), true))
+      expect(transportManager.send).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'TIMER_EXPIRED', audio: false })
+      )
+    }
+  )
+
+  it('sends audio:true in TIMER_EXPIRED for the same setup when not muted', () => {
+    vi.mocked(transportManager.send).mockClear()
+    const timer = makeTimer({
+      paused: false,
+      startedAt: 33333,
+      audioNotify: 'both',
+      visualNotify: 'players',
+    })
+    renderHook(() => useTimerExpiry([timer], vi.fn().mockReturnValue(0), vi.fn(), false))
+    expect(transportManager.send).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'TIMER_EXPIRED', audio: true })
+    )
+  })
 })
 
 // ── runningTimerEvents ────────────────────────────────────────────────────────

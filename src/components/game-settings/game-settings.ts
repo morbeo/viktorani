@@ -12,11 +12,16 @@ export type GameSettings = Pick<
   | 'allowPlayerTeams'
   | 'allowLateJoin'
   | 'allowRejoin'
+  | 'rejoinWindowSeconds'
   | 'requireApproval'
   | 'buzzerEnabled'
   | 'autoLockOnFirstCorrect'
   | 'allowFalseStarts'
   | 'buzzDeduplication'
+  | 'confirmUnruledNavigation'
+  | 'autoStartTimerOnQuestionShow'
+  | 'defaultTimerDuration'
+  | 'soundEffectsMuted'
 >
 
 /** A saved set of game settings the host can apply in one click. */
@@ -38,11 +43,16 @@ export const GAME_SETTINGS_KEYS = [
   'allowPlayerTeams',
   'allowLateJoin',
   'allowRejoin',
+  'rejoinWindowSeconds',
   'requireApproval',
   'buzzerEnabled',
   'autoLockOnFirstCorrect',
   'allowFalseStarts',
   'buzzDeduplication',
+  'confirmUnruledNavigation',
+  'autoStartTimerOnQuestionShow',
+  'defaultTimerDuration',
+  'soundEffectsMuted',
 ] as const satisfies ReadonlyArray<keyof GameSettings>
 
 /**
@@ -92,6 +102,7 @@ export function defaultSettings(): GameSettings {
     allowPlayerTeams: true,
     allowLateJoin: true,
     allowRejoin: true,
+    rejoinWindowSeconds: 0,
     requireApproval: false,
     maxTeams: 0,
     maxPerTeam: 0,
@@ -100,6 +111,10 @@ export function defaultSettings(): GameSettings {
     autoLockOnFirstCorrect: false,
     allowFalseStarts: false,
     buzzDeduplication: 'firstOnly',
+    confirmUnruledNavigation: false,
+    autoStartTimerOnQuestionShow: false,
+    defaultTimerDuration: 60,
+    soundEffectsMuted: false,
   }
 }
 

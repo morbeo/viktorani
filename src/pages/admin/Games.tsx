@@ -395,6 +395,7 @@ function GameWizard({
         allowIndividual: state.allowIndividual,
         allowLateJoin: state.allowLateJoin,
         allowRejoin: state.allowRejoin,
+        rejoinWindowSeconds: state.rejoinWindowSeconds,
         requireApproval: state.requireApproval,
         allowPlayerTeams: state.allowPlayerTeams,
         roundIds: state.roundMode === 'custom' ? newRounds.map(r => r.id) : state.selectedRoundIds,
@@ -407,6 +408,10 @@ function GameWizard({
         allowFalseStarts: state.allowFalseStarts,
         buzzDeduplication: state.buzzDeduplication,
         tiebreakerMode: state.tiebreakerMode,
+        confirmUnruledNavigation: state.confirmUnruledNavigation,
+        autoStartTimerOnQuestionShow: state.autoStartTimerOnQuestionShow,
+        defaultTimerDuration: state.defaultTimerDuration,
+        soundEffectsMuted: state.soundEffectsMuted,
         createdAt: now,
         updatedAt: now,
       }

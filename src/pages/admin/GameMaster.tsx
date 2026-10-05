@@ -190,13 +190,24 @@ export default function GameMaster() {
       .equals(id)
       .toArray()
       // The room is opened afresh, so nobody saved as connected is connected yet
-      .then(ps =>
+      .then(ps => {
+        const disconnectedAt = Date.now()
+        const stale = ps.filter(isConnected).map(p => p.id)
         setPlayers(
           ps
-            .map(p => (isConnected(p) ? { ...p, presence: 'disconnected' as const } : p))
+            .map(p =>
+              isConnected(p) ? { ...p, presence: 'disconnected' as const, disconnectedAt } : p
+            )
             .sort((a, b) => a.joinedAt - b.joinedAt)
         )
-      )
+        if (stale.length > 0) {
+          db.players
+            .where('id')
+            .anyOf(stale)
+            .modify({ presence: 'disconnected', disconnectedAt })
+            .catch(err => console.error('[GameMaster] Marking stale players disconnected failed:', err))
+        }
+      })
     db.teams
       .where('gameId')
       .equals(id)
@@ -275,9 +286,14 @@ export default function GameMaster() {
       })
       // Closed while saving: keep the player, disconnected
       if (closedRef.current.has(connId)) {
-        setPlayers(prev => setPlayerPresence(upsertPlayer(prev, player), player.id, 'disconnected'))
+        const disconnectedAt = Date.now()
+        setPlayers(prev =>
+          setPlayerPresence(upsertPlayer(prev, player), player.id, 'disconnected', {
+            disconnectedAt,
+          })
+        )
         db.players
-          .update(player.id, { presence: 'disconnected' })
+          .update(player.id, { presence: 'disconnected', disconnectedAt })
           .catch(err => console.error('[GameMaster] Marking player disconnected failed:', err))
         return
       }
@@ -451,8 +467,9 @@ export default function GameMaster() {
 
       if (event.type === 'LEAVE') {
         connectionsRef.current.unbindConnection(from)
-        await db.players.update(playerId, { presence: 'left' })
-        setPlayers(prev => setPlayerPresence(prev, playerId, 'left'))
+        const disconnectedAt = Date.now()
+        await db.players.update(playerId, { presence: 'left', disconnectedAt })
+        setPlayers(prev => setPlayerPresence(prev, playerId, 'left', { disconnectedAt }))
         logEvent(g.id, 'player_left', { actorId: playerId, subjectId: playerId })
       }
 
@@ -524,9 +541,10 @@ export default function GameMaster() {
       const playerId = connectionsRef.current.unbindConnection(connId)
       if (!playerId) return
       if (gameId) logEvent(gameId, 'player_disconnected', { subjectId: playerId })
-      setPlayers(prev => setPlayerPresence(prev, playerId, 'disconnected'))
+      const disconnectedAt = Date.now()
+      setPlayers(prev => setPlayerPresence(prev, playerId, 'disconnected', { disconnectedAt }))
       db.players
-        .update(playerId, { presence: 'disconnected' })
+        .update(playerId, { presence: 'disconnected', disconnectedAt })
         .catch(err => console.error('[GameMaster] Marking player disconnected failed:', err))
     })
   }, [updatePendingJoins, updatePendingScreens, removeConnectedScreen])
@@ -746,6 +764,7 @@ export default function GameMaster() {
       teamId,
       score: 0,
       presence: 'connected',
+      disconnectedAt: null,
       deviceId: crypto.randomUUID(),
       joinedAt: Date.now(),
       notes: '',

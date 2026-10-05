@@ -22,6 +22,7 @@ const alice: Player = {
   teamId: 't1',
   score: 0,
   presence: 'connected',
+  disconnectedAt: null,
   deviceId: 'd1',
   joinedAt: 0,
   notes: '',

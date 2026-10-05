@@ -182,6 +182,8 @@ export interface Game {
   allowLateJoin: boolean
   /** A known device may rejoin as its existing player after leaving or disconnecting. */
   allowRejoin: boolean
+  /** Seconds a disconnected device has to rejoin as the same player; `0` means no limit. */
+  rejoinWindowSeconds: number
   /** New players wait in the lobby until the GM accepts them. */
   requireApproval: boolean
   /** Players may create their own team when joining. */
@@ -203,6 +205,15 @@ export interface Game {
   allowFalseStarts: boolean
   buzzDeduplication: BuzzDeduplication
   tiebreakerMode: TiebreakerMode
+  /** Ask for confirmation before leaving a question with no ruling (`pending`). */
+  confirmUnruledNavigation: boolean
+  // Timer defaults
+  /** Start a timer automatically whenever a question is shown. */
+  autoStartTimerOnQuestionShow: boolean
+  /** Seconds a new auto-started timer runs for. */
+  defaultTimerDuration: number
+  // Sound
+  soundEffectsMuted: boolean
   // Timestamps
   createdAt: number
   updatedAt: number
@@ -231,6 +242,8 @@ export interface Player {
   score: number
   /** Connection state as the host sees it; see {@link PlayerPresence}. */
   presence: PlayerPresence
+  /** Epoch ms the player was last marked disconnected or left, or `null`. Used for the rejoin window. */
+  disconnectedAt: number | null
   /** Stable browser-local UUID stored in `localStorage` to deduplicate rejoins. */
   deviceId: string
   joinedAt: number
@@ -442,6 +455,10 @@ export interface GameQuestion {
  * - 12: same stores; back-fills `Team.notes` (`''`) on existing teams.
  * - 13: same stores; back-fills `Player.notes` (`''`) on existing players.
  * - 14: same stores; back-fills `Game.maxPlayers` (`0`, unlimited) on existing games.
+ * - 15: same stores; back-fills `Game.soundEffectsMuted` (`false`), `Game.confirmUnruledNavigation`
+ *   (`false`), `Game.autoStartTimerOnQuestionShow` (`false`), `Game.defaultTimerDuration` (`60`)
+ *   and `Game.rejoinWindowSeconds` (`0`, unlimited) on existing games, and `Player.disconnectedAt`
+ *   (`null`) on existing players.
  *
  * To change the schema, add a new `this.version(N + 1)` block below; keep existing blocks.
  */
@@ -581,6 +598,27 @@ export class ViktoraniDB extends Dexie {
             g.maxPlayers ??= 0
           })
       )
+
+    this.version(15)
+      .stores({})
+      .upgrade(async tx => {
+        await tx
+          .table('games')
+          .toCollection()
+          .modify((g: Partial<Game>) => {
+            g.soundEffectsMuted ??= false
+            g.confirmUnruledNavigation ??= false
+            g.autoStartTimerOnQuestionShow ??= false
+            g.defaultTimerDuration ??= 60
+            g.rejoinWindowSeconds ??= 0
+          })
+        await tx
+          .table('players')
+          .toCollection()
+          .modify((p: Partial<Player>) => {
+            p.disconnectedAt ??= null
+          })
+      })
   }
 }
 

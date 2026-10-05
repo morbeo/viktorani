@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { DifficultyLevel, Tag, Question, Round, Game, GameQuestion, Note } from '@/db'
-import { AppSettingsSchema } from '@/lib/app-settings'
+import { AppSettingsSchema, MAX_TIMER_SECONDS } from '@/lib/app-settings'
+import { MAX_LIMIT } from '@/components/game-settings/game-settings'
 
 /**
  * Zod schemas for validating user-supplied JSON imports (backups and question files).
@@ -78,6 +79,7 @@ export const GameSchema = z
     allowIndividual: z.boolean().default(true),
     allowLateJoin: z.boolean().default(true),
     allowRejoin: z.boolean().default(true),
+    rejoinWindowSeconds: z.number().int().min(0).max(MAX_LIMIT).default(0),
     requireApproval: z.boolean().default(false),
     allowPlayerTeams: z.boolean().default(true),
     roundIds: z.array(z.string()),
@@ -91,6 +93,10 @@ export const GameSchema = z
     allowFalseStarts: z.boolean().default(false),
     buzzDeduplication: z.enum(['firstOnly', 'all']).default('firstOnly'),
     tiebreakerMode: z.literal('serverOrder').default('serverOrder'),
+    confirmUnruledNavigation: z.boolean().default(false),
+    autoStartTimerOnQuestionShow: z.boolean().default(false),
+    defaultTimerDuration: z.number().int().min(1).max(MAX_TIMER_SECONDS).default(60),
+    soundEffectsMuted: z.boolean().default(false),
     createdAt: z.number(),
     updatedAt: z.number(),
   })

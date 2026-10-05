@@ -147,6 +147,7 @@ export function upsertPlayer(
     deviceId: incoming.deviceId,
     score: existing?.score ?? 0,
     presence: 'connected',
+    disconnectedAt: null,
     joinedAt: existing?.joinedAt ?? Date.now(),
     notes: existing?.notes ?? '',
   }
@@ -160,9 +161,10 @@ export function upsertPlayer(
 export function setPlayerPresence(
   players: Player[],
   playerId: string,
-  presence: PlayerPresence
+  presence: PlayerPresence,
+  patch: Partial<Player> = {}
 ): Player[] {
-  return players.map(p => (p.id === playerId ? { ...p, presence } : p))
+  return players.map(p => (p.id === playerId ? { ...p, presence, ...patch } : p))
 }
 
 /** True while the player has a connection to the host, whether or not their tab is in view. */
@@ -441,6 +443,7 @@ export function buildManagedImport(params: {
         score: 0,
         // Added by the host, not joined from a device
         presence: 'disconnected',
+        disconnectedAt: null,
         deviceId: '',
         joinedAt: now + i,
         notes: '',

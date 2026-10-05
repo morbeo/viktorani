@@ -249,11 +249,15 @@ export interface ExpiryEvent {
  * The firedRef key is cleared whenever a timer is actively running with
  * time remaining, so a second natural expiry on the same timer correctly
  * re-fires after the previous run's key has been evicted.
+ *
+ * `muted` suppresses both the host beep and the `audio` flag sent to players/screens,
+ * for a game with sound effects muted (`Game.soundEffectsMuted`).
  */
 export function useTimerExpiry(
   timers: Timer[],
   remaining: (id: string) => number,
-  onExpire: (evt: ExpiryEvent) => void
+  onExpire: (evt: ExpiryEvent) => void,
+  muted = false
 ) {
   const firedRef = useRef<Set<string>>(new Set())
 
@@ -280,8 +284,8 @@ export function useTimerExpiry(
       firedRef.current.add(runKey)
 
       logTimer(t, 'timer_expired')
-      if (t.audioNotify === 'host' || t.audioNotify === 'both') playBeep()
-      const audio = t.audioNotify === 'players' || t.audioNotify === 'both'
+      if (!muted && (t.audioNotify === 'host' || t.audioNotify === 'both')) playBeep()
+      const audio = !muted && (t.audioNotify === 'players' || t.audioNotify === 'both')
       const visual = t.visualNotify === 'players' || t.visualNotify === 'both'
       if (audio || visual) {
         transportManager.send({ type: 'TIMER_EXPIRED', id: t.id, label: t.label, audio, visual })
