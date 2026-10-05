@@ -44,7 +44,8 @@ async function seedRawDb(
   nativeVersion: number,
   stores: Record<string, string>,
   game: Record<string, unknown> = {},
-  players: Record<string, unknown>[] = []
+  players: Record<string, unknown>[] = [],
+  teams: Record<string, unknown>[] = []
 ) {
   const req = indexedDB.open(db.name, nativeVersion)
   req.onupgradeneeded = () => {
@@ -55,8 +56,9 @@ async function seedRawDb(
     }
   }
   const raw = await request(req)
-  const tx = raw.transaction(['games', 'players'], 'readwrite')
+  const tx = raw.transaction(['games', 'players', 'teams'], 'readwrite')
   players.forEach(p => tx.objectStore('players').put(p))
+  teams.forEach(t => tx.objectStore('teams').put(t))
   tx.objectStore('games').put({
     id: 'g-old',
     name: 'Old game',
@@ -81,8 +83,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(11)
-    expect(db.backendDB().version).toBe(110)
+    expect(db.verno).toBe(12)
+    expect(db.backendDB().version).toBe(120)
     expect(db.backendDB().objectStoreNames.contains('managedPlayers')).toBe(true)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
     expect(await db.managedLabels.count()).toBe(0)
@@ -95,8 +97,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(11)
-    expect(db.backendDB().version).toBe(110)
+    expect(db.verno).toBe(12)
+    expect(db.backendDB().version).toBe(120)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
   })
 
@@ -154,5 +156,19 @@ describe('Dexie schema version', () => {
     await db.open()
 
     expect(await db.games.get('g-old')).toMatchObject({ buzzerEnabled: true })
+  })
+
+  it('back-fills an empty notes on existing teams (v12)', async () => {
+    await seedRawDb(
+      100,
+      V1_STORES,
+      {},
+      [],
+      [{ id: 't-old', gameId: 'g-old', name: 'Old team', color: '#000', icon: 'Shield', score: 0 }]
+    )
+
+    await db.open()
+
+    expect(await db.teams.get('t-old')).toMatchObject({ notes: '' })
   })
 })

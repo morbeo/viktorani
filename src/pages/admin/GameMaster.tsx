@@ -636,10 +636,31 @@ export default function GameMaster() {
       color,
       icon,
       score: 0,
+      notes: '',
     }
     await db.teams.add(team)
     setTeams(prev => [...prev, team])
     logEvent(g.id, 'team_created', { subjectId: team.id, data: { name } })
+  }, [])
+
+  const handleRenameTeam = useCallback(async (teamId: string, name: string) => {
+    await db.teams.update(teamId, { name })
+    setTeams(prev => prev.map(t => (t.id === teamId ? { ...t, name } : t)))
+  }, [])
+
+  const handleUpdateTeamNotes = useCallback(async (teamId: string, notes: string) => {
+    await db.teams.update(teamId, { notes })
+    setTeams(prev => prev.map(t => (t.id === teamId ? { ...t, notes } : t)))
+  }, [])
+
+  // Delete a session team, unassigning its members rather than removing them
+  const handleDeleteTeam = useCallback(async (teamId: string) => {
+    await db.transaction('rw', db.teams, db.players, async () => {
+      await db.players.where('teamId').equals(teamId).modify({ teamId: null })
+      await db.teams.delete(teamId)
+    })
+    setPlayers(prev => prev.map(p => (p.teamId === teamId ? { ...p, teamId: null } : p)))
+    setTeams(prev => prev.filter(t => t.id !== teamId))
   }, [])
 
   // Import all active managed teams (and their players) into the session
@@ -803,6 +824,9 @@ export default function GameMaster() {
             onAdjustScore={handleAdjustScore}
             onCreateTeam={handleCreateTeam}
             onImportFromManaged={handleImportFromManaged}
+            onRenameTeam={handleRenameTeam}
+            onDeleteTeam={handleDeleteTeam}
+            onUpdateTeamNotes={handleUpdateTeamNotes}
             onGameChange={applyGamePatch}
             pendingJoins={pendingJoins}
             onApproveJoin={id => void handleApproveJoin(id)}

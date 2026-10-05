@@ -13,6 +13,12 @@ interface RosterPanelProps {
   onAddPlayer: (name: string, teamId: string | null) => Promise<void>
   onAssignPlayer: (playerId: string, teamId: string | null) => Promise<void>
   onAdjustScore: (playerId: string, delta: number) => Promise<void>
+  /**
+   * Controls the selection from outside (e.g. clicking a team row elsewhere selects its
+   * members). Omit both to let the panel manage its own selection.
+   */
+  selected?: Set<string>
+  onSelectedChange?: (next: Set<string>) => void
 }
 
 /** How each presence is shown: icon, colour, short label and what it means. */
@@ -63,8 +69,12 @@ export function RosterPanel({
   onAddPlayer,
   onAssignPlayer,
   onAdjustScore,
+  selected: controlledSelected,
+  onSelectedChange,
 }: RosterPanelProps) {
-  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [internalSelected, setInternalSelected] = useState<Set<string>>(new Set())
+  const selected = controlledSelected ?? internalSelected
+  const setSelected = onSelectedChange ?? setInternalSelected
   const [adding, setAdding] = useState(false)
   const [newName, setNewName] = useState('')
   const [newTeamId, setNewTeamId] = useState('')
@@ -87,12 +97,10 @@ export function RosterPanel({
   const allSelected = allIds.length > 0 && allIds.every(id => selected.has(id))
 
   function toggleOne(id: string) {
-    setSelected(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
+    const next = new Set(selected)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    setSelected(next)
   }
 
   function toggleAll() {

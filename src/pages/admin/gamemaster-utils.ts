@@ -414,7 +414,15 @@ export function buildManagedImport(params: {
     if (teamIdByName.has(mt.name)) continue
     const teamId = newId()
     teamIdByName.set(mt.name, teamId)
-    newTeams.push({ id: teamId, gameId, name: mt.name, color: mt.color, icon: mt.icon, score: 0 })
+    newTeams.push({
+      id: teamId,
+      gameId,
+      name: mt.name,
+      color: mt.color,
+      icon: mt.icon,
+      score: 0,
+      notes: '',
+    })
   }
 
   const existingPlayerNames = new Set(params.existingPlayerNames)

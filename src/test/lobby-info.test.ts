@@ -11,7 +11,15 @@ const GAME = {
 } as Game
 
 function team(id: string): Team {
-  return { id, gameId: 'g1', name: `Team ${id}`, color: '#000', icon: 'Shield', score: 0 }
+  return {
+    id,
+    gameId: 'g1',
+    name: `Team ${id}`,
+    color: '#000',
+    icon: 'Shield',
+    score: 0,
+    notes: '',
+  }
 }
 
 function member(id: string, teamId: string): Player {

@@ -92,7 +92,15 @@ describe('deleteGame', () => {
     await createGame(game, rounds)
     await createGame({ ...game, id: 'g2' }, rounds)
     for (const gameId of ['g1', 'g2']) {
-      await db.teams.add({ id: `t-${gameId}`, gameId, name: 'T', color: '', icon: '', score: 0 })
+      await db.teams.add({
+        id: `t-${gameId}`,
+        gameId,
+        name: 'T',
+        color: '',
+        icon: '',
+        score: 0,
+        notes: '',
+      })
       await db.players.add({ id: `p-${gameId}`, gameId } as never)
       await db.buzzEvents.add({ id: `b-${gameId}`, gameId } as never)
       await db.scoreEvents.add({ id: `s-${gameId}`, gameId } as never)
