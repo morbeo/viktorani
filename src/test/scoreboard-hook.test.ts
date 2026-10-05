@@ -24,6 +24,7 @@ const alice: Player = {
   presence: 'connected',
   deviceId: 'd1',
   joinedAt: 0,
+  notes: '',
 }
 
 const team: Team = {

@@ -15,6 +15,7 @@ function player(id: string, overrides: Partial<Player> = {}): Player {
     presence: 'connected',
     deviceId: `dev-${id}`,
     joinedAt: 0,
+    notes: '',
     ...overrides,
   }
 }

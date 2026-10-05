@@ -56,6 +56,7 @@ export interface ActiveGameProps {
   onAddPlayer: (name: string, teamId: string | null) => Promise<void>
   onAssignPlayer: (playerId: string, teamId: string | null) => Promise<void>
   onAdjustScore: (playerId: string, delta: number) => Promise<void>
+  onUpdatePlayerNotes: (playerId: string, notes: string) => Promise<void>
   /** Receives the players' content for the current question, or `null` when there is none. */
   onQuestionContent: (content: QuestionContent | null) => void
   /** Receives the screen's content for the current question, or `null` when there is none. */
@@ -142,6 +143,7 @@ export function ActiveGame({
   onAddPlayer,
   onAssignPlayer,
   onAdjustScore,
+  onUpdatePlayerNotes,
   onQuestionContent,
   onScreenContent,
   screens,
@@ -470,6 +472,7 @@ export function ActiveGame({
                   onAddPlayer={onAddPlayer}
                   onAssignPlayer={onAssignPlayer}
                   onAdjustScore={onAdjustScore}
+                  onUpdatePlayerNotes={onUpdatePlayerNotes}
                 />
               </div>
             )}

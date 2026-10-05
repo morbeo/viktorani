@@ -37,6 +37,7 @@ export interface LobbyProps {
   onAddPlayer: (name: string, teamId: string | null) => Promise<void>
   onAssignPlayer: (playerId: string, teamId: string | null) => Promise<void>
   onAdjustScore: (playerId: string, delta: number) => Promise<void>
+  onUpdatePlayerNotes: (playerId: string, notes: string) => Promise<void>
   onCreateTeam: (name: string, color: string, icon: string) => Promise<void>
   onImportFromManaged: () => Promise<void>
   onRenameTeam: (teamId: string, name: string) => Promise<void>
@@ -64,6 +65,7 @@ export function Lobby({
   onAddPlayer,
   onAssignPlayer,
   onAdjustScore,
+  onUpdatePlayerNotes,
   onCreateTeam,
   onImportFromManaged,
   onRenameTeam,
@@ -128,6 +130,7 @@ export function Lobby({
             onAddPlayer={onAddPlayer}
             onAssignPlayer={onAssignPlayer}
             onAdjustScore={onAdjustScore}
+            onUpdatePlayerNotes={onUpdatePlayerNotes}
             selected={selectedPlayerIds}
             onSelectedChange={setSelectedPlayerIds}
           />
