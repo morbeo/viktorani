@@ -32,6 +32,7 @@ function member(id: string, teamId: string): Player {
     presence: 'connected',
     deviceId: id,
     joinedAt: 0,
+    notes: '',
   }
 }
 

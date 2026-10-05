@@ -51,6 +51,7 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
     presence: 'connected',
     deviceId: 'dev-1',
     joinedAt: 1000,
+    notes: '',
     ...overrides,
   }
 }

@@ -148,6 +148,7 @@ export function upsertPlayer(
     score: existing?.score ?? 0,
     presence: 'connected',
     joinedAt: existing?.joinedAt ?? Date.now(),
+    notes: existing?.notes ?? '',
   }
   const without = players.filter(p => p.id !== incoming.id)
   return [...without, record].sort((a, b) => a.joinedAt - b.joinedAt)
@@ -442,6 +443,7 @@ export function buildManagedImport(params: {
         presence: 'disconnected',
         deviceId: '',
         joinedAt: now + i,
+        notes: '',
       }
     })
 

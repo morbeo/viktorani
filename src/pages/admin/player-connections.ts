@@ -195,6 +195,7 @@ export async function resolveJoin(game: Game, join: JoinEvent): Promise<JoinResu
       score: existing?.score ?? 0,
       presence: 'connected',
       joinedAt: existing?.joinedAt ?? Date.now(),
+      notes: existing?.notes ?? '',
     },
     newTeam,
     rejoin: !!existing,

@@ -83,8 +83,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(12)
-    expect(db.backendDB().version).toBe(120)
+    expect(db.verno).toBe(13)
+    expect(db.backendDB().version).toBe(130)
     expect(db.backendDB().objectStoreNames.contains('managedPlayers')).toBe(true)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
     expect(await db.managedLabels.count()).toBe(0)
@@ -97,8 +97,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(12)
-    expect(db.backendDB().version).toBe(120)
+    expect(db.verno).toBe(13)
+    expect(db.backendDB().version).toBe(130)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
   })
 
@@ -170,5 +170,14 @@ describe('Dexie schema version', () => {
     await db.open()
 
     expect(await db.teams.get('t-old')).toMatchObject({ notes: '' })
+  })
+
+  it('back-fills an empty notes on existing players (v13)', async () => {
+    const base = { gameId: 'g-old', teamId: null, score: 0, deviceId: 'd', joinedAt: 1 }
+    await seedRawDb(110, V1_STORES, {}, [{ ...base, id: 'p-old', name: 'Old player' }])
+
+    await db.open()
+
+    expect(await db.players.get('p-old')).toMatchObject({ notes: '' })
   })
 })
