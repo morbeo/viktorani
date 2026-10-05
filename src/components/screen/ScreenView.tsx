@@ -4,7 +4,8 @@ import remarkGfm from 'remark-gfm'
 import { remarkDefinitionList, defListHastHandlers } from 'remark-definition-list'
 import rehypeRaw from 'rehype-raw'
 import rehypeSanitize from 'rehype-sanitize'
-import type { GameEvent, ScoreboardRow } from '@/transport/types'
+import type { GameEvent, LogEntry, ScoreboardRow } from '@/transport/types'
+import { LOG_KIND_LABELS } from '@/lib/game-log-rows'
 
 type QuestionContent = Extract<GameEvent, { type: 'QUESTION_CONTENT' }>
 
@@ -36,7 +37,9 @@ export function ScreenView({ heading, content, message, children }: ScreenViewPr
       )}
 
       {heading && (
-        <p className="text-2xl" style={{ color: 'var(--color-muted)' }}>{heading}</p>
+        <p className="text-2xl" style={{ color: 'var(--color-muted)' }}>
+          {heading}
+        </p>
       )}
 
       {content?.title && (
@@ -102,5 +105,22 @@ export function ScreenScores({ rows }: { rows: ScoreboardRow[] }) {
         </li>
       ))}
     </ol>
+  )
+}
+
+/** A live feed of recent public game events, newest first. Renders nothing for an empty list. */
+export function ScreenLog({ entries }: { entries: LogEntry[] }) {
+  if (entries.length === 0) return null
+
+  return (
+    <ul className="w-full max-w-3xl flex flex-col gap-1 text-left">
+      {entries.map(e => (
+        <li key={e.id} className="text-lg" style={{ color: 'var(--color-muted)' }}>
+          <span style={{ color: 'var(--color-ink)' }}>{LOG_KIND_LABELS[e.kind]}</span>
+          {e.who && ` · ${e.who}`}
+          {e.details && ` · ${e.details}`}
+        </li>
+      ))}
+    </ul>
   )
 }

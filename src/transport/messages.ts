@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { PUBLIC_LOG_KINDS } from './types'
 import type { TransportEvent } from './types'
 
 // ── Message schemas ───────────────────────────────────────────────────────────
@@ -35,6 +36,10 @@ export const MAX_LOBBY_TEAMS = 100
 export const MAX_SCOREBOARD_ROWS = 500
 /** Max length of a host MESSAGE. */
 export const MAX_MESSAGE_LENGTH = 280
+/** Max number of entries in a LOG feed. */
+export const MAX_LOG_ENTRIES = 20
+/** Max length of a LOG entry's `who` or `details` text. */
+export const MAX_LOG_TEXT_LENGTH = 200
 /** Max length of question media (base64 data URL or remote URL), in characters. */
 export const MAX_MEDIA_LENGTH = 10 * 1024 * 1024
 
@@ -52,6 +57,15 @@ const targetVisibility = z.strictObject({
 
 const scoreCountOk = (r: object) => Object.keys(r).length <= MAX_SCORE_ENTRIES
 const scores = z.record(id, z.number()).refine(scoreCountOk, 'Too many score entries')
+
+const logText = z.string().max(MAX_LOG_TEXT_LENGTH)
+const logEntry = z.strictObject({
+  id,
+  at: z.number().nonnegative(),
+  kind: z.enum(PUBLIC_LOG_KINDS),
+  who: logText,
+  details: logText,
+})
 
 /** Schema for {@link SerializedGameState}. */
 export const SerializedGameStateSchema = z.strictObject({
@@ -140,6 +154,10 @@ export const GameEventSchemas = {
     type: z.literal('MESSAGE'),
     text: z.string().max(MAX_MESSAGE_LENGTH).nullable(),
   }),
+  LOG: z.strictObject({
+    type: z.literal('LOG'),
+    entries: z.array(logEntry).max(MAX_LOG_ENTRIES),
+  }),
 }
 
 /** Schemas for events sent by players to the GameMaster. */
@@ -185,6 +203,7 @@ export const TransportEventSchema = z.discriminatedUnion('type', [
   GameEventSchemas.SCREEN_ACCEPTED,
   GameEventSchemas.SCOREBOARD,
   GameEventSchemas.MESSAGE,
+  GameEventSchemas.LOG,
   PlayerEventSchemas.BUZZ,
   PlayerEventSchemas.JOIN,
   PlayerEventSchemas.LEAVE,

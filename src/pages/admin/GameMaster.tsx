@@ -25,15 +25,13 @@ import { hostNow } from '@/hooks/useBuzzer'
 import { runningTimerEvents } from '@/hooks/useTimer'
 import { useGameLifecycle } from '@/hooks/useGameLifecycle'
 import { buildScoreEntries, readScores } from '@/hooks/useScoreboard'
-import {
-  PlayerConnections,
-  messageRecipients,
-  resolveJoin,
-} from '@/pages/admin/player-connections'
+import { buildLogRows, toPublicLogEntries } from '@/lib/game-log-rows'
+import { PlayerConnections, messageRecipients, resolveJoin } from '@/pages/admin/player-connections'
 import type { JoinResult, MessageTarget, PendingJoin } from '@/pages/admin/player-connections'
 import type { Game, Player, Team } from '@/db'
-import { MAX_SCOREBOARD_ROWS } from '@/transport/messages'
+import { MAX_LOG_ENTRIES, MAX_SCOREBOARD_ROWS } from '@/transport/messages'
 import type {
+  LogEntry,
   ScoreboardRow,
   TransportStatus,
   TransportType,
@@ -120,6 +118,7 @@ export default function GameMaster() {
   const pendingScreensRef = useRef<string[]>([])
   const screenContentRef = useRef<QuestionContent | null>(null)
   const scoreboardRef = useRef<ScoreboardRow[]>([])
+  const logRef = useRef<LogEntry[]>([])
 
   useEffect(() => {
     gameRef.current = game
@@ -247,9 +246,7 @@ export default function GameMaster() {
       })
       // Closed while saving: keep the player, disconnected
       if (closedRef.current.has(connId)) {
-        setPlayers(prev =>
-          setPlayerPresence(upsertPlayer(prev, player), player.id, 'disconnected')
-        )
+        setPlayers(prev => setPlayerPresence(upsertPlayer(prev, player), player.id, 'disconnected'))
         db.players
           .update(player.id, { presence: 'disconnected' })
           .catch(err => console.error('[GameMaster] Marking player disconnected failed:', err))
@@ -319,6 +316,30 @@ export default function GameMaster() {
     }
   }, [scoreboard])
 
+  // Public feed of the game log, sent to screens only (see PUBLIC_LOG_KINDS)
+  const logGameRows = useLiveQuery(async () => {
+    if (!id) return []
+    const [log, buzzes, scores, ps, ts] = await Promise.all([
+      db.gameLog.where('gameId').equals(id).toArray(),
+      db.buzzEvents.where('gameId').equals(id).toArray(),
+      db.scoreEvents.where('gameId').equals(id).toArray(),
+      db.players.where('gameId').equals(id).toArray(),
+      db.teams.where('gameId').equals(id).toArray(),
+    ])
+    const names = new Map<string, string>()
+    for (const p of ps) names.set(p.id, p.name)
+    for (const t of ts) names.set(t.id, t.name)
+    return buildLogRows(log, buzzes, scores, names)
+  }, [id])
+  const logFeed = JSON.stringify(toPublicLogEntries(logGameRows ?? [], MAX_LOG_ENTRIES))
+  useEffect(() => {
+    const entries = JSON.parse(logFeed) as LogEntry[]
+    logRef.current = entries
+    for (const connId of screensRef.current) {
+      transportManager.sendTo(connId, { type: 'LOG', entries })
+    }
+  }, [logFeed])
+
   const enqueueJoin = useCallback((task: () => Promise<void>) => {
     const run = joinQueueRef.current.then(task)
     joinQueueRef.current = run.catch(err => console.error('[GameMaster] Join failed:', err))
@@ -336,8 +357,7 @@ export default function GameMaster() {
         transportManager.sendTo(from, { type: 'JOIN_REJECTED', reason: result.reason })
         return
       }
-      const kicked =
-        result.rejoin && (result.kicked || kickedRef.current.has(result.player.id))
+      const kicked = result.rejoin && (result.kicked || kickedRef.current.has(result.player.id))
       if ((g.requireApproval && !result.rejoin) || kicked) {
         const waiting = pendingJoinsRef.current
         if (waiting.length >= MAX_PENDING_JOINS && !waiting.some(p => p.connId === from)) {
@@ -508,42 +528,52 @@ export default function GameMaster() {
     [addToast, admit, enqueueJoin, updatePendingJoins]
   )
 
-  const handleRejectJoin = useCallback((connId: string) => {
-    const g = gameRef.current
-    const pending = pendingJoinsRef.current.find(p => p.connId === connId)
-    if (g && pending) logEvent(g.id, 'join_rejected', { data: { name: pending.join.playerName } })
-    updatePendingJoins(prev => prev.filter(p => p.connId !== connId))
-    transportManager.sendTo(connId, {
-      type: 'JOIN_REJECTED',
-      reason: 'The host declined your request',
-    })
-  }, [updatePendingJoins])
+  const handleRejectJoin = useCallback(
+    (connId: string) => {
+      const g = gameRef.current
+      const pending = pendingJoinsRef.current.find(p => p.connId === connId)
+      if (g && pending) logEvent(g.id, 'join_rejected', { data: { name: pending.join.playerName } })
+      updatePendingJoins(prev => prev.filter(p => p.connId !== connId))
+      transportManager.sendTo(connId, {
+        type: 'JOIN_REJECTED',
+        reason: 'The host declined your request',
+      })
+    },
+    [updatePendingJoins]
+  )
 
   // Approve a waiting screen and send it what the screen currently shows
-  const handleApproveScreen = useCallback((connId: string) => {
-    if (!pendingScreensRef.current.includes(connId)) return
-    updatePendingScreens(prev => prev.filter(c => c !== connId))
-    screensRef.current.add(connId)
-    if (gameRef.current) logEvent(gameRef.current.id, 'screen_approved')
-    transportManager.sendTo(connId, { type: 'SCREEN_ACCEPTED' })
-    if (screenContentRef.current) transportManager.sendTo(connId, screenContentRef.current)
-    transportManager.sendTo(connId, { type: 'SCOREBOARD', rows: scoreboardRef.current })
-    const g = gameRef.current
-    if (g) void sendRunningTimers(connId, g.id)
-    if (g?.status === 'paused') {
-      transportManager.sendTo(connId, { type: 'GAME_STATUS', status: 'paused' })
-    }
-  }, [updatePendingScreens])
+  const handleApproveScreen = useCallback(
+    (connId: string) => {
+      if (!pendingScreensRef.current.includes(connId)) return
+      updatePendingScreens(prev => prev.filter(c => c !== connId))
+      screensRef.current.add(connId)
+      if (gameRef.current) logEvent(gameRef.current.id, 'screen_approved')
+      transportManager.sendTo(connId, { type: 'SCREEN_ACCEPTED' })
+      if (screenContentRef.current) transportManager.sendTo(connId, screenContentRef.current)
+      transportManager.sendTo(connId, { type: 'SCOREBOARD', rows: scoreboardRef.current })
+      transportManager.sendTo(connId, { type: 'LOG', entries: logRef.current })
+      const g = gameRef.current
+      if (g) void sendRunningTimers(connId, g.id)
+      if (g?.status === 'paused') {
+        transportManager.sendTo(connId, { type: 'GAME_STATUS', status: 'paused' })
+      }
+    },
+    [updatePendingScreens]
+  )
 
-  const handleRejectScreen = useCallback((connId: string) => {
-    const g = gameRef.current
-    if (g && pendingScreensRef.current.includes(connId)) logEvent(g.id, 'screen_rejected')
-    updatePendingScreens(prev => prev.filter(c => c !== connId))
-    transportManager.sendTo(connId, {
-      type: 'JOIN_REJECTED',
-      reason: 'The host declined the screen',
-    })
-  }, [updatePendingScreens])
+  const handleRejectScreen = useCallback(
+    (connId: string) => {
+      const g = gameRef.current
+      if (g && pendingScreensRef.current.includes(connId)) logEvent(g.id, 'screen_rejected')
+      updatePendingScreens(prev => prev.filter(c => c !== connId))
+      transportManager.sendTo(connId, {
+        type: 'JOIN_REJECTED',
+        reason: 'The host declined the screen',
+      })
+    },
+    [updatePendingScreens]
+  )
 
   const handleSendMessage = useCallback(
     (target: MessageTarget, text: string | null) => {

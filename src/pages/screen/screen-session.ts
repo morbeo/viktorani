@@ -1,4 +1,4 @@
-import type { ScoreboardRow, TransportEvent } from '@/transport/types'
+import type { LogEntry, ScoreboardRow, TransportEvent } from '@/transport/types'
 import { knownStatus } from '@/pages/player/player-session'
 import type { GameStatus, QuestionContent } from '@/pages/player/player-session'
 import { isSafeMedia } from '@/pages/player/safe-media'
@@ -15,6 +15,8 @@ export interface ScreenSession {
   gameStatus: GameStatus | null
   /** The host's latest MESSAGE to the screens; `null` when cleared. */
   message: string | null
+  /** The most recent public game-log entries, newest first. */
+  logEntries: LogEntry[]
 }
 
 export const INITIAL_SCREEN: ScreenSession = {
@@ -24,6 +26,7 @@ export const INITIAL_SCREEN: ScreenSession = {
   rows: [],
   gameStatus: null,
   message: null,
+  logEntries: [],
 }
 
 /** Drop media the screen must not load (see {@link isSafeMedia}). */
@@ -54,6 +57,8 @@ export function reduceScreen(s: ScreenSession, event: TransportEvent): ScreenSes
       return { ...s, gameStatus: event.status }
     case 'MESSAGE':
       return { ...s, message: event.text || null }
+    case 'LOG':
+      return { ...s, logEntries: event.entries }
     default:
       return s
   }

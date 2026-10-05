@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Button } from '@/components/ui'
-import { ScreenScores, ScreenView } from '@/components/screen/ScreenView'
+import { ScreenLog, ScreenScores, ScreenView } from '@/components/screen/ScreenView'
 import { useTransportEvents } from '@/hooks/useTransport'
 import { isAbortError, retry, transportManager } from '@/transport'
 import { PlayerTimers } from '@/components/timer/PlayerTimers'
@@ -83,6 +83,7 @@ export default function RemoteScreen() {
     return (
       <ScreenView heading="Game over" content={null} message={session.message}>
         <ScreenScores rows={session.rows} />
+        <ScreenLog entries={session.logEntries} />
       </ScreenView>
     )
   }
@@ -123,6 +124,7 @@ export default function RemoteScreen() {
     >
       <PlayerTimers />
       <ScreenScores rows={session.rows} />
+      <ScreenLog entries={session.logEntries} />
     </ScreenView>
   )
 }

@@ -89,9 +89,60 @@ export type GameEvent =
    * shown until the next MESSAGE; `text: null` clears it.
    */
   | { type: 'MESSAGE'; text: string | null }
+  /**
+   * The most recent public game-log entries, newest first, sent to screens only. Resent
+   * whenever the log changes and when a screen is approved.
+   */
+  | { type: 'LOG'; entries: LogEntry[] }
 
 /** Where question content is shown: the projector/screen or player phones. */
 export type VisibilityTarget = 'players' | 'screen'
+
+/**
+ * Kinds of game-log entry safe to show on a screen: no device or connection ids, no join
+ * or screen rejections, and nothing a host visibility setting currently hides. Team/player
+ * status changes (joined, left, kicked, disconnected) are included — screens may show them.
+ */
+export const PUBLIC_LOG_KINDS = [
+  'game_started',
+  'game_paused',
+  'game_resumed',
+  'game_ended',
+  'question_shown',
+  'round_changed',
+  'player_joined',
+  'player_rejoined',
+  'player_hidden',
+  'player_back',
+  'player_disconnected',
+  'player_left',
+  'player_kicked',
+  'team_created',
+  'buzzer_locked',
+  'buzzer_unlocked',
+  'buzzes_cleared',
+  'timer_started',
+  'timer_paused',
+  'timer_resumed',
+  'timer_reset',
+  'timer_expired',
+  'buzz',
+  'false_start',
+  'ruling',
+  'score_changed',
+] as const
+
+export type PublicLogKind = (typeof PUBLIC_LOG_KINDS)[number]
+
+/** One game-log entry, already formatted for display, as sent to screens. */
+export interface LogEntry {
+  id: string
+  at: number
+  kind: PublicLogKind
+  /** The player or team involved; empty for host-only actions. */
+  who: string
+  details: string
+}
 
 /** One player or team on the screen's scoreboard. */
 export interface ScoreboardRow {
