@@ -15,7 +15,7 @@ const JOIN: Extract<PlayerEvent, { type: 'JOIN' }> = {
 }
 
 function team(id: string, gameId: string): Team {
-  return { id, gameId, name: id, color: '#000', icon: 'Shield', score: 0 }
+  return { id, gameId, name: id, color: '#000', icon: 'Shield', score: 0, notes: '' }
 }
 
 function player(overrides: Partial<Player>): Player {

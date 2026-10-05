@@ -143,7 +143,15 @@ describe('useGameLifecycle — endGame', () => {
   it('emits GAME_STATE snapshot with player and team scores from the DB', async () => {
     await Promise.all([
       db.players.add(makePlayer({ score: 42, teamId: 't1' })),
-      db.teams.add({ id: 't1', gameId: 'g1', name: 'Owls', color: '#000', icon: 'Zap', score: 9 }),
+      db.teams.add({
+        id: 't1',
+        gameId: 'g1',
+        name: 'Owls',
+        color: '#000',
+        icon: 'Zap',
+        score: 9,
+        notes: '',
+      }),
     ])
     const { result } = renderHook(() => useGameLifecycle())
     await result.current.endGame(makeGame())
