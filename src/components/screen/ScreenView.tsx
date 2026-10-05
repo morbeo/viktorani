@@ -19,29 +19,24 @@ interface ScreenViewProps {
   children?: ReactNode
 }
 
-/** The projector layout: the question as far as the screen may show it, then `children`. */
-export function ScreenView({ heading, content, message, children }: ScreenViewProps) {
+/** The host's message to the screens. Renders nothing when there isn't one. */
+export function ScreenAnnouncement({ message }: { message?: string | null }) {
+  if (!message) return null
   return (
-    <main
-      className="min-h-screen px-12 py-10 flex flex-col items-center gap-10 text-center"
-      style={{ background: 'var(--color-cream)', color: 'var(--color-ink)' }}
+    <p
+      role="status"
+      className="w-full max-w-5xl rounded-2xl px-10 py-6 text-4xl font-semibold whitespace-pre-wrap break-words"
+      style={{ background: 'var(--color-ink)', color: 'var(--color-cream)' }}
     >
-      {message && (
-        <p
-          role="status"
-          className="w-full max-w-5xl rounded-2xl px-10 py-6 text-4xl font-semibold whitespace-pre-wrap break-words"
-          style={{ background: 'var(--color-ink)', color: 'var(--color-cream)' }}
-        >
-          {message}
-        </p>
-      )}
+      {message}
+    </p>
+  )
+}
 
-      {heading && (
-        <p className="text-2xl" style={{ color: 'var(--color-muted)' }}>
-          {heading}
-        </p>
-      )}
-
+/** The current question's title and description. Renders nothing when both are hidden. */
+export function ScreenQuestion({ content }: { content: QuestionContent | null }) {
+  return (
+    <>
       {content?.title && (
         <h1 className="text-6xl font-bold" style={{ fontFamily: 'Playfair Display, serif' }}>
           {content.title}
@@ -59,7 +54,14 @@ export function ScreenView({ heading, content, message, children }: ScreenViewPr
           </ReactMarkdown>
         </div>
       )}
+    </>
+  )
+}
 
+/** The current question's media. Renders nothing when it's hidden. */
+export function ScreenMedia({ content }: { content: QuestionContent | null }) {
+  return (
+    <>
       {content?.media && content.mediaType === 'image' && (
         <img src={content.media} alt="Question media" className="max-h-[50vh] object-contain" />
       )}
@@ -69,23 +71,49 @@ export function ScreenView({ heading, content, message, children }: ScreenViewPr
       {content?.media && content.mediaType === 'video' && (
         <video controls src={content.media} className="max-h-[50vh]" />
       )}
+    </>
+  )
+}
 
-      {content?.options && (
-        <ol className="grid grid-cols-2 gap-4 w-full max-w-4xl text-3xl text-left">
-          {content.options.map((option, i) => (
-            <li
-              key={i}
-              className="rounded-xl border px-6 py-4"
-              style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-            >
-              <span className="mono mr-4" style={{ color: 'var(--color-muted)' }}>
-                {String.fromCharCode(65 + i)}
-              </span>
-              {option}
-            </li>
-          ))}
-        </ol>
+/** The current question's answer options. Renders nothing when they're hidden. */
+export function ScreenAnswers({ content }: { content: QuestionContent | null }) {
+  if (!content?.options) return null
+  return (
+    <ol className="grid grid-cols-2 gap-4 w-full max-w-4xl text-3xl text-left">
+      {content.options.map((option, i) => (
+        <li
+          key={i}
+          className="rounded-xl border px-6 py-4"
+          style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
+        >
+          <span className="mono mr-4" style={{ color: 'var(--color-muted)' }}>
+            {String.fromCharCode(65 + i)}
+          </span>
+          {option}
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+/** The projector layout: the question as far as the screen may show it, then `children`. */
+export function ScreenView({ heading, content, message, children }: ScreenViewProps) {
+  return (
+    <main
+      className="min-h-screen px-12 py-10 flex flex-col items-center gap-10 text-center"
+      style={{ background: 'var(--color-cream)', color: 'var(--color-ink)' }}
+    >
+      <ScreenAnnouncement message={message} />
+
+      {heading && (
+        <p className="text-2xl" style={{ color: 'var(--color-muted)' }}>
+          {heading}
+        </p>
       )}
+
+      <ScreenQuestion content={content} />
+      <ScreenMedia content={content} />
+      <ScreenAnswers content={content} />
 
       {children}
     </main>
