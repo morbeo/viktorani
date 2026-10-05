@@ -44,6 +44,7 @@ function makeMockTransport(type: 'peer', fails = false): ITransport {
     disconnect: vi.fn(),
     send: vi.fn(),
     sendTo: vi.fn(),
+    closeConnection: vi.fn(),
     onEvent: vi.fn(h => {
       handlers.push(h)
       return () => {}
@@ -206,6 +207,19 @@ describe('TransportManager', () => {
 
     it('is a no-op when not connected', () => {
       expect(() => manager.sendTo('dc_1', { type: 'JOIN_PENDING' })).not.toThrow()
+    })
+  })
+
+  describe('closeConnection', () => {
+    it('delegates to the active transport with the connection id', () => {
+      const mock = makeMockTransport('peer')
+      internals(manager).transport = mock
+      manager.closeConnection('dc_1')
+      expect(mock.closeConnection).toHaveBeenCalledWith('dc_1')
+    })
+
+    it('is a no-op when not connected', () => {
+      expect(() => manager.closeConnection('dc_1')).not.toThrow()
     })
   })
 

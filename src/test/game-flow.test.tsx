@@ -72,6 +72,13 @@ const hub = vi.hoisted(() => {
       deliver(state.players.get(connId), event, 'host')
     }
 
+    closeConnection(connId: string) {
+      const player = state.players.get(connId)
+      if (!player) return
+      state.players.delete(connId)
+      player.status = 'disconnected'
+    }
+
     onEvent(handler: Handler) {
       this.handlers.push(handler)
       return () => {
@@ -266,10 +273,7 @@ describe('game flow', () => {
     client.send(JOIN)
     client.send({ type: 'SCREEN_JOIN' })
 
-    await host.waitFor(
-      () => expect(received.map(e => e.type)).toContain('JOIN_ACCEPTED'),
-      SLOW
-    )
+    await host.waitFor(() => expect(received.map(e => e.type)).toContain('JOIN_ACCEPTED'), SLOW)
     expect(received.map(e => e.type)).not.toContain('JOIN_PENDING')
     expect(host.view.queryByRole('button', { name: 'Approve screen 1' })).toBeNull()
   }, 20_000)
@@ -360,10 +364,7 @@ describe('game flow', () => {
 
     const { client, received } = await connectClient()
     client.send(JOIN)
-    await host.waitFor(
-      () => expect(received.map(e => e.type)).toContain('JOIN_ACCEPTED'),
-      SLOW
-    )
+    await host.waitFor(() => expect(received.map(e => e.type)).toContain('JOIN_ACCEPTED'), SLOW)
     client.send({ type: 'BUZZ', timestamp: Date.now() })
     await new Promise(r => setTimeout(r, 200))
     expect(host.view.queryByRole('button', { name: 'Mark correct' })).toBeNull()
@@ -392,10 +393,7 @@ describe('game flow', () => {
 
     const { client, received } = await connectClient()
     client.send({ ...JOIN, newTeamName: 'Owls' } as TransportEvent)
-    await host.waitFor(
-      () => expect(received.map(e => e.type)).toContain('JOIN_ACCEPTED'),
-      SLOW
-    )
+    await host.waitFor(() => expect(received.map(e => e.type)).toContain('JOIN_ACCEPTED'), SLOW)
     client.send({ type: 'BUZZ', timestamp: Date.now() })
     await host.waitFor(async () => expect(await db.buzzEvents.count()).toBe(1), SLOW)
 
@@ -413,10 +411,7 @@ describe('game flow', () => {
 
     const { client, received } = await connectClient()
     client.send({ ...JOIN, playerName: 'Eve', deviceId: 'device-eve' } as TransportEvent)
-    await host.waitFor(
-      () => expect(received.map(e => e.type)).toContain('JOIN_ACCEPTED'),
-      SLOW
-    )
+    await host.waitFor(() => expect(received.map(e => e.type)).toContain('JOIN_ACCEPTED'), SLOW)
     const presence = async () =>
       (await db.players.where('deviceId').equals('device-eve').first())?.presence
 
