@@ -58,6 +58,7 @@ const players: Player[] = [
     teamId: 't1',
     presence: 'connected',
     joinedAt: Date.now(),
+    notes: '',
   },
   {
     id: 'p2',
@@ -68,6 +69,7 @@ const players: Player[] = [
     teamId: null,
     presence: 'connected',
     joinedAt: Date.now(),
+    notes: '',
   },
 ]
 

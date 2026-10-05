@@ -50,6 +50,7 @@ function makePlayer(id: string, gameId = 'g1'): Player {
     presence: 'connected',
     deviceId: `device-${id}`,
     joinedAt: 0,
+    notes: '',
   }
 }
 

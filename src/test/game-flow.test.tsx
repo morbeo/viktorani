@@ -344,6 +344,7 @@ describe('game flow', () => {
       score: 0,
       presence: 'kicked',
       joinedAt: 1,
+      notes: '',
     })
     const host = await mountSide('host', '/admin/game/g1')
     await host.waitFor(() => expect(hub.state.host).not.toBeNull())

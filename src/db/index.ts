@@ -232,6 +232,8 @@ export interface Player {
   /** Stable browser-local UUID stored in `localStorage` to deduplicate rejoins. */
   deviceId: string
   joinedAt: number
+  /** Free-text notes for the host's own use, scoped to this game. */
+  notes: string
 }
 
 /**
@@ -435,6 +437,7 @@ export interface GameQuestion {
  * - 10: adds `gameLog`, the log of everything else that happens in a game.
  * - 11: same stores; back-fills `Game.buzzerEnabled` (`true`) on existing games.
  * - 12: same stores; back-fills `Team.notes` (`''`) on existing teams.
+ * - 13: same stores; back-fills `Player.notes` (`''`) on existing players.
  *
  * To change the schema, add a new `this.version(N + 1)` block below; keep existing blocks.
  */
@@ -550,6 +553,17 @@ export class ViktoraniDB extends Dexie {
           .toCollection()
           .modify((t: Partial<Team>) => {
             t.notes ??= ''
+          })
+      )
+
+    this.version(13)
+      .stores({})
+      .upgrade(tx =>
+        tx
+          .table('players')
+          .toCollection()
+          .modify((p: Partial<Player>) => {
+            p.notes ??= ''
           })
       )
   }

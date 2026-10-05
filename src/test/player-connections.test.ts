@@ -28,6 +28,7 @@ function player(overrides: Partial<Player>): Player {
     presence: 'disconnected',
     deviceId: 'dev-a',
     joinedAt: 100,
+    notes: '',
     ...overrides,
   }
 }

@@ -225,6 +225,7 @@ export async function seedDemo(): Promise<void> {
       presence: 'connected',
       deviceId: crypto.randomUUID(),
       joinedAt: now,
+      notes: '',
     }))
   )
 

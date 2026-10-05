@@ -726,6 +726,7 @@ export default function GameMaster() {
       presence: 'connected',
       deviceId: crypto.randomUUID(),
       joinedAt: Date.now(),
+      notes: '',
     }
     await db.players.add(player)
     setPlayers(prev => upsertPlayer(prev, player))
@@ -738,6 +739,11 @@ export default function GameMaster() {
     await adjustScore(g.id, playerId, 'player', delta)
     const updated = await db.players.get(playerId)
     if (updated) setPlayers(prev => upsertPlayer(prev, updated))
+  }, [])
+
+  const handleUpdatePlayerNotes = useCallback(async (playerId: string, notes: string) => {
+    await db.players.update(playerId, { notes })
+    setPlayers(prev => prev.map(p => (p.id === playerId ? { ...p, notes } : p)))
   }, [])
 
   // Start the game
@@ -822,6 +828,7 @@ export default function GameMaster() {
             onAddPlayer={handleAddPlayer}
             onAssignPlayer={handleAssignPlayer}
             onAdjustScore={handleAdjustScore}
+            onUpdatePlayerNotes={handleUpdatePlayerNotes}
             onCreateTeam={handleCreateTeam}
             onImportFromManaged={handleImportFromManaged}
             onRenameTeam={handleRenameTeam}
@@ -858,6 +865,7 @@ export default function GameMaster() {
           onAddPlayer={handleAddPlayer}
           onAssignPlayer={handleAssignPlayer}
           onAdjustScore={handleAdjustScore}
+          onUpdatePlayerNotes={handleUpdatePlayerNotes}
           onQuestionContent={handleQuestionContent}
           onScreenContent={handleScreenContent}
           screens={screens}
