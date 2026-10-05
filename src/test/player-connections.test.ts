@@ -310,6 +310,37 @@ describe('resolveJoin', () => {
     expect(joined.player.id).toBe('p1')
   })
 
+  it('flags a device mismatch when another player already has this name', async () => {
+    await db.players.add(player({ id: 'p2', name: 'Alice', deviceId: 'dev-b' }))
+    const joined = await accepted(game(), JOIN)
+    expect(joined.deviceMismatch).toEqual({ playerId: 'p2', previousDeviceId: 'dev-b' })
+  })
+
+  it('matches names trimmed and case-insensitively for the device-mismatch check', async () => {
+    await db.players.add(player({ id: 'p2', name: '  ALICE  ', deviceId: 'dev-b' }))
+    const joined = await accepted(game(), JOIN)
+    expect(joined.deviceMismatch).toEqual({ playerId: 'p2', previousDeviceId: 'dev-b' })
+  })
+
+  it('does not flag a device mismatch for a rejoin on the same device', async () => {
+    await db.players.add(player({ name: 'Alice', deviceId: 'dev-a' }))
+    const joined = await accepted(game(), JOIN)
+    expect(joined.rejoin).toBe(true)
+    expect(joined.deviceMismatch).toBeNull()
+  })
+
+  it('does not flag a device mismatch against a host-added player with no device', async () => {
+    await db.players.add(player({ id: 'p2', name: 'Alice', deviceId: '' }))
+    const joined = await accepted(game(), JOIN)
+    expect(joined.deviceMismatch).toBeNull()
+  })
+
+  it('does not flag a device mismatch for a different name', async () => {
+    await db.players.add(player({ id: 'p2', name: 'Bob', deviceId: 'dev-b' }))
+    const joined = await accepted(game(), JOIN)
+    expect(joined.deviceMismatch).toBeNull()
+  })
+
   it('creates a player team only when allowed and within the team limit', async () => {
     const join = { ...JOIN, newTeamName: ' Owls ' }
     const created = await accepted(game(), join)

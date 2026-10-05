@@ -205,7 +205,9 @@ export default function GameMaster() {
             .where('id')
             .anyOf(stale)
             .modify({ presence: 'disconnected', disconnectedAt })
-            .catch(err => console.error('[GameMaster] Marking stale players disconnected failed:', err))
+            .catch(err =>
+              console.error('[GameMaster] Marking stale players disconnected failed:', err)
+            )
         }
       })
     db.teams
@@ -401,6 +403,17 @@ export default function GameMaster() {
       if (result.status === 'rejected') {
         transportManager.sendTo(from, { type: 'JOIN_REJECTED', reason: result.reason })
         return
+      }
+      if (result.deviceMismatch) {
+        addToast(`"${join.playerName}" joined from a different device than before`, {
+          variant: 'warning',
+          durationMs: 6000,
+        })
+        logEvent(g.id, 'device_mismatch', {
+          actorId: result.player.id,
+          subjectId: result.deviceMismatch.playerId,
+          data: { name: join.playerName },
+        })
       }
       const kicked = result.rejoin && (result.kicked || kickedRef.current.has(result.player.id))
       if ((g.requireApproval && !result.rejoin) || kicked) {

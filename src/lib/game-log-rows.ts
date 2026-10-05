@@ -47,6 +47,7 @@ export const LOG_KIND_LABELS: Record<LogRowKind, string> = {
   screen_rejected: 'Screen rejected',
   screen_disconnected: 'Screen disconnected',
   message_sent: 'Message',
+  device_mismatch: 'Device mismatch',
   buzz: 'Buzz',
   false_start: 'False start',
   ruling: 'Ruling',
@@ -80,6 +81,8 @@ function logDetails(e: GameLogEntry): string {
       return String(d.round ?? '')
     case 'join_rejected':
       return d.reason ? String(d.reason) : 'By the host'
+    case 'device_mismatch':
+      return 'Different device than an existing player with this name'
     case 'buzzes_cleared':
       return `${d.count} removed`
     case 'visibility_changed': {

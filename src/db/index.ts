@@ -327,6 +327,7 @@ export type GameLogKind =
   | 'screen_rejected'
   | 'screen_disconnected'
   | 'message_sent'
+  | 'device_mismatch'
 
 /**
  * One entry in a game's log. Buzzes, rulings and score changes are not copied here: the
