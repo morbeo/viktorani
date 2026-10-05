@@ -5,12 +5,25 @@ export interface ScreensPanelProps {
   roomId: string | null
   /** Connection ids of screens waiting for approval, oldest first. */
   pending: string[]
+  /** Connection ids of approved, connected screens, oldest first. */
+  connected: string[]
   onApprove: (connId: string) => void
   onReject: (connId: string) => void
+  onDisconnect: (connId: string) => void
 }
 
-/** The link for projector screens on other devices, and the screens waiting for approval. */
-export function ScreensPanel({ roomId, pending, onApprove, onReject }: ScreensPanelProps) {
+/**
+ * The link for projector screens on other devices, the screens waiting for approval, and the
+ * screens currently connected.
+ */
+export function ScreensPanel({
+  roomId,
+  pending,
+  connected,
+  onApprove,
+  onReject,
+  onDisconnect,
+}: ScreensPanelProps) {
   const [copied, setCopied] = useState(false)
   if (!roomId) return null
 
@@ -69,6 +82,23 @@ export function ScreensPanel({ roomId, pending, onApprove, onReject }: ScreensPa
                 aria-label={`Reject screen ${i + 1}`}
               >
                 Reject
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {connected.length > 0 && (
+        <ul className="flex flex-col border-t" style={{ borderColor: 'var(--color-border)' }}>
+          {connected.map((connId, i) => (
+            <li key={connId} className="px-4 py-2 flex items-center gap-2">
+              <span className="flex-1 min-w-0 truncate text-sm">Screen {i + 1}</span>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => onDisconnect(connId)}
+                aria-label={`Disconnect screen ${i + 1}`}
+              >
+                Disconnect
               </Button>
             </li>
           ))}

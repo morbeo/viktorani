@@ -199,8 +199,10 @@ describe('ScreensPanel', () => {
       <ScreensPanel
         roomId="ABC234"
         pending={['c1', 'c2']}
+        connected={[]}
         onApprove={onApprove}
         onReject={onReject}
+        onDisconnect={vi.fn()}
       />
     )
     expect(screen.getByTitle(/#\/screen\/ABC234$/)).toBeInTheDocument()
@@ -208,5 +210,23 @@ describe('ScreensPanel', () => {
     expect(onApprove).toHaveBeenCalledWith('c2')
     await userEvent.click(screen.getByRole('button', { name: 'Reject screen 1' }))
     expect(onReject).toHaveBeenCalledWith('c1')
+  })
+
+  it('lists connected screens with a disconnect action', async () => {
+    const onDisconnect = vi.fn()
+    render(
+      <ScreensPanel
+        roomId="ABC234"
+        pending={[]}
+        connected={['c1', 'c2']}
+        onApprove={vi.fn()}
+        onReject={vi.fn()}
+        onDisconnect={onDisconnect}
+      />
+    )
+    expect(screen.getByText('Screen 1')).toBeInTheDocument()
+    expect(screen.getByText('Screen 2')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Disconnect screen 2' }))
+    expect(onDisconnect).toHaveBeenCalledWith('c2')
   })
 })

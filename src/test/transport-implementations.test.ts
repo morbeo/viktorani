@@ -421,6 +421,36 @@ describe('PeerJSTransport', () => {
     expect(conn1.send).not.toHaveBeenCalled()
   })
 
+  it('host: closeConnection closes and forgets the given connection only', async () => {
+    const { PeerJSTransport } = await import('@/transport/PeerJSTransport')
+    const t = new PeerJSTransport()
+
+    const connectPromise = t.connect(PEER_HOST_CONFIG)
+    MockPeer.lastInstance.emit('open')
+    await connectPromise
+
+    const conn1 = mockConn('p1')
+    const conn2 = mockConn('p2')
+    const peer = MockPeer.lastInstance as unknown as { emit(e: string, ...a: unknown[]): void }
+    const fire = (c: ReturnType<typeof mockConn>, name: string, ...a: unknown[]) =>
+      c.on.mock.calls.find((args: unknown[]) => args[0] === name)?.[1]?.(...a)
+    peer.emit('connection', conn1)
+    fire(conn1, 'open')
+    peer.emit('connection', conn2)
+    fire(conn2, 'open')
+
+    t.closeConnection('dc_p1')
+    expect(conn1.close).toHaveBeenCalled()
+
+    const event: TransportEvent = { type: 'JOIN_ACCEPTED', playerId: 'x', teamId: null }
+    t.sendTo('dc_p1', event)
+    expect(conn1.send).not.toHaveBeenCalled()
+    t.sendTo('dc_p2', event)
+    expect(conn2.send).toHaveBeenCalledWith(event)
+
+    expect(() => t.closeConnection('unknown')).not.toThrow()
+  })
+
   it('host: notifies open handlers when a player connection opens', async () => {
     const { PeerJSTransport } = await import('@/transport/PeerJSTransport')
     const t = new PeerJSTransport()

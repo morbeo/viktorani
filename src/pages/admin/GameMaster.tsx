@@ -114,6 +114,7 @@ export default function GameMaster() {
   // Projector screens on other devices: approved ones get broadcasts, screen content and
   // the scoreboard; pending ones wait for the GM like players do
   const screensRef = useRef(new Set<string>())
+  const [connectedScreens, setConnectedScreens] = useState<string[]>([])
   const [pendingScreens, setPendingScreens] = useState<string[]>([])
   const pendingScreensRef = useRef<string[]>([])
   const screenContentRef = useRef<QuestionContent | null>(null)
@@ -144,6 +145,18 @@ export default function GameMaster() {
   const updatePendingScreens = useCallback((next: (prev: string[]) => string[]) => {
     pendingScreensRef.current = next(pendingScreensRef.current)
     setPendingScreens(pendingScreensRef.current)
+  }, [])
+
+  const addConnectedScreen = useCallback((connId: string) => {
+    screensRef.current.add(connId)
+    setConnectedScreens([...screensRef.current])
+  }, [])
+
+  /** Removes a screen from `screensRef`, syncing state. Returns whether it was present. */
+  const removeConnectedScreen = useCallback((connId: string) => {
+    const removed = screensRef.current.delete(connId)
+    if (removed) setConnectedScreens([...screensRef.current])
+    return removed
   }, [])
 
   // Load game + existing players + teams on mount
@@ -490,7 +503,7 @@ export default function GameMaster() {
       updatePendingJoins(prev => prev.filter(p => p.connId !== connId))
       updatePendingScreens(prev => prev.filter(c => c !== connId))
       const gameId = gameRef.current?.id
-      if (screensRef.current.delete(connId) && gameId) logEvent(gameId, 'screen_disconnected')
+      if (removeConnectedScreen(connId) && gameId) logEvent(gameId, 'screen_disconnected')
       joinersRef.current.delete(connId)
       const playerId = connectionsRef.current.unbindConnection(connId)
       if (!playerId) return
@@ -500,7 +513,7 @@ export default function GameMaster() {
         .update(playerId, { presence: 'disconnected' })
         .catch(err => console.error('[GameMaster] Marking player disconnected failed:', err))
     })
-  }, [updatePendingJoins, updatePendingScreens])
+  }, [updatePendingJoins, updatePendingScreens, removeConnectedScreen])
 
   // Approve a queued join. The policy is checked again against the current game and teams,
   // which may have changed while the player waited.
@@ -547,7 +560,7 @@ export default function GameMaster() {
     (connId: string) => {
       if (!pendingScreensRef.current.includes(connId)) return
       updatePendingScreens(prev => prev.filter(c => c !== connId))
-      screensRef.current.add(connId)
+      addConnectedScreen(connId)
       if (gameRef.current) logEvent(gameRef.current.id, 'screen_approved')
       transportManager.sendTo(connId, { type: 'SCREEN_ACCEPTED' })
       if (screenContentRef.current) transportManager.sendTo(connId, screenContentRef.current)
@@ -559,7 +572,17 @@ export default function GameMaster() {
         transportManager.sendTo(connId, { type: 'GAME_STATUS', status: 'paused' })
       }
     },
-    [updatePendingScreens]
+    [updatePendingScreens, addConnectedScreen]
+  )
+
+  // Host-initiated disconnect of an already-approved screen
+  const handleDisconnectScreen = useCallback(
+    (connId: string) => {
+      const gameId = gameRef.current?.id
+      if (removeConnectedScreen(connId) && gameId) logEvent(gameId, 'screen_disconnected')
+      transportManager.closeConnection(connId)
+    },
+    [removeConnectedScreen]
   )
 
   const handleRejectScreen = useCallback(
@@ -692,8 +715,10 @@ export default function GameMaster() {
   const screens: ScreensPanelProps = {
     roomId: game?.roomId ?? null,
     pending: pendingScreens,
+    connected: connectedScreens,
     onApprove: handleApproveScreen,
     onReject: handleRejectScreen,
+    onDisconnect: handleDisconnectScreen,
   }
   const messages: MessagePanelProps = { players, teams, onSend: handleSendMessage }
 

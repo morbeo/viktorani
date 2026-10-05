@@ -195,6 +195,11 @@ export class PeerJSTransport implements ITransport {
     if (conn?.open) conn.send(event)
   }
 
+  closeConnection(connId: string) {
+    this.connections.get(connId)?.close()
+    this.connections.delete(connId)
+  }
+
   onEvent(handler: (e: TransportEvent, from: string) => void): () => void {
     this.handlers.push(handler)
     return () => {
