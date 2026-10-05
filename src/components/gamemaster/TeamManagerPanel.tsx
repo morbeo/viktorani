@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Plus, Download } from 'lucide-react'
 import { Icon, Button, Input, Modal } from '@/components/ui'
-import { canCreateTeam, canAssignToTeam } from '@/pages/admin/gamemaster-utils'
+import { canCreateTeam } from '@/pages/admin/gamemaster-utils'
 import { resolveIcon, TEAM_ICONS } from '@/components/players-teams/teamIcons'
 import type { Game, Player, Team } from '@/db'
 
@@ -24,24 +24,22 @@ interface TeamManagerPanelProps {
   teams: Team[]
   players: Player[]
   onCreateTeam: (name: string, color: string, icon: string) => Promise<void>
-  onAssignPlayer: (playerId: string, teamId: string | null) => Promise<void>
   onImportFromManaged: () => Promise<void>
 }
 
 /**
- * Panel for the GM to manage session teams during the lobby phase.
+ * Panel for the GM to manage session teams.
  *
  * - Import teams (and their players) from the Players & Teams management page.
  * - Create a new team with a name, colour, and icon (respects game.maxTeams cap).
- * - Assign any player to a team via a dropdown (respects game.maxPerTeam cap).
- * - Players can be removed from a team by selecting "No team".
+ *
+ * Player-to-team assignment lives in {@link RosterPanel}, not here.
  */
 export function TeamManagerPanel({
   game,
   teams,
   players,
   onCreateTeam,
-  onAssignPlayer,
   onImportFromManaged,
 }: TeamManagerPanelProps) {
   const [newName, setNewName] = useState('')
@@ -142,54 +140,12 @@ export function TeamManagerPanel({
                 <span className="flex-1 text-sm font-medium truncate">{team.name}</span>
                 <span className="text-xs shrink-0" style={{ color: 'var(--color-muted)' }}>
                   {memberCount}
-                  {game.maxPerTeam > 0 ? ` / ${game.maxPerTeam}` : ''}{' '}
-                  player{memberCount !== 1 ? 's' : ''}
+                  {game.maxPerTeam > 0 ? ` / ${game.maxPerTeam}` : ''} player
+                  {memberCount !== 1 ? 's' : ''}
                 </span>
               </div>
             )
           })}
-        </div>
-      )}
-
-      {/* Assign player to team */}
-      {players.length > 0 && teams.length > 0 && (
-        <div
-          className="px-4 py-3 border-b flex flex-col gap-2"
-          style={{ borderColor: 'var(--color-border)' }}
-        >
-          <span className="text-xs font-semibold" style={{ color: 'var(--color-muted)' }}>
-            Assign player
-          </span>
-          {players.map(player => (
-            <div key={player.id} className="flex items-center gap-2">
-              <span className="text-sm flex-1 truncate">{player.name}</span>
-              <select
-                value={player.teamId ?? ''}
-                onChange={e => void onAssignPlayer(player.id, e.target.value || null)}
-                className="text-xs rounded border px-2 py-1"
-                style={{
-                  borderColor: 'var(--color-border)',
-                  background: 'var(--color-cream)',
-                  color: 'var(--color-ink)',
-                  maxWidth: 140,
-                }}
-                aria-label={`Assign ${player.name} to team`}
-              >
-                <option value="">No team</option>
-                {teams.map(team => {
-                  const blocked =
-                    player.teamId !== team.id &&
-                    !canAssignToTeam(game, team, players, player.id)
-                  return (
-                    <option key={team.id} value={team.id} disabled={blocked}>
-                      {team.name}
-                      {blocked ? ' (full)' : ''}
-                    </option>
-                  )
-                })}
-              </select>
-            </div>
-          ))}
         </div>
       )}
 

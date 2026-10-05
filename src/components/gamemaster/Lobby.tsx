@@ -33,8 +33,10 @@ export interface LobbyProps {
   onStart: () => Promise<void>
   starting: boolean
   onKick: (playerId: string) => void
-  onCreateTeam: (name: string, color: string, icon: string) => Promise<void>
+  onAddPlayer: (name: string, teamId: string | null) => Promise<void>
   onAssignPlayer: (playerId: string, teamId: string | null) => Promise<void>
+  onAdjustScore: (playerId: string, delta: number) => Promise<void>
+  onCreateTeam: (name: string, color: string, icon: string) => Promise<void>
   onImportFromManaged: () => Promise<void>
   onGameChange: (patch: Partial<Game>) => void
   pendingJoins: PendingJoin[]
@@ -55,8 +57,10 @@ export function Lobby({
   onStart,
   starting,
   onKick,
-  onCreateTeam,
+  onAddPlayer,
   onAssignPlayer,
+  onAdjustScore,
+  onCreateTeam,
   onImportFromManaged,
   onGameChange,
   pendingJoins,
@@ -104,13 +108,20 @@ export function Lobby({
           />
           <ScreensPanel {...screens} />
           <MessagePanel {...messages} />
-          <RosterPanel players={players} teams={teams} onKick={onKick} />
+          <RosterPanel
+            game={game}
+            players={players}
+            teams={teams}
+            onKick={onKick}
+            onAddPlayer={onAddPlayer}
+            onAssignPlayer={onAssignPlayer}
+            onAdjustScore={onAdjustScore}
+          />
           <TeamManagerPanel
             game={game}
             teams={teams}
             players={players}
             onCreateTeam={onCreateTeam}
-            onAssignPlayer={onAssignPlayer}
             onImportFromManaged={onImportFromManaged}
           />
         </div>

@@ -137,6 +137,10 @@ describe('GameControls', () => {
 })
 
 describe('RosterPanel', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
   const teams: Team[] = [
     { id: 't1', gameId: 'g1', name: 'Red Team', color: '#ff0000', icon: 'flame', score: 0 },
     { id: 't2', gameId: 'g1', name: 'Blue Team', color: '#0000ff', icon: 'star', score: 0 },
@@ -176,18 +180,38 @@ describe('RosterPanel', () => {
   ]
 
   it('counts connected players, with disconnected ones apart', () => {
-    render(<RosterPanel players={players} teams={teams} onKick={vi.fn()} />)
+    render(
+      <RosterPanel
+        game={mockGame}
+        players={players}
+        teams={teams}
+        onKick={vi.fn()}
+        onAddPlayer={vi.fn()}
+        onAssignPlayer={vi.fn()}
+        onAdjustScore={vi.fn()}
+      />
+    )
     expect(screen.getByText('2 connected · 1 disconnected')).toBeInTheDocument()
   })
 
   it('renders all players with their details', () => {
-    render(<RosterPanel players={players} teams={teams} onKick={vi.fn()} />)
+    render(
+      <RosterPanel
+        game={mockGame}
+        players={players}
+        teams={teams}
+        onKick={vi.fn()}
+        onAddPlayer={vi.fn()}
+        onAssignPlayer={vi.fn()}
+        onAdjustScore={vi.fn()}
+      />
+    )
     expect(screen.getByText('Alice')).toBeInTheDocument()
     expect(screen.getByText('Bob')).toBeInTheDocument()
     expect(screen.getByText('Charlie')).toBeInTheDocument()
-    expect(screen.getByText('Red Team')).toBeInTheDocument()
-    expect(screen.getByText('Blue Team')).toBeInTheDocument()
-    expect(screen.getByText('no team')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('Red Team')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('Blue Team')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('No team')).toBeInTheDocument()
   })
 
   it('shows each presence with its own label and explanation', () => {
@@ -198,7 +222,17 @@ describe('RosterPanel', () => {
       name: `Player ${i}`,
       presence,
     }))
-    render(<RosterPanel players={everyone} teams={teams} onKick={vi.fn()} />)
+    render(
+      <RosterPanel
+        game={mockGame}
+        players={everyone}
+        teams={teams}
+        onKick={vi.fn()}
+        onAddPlayer={vi.fn()}
+        onAssignPlayer={vi.fn()}
+        onAdjustScore={vi.fn()}
+      />
+    )
     expect(screen.getByRole('img', { name: 'Connected' })).toHaveAttribute(
       'title',
       'Connected: Playing.'
@@ -215,19 +249,125 @@ describe('RosterPanel', () => {
 
   it('calls onKick when kick button is clicked', async () => {
     const onKick = vi.fn()
-    render(<RosterPanel players={players} teams={teams} onKick={onKick} />)
+    render(
+      <RosterPanel
+        game={mockGame}
+        players={players}
+        teams={teams}
+        onKick={onKick}
+        onAddPlayer={vi.fn()}
+        onAssignPlayer={vi.fn()}
+        onAdjustScore={vi.fn()}
+      />
+    )
     await userEvent.click(screen.getByRole('button', { name: 'Kick Alice' }))
     expect(onKick).toHaveBeenCalledWith('p1')
   })
 
   it('shows empty state when no players', () => {
-    render(<RosterPanel players={[]} teams={teams} onKick={vi.fn()} />)
+    render(
+      <RosterPanel
+        game={mockGame}
+        players={[]}
+        teams={teams}
+        onKick={vi.fn()}
+        onAddPlayer={vi.fn()}
+        onAssignPlayer={vi.fn()}
+        onAdjustScore={vi.fn()}
+      />
+    )
     expect(screen.getByText('No players yet')).toBeInTheDocument()
   })
 
   it('displays player scores', () => {
-    render(<RosterPanel players={players} teams={teams} onKick={vi.fn()} />)
+    render(
+      <RosterPanel
+        game={mockGame}
+        players={players}
+        teams={teams}
+        onKick={vi.fn()}
+        onAddPlayer={vi.fn()}
+        onAssignPlayer={vi.fn()}
+        onAdjustScore={vi.fn()}
+      />
+    )
     expect(screen.getByText('10')).toBeInTheDocument()
     expect(screen.getByText('5')).toBeInTheDocument()
+  })
+
+  it('adds a player with the add-player form', async () => {
+    const onAddPlayer = vi.fn()
+    render(
+      <RosterPanel
+        game={mockGame}
+        players={players}
+        teams={teams}
+        onKick={vi.fn()}
+        onAddPlayer={onAddPlayer}
+        onAssignPlayer={vi.fn()}
+        onAdjustScore={vi.fn()}
+      />
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Add player' }))
+    await userEvent.type(screen.getByLabelText('New player name'), 'Dana')
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(onAddPlayer).toHaveBeenCalledWith('Dana', null)
+  })
+
+  it('assigns a player to a team from the roster', async () => {
+    const onAssignPlayer = vi.fn()
+    render(
+      <RosterPanel
+        game={mockGame}
+        players={players}
+        teams={teams}
+        onKick={vi.fn()}
+        onAddPlayer={vi.fn()}
+        onAssignPlayer={onAssignPlayer}
+        onAdjustScore={vi.fn()}
+      />
+    )
+    await userEvent.selectOptions(screen.getByLabelText('Assign Charlie to team'), 't1')
+    expect(onAssignPlayer).toHaveBeenCalledWith('p3', 't1')
+  })
+
+  it('selects players and assigns them to a team in bulk', async () => {
+    const onAssignPlayer = vi.fn()
+    render(
+      <RosterPanel
+        game={mockGame}
+        players={players}
+        teams={teams}
+        onKick={vi.fn()}
+        onAddPlayer={vi.fn()}
+        onAssignPlayer={onAssignPlayer}
+        onAdjustScore={vi.fn()}
+      />
+    )
+    await userEvent.click(screen.getByLabelText('Select Alice'))
+    await userEvent.click(screen.getByLabelText('Select Bob'))
+    await userEvent.click(screen.getByRole('button', { name: 'Assign team to selected players' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Blue Team' }))
+    expect(onAssignPlayer).toHaveBeenCalledWith('p1', 't2')
+    expect(onAssignPlayer).toHaveBeenCalledWith('p2', 't2')
+  })
+
+  it('selects players and kicks them in bulk, after confirming', async () => {
+    const onKick = vi.fn()
+    render(
+      <RosterPanel
+        game={mockGame}
+        players={players}
+        teams={teams}
+        onKick={onKick}
+        onAddPlayer={vi.fn()}
+        onAssignPlayer={vi.fn()}
+        onAdjustScore={vi.fn()}
+      />
+    )
+    await userEvent.click(screen.getByLabelText('Select Alice'))
+    await userEvent.click(screen.getByRole('button', { name: 'Kick selected players' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Kick' }))
+    expect(onKick).toHaveBeenCalledWith('p1')
   })
 })
