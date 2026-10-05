@@ -78,6 +78,7 @@ export const GameSchema = z
     allowIndividual: z.boolean().default(true),
     allowLateJoin: z.boolean().default(true),
     allowRejoin: z.boolean().default(true),
+    rejoinWindowSeconds: z.number().default(0),
     requireApproval: z.boolean().default(false),
     allowPlayerTeams: z.boolean().default(true),
     roundIds: z.array(z.string()),
@@ -91,6 +92,10 @@ export const GameSchema = z
     allowFalseStarts: z.boolean().default(false),
     buzzDeduplication: z.enum(['firstOnly', 'all']).default('firstOnly'),
     tiebreakerMode: z.literal('serverOrder').default('serverOrder'),
+    confirmUnruledNavigation: z.boolean().default(false),
+    autoStartTimerOnQuestionShow: z.boolean().default(false),
+    defaultTimerDuration: z.number().default(60),
+    soundEffectsMuted: z.boolean().default(false),
     createdAt: z.number(),
     updatedAt: z.number(),
   })

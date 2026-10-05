@@ -117,6 +117,8 @@ export type JoinResult =
  *   (id, score, team, join time) and skips the late join check. Without it the device
  *   joins as a new player. An empty `deviceId` (players imported by the host have one)
  *   never matches.
+ * - `rejoinWindowSeconds` (when above `0`) further limits a rejoin to within that many
+ *   seconds of the player's `disconnectedAt`; past the window the device joins as new.
  * - New players are refused once the game has started unless `allowLateJoin` is on.
  * - New players are refused once the game has `maxPlayers` already, regardless of teams.
  * - `teamId` must name a team of this game with room left (`maxPerTeam`); `newTeamName`
@@ -136,7 +138,11 @@ export async function resolveJoin(game: Game, join: JoinEvent): Promise<JoinResu
   // Imported players have an empty deviceId; never let a JOIN claim them
   const sameDevice = join.deviceId ? players.filter(p => p.deviceId === join.deviceId) : []
   const previous = sameDevice.sort((a, b) => b.joinedAt - a.joinedAt)[0]
-  const existing = game.allowRejoin ? previous : undefined
+  const rejoinOk =
+    game.allowRejoin &&
+    (game.rejoinWindowSeconds <= 0 ||
+      Date.now() - (previous?.disconnectedAt ?? 0) <= game.rejoinWindowSeconds * 1000)
+  const existing = rejoinOk ? previous : undefined
 
   if (!existing && game.status !== 'waiting' && !game.allowLateJoin) {
     return { status: 'rejected', reason: 'The game has already started' }
@@ -198,6 +204,7 @@ export async function resolveJoin(game: Game, join: JoinEvent): Promise<JoinResu
       deviceId: join.deviceId,
       score: existing?.score ?? 0,
       presence: 'connected',
+      disconnectedAt: null,
       joinedAt: existing?.joinedAt ?? Date.now(),
       notes: existing?.notes ?? '',
     },

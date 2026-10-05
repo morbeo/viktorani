@@ -60,11 +60,16 @@ const GameSettingsSchema = z.object({
   allowPlayerTeams: z.boolean().catch(BUILT_IN_GAME.allowPlayerTeams),
   allowLateJoin: z.boolean().catch(BUILT_IN_GAME.allowLateJoin),
   allowRejoin: z.boolean().catch(BUILT_IN_GAME.allowRejoin),
+  rejoinWindowSeconds: LimitSchema.catch(BUILT_IN_GAME.rejoinWindowSeconds),
   requireApproval: z.boolean().catch(BUILT_IN_GAME.requireApproval),
   buzzerEnabled: z.boolean().catch(BUILT_IN_GAME.buzzerEnabled),
   autoLockOnFirstCorrect: z.boolean().catch(BUILT_IN_GAME.autoLockOnFirstCorrect),
   allowFalseStarts: z.boolean().catch(BUILT_IN_GAME.allowFalseStarts),
   buzzDeduplication: z.enum(['firstOnly', 'all']).catch(BUILT_IN_GAME.buzzDeduplication),
+  confirmUnruledNavigation: z.boolean().catch(BUILT_IN_GAME.confirmUnruledNavigation),
+  autoStartTimerOnQuestionShow: z.boolean().catch(BUILT_IN_GAME.autoStartTimerOnQuestionShow),
+  defaultTimerDuration: z.number().int().min(1).max(MAX_TIMER_SECONDS).catch(BUILT_IN_GAME.defaultTimerDuration),
+  soundEffectsMuted: z.boolean().catch(BUILT_IN_GAME.soundEffectsMuted),
 }) satisfies z.ZodType<GameSettings>
 
 const GameDefaultsSchema = GameSettingsSchema.extend({

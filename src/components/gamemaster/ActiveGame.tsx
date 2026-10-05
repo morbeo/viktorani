@@ -16,6 +16,7 @@ import type { LucideIcon } from 'lucide-react'
 import { NavHeader } from '@/components/NavHeader'
 import { RoundInfo } from '@/components/gamemaster/RoundInfo'
 import { RoundBoundary } from '@/components/RoundBoundary'
+import { ConfirmSkipModal } from '@/components/gamemaster/ConfirmSkipModal'
 import { BuzzerPanel } from '@/components/buzzer/BuzzerPanel'
 import { ScoreboardPanel } from '@/components/scoreboard/ScoreboardPanel'
 import { GameControls } from '@/components/gamemaster/GameControls'
@@ -166,6 +167,17 @@ export function ActiveGame({
 
   const { seq, pos, goNext, goPrev, isReady, isEmpty } = useNavigation(game, handleBoundary)
 
+  // Confirm before leaving a question with no ruling, when the setting is on
+  const [confirmingNav, setConfirmingNav] = useState(false)
+  const confirmedGoNext = useCallback(() => {
+    const current = pos ? seq[pos.flatIndex] : undefined
+    if (game.confirmUnruledNavigation && current?.questionStatus === 'pending') {
+      setConfirmingNav(true)
+      return
+    }
+    void goNext()
+  }, [game.confirmUnruledNavigation, pos, seq, goNext])
+
   // Current question ID derived from nav position
   const currentQuestionId = pos ? (seq[pos.flatIndex]?.questionId ?? null) : null
   const currentGameQuestionId = pos ? (seq[pos.flatIndex]?.gameQuestionId ?? null) : null
@@ -214,18 +226,29 @@ export function ActiveGame({
     timerHookRef.current = timerHook
   }, [timerHook])
 
-  // Auto-reset timers on navigation
+  // Auto-reset timers on navigation, and auto-start one for the question shown
   const prevPos = useRef<typeof pos>(null)
+  const autoStartedForRef = useRef<number | null>(null)
   useEffect(() => {
-    if (!pos || !prevPos.current) {
-      prevPos.current = pos
-      return
-    }
+    if (!pos) return
     const prev = prevPos.current
     prevPos.current = pos
-    const changeType = pos.roundIdx !== prev.roundIdx ? 'round' : 'question'
-    void timerHookRef.current.autoReset(changeType)
-  }, [pos])
+    if (prev) {
+      const changeType = pos.roundIdx !== prev.roundIdx ? 'round' : 'question'
+      void timerHookRef.current.autoReset(changeType)
+    }
+    if (game.autoStartTimerOnQuestionShow && autoStartedForRef.current !== pos.flatIndex) {
+      autoStartedForRef.current = pos.flatIndex
+      void (async () => {
+        const t = await timerHookRef.current.createTimer({
+          gameId: game.id,
+          label: '',
+          duration: game.defaultTimerDuration,
+        })
+        await timerHookRef.current.startTimer(t.id)
+      })()
+    }
+  }, [pos, game.autoStartTimerOnQuestionShow, game.defaultTimerDuration, game.id])
 
   // Hand handleIncomingBuzz to the parent's transport listener; cleared on unmount
   // so buzzes are never recorded against a game that is no longer open
@@ -253,9 +276,9 @@ export function ActiveGame({
   }, [toggleLock])
 
   useKeyNav({
-    onNext: goNext,
+    onNext: confirmedGoNext,
     onPrev: goPrev,
-    modalOpen: false,
+    modalOpen: confirmingNav,
     enabled: game.status === 'active',
   })
 
@@ -287,7 +310,7 @@ export function ActiveGame({
         group: 'Game',
         icon: ArrowRight,
         shortcut: '→',
-        run: goNext,
+        run: confirmedGoNext,
       },
       {
         id: 'gm:prev',
@@ -325,7 +348,7 @@ export function ActiveGame({
   }, [
     game.status,
     game.buzzerLocked,
-    goNext,
+    confirmedGoNext,
     goPrev,
     toggleLock,
     timers,
@@ -375,7 +398,16 @@ export function ActiveGame({
 
       <GameControls game={game} onGameChange={onGameChange} lifecycle={lifecycle} />
 
-      <NavHeader pos={pos} seq={seq} onPrev={goPrev} onNext={goNext} />
+      <NavHeader pos={pos} seq={seq} onPrev={goPrev} onNext={confirmedGoNext} />
+
+      <ConfirmSkipModal
+        open={confirmingNav}
+        onClose={() => setConfirmingNav(false)}
+        onConfirm={() => {
+          setConfirmingNav(false)
+          void goNext()
+        }}
+      />
 
       <HostTabs
         label="Host sections"
@@ -433,7 +465,9 @@ export function ActiveGame({
             )}
 
             {/* Timers — hidden when ended */}
-            {!isEnded && <TimerPanel gameId={game.id} hook={timerHook} />}
+            {!isEnded && (
+              <TimerPanel gameId={game.id} hook={timerHook} soundMuted={game.soundEffectsMuted} />
+            )}
           </div>
         </div>
 

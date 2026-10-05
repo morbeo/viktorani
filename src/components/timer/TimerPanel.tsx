@@ -11,6 +11,8 @@ import type { Timer } from '@/db'
 interface TimerPanelProps {
   gameId: string
   hook: UseTimerListResult
+  /** Suppresses the host beep and the audio flag sent to players/screens on expiry. */
+  soundMuted?: boolean
 }
 
 /**
@@ -21,7 +23,7 @@ interface TimerPanelProps {
  * - When all pauseable timers are paused → "Resume all"
  * - Otherwise → "Pause all"
  */
-export function TimerPanel({ gameId, hook }: TimerPanelProps) {
+export function TimerPanel({ gameId, hook, soundMuted = false }: TimerPanelProps) {
   const [showCreate, setShowCreate] = useState(false)
   const [editingTimer, setEditingTimer] = useState<Timer | null>(null)
   const { addToast } = useToast()
@@ -57,7 +59,7 @@ export function TimerPanel({ gameId, hook }: TimerPanelProps) {
     [addToast]
   )
 
-  useTimerExpiry(timers, remaining, handleExpire)
+  useTimerExpiry(timers, remaining, handleExpire, soundMuted)
 
   async function handleCreate(label: string, duration: number) {
     const t = await createTimer({ gameId, label, duration })

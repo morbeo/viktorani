@@ -4,7 +4,7 @@ import { Button, HelpTip, Icon, Input } from '@/components/ui'
 import { JOIN_POLICY_HELP } from '@/components/gamemaster/join-policy-help'
 import type { BuzzDeduplication, TargetVisibility } from '@/db'
 import { useAppSettings } from '@/hooks/useAppSettings'
-import { MAX_PRESETS } from '@/lib/app-settings'
+import { MAX_PRESETS, MAX_TIMER_SECONDS } from '@/lib/app-settings'
 import {
   GAME_SETTINGS_KEYS,
   LIVE_PRESET_KEYS,
@@ -20,8 +20,9 @@ export interface GameSettingsFormProps {
   /** Receives only the changed fields. */
   onChange: (patch: Partial<GameSettings>) => void
   /**
-   * `create`: every setting, with joining and buzzer under a collapsed Advanced section.
-   * `live`: joining and buzzer only, all shown; scoring is shown locked.
+   * `create`: every setting, with joining, buzzer, round flow and sound under a collapsed
+   * Advanced section.
+   * `live`: joining, buzzer, round flow and sound only, all shown; scoring is shown locked.
    */
   mode: 'create' | 'live'
   disabled?: boolean
@@ -101,6 +102,13 @@ export function GameSettingsForm({
         disabled={disabled}
         onChange={v => onChange({ allowRejoin: v })}
       />
+      <LimitStepper
+        label="Rejoin window (seconds)"
+        help="How long a disconnected device can still rejoin as the same player. 0 = no limit."
+        value={value.rejoinWindowSeconds}
+        disabled={disabled}
+        onChange={v => onChange({ rejoinWindowSeconds: v })}
+      />
       <Toggle
         label="Require approval"
         help={JOIN_POLICY_HELP.requireApproval}
@@ -171,6 +179,45 @@ export function GameSettingsForm({
           </Row>
         </>
       )}
+    </Section>
+  )
+
+  const roundFlow = (
+    <Section title="Round flow">
+      <Toggle
+        label="Confirm before skipping an unruled question"
+        help="Ask before moving to the next question when the current one has no ruling yet."
+        checked={value.confirmUnruledNavigation}
+        disabled={disabled}
+        onChange={v => onChange({ confirmUnruledNavigation: v })}
+      />
+      <Toggle
+        label="Auto-start timer on question"
+        help="Start a timer automatically whenever a question is shown, using the default duration below."
+        checked={value.autoStartTimerOnQuestionShow}
+        disabled={disabled}
+        onChange={v => onChange({ autoStartTimerOnQuestionShow: v })}
+      />
+      {value.autoStartTimerOnQuestionShow && (
+        <DurationInput
+          label="Default timer duration"
+          value={value.defaultTimerDuration}
+          disabled={disabled}
+          onChange={v => onChange({ defaultTimerDuration: v })}
+        />
+      )}
+    </Section>
+  )
+
+  const sound = (
+    <Section title="Sound">
+      <Toggle
+        label="Mute sound effects"
+        help="Mutes the host's timer-expiry beep for everyone in this game."
+        checked={value.soundEffectsMuted}
+        disabled={disabled}
+        onChange={v => onChange({ soundEffectsMuted: v })}
+      />
     </Section>
   )
 
@@ -294,6 +341,8 @@ export function GameSettingsForm({
         <>
           {joining}
           {buzzer}
+          {roundFlow}
+          {sound}
         </>
       ) : (
         <>
@@ -313,12 +362,14 @@ export function GameSettingsForm({
             >
               ▶
             </span>
-            Advanced: joining and buzzer
+            Advanced: joining, buzzer, round flow and sound
           </button>
           {showAdvanced && (
             <div className="grid grid-cols-1 gap-3">
               {joining}
               {buzzer}
+              {roundFlow}
+              {sound}
             </div>
           )}
         </>
@@ -485,6 +536,68 @@ function LimitStepper({
           ∞
         </button>
       </span>
+    </Row>
+  )
+}
+
+function toSeconds(value: string): number {
+  const n = Math.floor(Number(value))
+  return Number.isFinite(n) && n > 0 ? n : 0
+}
+
+/** Minutes/seconds duration picker, e.g. for an auto-started timer's default length. */
+function DurationInput({
+  label,
+  value,
+  disabled,
+  onChange,
+}: {
+  label: string
+  value: number
+  disabled: boolean
+  onChange: (v: number) => void
+}) {
+  const minutes = Math.floor(value / 60)
+  const seconds = value % 60
+  const inputStyle = {
+    borderColor: 'var(--color-border)',
+    background: 'var(--color-cream)',
+    color: 'var(--color-ink)',
+  }
+  function setDuration(m: number, s: number) {
+    onChange(Math.min(MAX_TIMER_SECONDS, Math.max(1, m * 60 + s)))
+  }
+  return (
+    <Row label={label}>
+      <fieldset className="flex items-end gap-2">
+        <legend className="sr-only">{label}</legend>
+        <label className="flex flex-col gap-1 text-xs" style={{ color: 'var(--color-muted)' }}>
+          Minutes
+          <input
+            type="number"
+            min={0}
+            max={99}
+            disabled={disabled}
+            value={minutes}
+            onChange={e => setDuration(Math.min(99, toSeconds(e.target.value)), seconds)}
+            className="w-16 px-2 py-1 rounded border text-sm outline-none"
+            style={inputStyle}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs" style={{ color: 'var(--color-muted)' }}>
+          Seconds
+          <input
+            type="number"
+            min={0}
+            max={59}
+            disabled={disabled}
+            value={seconds}
+            onChange={e => setDuration(minutes, Math.min(59, toSeconds(e.target.value)))}
+            className="w-16 px-2 py-1 rounded border text-sm outline-none"
+            style={inputStyle}
+          />
+        </label>
+      </fieldset>
     </Row>
   )
 }
