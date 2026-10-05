@@ -85,6 +85,7 @@ export const GameSchema = z
     buzzerLocked: z.boolean(),
     scoringEnabled: z.boolean().default(true),
     // Buzzer config was added after v1 backups; defaults mirror the game wizard.
+    buzzerEnabled: z.boolean().default(true),
     autoLockOnFirstCorrect: z.boolean().default(false),
     allowFalseStarts: z.boolean().default(false),
     buzzDeduplication: z.enum(['firstOnly', 'all']).default('firstOnly'),

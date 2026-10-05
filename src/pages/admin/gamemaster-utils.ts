@@ -31,6 +31,7 @@ export function serialiseGameState(
     status: game.status,
     currentRoundIdx: game.currentRoundIdx,
     currentQuestionIdx: game.currentQuestionIdx,
+    buzzerEnabled: game.buzzerEnabled,
     buzzerLocked: game.buzzerLocked,
     visibility: game.visibility,
     scores,

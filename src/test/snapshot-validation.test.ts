@@ -30,6 +30,7 @@ const GAME = {
   currentQuestionIdx: 0,
   buzzerLocked: true,
   scoringEnabled: true,
+  buzzerEnabled: true,
   autoLockOnFirstCorrect: false,
   allowFalseStarts: false,
   buzzDeduplication: 'firstOnly',
@@ -121,15 +122,17 @@ describe('importDatabase — validation', () => {
 
   it('defaults buzzer fields missing from v1 games', async () => {
     const {
+      buzzerEnabled: _e,
       autoLockOnFirstCorrect: _a,
       allowFalseStarts: _b,
       buzzDeduplication: _c,
       tiebreakerMode: _d,
       ...legacy
     } = GAME
-    void [_a, _b, _c, _d]
+    void [_e, _a, _b, _c, _d]
     await importDatabase(jsonFile(snapshot({ version: 1, categories: [], games: [legacy] })))
     expect(await db.games.get('g1')).toMatchObject({
+      buzzerEnabled: true,
       autoLockOnFirstCorrect: false,
       allowFalseStarts: false,
       buzzDeduplication: 'firstOnly',

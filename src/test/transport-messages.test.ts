@@ -47,6 +47,7 @@ const FIXTURES: { [K in TransportEvent['type']]: Extract<TransportEvent, { type:
       status: 'active',
       currentRoundIdx: 0,
       currentQuestionIdx: 2,
+      buzzerEnabled: true,
       buzzerLocked: false,
       visibility: {
         players: { showQuestion: true, showAnswers: false, showMedia: true },
@@ -431,6 +432,7 @@ describe('production payload builders', () => {
       status: 'active',
       currentRoundIdx: 1,
       currentQuestionIdx: 4,
+      buzzerEnabled: true,
       buzzerLocked: true,
       visibility: {
         players: { showQuestion: true, showAnswers: false, showMedia: true },

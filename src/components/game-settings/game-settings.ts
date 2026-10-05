@@ -12,6 +12,7 @@ export type GameSettings = Pick<
   | 'allowLateJoin'
   | 'allowRejoin'
   | 'requireApproval'
+  | 'buzzerEnabled'
   | 'autoLockOnFirstCorrect'
   | 'allowFalseStarts'
   | 'buzzDeduplication'
@@ -36,6 +37,7 @@ export const GAME_SETTINGS_KEYS = [
   'allowLateJoin',
   'allowRejoin',
   'requireApproval',
+  'buzzerEnabled',
   'autoLockOnFirstCorrect',
   'allowFalseStarts',
   'buzzDeduplication',
@@ -91,6 +93,7 @@ export function defaultSettings(): GameSettings {
     requireApproval: false,
     maxTeams: 0,
     maxPerTeam: 0,
+    buzzerEnabled: true,
     autoLockOnFirstCorrect: false,
     allowFalseStarts: false,
     buzzDeduplication: 'firstOnly',

@@ -193,6 +193,8 @@ export interface Game {
   buzzerLocked: boolean
   // Buzzer configuration
   scoringEnabled: boolean
+  /** Whether this game has a buzzer at all. Off for host-paced formats with no buzzing. */
+  buzzerEnabled: boolean
   /** Lock the buzzer automatically after the first correct adjudication. */
   autoLockOnFirstCorrect: boolean
   /** Whether false-start buzzes (arriving while locked) are recorded. */
@@ -429,6 +431,7 @@ export interface GameQuestion {
  * - 8: same stores; replaces `Player.isAway` with `Player.presence`.
  * - 9: adds `scoreEvents`, the log of score changes.
  * - 10: adds `gameLog`, the log of everything else that happens in a game.
+ * - 11: same stores; back-fills `Game.buzzerEnabled` (`true`) on existing games.
  *
  * To change the schema, add a new `this.version(N + 1)` block below; keep existing blocks.
  */
@@ -524,6 +527,17 @@ export class ViktoraniDB extends Dexie {
     this.version(9).stores({ scoreEvents: 'id, gameId, timestamp' })
 
     this.version(10).stores({ gameLog: 'id, gameId, [gameId+at]' })
+
+    this.version(11)
+      .stores({})
+      .upgrade(tx =>
+        tx
+          .table('games')
+          .toCollection()
+          .modify((g: Partial<Game>) => {
+            g.buzzerEnabled ??= true
+          })
+      )
   }
 }
 

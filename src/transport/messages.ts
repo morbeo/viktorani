@@ -73,6 +73,7 @@ export const SerializedGameStateSchema = z.strictObject({
   status: z.string().max(MAX_STATUS_LENGTH),
   currentRoundIdx: index,
   currentQuestionIdx: index,
+  buzzerEnabled: z.boolean(),
   buzzerLocked: z.boolean(),
   visibility: z.strictObject({ players: targetVisibility, screen: targetVisibility }),
   scores,
