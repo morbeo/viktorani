@@ -45,12 +45,13 @@ function stacked(target: LayoutTarget, phase: GamePhase | null, types: WidgetTyp
  * The layouts every surface falls back to when it has no valid layout of its own.
  *
  * @remarks
- * The screen's are today's projector view: the host's message, the heading, the question,
- * its media and answers, then timers, scores and the log; once the game has ended, the
- * timers and question go. The game master, player and scoreboard defaults list the same
- * pieces their fixed views show, for the designer (#412) to start from; those surfaces
- * don't render through `LayoutRenderer` yet, since most of their widgets are still
- * placeholders.
+ * Each reproduces the fixed view it replaced. The screen's is the projector view: the host's
+ * message, the heading, the question, its media and answers, then timers, scores and the
+ * log. The game master's is the play column: where the game is, the question, the buzzer
+ * and the timers (the controls, navigation and side panel stay fixed around it). The
+ * player's is the phone view: the host's message, the question, the buzz button and the
+ * timers. Once the game has ended, the question (screen) and the buzzer and timers go. The
+ * scoreboard surface doesn't render through `LayoutRenderer` yet.
  */
 export const BUILTIN_LAYOUTS: readonly LayoutBundle[] = [
   stacked('screen', null, [
@@ -64,21 +65,10 @@ export const BUILTIN_LAYOUTS: readonly LayoutBundle[] = [
     'game_log',
   ]),
   stacked('screen', 'ended', ['announcement', 'round_info', 'scoreboard', 'game_log']),
-  stacked('player', null, ['announcement', 'question', 'media', 'answers', 'timer', 'buzzer']),
-  stacked('gamemaster', null, [
-    'round_info',
-    'progress',
-    'question',
-    'answers',
-    'media',
-    'game_controls',
-    'buzzer',
-    'buzz_order',
-    'timer',
-    'scoreboard',
-    'player_list',
-    'game_log',
-  ]),
+  stacked('player', null, ['announcement', 'question', 'buzzer', 'timer']),
+  stacked('player', 'ended', ['announcement']),
+  stacked('gamemaster', null, ['round_info', 'question', 'buzzer', 'timer']),
+  stacked('gamemaster', 'ended', ['round_info', 'question']),
   stacked('scoreboard', null, ['leaderboard']),
 ]
 

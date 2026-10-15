@@ -2,9 +2,21 @@ import { z } from 'zod'
 import type { ComponentType } from 'react'
 import type { WidgetType } from '@/db'
 import { GRID_COLUMNS, type GridSize } from '@/lib/layout-grid'
-import { QrCodePanel } from '@/components/gamemaster/QrCodePanel'
-import { RoundInfo } from '@/components/gamemaster/RoundInfo'
-import { AnnouncementBanner } from '@/pages/player/AnnouncementBanner'
+import {
+  GamemasterBuzzerWidget,
+  GamemasterLogWidget,
+  GamemasterQrCodeWidget,
+  GamemasterQuestionWidget,
+  GamemasterRoundInfoWidget,
+  GamemasterScoreboardWidget,
+  GamemasterTimerWidget,
+} from '@/components/gamemaster/gamemaster-widgets'
+import {
+  PlayerAnnouncementWidget,
+  PlayerBuzzerWidget,
+  PlayerQuestionWidget,
+  PlayerTimerWidget,
+} from '@/pages/player/player-widgets'
 import {
   ScreenAnnouncementWidget,
   ScreenAnswersWidget,
@@ -30,9 +42,8 @@ function placeholderFor(label: string): ComponentType {
 }
 
 /**
- * One registry entry. Targets in `overrides` get their real, already-extracted component;
- * the rest get a placeholder, since they still need live game data #410's `LayoutRenderer`
- * will supply.
+ * One registry entry. Targets in `overrides` get their real widget adapter; the rest get a
+ * placeholder until the designer (#412) needs them.
  */
 function widget(
   type: WidgetType,
@@ -58,8 +69,13 @@ function widget(
 
 /** Every {@link WidgetType}, with its metadata and a component (real or placeholder) per target. */
 export const WIDGET_REGISTRY: Record<WidgetType, WidgetDefinition> = {
-  buzzer: widget('buzzer', 'Buzzer', ['gamemaster', 'player'], HALF),
+  buzzer: widget('buzzer', 'Buzzer', ['gamemaster', 'player'], HALF, {
+    gamemaster: GamemasterBuzzerWidget,
+    player: PlayerBuzzerWidget,
+  }),
   question: widget('question', 'Question', ['gamemaster', 'player', 'screen'], FULL, {
+    gamemaster: GamemasterQuestionWidget,
+    player: PlayerQuestionWidget,
     screen: ScreenQuestionWidget,
   }),
   answers: widget('answers', 'Answers', ['gamemaster', 'player', 'screen'], FULL, {
@@ -69,28 +85,34 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetDefinition> = {
     screen: ScreenMediaWidget,
   }),
   timer: widget('timer', 'Timer', ['gamemaster', 'player', 'screen'], HALF, {
+    gamemaster: GamemasterTimerWidget,
+    player: PlayerTimerWidget,
     screen: ScreenTimersWidget,
   }),
   buzz_order: widget('buzz_order', 'Buzz order', ['gamemaster'], HALF),
   scoreboard: widget('scoreboard', 'Scoreboard', ['gamemaster', 'screen'], HALF, {
+    gamemaster: GamemasterScoreboardWidget,
     screen: ScreenScoresWidget,
   }),
   leaderboard: widget('leaderboard', 'Leaderboard', ['screen', 'scoreboard'], HALF),
   player_list: widget('player_list', 'Player list', ['gamemaster'], HALF),
   round_info: widget('round_info', 'Round info', ['gamemaster', 'screen'], FULL, {
-    gamemaster: RoundInfo,
+    gamemaster: GamemasterRoundInfoWidget,
     screen: ScreenHeadingWidget,
   }),
   text: widget('text', 'Text', ['gamemaster', 'player', 'screen', 'scoreboard'], HALF),
-  qr_code: widget('qr_code', 'QR code', ['gamemaster'], HALF, { gamemaster: QrCodePanel }),
+  qr_code: widget('qr_code', 'QR code', ['gamemaster'], HALF, {
+    gamemaster: GamemasterQrCodeWidget,
+  }),
   announcement: widget('announcement', 'Announcement', ['gamemaster', 'player', 'screen'], FULL, {
-    player: AnnouncementBanner,
+    player: PlayerAnnouncementWidget,
     screen: ScreenAnnouncementWidget,
   }),
   image: widget('image', 'Image', ['gamemaster', 'player', 'screen', 'scoreboard'], HALF),
   game_controls: widget('game_controls', 'Game controls', ['gamemaster'], FULL),
   progress: widget('progress', 'Progress', ['gamemaster', 'player', 'screen'], FULL),
   game_log: widget('game_log', 'Game log', ['gamemaster', 'screen', 'scoreboard'], HALF, {
+    gamemaster: GamemasterLogWidget,
     screen: ScreenLogWidget,
   }),
 }

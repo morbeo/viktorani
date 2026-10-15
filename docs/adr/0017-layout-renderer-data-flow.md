@@ -32,8 +32,13 @@ surfaces that get that data in different ways.
   no gap of their own, so spacing lives in each surface's cell classes. That keeps the
   screen pixel-identical to the fixed view it replaced.
 - **Surface by surface.** The projector screen renders through layouts first, because all
-  its widgets already exist. The game master and player views follow once their
-  remaining widgets are extracted; their built-in defaults are already defined.
+  its widgets already exist. The game master's play column and the player's phone view
+  followed, each with a built-in default that reproduces its fixed view. What sits
+  around them stays fixed: the game master's controls, navigation and side panel, and the
+  player's name, score, Leave button and connection or pause notices.
+- **Widgets guard what the phase forbids.** Each surface has an `ended` default without
+  the buzzer and timers, but the adapters also hide those once the game has ended, so a
+  stored all-phase layout can't bring them back.
 
 ---
 
@@ -41,8 +46,8 @@ surfaces that get that data in different ways.
 
 - Adding a widget to a surface means extending that surface's data contract, not
   threading new props through the page.
-- Remote screens use the built-in default until the `LAYOUT` transport event (#411)
-  delivers the host's layout; the host's projector window will follow layout assignment
-  (#415).
+- Remote screens and players use the built-in default until the `LAYOUT` transport event
+  (#411) delivers the host's layout; the host's projector window and play column will
+  follow layout assignment (#415). The scoreboard surface has no renderer yet.
 - Grid placement and theme overrides depend on stored numbers, so the renderer sets them
   as inline styles.
