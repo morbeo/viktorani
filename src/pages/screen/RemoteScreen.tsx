@@ -82,6 +82,8 @@ export default function RemoteScreen() {
   if (ended && session.status === 'accepted') {
     return (
       <ScreenView
+        layouts={session.layouts?.layouts}
+        gameId={session.layouts?.gameId}
         phase="ended"
         data={{
           heading: 'Game over',
@@ -125,6 +127,8 @@ export default function RemoteScreen() {
 
   return (
     <ScreenView
+      layouts={session.layouts?.layouts}
+      gameId={session.layouts?.gameId}
       data={{
         heading: session.gameStatus === 'paused' ? 'Paused' : null,
         content: session.content,

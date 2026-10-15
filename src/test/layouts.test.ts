@@ -5,6 +5,7 @@ import {
   BUILTIN_LAYOUTS,
   BUILTIN_LAYOUT_PREFIX,
   isRenderable,
+  layoutsForPhases,
   resolveLayout,
   type LayoutBundle,
 } from '@/widgets/layouts'
@@ -159,5 +160,46 @@ describe('resolveLayout', () => {
   it('falls back to the built-in default when the only layout is invalid', () => {
     const broken = bundle('broken', { theme: { ...DEFAULT_LAYOUT_THEME, accent: 'red' } })
     expect(pick([broken])).toBe(`${BUILTIN_LAYOUT_PREFIX}screen:all`)
+  })
+})
+
+describe('layoutsForPhases', () => {
+  const ids = (stored: LayoutBundle[], gameId = 'g1') =>
+    layoutsForPhases(stored, 'screen', gameId).map(b => b.layout.id)
+
+  it('is empty when only the built-in default fits', () => {
+    expect(ids([])).toEqual([])
+    expect(
+      ids([bundle('player', { target: 'player' }), bundle('other', { gameId: 'g2' })])
+    ).toEqual([])
+  })
+
+  it("keeps each phase's pick once, and nothing a phase would not pick", () => {
+    const stored = [
+      bundle('all'),
+      bundle('all-loser', { order: 1 }),
+      bundle('ended', { phase: 'ended' }),
+      bundle('reveal', { phase: 'reveal', gameId: 'g1' }),
+      bundle('reveal-template', { phase: 'reveal' }),
+    ]
+    expect(ids(stored).sort()).toEqual(['all', 'ended', 'reveal'])
+  })
+
+  it('leaves out layouts that cannot render', () => {
+    expect(ids([bundle('broken', {}, [{ type: 'buzzer' }])])).toEqual([])
+  })
+
+  it('resolves every phase among its picks as among everything stored', () => {
+    const stored = [
+      bundle('all'),
+      bundle('mine', { gameId: 'g1', order: 3 }),
+      bundle('ended', { phase: 'ended' }),
+      bundle('lobby-inactive', { phase: 'lobby', isActive: false }),
+      bundle('lobby', { phase: 'lobby', order: 2 }),
+    ]
+    const picks = layoutsForPhases(stored, 'screen', 'g1')
+    for (const phase of [null, 'lobby', 'question', 'ended'] as const) {
+      expect(pick(picks, 'g1', phase)).toBe(pick(stored, 'g1', phase))
+    }
   })
 })

@@ -1,7 +1,7 @@
 // @vitest-pool vmForks
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import userEvent from '@testing-library/user-event'
-import type { Game, Question } from '@/db'
+import type { Game, GamePhase, Question, WidgetType } from '@/db'
 import type { ITransport, TransportConfig, TransportEvent } from '@/transport/types'
 
 // The real host and player screens, run against each other in one document. Each side
@@ -434,5 +434,108 @@ describe('game flow', () => {
         expect.arrayContaining(['player_joined', 'player_hidden', 'player_left'])
       )
     )
+  }, 20_000)
+})
+
+describe('layouts over the transport', () => {
+  const layout = (
+    id: string,
+    target: 'player' | 'screen',
+    widgets: WidgetType[],
+    phase: GamePhase | null = null
+  ) => ({
+    layout: {
+      id,
+      gameId: 'g1',
+      name: id,
+      target,
+      phase,
+      theme: { background: null, accent: '#00966e', fontScale: 1, logo: null },
+      isActive: true,
+      order: 0,
+    },
+    widgets: widgets.map((type, i) => ({
+      id: `${id}-${type}`,
+      layoutId: id,
+      type,
+      config: {},
+      grid: { x: 0, y: i, w: 12, h: 1 },
+      breakpoints: {},
+      order: i,
+    })),
+  })
+
+  async function store(...bundles: ReturnType<typeof layout>[]) {
+    const { db } = await import('@/db')
+    await db.layouts.bulkPut(bundles.map(b => b.layout))
+    await db.widgets.bulkPut(bundles.flatMap(b => b.widgets))
+  }
+
+  afterEach(async () => {
+    const { db } = await import('@/db')
+    await Promise.all([db.layouts.clear(), db.widgets.clear()])
+  })
+
+  const layoutsOf = (received: TransportEvent[], target: 'player' | 'screen') =>
+    received.flatMap(e =>
+      e.type === 'LAYOUT' && e.target === target ? [e.layouts.map(b => b.layout.id)] : []
+    )
+
+  it('sends an admitted player the stored player layout, and resends it when it changes', async () => {
+    await seedGame()
+    await store(
+      layout('phone', 'player', ['question', 'buzzer']),
+      layout('tv', 'screen', ['question'])
+    )
+    const host = await mountSide('host', '/admin/game/g1')
+    await host.waitFor(() => expect(hub.state.host).not.toBeNull())
+
+    const { client, received } = await connectClient()
+    client.send({ ...JOIN, playerName: 'Gus', deviceId: 'device-gus' } as TransportEvent)
+    await host.waitFor(() => expect(layoutsOf(received, 'player')).toContainEqual(['phone']), SLOW)
+    expect(layoutsOf(received, 'screen')).toEqual([])
+
+    // An all-phase layout would lose to 'phone' on order; one for the end of the game is added
+    await store(layout('phone-2', 'player', ['question'], 'ended'))
+    await host.waitFor(() =>
+      expect(layoutsOf(received, 'player').at(-1)?.sort()).toEqual(['phone', 'phone-2'].sort())
+    )
+  }, 20_000)
+
+  it('sends an approved screen the stored screen layout', async () => {
+    const user = userEvent.setup()
+    await seedGame()
+    await store(layout('tv', 'screen', ['question', 'scoreboard']))
+    const host = await mountSide('host', '/admin/game/g1')
+    await host.waitFor(() => expect(hub.state.host).not.toBeNull())
+
+    const { client, received } = await connectClient()
+    client.send({ type: 'SCREEN_JOIN' })
+    await user.click(await host.view.findByRole('button', { name: 'Approve screen 1' }, SLOW))
+    await host.waitFor(() => expect(layoutsOf(received, 'screen')).toContainEqual(['tv']), SLOW)
+  }, 20_000)
+
+  it("renders the host's player layout on the player's phone", async () => {
+    const user = userEvent.setup()
+    await seedGame()
+    await store(layout('phone', 'player', ['question']))
+    const host = await mountSide('host', '/admin/game/g1')
+    await host.waitFor(() => expect(hub.state.host).not.toBeNull())
+
+    const player = await mountSide('player', '/join/ABC234')
+    // The first test's name is remembered on this device
+    await user.clear(player.view.getByLabelText('Your name'))
+    await user.type(player.view.getByLabelText('Your name'), 'Hal')
+    await user.click(player.view.getByRole('button', { name: 'Continue' }))
+    await user.click(await player.view.findByRole('radio', { name: 'Play on my own' }))
+    await user.click(player.view.getByRole('button', { name: 'Join as Hal' }))
+
+    await player.waitFor(
+      () => expect(document.querySelector('[data-layout-id="phone"]')).not.toBeNull(),
+      SLOW
+    )
+    // Only the question: the stored layout has no buzz button
+    expect(player.view.getByRole('heading', { name: 'Capital of France?' })).toBeInTheDocument()
+    expect(player.view.queryByRole('button', { name: 'Buzz' })).toBeNull()
   }, 20_000)
 })

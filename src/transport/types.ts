@@ -1,4 +1,4 @@
-import type { GameVisibility } from '@/db'
+import type { GameVisibility, Layout, Widget } from '@/db'
 
 // ── Shared event types ────────────────────────────────────────────────────────
 
@@ -94,6 +94,23 @@ export type GameEvent =
    * whenever the log changes and when a screen is approved.
    */
   | { type: 'LOG'; entries: LogEntry[] }
+  /**
+   * The stored layouts a remote surface may show: for each game phase, the one the host
+   * would pick, without duplicates. The surface picks among them for its own phase and
+   * falls back to its built-in default when none fits or `layouts` is empty. Sent to
+   * players on admit (and so on rejoin), to screens on approval, and to both whenever the
+   * stored layouts change.
+   */
+  | { type: 'LAYOUT'; target: RemoteLayoutTarget; gameId: string; layouts: LayoutPayload[] }
+
+/** Surfaces on other devices that get their layout over the transport. */
+export type RemoteLayoutTarget = 'player' | 'screen'
+
+/** One layout and its widgets, as sent in `LAYOUT`. */
+export interface LayoutPayload {
+  layout: Layout
+  widgets: Widget[]
+}
 
 /** Where question content is shown: the projector/screen or player phones. */
 export type VisibilityTarget = 'players' | 'screen'

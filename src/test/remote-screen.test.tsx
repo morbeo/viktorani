@@ -100,6 +100,13 @@ describe('reduceScreen', () => {
     expect(content?.mediaType).toBeNull()
   })
 
+  it('keeps the latest LAYOUT for screens and ignores the players one', () => {
+    const event = { type: 'LAYOUT' as const, target: 'screen' as const, gameId: 'g1', layouts: [] }
+    const s = reduceScreen(INITIAL_SCREEN, event)
+    expect(s.layouts).toEqual({ gameId: 'g1', layouts: [] })
+    expect(reduceScreen(s, { ...event, target: 'player' })).toBe(s)
+  })
+
   it('keeps the latest LOG feed', () => {
     const entries = [{ id: 'e1', at: 1, kind: 'buzz' as const, who: 'Ann', details: '' }]
     const s = reduceScreen(INITIAL_SCREEN, { type: 'LOG', entries })
@@ -126,6 +133,53 @@ describe('RemoteScreen', () => {
     expect(screen.getByText('Paris')).toBeInTheDocument()
     expect(screen.getByText('Ann')).toBeInTheDocument()
     expect(screen.getByText('7')).toBeInTheDocument()
+  })
+
+  it("shows the host's screen layout, its ended layout once the game ends, and skips broken ones", async () => {
+    const layout = (
+      id: string,
+      phase: 'ended' | null,
+      type: 'question' | 'scoreboard' | 'buzzer'
+    ) => ({
+      layout: {
+        id,
+        gameId: 'g1',
+        name: id,
+        target: 'screen' as const,
+        phase,
+        theme: { background: null, accent: null, fontScale: 1, logo: null },
+        isActive: true,
+        order: 0,
+      },
+      widgets: [
+        {
+          id: `${id}-w`,
+          layoutId: id,
+          type,
+          config: {},
+          grid: { x: 0, y: 0, w: 12, h: 1 },
+          breakpoints: {},
+          order: 0,
+        },
+      ],
+    })
+    renderScreen()
+    await waitFor(() => expect(transportManager.send).toHaveBeenCalled())
+    emit({ type: 'SCREEN_ACCEPTED' })
+    emit({
+      type: 'LAYOUT',
+      target: 'screen',
+      gameId: 'g1',
+      // The buzzer has no screen component, so that layout can't render and is skipped
+      layouts: [
+        layout('broken', null, 'buzzer'),
+        layout('tv', null, 'question'),
+        layout('end', 'ended', 'scoreboard'),
+      ],
+    })
+    expect(document.querySelector('[data-layout-id="tv"]')).not.toBeNull()
+    emit({ type: 'GAME_STATUS', status: 'ended' })
+    expect(document.querySelector('[data-layout-id="end"]')).not.toBeNull()
   })
 
   it('shows the public log feed once approved', async () => {
