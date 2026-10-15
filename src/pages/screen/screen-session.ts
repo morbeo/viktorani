@@ -1,6 +1,6 @@
 import type { LogEntry, ScoreboardRow, TransportEvent } from '@/transport/types'
 import { knownStatus } from '@/pages/player/player-session'
-import type { GameStatus, QuestionContent } from '@/pages/player/player-session'
+import type { GameStatus, QuestionContent, RemoteLayouts } from '@/pages/player/player-session'
 import { isSafeMedia } from '@/pages/player/safe-media'
 
 /** What a networked screen knows about the game, as told by the host. */
@@ -17,6 +17,8 @@ export interface ScreenSession {
   message: string | null
   /** The most recent public game-log entries, newest first. */
   logEntries: LogEntry[]
+  /** The host's stored layouts for screens (see `LAYOUT`); `null` uses the built-in default. */
+  layouts: RemoteLayouts | null
 }
 
 export const INITIAL_SCREEN: ScreenSession = {
@@ -27,6 +29,7 @@ export const INITIAL_SCREEN: ScreenSession = {
   gameStatus: null,
   message: null,
   logEntries: [],
+  layouts: null,
 }
 
 /** Drop media the screen must not load (see {@link isSafeMedia}). */
@@ -59,6 +62,10 @@ export function reduceScreen(s: ScreenSession, event: TransportEvent): ScreenSes
       return { ...s, message: event.text || null }
     case 'LOG':
       return { ...s, logEntries: event.entries }
+    case 'LAYOUT':
+      return event.target === 'screen'
+        ? { ...s, layouts: { gameId: event.gameId, layouts: event.layouts } }
+        : s
     default:
       return s
   }

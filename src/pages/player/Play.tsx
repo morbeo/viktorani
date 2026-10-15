@@ -189,9 +189,9 @@ export default function Play() {
 
           {/* Each visible widget brings its own top margin; -mt-6 cancels the page's gap */}
           <LayoutRenderer
-            bundle={resolveLayout([], {
+            bundle={resolveLayout(session.layouts?.layouts ?? [], {
               target: 'player',
-              gameId: null,
+              gameId: session.layouts?.gameId ?? null,
               phase: ended ? 'ended' : null,
             })}
             target="player"

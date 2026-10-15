@@ -46,8 +46,8 @@ surfaces that get that data in different ways.
 
 - Adding a widget to a surface means extending that surface's data contract, not
   threading new props through the page.
-- Remote screens and players use the built-in default until the `LAYOUT` transport event
-  (#411) delivers the host's layout; the host's projector window and play column will
-  follow layout assignment (#415). The scoreboard surface has no renderer yet.
+- Remote screens and players get the host's stored layouts in the `LAYOUT` transport event
+  (#411, ADR 0018); the host's projector window and play column will follow layout
+  assignment (#415). The scoreboard surface has no renderer yet.
 - Grid placement and theme overrides depend on stored numbers, so the renderer sets them
   as inline styles.

@@ -10,6 +10,9 @@ import {
 import {
   MAX_ID_LENGTH,
   MAX_LABEL_LENGTH,
+  MAX_LAYOUT_EVENT_LENGTH,
+  MAX_LAYOUT_WIDGETS,
+  MAX_LAYOUTS,
   MAX_LOBBY_TEAMS,
   MAX_LOG_ENTRIES,
   MAX_LOG_TEXT_LENGTH,
@@ -27,6 +30,8 @@ import { serialiseGameState } from '@/pages/admin/gamemaster-utils'
 import type { Game } from '@/db'
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
+
+const LOGO = 'data:image/png;base64,iVBORw0KGgo='
 
 // One valid message per type. The mapped type makes a missing variant a
 // compile error, so adding a TransportEvent type forces a fixture here.
@@ -104,6 +109,36 @@ const FIXTURES: { [K in TransportEvent['type']]: Extract<TransportEvent, { type:
     entries: [
       { id: 'e1', at: 1000, kind: 'buzz', who: 'Ann', details: '' },
       { id: 'e2', at: 2000, kind: 'player_kicked', who: 'Bob', details: '' },
+    ],
+  },
+  LAYOUT: {
+    type: 'LAYOUT',
+    target: 'player',
+    gameId: 'g1',
+    layouts: [
+      {
+        layout: {
+          id: 'l1',
+          gameId: 'g1',
+          name: 'Bar night',
+          target: 'player',
+          phase: null,
+          theme: { background: '#102030', accent: null, fontScale: 1.2, logo: LOGO },
+          isActive: true,
+          order: 0,
+        },
+        widgets: [
+          {
+            id: 'w1',
+            layoutId: 'l1',
+            type: 'question',
+            config: {},
+            grid: { x: 0, y: 0, w: 12, h: 2 },
+            breakpoints: { phone: { x: 0, y: 0, w: 12, h: 3 } },
+            order: 0,
+          },
+        ],
+      },
     ],
   },
 }
@@ -472,5 +507,98 @@ describe('parseTransportEvent', () => {
     vi.stubEnv('DEV', false)
     vi.spyOn(console, 'warn').mockImplementation(() => {})
     expect(parseTransportEvent({ ...FIXTURES.JOIN, playerName: 'x'.repeat(10_000) })).toBeNull()
+  })
+})
+
+describe('LAYOUT', () => {
+  const event = FIXTURES.LAYOUT
+  const [bundle] = event.layouts
+  const withLayout = (patch: object) => ({
+    ...event,
+    layouts: [{ ...bundle, layout: { ...bundle.layout, ...patch } }],
+  })
+  const withTheme = (patch: object) => withLayout({ theme: { ...bundle.layout.theme, ...patch } })
+  const withWidget = (patch: object) => ({
+    ...event,
+    layouts: [{ ...bundle, widgets: [{ ...bundle.widgets[0], ...patch }] }],
+  })
+
+  it('accepts no layouts, meaning the built-in default', () => {
+    expect(accepts({ ...event, layouts: [] })).toBe(true)
+  })
+
+  it('is only for players and screens', () => {
+    expect(accepts({ ...event, target: 'screen' })).toBe(true)
+    expect(accepts({ ...event, target: 'gamemaster' })).toBe(false)
+  })
+
+  it.each([
+    'javascript:alert(1)',
+    'http://example.com/logo.png',
+    'data:text/html,<script>alert(1)</script>',
+    'blob:https://example.com/1',
+  ])('rejects the logo %s', logo => {
+    expect(accepts(withTheme({ logo }))).toBe(false)
+  })
+
+  it('accepts an https logo', () => {
+    expect(accepts(withTheme({ logo: 'https://example.com/logo.png' }))).toBe(true)
+  })
+
+  it.each(['red', 'url(https://x)', '#12345g', '#1234567'])('rejects the colour %s', colour => {
+    expect(accepts(withTheme({ background: colour }))).toBe(false)
+    expect(accepts(withTheme({ accent: colour }))).toBe(false)
+  })
+
+  it('rejects a font scale out of range', () => {
+    expect(accepts(withTheme({ fontScale: 0.4 }))).toBe(false)
+    expect(accepts(withTheme({ fontScale: 2.1 }))).toBe(false)
+  })
+
+  it('rejects unknown fields in the layout, theme and widgets', () => {
+    expect(accepts(withLayout({ html: '<b>x</b>' }))).toBe(false)
+    expect(accepts(withTheme({ css: 'body{}' }))).toBe(false)
+    expect(accepts(withWidget({ style: 'color:red' }))).toBe(false)
+    expect(accepts(withWidget({ breakpoints: { watch: { x: 0, y: 0, w: 1, h: 1 } } }))).toBe(false)
+  })
+
+  it('rejects an unknown widget type, target or phase', () => {
+    expect(accepts(withWidget({ type: 'iframe' }))).toBe(false)
+    expect(accepts(withLayout({ target: 'tv' }))).toBe(false)
+    expect(accepts(withLayout({ phase: 'intermission' }))).toBe(false)
+  })
+
+  it('rejects a widget off the grid', () => {
+    expect(accepts(withWidget({ grid: { x: 6, y: 0, w: 7, h: 1 } }))).toBe(false)
+    expect(accepts(withWidget({ grid: { x: -1, y: 0, w: 1, h: 1 } }))).toBe(false)
+    expect(accepts(withWidget({ grid: { x: 0.5, y: 0, w: 1, h: 1 } }))).toBe(false)
+  })
+
+  it('bounds widget config keys', () => {
+    const config = Object.fromEntries(Array.from({ length: 33 }, (_, i) => [`k${i}`, i]))
+    expect(accepts(withWidget({ config: {} }))).toBe(true)
+    expect(accepts(withWidget({ config }))).toBe(false)
+  })
+
+  it('bounds the number of layouts and widgets', () => {
+    const widgets = (n: number) =>
+      Array.from({ length: n }, (_, i) => ({ ...bundle.widgets[0], id: `w${i}` }))
+    expect(
+      accepts({ ...event, layouts: [{ ...bundle, widgets: widgets(MAX_LAYOUT_WIDGETS) }] })
+    ).toBe(true)
+    expect(
+      accepts({ ...event, layouts: [{ ...bundle, widgets: widgets(MAX_LAYOUT_WIDGETS + 1) }] })
+    ).toBe(false)
+    expect(accepts({ ...event, layouts: Array(MAX_LAYOUTS).fill(bundle) })).toBe(true)
+    expect(accepts({ ...event, layouts: Array(MAX_LAYOUTS + 1).fill(bundle) })).toBe(false)
+  })
+
+  it('caps the whole event, so several large logos cannot add up', () => {
+    const logo = `data:image/png;base64,${'A'.repeat(MAX_LAYOUT_EVENT_LENGTH / 2)}`
+    const big = { ...bundle, layout: { ...bundle.layout, theme: { ...bundle.layout.theme, logo } } }
+    expect(accepts({ ...event, layouts: [big] })).toBe(true)
+    expect(
+      accepts({ ...event, layouts: [big, { ...big, layout: { ...big.layout, id: 'l2' } }] })
+    ).toBe(false)
   })
 })

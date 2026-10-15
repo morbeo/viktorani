@@ -1,3 +1,4 @@
+import { GAME_PHASES } from '@/db'
 import type { GamePhase, Layout, LayoutTarget, Widget, WidgetType } from '@/db'
 import { LayoutSchema, WidgetSchema } from '@/db/snapshot-schema'
 import { DEFAULT_LAYOUT_THEME, GRID_COLUMNS } from '@/lib/layout-grid'
@@ -142,4 +143,27 @@ export function resolveLayout(
   const chosen = pick(stored, target, gameId, phase) ?? pick(BUILTIN_LAYOUTS, target, null, phase)
   if (!chosen) throw new Error(`No built-in layout for ${target}`)
   return chosen
+}
+
+/**
+ * The stored layouts a remote surface needs to pick its layout itself: for each phase (and
+ * for no phase), the one {@link resolveLayout} would pick from `stored`, without duplicates.
+ *
+ * @remarks
+ * Resolving among just these gives the same layout for every phase as resolving among all
+ * of `stored`, since each phase's best layout is in the set. So the host can send them
+ * once and the surface switches with the phase on its own. Empty when only the built-in
+ * default fits, which the surface has already.
+ */
+export function layoutsForPhases(
+  stored: readonly LayoutBundle[],
+  target: LayoutTarget,
+  gameId: string
+): LayoutBundle[] {
+  const picked = new Map<string, LayoutBundle>()
+  for (const phase of [null, ...GAME_PHASES]) {
+    const bundle = pick(stored, target, gameId, phase)
+    if (bundle) picked.set(bundle.layout.id, bundle)
+  }
+  return [...picked.values()]
 }

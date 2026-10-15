@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import { GAME_PHASES, LAYOUT_TARGETS, WIDGET_TYPES } from '@/db'
+import { GridRectSchema, LayoutThemeSchema } from '@/db/snapshot-schema'
 import { PUBLIC_LOG_KINDS } from './types'
 import type { TransportEvent } from './types'
 
@@ -42,6 +44,17 @@ export const MAX_LOG_ENTRIES = 20
 export const MAX_LOG_TEXT_LENGTH = 200
 /** Max length of question media (base64 data URL or remote URL), in characters. */
 export const MAX_MEDIA_LENGTH = 10 * 1024 * 1024
+/** Max number of layouts in a `LAYOUT`: at most one per game phase, plus the all-phase one. */
+export const MAX_LAYOUTS = GAME_PHASES.length + 1
+/** Max number of widgets in one layout. */
+export const MAX_LAYOUT_WIDGETS = 64
+/** Max number of keys in a widget's config. */
+export const MAX_WIDGET_CONFIG_KEYS = 32
+/**
+ * Max size of a whole `LAYOUT`, in characters of JSON. Fits one inlined logo at its own
+ * limit (`MAX_LOGO_LENGTH`) with room to spare, so several logos can't add up to megabytes.
+ */
+export const MAX_LAYOUT_EVENT_LENGTH = 3_000_000
 
 const id = z.string().max(MAX_ID_LENGTH)
 const name = z.string().max(MAX_NAME_LENGTH)
@@ -65,6 +78,39 @@ const logEntry = z.strictObject({
   kind: z.enum(PUBLIC_LOG_KINDS),
   who: logText,
   details: logText,
+})
+
+const layoutPayload = z.strictObject({
+  layout: z.strictObject({
+    id,
+    gameId: id.nullable(),
+    name: label,
+    target: z.enum(LAYOUT_TARGETS),
+    phase: z.enum(GAME_PHASES).nullable(),
+    // Colours are #rrggbb and the logo a data:image/ or https:// URL, as for stored layouts
+    theme: z.strictObject(LayoutThemeSchema.shape),
+    isActive: z.boolean(),
+    order: z.number(),
+  }),
+  widgets: z
+    .array(
+      z.strictObject({
+        id,
+        layoutId: id,
+        type: z.enum(WIDGET_TYPES),
+        // Checked against the widget type's schema before rendering (`isRenderable`)
+        config: z
+          .record(id, z.unknown())
+          .refine(c => Object.keys(c).length <= MAX_WIDGET_CONFIG_KEYS, 'Too many config keys'),
+        grid: GridRectSchema,
+        breakpoints: z.strictObject({
+          phone: GridRectSchema.optional(),
+          tv: GridRectSchema.optional(),
+        }),
+        order: z.number(),
+      })
+    )
+    .max(MAX_LAYOUT_WIDGETS),
 })
 
 /** Schema for {@link SerializedGameState}. */
@@ -159,6 +205,14 @@ export const GameEventSchemas = {
     type: z.literal('LOG'),
     entries: z.array(logEntry).max(MAX_LOG_ENTRIES),
   }),
+  LAYOUT: z
+    .strictObject({
+      type: z.literal('LAYOUT'),
+      target: z.enum(['player', 'screen']),
+      gameId: id,
+      layouts: z.array(layoutPayload).max(MAX_LAYOUTS),
+    })
+    .refine(e => JSON.stringify(e).length <= MAX_LAYOUT_EVENT_LENGTH, 'Layout too large'),
 }
 
 /** Schemas for events sent by players to the GameMaster. */
@@ -205,6 +259,7 @@ export const TransportEventSchema = z.discriminatedUnion('type', [
   GameEventSchemas.SCOREBOARD,
   GameEventSchemas.MESSAGE,
   GameEventSchemas.LOG,
+  GameEventSchemas.LAYOUT,
   PlayerEventSchemas.BUZZ,
   PlayerEventSchemas.JOIN,
   PlayerEventSchemas.LEAVE,
