@@ -53,26 +53,30 @@ export type PlayerPresence = 'connected' | 'hidden' | 'disconnected' | 'left' | 
 export type TiebreakerMode = 'serverOrder'
 
 /**
- * The set of widget types that can be placed in a GM layout.
- * Each type maps to a distinct React component in the GameMaster screen.
+ * The widget types that can be placed in a {@link Layout}. Each maps to an entry in the
+ * widget registry (`src/widgets/registry.tsx`), which supplies its component per target.
  */
-export type WidgetType =
-  | 'buzzer'
-  | 'question'
-  | 'answers'
-  | 'media'
-  | 'timer'
-  | 'buzz_order'
-  | 'scoreboard'
-  | 'leaderboard'
-  | 'player_list'
-  | 'round_info'
-  | 'text'
-  | 'qr_code'
-  | 'announcement'
-  | 'image'
-  | 'game_controls'
-  | 'progress'
+export const WIDGET_TYPES = [
+  'buzzer',
+  'question',
+  'answers',
+  'media',
+  'timer',
+  'buzz_order',
+  'scoreboard',
+  'leaderboard',
+  'player_list',
+  'round_info',
+  'text',
+  'qr_code',
+  'announcement',
+  'image',
+  'game_controls',
+  'progress',
+] as const
+
+/** See {@link WIDGET_TYPES}. */
+export type WidgetType = (typeof WIDGET_TYPES)[number]
 
 /**
  * A configurable difficulty tier with a point value and display colour.
@@ -349,13 +353,19 @@ export interface GameLogEntry {
 }
 
 /** The surfaces a {@link Layout} can be shown on. */
-export type LayoutTarget = 'gamemaster' | 'player' | 'screen' | 'scoreboard'
+export const LAYOUT_TARGETS = ['gamemaster', 'player', 'screen', 'scoreboard'] as const
+
+/** See {@link LAYOUT_TARGETS}. */
+export type LayoutTarget = (typeof LAYOUT_TARGETS)[number]
 
 /**
  * The game states that can each have their own {@link Layout}. The renderer picks the layout
  * for the current phase automatically; the game master can override it (#414).
  */
-export type GamePhase = 'lobby' | 'question' | 'buzzed' | 'reveal' | 'scoreboard' | 'ended'
+export const GAME_PHASES = ['lobby', 'question', 'buzzed', 'reveal', 'scoreboard', 'ended'] as const
+
+/** See {@link GAME_PHASES}. */
+export type GamePhase = (typeof GAME_PHASES)[number]
 
 /** Device classes a {@link Widget} can override its base {@link GridRect} for. */
 export type LayoutBreakpoint = 'phone' | 'tv'

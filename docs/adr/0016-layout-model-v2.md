@@ -35,6 +35,10 @@ per-surface look, or a different layout per game phase. Issue #409 defines v2.
   and the default theme, and packs each layout's widgets into one-row-tall rows in
   `order` (a half widget spans 6 columns, a full one 12), which matches how the old flow
   showed them.
+- **Backups:** layouts and widgets are designed by the host, not produced by play, so the
+  JSON snapshot includes them. It stays at version 2, because older files without them just
+  restore no layouts. Import validates grid rects, colours and logo URLs, and rejects
+  widgets whose layout isn't in the file.
 
 ---
 
