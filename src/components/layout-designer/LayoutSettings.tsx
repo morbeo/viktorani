@@ -57,6 +57,14 @@ export function LayoutSettings({ layout, onChange, onDelete }: LayoutSettingsPro
   const [name, setName] = useState(layout.name)
   const [logo, setLogo] = useState(layout.theme.logo ?? '')
   const [logoError, setLogoError] = useState<string | null>(null)
+  // An undo can change them underneath; show the stored values again when it does
+  const [stored, setStored] = useState({ name: layout.name, logo: layout.theme.logo })
+  if (stored.name !== layout.name || stored.logo !== layout.theme.logo) {
+    setStored({ name: layout.name, logo: layout.theme.logo })
+    setName(layout.name)
+    setLogo(layout.theme.logo ?? '')
+    setLogoError(null)
+  }
 
   function setTheme(patch: Partial<LayoutTheme>) {
     const theme = { ...layout.theme, ...patch }
