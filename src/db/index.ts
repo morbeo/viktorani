@@ -73,6 +73,7 @@ export const WIDGET_TYPES = [
   'image',
   'game_controls',
   'progress',
+  'game_log',
 ] as const
 
 /** See {@link WIDGET_TYPES}. */

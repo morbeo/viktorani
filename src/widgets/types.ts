@@ -1,6 +1,7 @@
-import type { ComponentType } from 'react'
+import type { ComponentType, ReactNode } from 'react'
 import type { z } from 'zod'
 import type { LayoutTarget, WidgetType } from '@/db'
+import type { GameEvent, LogEntry, ScoreboardRow } from '@/transport/types'
 import type { GridSize } from '@/lib/layout-grid'
 
 /** Surfaces a widget can be placed on: the same set as `Layout.target`. */
@@ -29,4 +30,37 @@ export interface WidgetDefinition<TConfig = Record<string, never>> {
   defaultConfig: TConfig
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   components: Partial<Record<WidgetTarget, ComponentType<any>>>
+}
+
+/** What a projector screen knows about the game, as handed to its widgets. */
+export interface ScreenData {
+  /** Shown above the question, e.g. the round and question number, "Paused" or "Game over". */
+  heading: string | null
+  /** The current question, as far as the `screen` visibility allows. */
+  content: Extract<GameEvent, { type: 'QUESTION_CONTENT' }> | null
+  /** The host's message to the screens. */
+  message: string | null
+  /** Ranked names and scores; empty when scoring is off. */
+  rows: ScoreboardRow[]
+  /** Recent public game events, newest first. */
+  logEntries: LogEntry[]
+  /**
+   * The surface's timers, already rendered: the host's projector window reads them from the
+   * database and a remote screen from the transport, so each surface supplies its own.
+   */
+  timers: ReactNode
+}
+
+/** Live data per surface. Only the screen is rendered from a layout so far. */
+export interface SurfaceData {
+  gamemaster: never
+  player: never
+  screen: ScreenData
+  scoreboard: never
+}
+
+/** Props the `LayoutRenderer` gives every widget component. */
+export interface WidgetProps<TData = unknown, TConfig = unknown> {
+  data: TData
+  config: TConfig
 }
