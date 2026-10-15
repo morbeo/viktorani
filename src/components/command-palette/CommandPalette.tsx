@@ -7,6 +7,7 @@ import {
   CircleHelp,
   Database,
   LayoutDashboard,
+  LayoutTemplate,
   NotebookPen,
   Play,
   Plus,
@@ -26,15 +27,52 @@ import type { Command } from './commands'
 const MAX_RESULTS = 50
 
 const PAGES: Array<{ id: string; label: string; group: string; icon: LucideIcon; path: string }> = [
-  { id: 'nav:dashboard', label: 'Dashboard', group: 'Go to', icon: LayoutDashboard, path: '/admin' },
-  { id: 'nav:questions', label: 'Questions', group: 'Go to', icon: CircleHelp, path: '/admin/questions' },
+  {
+    id: 'nav:dashboard',
+    label: 'Dashboard',
+    group: 'Go to',
+    icon: LayoutDashboard,
+    path: '/admin',
+  },
+  {
+    id: 'nav:questions',
+    label: 'Questions',
+    group: 'Go to',
+    icon: CircleHelp,
+    path: '/admin/questions',
+  },
   { id: 'nav:games', label: 'Games', group: 'Go to', icon: Trophy, path: '/admin/games' },
-  { id: 'nav:people', label: 'Players & Teams', group: 'Go to', icon: Users, path: '/admin/players-teams' },
+  {
+    id: 'nav:people',
+    label: 'Players & Teams',
+    group: 'Go to',
+    icon: Users,
+    path: '/admin/players-teams',
+  },
+  {
+    id: 'nav:layouts',
+    label: 'Layouts',
+    group: 'Go to',
+    icon: LayoutTemplate,
+    path: '/admin/layouts',
+  },
   { id: 'nav:notes', label: 'Notes', group: 'Go to', icon: NotebookPen, path: '/admin/notes' },
-  { id: 'nav:settings', label: 'Settings', group: 'Go to', icon: Settings, path: '/admin/settings' },
+  {
+    id: 'nav:settings',
+    label: 'Settings',
+    group: 'Go to',
+    icon: Settings,
+    path: '/admin/settings',
+  },
   { id: 'nav:debug', label: 'Debug info', group: 'Go to', icon: Bug, path: '/admin/debug' },
   { id: 'new:game', label: 'New game', group: 'Create', icon: Plus, path: '/admin/games?new=1' },
-  { id: 'new:question', label: 'New question', group: 'Create', icon: Plus, path: '/admin/questions?new=1' },
+  {
+    id: 'new:question',
+    label: 'New question',
+    group: 'Create',
+    icon: Plus,
+    path: '/admin/questions?new=1',
+  },
 ]
 
 interface CommandPaletteProps {
