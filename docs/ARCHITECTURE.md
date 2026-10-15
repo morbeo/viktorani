@@ -221,8 +221,9 @@ erDiagram
   renders a layout with the surface's live data, and `resolveLayout` picks the layout for a
   target, game and phase, falling back to a built-in default
   ([ADR 0017](adr/0017-layout-renderer-data-flow.md)). The projector screen, the game
-  master's play column and the player's view render through it; the designer is still to
-  come (#364).
+  master's play column and the player's view render through it. Remote players and screens
+  get the host's stored layouts in a `LAYOUT` event
+  ([ADR 0018](adr/0018-layout-transport-event.md)); the designer is still to come (#364).
 
 ### Schema versions
 
@@ -283,6 +284,7 @@ flowchart LR
     g4[VISIBILITY / QUESTION_CONTENT]
     g5[SLIDE_CHANGE / SCORE_UPDATE]
     g6[TIMER_START / PAUSE / RESUME<br/>RESET / EXPIRED]
+    g7[LAYOUT]
   end
   subgraph PlayerEvent["Players → host (PlayerEvent)"]
     direction TB

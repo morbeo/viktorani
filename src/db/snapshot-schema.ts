@@ -146,7 +146,7 @@ export const MAX_GRID_ROWS = 100
 /** Longest logo URL (a `data:image/` URL inlines the image), about 1.5 MB of image. */
 export const MAX_LOGO_LENGTH = 2_000_000
 
-const GridRectSchema = z
+export const GridRectSchema = z
   .object({
     x: z
       .number()
