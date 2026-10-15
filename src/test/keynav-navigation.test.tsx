@@ -101,7 +101,11 @@ const { mockDb, mockTransportManager } = vi.hoisted(() => ({
   },
 }))
 
-vi.mock('@/db', () => ({ db: mockDb }))
+// The real constants (widget types, phases) back the transport schemas
+vi.mock('@/db', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/db')>()),
+  db: mockDb,
+}))
 vi.mock('@/transport', () => ({ transportManager: mockTransportManager }))
 vi.mock('@/db/games', () => ({ updateQuestionStatus: vi.fn() }))
 

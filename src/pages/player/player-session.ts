@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { transportManager } from '@/transport'
-import type { GameEvent, TransportEvent } from '@/transport/types'
+import type { GameEvent, LayoutPayload, TransportEvent } from '@/transport/types'
 
 export type QuestionContent = Extract<GameEvent, { type: 'QUESTION_CONTENT' }>
 
@@ -29,6 +29,14 @@ export interface PlayerSession {
   gameStatus: GameStatus | null
   /** The host's latest MESSAGE; a new object per message, so a repeat of the same text is new. */
   message: { text: string } | null
+  /** The host's stored layouts for players (see `LAYOUT`); `null` uses the built-in default. */
+  layouts: RemoteLayouts | null
+}
+
+/** The layouts a `LAYOUT` carried, and the game they are for. */
+export interface RemoteLayouts {
+  gameId: string
+  layouts: LayoutPayload[]
 }
 
 const INITIAL: PlayerSession = {
@@ -40,6 +48,7 @@ const INITIAL: PlayerSession = {
   question: null,
   gameStatus: null,
   message: null,
+  layouts: null,
 }
 
 let session = INITIAL
@@ -78,6 +87,10 @@ export function reduceSession(s: PlayerSession, event: TransportEvent): PlayerSe
       return { ...s, question: null }
     case 'MESSAGE':
       return { ...s, message: event.text ? { text: event.text } : null }
+    case 'LAYOUT':
+      return event.target === 'player'
+        ? { ...s, layouts: { gameId: event.gameId, layouts: event.layouts } }
+        : s
     default:
       return s
   }

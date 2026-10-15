@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import AdminLayout from '@/components/AdminLayout'
@@ -9,6 +9,7 @@ import type { ScreensPanelProps } from '@/components/gamemaster/ScreensPanel'
 import type { MessagePanelProps } from '@/components/gamemaster/MessagePanel'
 import { db } from '@/db'
 import { logEvent } from '@/db/game-log'
+import { loadGameLayouts } from '@/db/layouts'
 import { RateLimiter } from '@/lib/rate-limit'
 import { isAbortError, retry, transportManager } from '@/transport'
 import {
@@ -27,6 +28,7 @@ import { useGameLifecycle } from '@/hooks/useGameLifecycle'
 import { adjustScore, buildScoreEntries, readScores } from '@/hooks/useScoreboard'
 import { buildLogRows, toPublicLogEntries } from '@/lib/game-log-rows'
 import { PlayerConnections, messageRecipients, resolveJoin } from '@/pages/admin/player-connections'
+import { buildLayoutEvent, type LayoutEvent } from '@/pages/admin/remote-layouts'
 import type { JoinResult, MessageTarget, PendingJoin } from '@/pages/admin/player-connections'
 import type { Game, Player, Team } from '@/db'
 import { MAX_LOG_ENTRIES, MAX_SCOREBOARD_ROWS } from '@/transport/messages'
@@ -136,6 +138,9 @@ export default function GameMaster() {
   const screenContentRef = useRef<QuestionContent | null>(null)
   const scoreboardRef = useRef<ScoreboardRow[]>([])
   const logRef = useRef<LogEntry[]>([])
+  // The LAYOUT each kind of remote surface gets; `null` until the stored layouts have loaded
+  const playerLayoutRef = useRef<LayoutEvent | null>(null)
+  const screenLayoutRef = useRef<LayoutEvent | null>(null)
 
   useEffect(() => {
     gameRef.current = game
@@ -316,6 +321,7 @@ export default function GameMaster() {
         })
       }
       if (questionContentRef.current) transportManager.sendTo(connId, questionContentRef.current)
+      if (playerLayoutRef.current) transportManager.sendTo(connId, playerLayoutRef.current)
       if (g) await sendRunningTimers(connId, g.id)
       addToast(`${player.name} joined the game`, { variant: 'info', durationMs: 4000 })
     },
@@ -386,6 +392,30 @@ export default function GameMaster() {
       transportManager.sendTo(connId, { type: 'LOG', entries })
     }
   }, [logFeed])
+
+  // Stored layouts for remote players and screens, resent whenever they change. Each
+  // surface picks the one for its phase itself, so a phase change needs no resend.
+  const storedLayouts = useLiveQuery(() => (id ? loadGameLayouts(id) : []), [id])
+  const playerLayout = useMemo(
+    () => (id && storedLayouts ? buildLayoutEvent(storedLayouts, 'player', id) : null),
+    [id, storedLayouts]
+  )
+  const screenLayout = useMemo(
+    () => (id && storedLayouts ? buildLayoutEvent(storedLayouts, 'screen', id) : null),
+    [id, storedLayouts]
+  )
+  useEffect(() => {
+    playerLayoutRef.current = playerLayout
+    if (!playerLayout) return
+    for (const connId of connectionsRef.current.connections()) {
+      transportManager.sendTo(connId, playerLayout)
+    }
+  }, [playerLayout])
+  useEffect(() => {
+    screenLayoutRef.current = screenLayout
+    if (!screenLayout) return
+    for (const connId of screensRef.current) transportManager.sendTo(connId, screenLayout)
+  }, [screenLayout])
 
   const enqueueJoin = useCallback((task: () => Promise<void>) => {
     const run = joinQueueRef.current.then(task)
@@ -613,6 +643,7 @@ export default function GameMaster() {
       if (screenContentRef.current) transportManager.sendTo(connId, screenContentRef.current)
       transportManager.sendTo(connId, { type: 'SCOREBOARD', rows: scoreboardRef.current })
       transportManager.sendTo(connId, { type: 'LOG', entries: logRef.current })
+      if (screenLayoutRef.current) transportManager.sendTo(connId, screenLayoutRef.current)
       const g = gameRef.current
       if (g) void sendRunningTimers(connId, g.id)
       if (g?.status === 'paused') {

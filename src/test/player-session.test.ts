@@ -26,6 +26,7 @@ const EMPTY: PlayerSession = {
   question: null,
   gameStatus: null,
   message: null,
+  layouts: null,
 }
 
 function content(target: 'players' | 'screen'): QuestionContent {
@@ -117,6 +118,13 @@ describe('reduceSession', () => {
     expect(reduceSession(s, content('screen'))).toBe(s)
     s = reduceSession(s, { type: 'SLIDE_CHANGE', index: 1, roundIndex: 0 })
     expect(s.question).toBeNull()
+  })
+
+  it('keeps the latest LAYOUT for players and ignores the screens one', () => {
+    const event = { type: 'LAYOUT' as const, target: 'player' as const, gameId: 'g1', layouts: [] }
+    const s = reduceSession(EMPTY, event)
+    expect(s.layouts).toEqual({ gameId: 'g1', layouts: [] })
+    expect(reduceSession(s, { ...event, target: 'screen' })).toBe(s)
   })
 
   it('returns the same session for unrelated events', () => {
