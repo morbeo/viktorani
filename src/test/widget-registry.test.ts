@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { WIDGET_REGISTRY } from '@/widgets/registry'
+import { isValidRect } from '@/lib/layout-grid'
 
 describe('WIDGET_REGISTRY', () => {
   it.each(Object.entries(WIDGET_REGISTRY))(
@@ -33,4 +34,8 @@ describe('WIDGET_REGISTRY', () => {
       expect(def.type).toBe(type)
     }
   )
+
+  it.each(Object.entries(WIDGET_REGISTRY))('%s preferredSize fits the grid', (_type, def) => {
+    expect(isValidRect({ x: 0, y: 0, ...def.preferredSize })).toBe(true)
+  })
 })
