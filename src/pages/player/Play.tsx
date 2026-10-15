@@ -5,11 +5,10 @@ import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { useTransportEvents } from '@/hooks/useTransport'
 import { isAbortError, retry, transportManager } from '@/transport'
 import { MAX_NAME_LENGTH } from '@/transport/messages'
-import { PlayerTimers } from '@/components/timer/PlayerTimers'
+import { LayoutRenderer } from '@/widgets/LayoutRenderer'
+import { resolveLayout } from '@/widgets/layouts'
 import { getDeviceId } from './device-id'
 import { getPlayerSession, startPlayerSession, usePlayerSession } from './player-session'
-import { PlayerQuestion } from './PlayerQuestion'
-import { AnnouncementBanner } from './AnnouncementBanner'
 
 // ── Main Play page ────────────────────────────────────────────────────────────
 
@@ -120,6 +119,13 @@ export default function Play() {
   if (!name && !joined) return <Navigate to={`/join/${roomId}`} replace />
 
   const canBuzz = joined && !paused && !session.buzzerLocked && !buzzed
+  const buzzLabel = buzzed
+    ? 'Buzzed!'
+    : paused
+      ? 'Paused'
+      : session.buzzerLocked
+        ? 'Locked'
+        : 'BUZZ'
   const score = session.playerId ? (session.scores[session.playerId] ?? 0) : 0
   const teamScore = session.teamId ? session.scores[session.teamId] : undefined
 
@@ -178,30 +184,33 @@ export default function Play() {
             </Button>
           </header>
 
-          <AnnouncementBanner message={session.message} />
-
           {ended && <Status text="The game has ended. Thanks for playing!" />}
           {paused && <Status text="The host paused the game." />}
 
-          {!ended && session.question && <PlayerQuestion question={session.question} />}
-
-          {!ended && session.buzzerEnabled && (
-            <button
-              type="button"
-              aria-label="Buzz"
-              disabled={!canBuzz}
-              onClick={handleBuzz}
-              className="w-64 h-64 rounded-full text-4xl font-black shadow-lg transition-colors"
-              style={{
-                background: canBuzz ? 'var(--color-red)' : 'var(--color-border)',
-                color: canBuzz ? '#fff' : 'var(--color-muted)',
-              }}
-            >
-              {buzzed ? 'Buzzed!' : paused ? 'Paused' : session.buzzerLocked ? 'Locked' : 'BUZZ'}
-            </button>
-          )}
-
-          {!ended && <PlayerTimers />}
+          {/* Each visible widget brings its own top margin; -mt-6 cancels the page's gap */}
+          <LayoutRenderer
+            bundle={resolveLayout([], {
+              target: 'player',
+              gameId: null,
+              phase: ended ? 'ended' : null,
+            })}
+            target="player"
+            data={{
+              message: session.message,
+              question: session.question,
+              ended,
+              buzzer: session.buzzerEnabled
+                ? {
+                    enabled: canBuzz,
+                    label: buzzLabel,
+                    onBuzz: handleBuzz,
+                  }
+                : null,
+            }}
+            breakpoint="phone"
+            className="w-full -mt-6"
+            cellClassName="mt-6 flex flex-col items-center"
+          />
         </>
       )}
     </div>

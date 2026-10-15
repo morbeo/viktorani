@@ -14,10 +14,8 @@ import {
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { NavHeader } from '@/components/NavHeader'
-import { RoundInfo } from '@/components/gamemaster/RoundInfo'
 import { RoundBoundary } from '@/components/RoundBoundary'
 import { ConfirmSkipModal } from '@/components/gamemaster/ConfirmSkipModal'
-import { BuzzerPanel } from '@/components/buzzer/BuzzerPanel'
 import { ScoreboardPanel } from '@/components/scoreboard/ScoreboardPanel'
 import { GameControls } from '@/components/gamemaster/GameControls'
 import { PendingJoinsPanel } from '@/components/gamemaster/PendingJoinsPanel'
@@ -27,7 +25,6 @@ import type { ScreensPanelProps } from '@/components/gamemaster/ScreensPanel'
 import { MessagePanel } from '@/components/gamemaster/MessagePanel'
 import { GameLogPanel } from '@/components/gamemaster/GameLogPanel'
 import type { MessagePanelProps } from '@/components/gamemaster/MessagePanel'
-import { HostQuestionPanel } from '@/components/host/HostQuestionPanel'
 import { Icon } from '@/components/ui'
 import { db } from '@/db'
 import { buildQuestionContent } from '@/pages/admin/gamemaster-utils'
@@ -36,7 +33,8 @@ import { useKeyNav } from '@/hooks/useKeyNav'
 import { useBuzzer } from '@/hooks/useBuzzer'
 import { useTimerList } from '@/hooks/useTimer'
 import type { PendingJoin } from '@/pages/admin/player-connections'
-import { TimerPanel } from '@/components/timer/TimerPanel'
+import { LayoutRenderer } from '@/widgets/LayoutRenderer'
+import { resolveLayout, type LayoutBundle } from '@/widgets/layouts'
 import { useRegisterCommands } from '@/components/command-palette/commands'
 import type { Command } from '@/components/command-palette/commands'
 import type { Game, GmDecision, Player, Team } from '@/db'
@@ -65,6 +63,8 @@ export interface ActiveGameProps {
   onScreenContent: (content: QuestionContent | null) => void
   screens: ScreensPanelProps
   messages: MessagePanelProps
+  /** Stored layouts for the play column; the built-in default is used when none fits. */
+  layouts?: readonly LayoutBundle[]
 }
 
 export type BuzzHandler = ReturnType<typeof useBuzzer>['handleIncomingBuzz']
@@ -151,6 +151,7 @@ export function ActiveGame({
   onScreenContent,
   screens,
   messages,
+  layouts = [],
 }: ActiveGameProps) {
   const [showBoundary, setShowBoundary] = useState(false)
   // Narrow screens show either the play column or the side panel; wide screens show both
@@ -419,28 +420,44 @@ export function ActiveGame({
       />
 
       <div className="flex-1 min-h-0 flex">
-        {/* Play: what the host uses every few seconds */}
+        {/* Play: what the host uses every few seconds, laid out by the game master layout.
+            Each visible widget brings its own top margin, so there's no top padding */}
         <div
           id="host-panel-play"
-          className={`${view === 'play' ? 'block' : 'hidden'} lg:block flex-1 min-w-0 overflow-y-auto px-8 py-6`}
+          className={`${view === 'play' ? 'block' : 'hidden'} lg:block flex-1 min-w-0 overflow-y-auto px-8 pb-6`}
         >
-          <div className="max-w-3xl mx-auto flex flex-col gap-6">
-            {/* Question context */}
-            <RoundInfo pos={pos} seq={seq} />
-
-            {question && gameQuestion && (
-              <HostQuestionPanel
-                question={question}
-                gameQuestion={gameQuestion}
-                game={game}
-                onGameChange={onGameChange}
-              />
-            )}
+          <div className="max-w-3xl mx-auto">
+            <LayoutRenderer
+              bundle={resolveLayout(layouts, {
+                target: 'gamemaster',
+                gameId: game.id,
+                phase: isEnded ? 'ended' : null,
+              })}
+              target="gamemaster"
+              data={{
+                game,
+                onGameChange,
+                pos,
+                seq,
+                questionId: currentQuestionId,
+                question: question ?? null,
+                gameQuestion: gameQuestion ?? null,
+                buzzer: {
+                  buzzes,
+                  displayBuzzes,
+                  onToggleLock: () => void toggleLock(),
+                  onAdjudicate: (id, decision) => void handleAdjudicate(id, decision),
+                  onClear: () => currentQuestionId && void clearBuzzes(currentQuestionId),
+                },
+                timers: timerHook,
+              }}
+              cellClassName="mt-6"
+            />
 
             {/* Read-only banner for ended games */}
             {isEnded && (
               <div
-                className="px-4 py-3 rounded-lg border text-sm"
+                className="mt-6 px-4 py-3 rounded-lg border text-sm"
                 style={{
                   borderColor: 'var(--color-border)',
                   background: 'var(--color-border)44',
@@ -449,24 +466,6 @@ export function ActiveGame({
               >
                 This game has ended. The scoreboard is read-only.
               </div>
-            )}
-
-            {/* Buzzer panel — hidden when ended or when this game has no buzzer */}
-            {!isEnded && game.buzzerEnabled && (
-              <BuzzerPanel
-                game={game}
-                questionId={currentQuestionId}
-                buzzes={buzzes}
-                displayBuzzes={displayBuzzes}
-                onToggleLock={() => void toggleLock()}
-                onAdjudicate={(id, decision) => void handleAdjudicate(id, decision)}
-                onClear={() => currentQuestionId && void clearBuzzes(currentQuestionId)}
-              />
-            )}
-
-            {/* Timers — hidden when ended */}
-            {!isEnded && (
-              <TimerPanel gameId={game.id} hook={timerHook} soundMuted={game.soundEffectsMuted} />
             )}
           </div>
         </div>

@@ -1,8 +1,18 @@
 import type { ComponentType, ReactNode } from 'react'
 import type { z } from 'zod'
-import type { LayoutTarget, WidgetType } from '@/db'
+import type {
+  BuzzEvent,
+  Game,
+  GameQuestion,
+  GmDecision,
+  LayoutTarget,
+  Question,
+  WidgetType,
+} from '@/db'
 import type { GameEvent, LogEntry, ScoreboardRow } from '@/transport/types'
 import type { GridSize } from '@/lib/layout-grid'
+import type { NavEntry, NavPosition } from '@/pages/admin/gamemaster-utils'
+import type { UseTimerListResult } from '@/hooks/useTimer'
 
 /** Surfaces a widget can be placed on: the same set as `Layout.target`. */
 export type WidgetTarget = LayoutTarget
@@ -11,14 +21,11 @@ export type WidgetTarget = LayoutTarget
  * Everything the registry knows about one {@link WidgetType}.
  *
  * @remarks
- * `components` has one entry per target the widget actually renders on today; a target
- * listed in `allowedTargets` without a matching component isn't implemented yet. Some are
- * real extracted components (e.g. `QrCodePanel`, `ScreenQuestion`) with their own natural
- * props; most are still `WidgetPlaceholder`s, since the rest need live game data (players,
- * buzzes, the current question, ...) that only #410's `LayoutRenderer` will supply. Props
- * are intentionally untyped here (`ComponentType<any>`) rather than forced into a uniform
- * `config`-only shape — unifying how data reaches each widget is #410's problem, not this
- * registry's.
+ * `components` has one entry per target the widget is allowed on. Real ones are adapters
+ * that take {@link WidgetProps} (the surface's {@link SurfaceData} plus the widget's config)
+ * and render an existing component; the rest are still `WidgetPlaceholder`s until the
+ * designer (#412) needs them. Props are untyped here (`ComponentType<any>`) because each
+ * target's adapters take a different data contract; `LayoutRenderer` supplies the right one.
  */
 export interface WidgetDefinition<TConfig = Record<string, never>> {
   type: WidgetType
@@ -51,10 +58,45 @@ export interface ScreenData {
   timers: ReactNode
 }
 
-/** Live data per surface. Only the screen is rendered from a layout so far. */
+/** What the game master's play column knows about the game, as handed to its widgets. */
+export interface GamemasterData {
+  game: Game
+  /** Receives each saved game patch, e.g. a visibility toggle; the page merges it in. */
+  onGameChange: (patch: Partial<Game>) => void
+  /** Where navigation is, for the round and question position. */
+  pos: NavPosition
+  seq: NavEntry[]
+  /** The id of the question navigation is on, even while it loads. */
+  questionId: string | null
+  /** The current question and its per-game record, once both have loaded. */
+  question: Question | null
+  gameQuestion: GameQuestion | null
+  buzzer: {
+    buzzes: BuzzEvent[]
+    displayBuzzes: BuzzEvent[]
+    onToggleLock: () => void
+    onAdjudicate: (buzzId: string, decision: GmDecision) => void
+    onClear: () => void
+  }
+  /** The game's timers and their controls. */
+  timers: UseTimerListResult
+}
+
+/** What a player's phone knows about the game, as handed to its widgets. */
+export interface PlayerData {
+  /** The host's latest message; a new object per message, so a repeat is shown again. */
+  message: { text: string } | null
+  /** The current question, as far as the `players` visibility allows. */
+  question: Extract<GameEvent, { type: 'QUESTION_CONTENT' }> | null
+  ended: boolean
+  /** The buzz button, or `null` when this game has no buzzer. */
+  buzzer: { enabled: boolean; label: string; onBuzz: () => void } | null
+}
+
+/** Live data per surface. The scoreboard surface isn't rendered from a layout yet. */
 export interface SurfaceData {
-  gamemaster: never
-  player: never
+  gamemaster: GamemasterData
+  player: PlayerData
   screen: ScreenData
   scoreboard: never
 }

@@ -104,8 +104,8 @@ No tracking epic; standalone issues/PRs in the gamemaster area.
 Epic: #364. Scope and dependency order are in the epic body: widget registry → layout model v2 → `LayoutRenderer` → `LAYOUT` transport event → designer UI (canvas, then templates/polish) → phase-based switching → per-game assignment. #374 (game log widget) and #377 (host message panel) are related but separate issues, both already merged.
 
 - [x] Widget registry and extract current views into widgets (#408) — registry built in #417; QR, `round_info`, `announcement`, and screen-side `question`/`answers`/`media` extracted in #417/#418. Only the `progress` widget stays a placeholder (its pills are fused with `NavHeader`'s keyboard navigation); #408 is left open to track that, deferred until the designer actually needs a standalone widget.
-- [ ] Layout model v2 — responsive grid, phases, Dexie migration (#409)
-- [ ] `LayoutRenderer` and default layouts for all surfaces (#410)
+- [x] Layout model v2 — responsive grid, phases, Dexie migration (#409) — #439
+- [x] `LayoutRenderer` and default layouts for all surfaces (#410) — the projector screen in #440, the game master's play column and the player view in this change. The scoreboard surface keeps its fixed view until it gets a page of its own.
 - [ ] `LAYOUT` transport event, validation, resend on admit/phase change — flagged needs-security-review (#411)
 - [ ] Designer: canvas, palette, drag/resize, inspector (#412)
 - [ ] Designer: templates, undo/redo, device previews, keyboard editing (#413)
@@ -115,7 +115,8 @@ Epic: #364. Scope and dependency order are in the epic body: widget registry →
 ## Decisions (2026-10-15)
 
 - **Phase 6 status:** #432, #433, #434 and #435 are merged. Only #424's remaining settings and the #421 timer design question are left in this phase.
-- **Next up:** #409 (layout model v2), unchanged from the 2026-10-05 call.
+- **Layouts on the game master and player (#410):** only the game master's play column renders through its layout; the controls, navigation and side panel stay fixed around it. On the player, the name, score and connection or pause notices stay fixed. Both use the built-in default until #411/#415 deliver stored layouts.
+- **Next up:** #411 (`LAYOUT` transport event), then the designer (#412).
 
 ## Decisions (2026-10-05)
 

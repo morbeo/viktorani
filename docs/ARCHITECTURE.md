@@ -219,8 +219,9 @@ erDiagram
   placement overrides ([ADR 0016](adr/0016-layout-model-v2.md)). `widgets/LayoutRenderer`
   renders a layout with the surface's live data, and `resolveLayout` picks the layout for a
   target, game and phase, falling back to a built-in default
-  ([ADR 0017](adr/0017-layout-renderer-data-flow.md)). Only the projector screen renders
-  through it so far; the designer is still to come (#364).
+  ([ADR 0017](adr/0017-layout-renderer-data-flow.md)). The projector screen, the game
+  master's play column and the player's view render through it; the designer is still to
+  come (#364).
 
 ### Schema versions
 

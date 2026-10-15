@@ -83,6 +83,16 @@ describe('BUILTIN_LAYOUTS', () => {
       'game_log',
     ])
   })
+  it.each([
+    ['gamemaster', null, ['round_info', 'question', 'buzzer', 'timer']],
+    ['gamemaster', 'ended', ['round_info', 'question']],
+    ['player', null, ['announcement', 'question', 'buzzer', 'timer']],
+    ['player', 'ended', ['announcement']],
+  ] as const)('lays the %s default out for phase %s as its fixed view', (target, phase, types) => {
+    const b = resolveLayout([], { target, gameId: null, phase })
+    expect(b.layout.id).toBe(`${BUILTIN_LAYOUT_PREFIX}${target}:${phase ?? 'all'}`)
+    expect(b.widgets.map(w => w.type)).toEqual(types)
+  })
 })
 
 describe('resolveLayout', () => {
