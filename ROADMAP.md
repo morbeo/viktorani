@@ -110,7 +110,7 @@ Epic: #364. Scope and dependency order are in the epic body: widget registry →
 - [x] Designer: canvas, palette, drag/resize, inspector (#412) — `/admin/layouts` (templates) and `/admin/layouts/:gameId`
 - [ ] Designer: templates, undo/redo, device previews, keyboard editing (#413)
 - [x] Phase-based automatic layout switching and the GM override (#414) — ADR 0019
-- [ ] Assign layouts per surface and phase in game settings (#415)
+- [x] Assign layouts per surface and phase in game settings (#415) — ADR 0020
 
 ## Decisions (2026-10-15)
 
@@ -118,7 +118,8 @@ Epic: #364. Scope and dependency order are in the epic body: widget registry →
 - **Layouts on the game master and player (#410):** only the game master's play column renders through its layout; the controls, navigation and side panel stay fixed around it. On the player, the name, score and connection or pause notices stay fixed. Both use the built-in default until #411/#415 deliver stored layouts.
 - **Designer scope (#412):** live preview covers the player and projector screen only; the game master and scoreboard show a notice until they render from sample data. Keyboard editing on the canvas and undo/redo stay in #413 (the inspector's placement fields already work without a pointer). Config forms are generated from each widget's Zod schema; every schema is empty today, so the form shows "no settings".
 - **Phase switching (#414):** the phase follows the buzzes (`question`, `buzzed`, `reveal`); `scoreboard` only comes from the GM's override, which is kept per game in local storage so the projector window on the host machine follows it. The GM's play column and that window now read stored layouts too.
-- **Next up:** #415 (assign layouts per surface and phase in game settings).
+- **Layout choices (#415):** a game's choices are stored on the game (`layoutAssignments`, per surface and phase or all phases) and win over the automatic pick; `LAYOUT` carries them so remote surfaces choose the same. The scoreboard surface has no page yet, so it isn't offered.
+- **Next up:** the #408 `progress` widget, the last open item under #364.
 
 ## Decisions (2026-10-05)
 

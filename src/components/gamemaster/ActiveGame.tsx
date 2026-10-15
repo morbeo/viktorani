@@ -3,7 +3,6 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ArrowLeft,
   ArrowRight,
-  LayoutTemplate,
   Lock,
   LockOpen,
   MessageSquare,
@@ -39,11 +38,10 @@ import { resolveLayout, type LayoutBundle } from '@/widgets/layouts'
 import { useRegisterCommands } from '@/components/command-palette/commands'
 import type { Command } from '@/components/command-palette/commands'
 import type { Game, GamePhase, GmDecision, Player, Team } from '@/db'
-import { GAME_PHASES } from '@/db'
-import { PHASE_LABELS } from '@/components/layout-designer/labels'
 import { PhaseControl } from '@/components/gamemaster/PhaseControl'
 import { autoPhase, effectivePhase } from '@/lib/layout-phase'
 import { updateQuestionStatus } from '@/db/games'
+import { layoutCommands, phaseCommands } from '@/components/gamemaster/layout-commands'
 import type { GameEvent } from '@/transport/types'
 
 export interface ActiveGameProps {
@@ -79,9 +77,6 @@ export interface ActiveGameProps {
 
 export type BuzzHandler = ReturnType<typeof useBuzzer>['handleIncomingBuzz']
 export type QuestionContent = Extract<GameEvent, { type: 'QUESTION_CONTENT' }>
-
-/** Phases the GM can hold by hand while the game runs. */
-const OVERRIDE_PHASES = GAME_PHASES.filter(p => p !== 'lobby' && p !== 'ended')
 
 type SideTab = 'people' | 'messages' | 'scoreboard' | 'log'
 type TabId = 'play' | SideTab
@@ -328,28 +323,9 @@ export function ActiveGame({
       run: () => selectTab('scoreboard'),
     }
     if (game.status === 'ended') return [showScoreboard]
-    const phaseCommands: Command[] = onPhaseOverride
-      ? [
-          {
-            id: 'gm:phase:auto',
-            label: 'Layouts: automatic',
-            group: 'Layout',
-            icon: LayoutTemplate,
-            keywords: 'phase layout auto',
-            run: () => onPhaseOverride(null),
-          },
-          ...OVERRIDE_PHASES.map(p => ({
-            id: `gm:phase:${p}`,
-            label: `Layouts: ${PHASE_LABELS[p]}`,
-            group: 'Layout',
-            icon: LayoutTemplate,
-            keywords: 'phase layout show',
-            run: () => onPhaseOverride(p),
-          })),
-        ]
-      : []
     return [
-      ...phaseCommands,
+      ...(onPhaseOverride ? phaseCommands(onPhaseOverride) : []),
+      ...layoutCommands({ game, phase, layouts, onGameChange }),
       {
         id: 'gm:next',
         label: 'Next question',
@@ -392,8 +368,6 @@ export function ActiveGame({
       }),
     ]
   }, [
-    game.status,
-    game.buzzerLocked,
     confirmedGoNext,
     goPrev,
     toggleLock,
@@ -403,6 +377,10 @@ export function ActiveGame({
     resumeTimer,
     selectTab,
     onPhaseOverride,
+    game,
+    phase,
+    layouts,
+    onGameChange,
   ])
   useRegisterCommands('active-game', commands)
 
@@ -483,6 +461,7 @@ export function ActiveGame({
                 target: 'gamemaster',
                 gameId: game.id,
                 phase,
+                assignments: game.layoutAssignments?.gamemaster,
               })}
               target="gamemaster"
               data={{

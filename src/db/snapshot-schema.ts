@@ -72,6 +72,9 @@ const TargetVisibilitySchema = z.object({
   showMedia: z.boolean(),
 })
 
+/** Layout ids chosen for one surface of a game, per phase or `all` (#415). */
+export const LayoutAssignmentsSchema = z.partialRecord(z.enum(['all', ...GAME_PHASES]), z.string())
+
 export const GameSchema = z
   .object({
     id: z.string(),
@@ -111,6 +114,7 @@ export const GameSchema = z
     autoStartTimerOnQuestionShow: z.boolean().default(false),
     defaultTimerDuration: z.number().int().min(1).max(MAX_TIMER_SECONDS).default(60),
     soundEffectsMuted: z.boolean().default(false),
+    layoutAssignments: z.partialRecord(z.enum(LAYOUT_TARGETS), LayoutAssignmentsSchema).optional(),
     createdAt: z.number(),
     updatedAt: z.number(),
   })

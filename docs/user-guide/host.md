@@ -38,15 +38,15 @@ Example tags: `History`, `Pop Culture`, `Music`, `Local`.
 
 Go to **Questions → Add Question**. Fill in:
 
-| Field | Required | Notes |
-|---|---|---|
-| Title | ✓ | The question text shown to players |
-| Type | ✓ | See question types below |
-| Answer | ✓ | Correct answer (not shown to players automatically) |
-| Difficulty | — | Determines point value on correct buzz |
-| Tags | — | Multi-select; used for filtering |
-| Description | — | Markdown body (flavour text, citations) |
-| Media | — | Upload an image, audio, or video file |
+| Field       | Required | Notes                                               |
+| ----------- | -------- | --------------------------------------------------- |
+| Title       | ✓        | The question text shown to players                  |
+| Type        | ✓        | See question types below                            |
+| Answer      | ✓        | Correct answer (not shown to players automatically) |
+| Difficulty  | —        | Determines point value on correct buzz              |
+| Tags        | —        | Multi-select; used for filtering                    |
+| Description | —        | Markdown body (flavour text, citations)             |
+| Media       | —        | Upload an image, audio, or video file               |
 
 #### Question types
 
@@ -116,24 +116,31 @@ The first step of the **New game** wizard holds the game settings. They start fr
   edit, rename, reorder and delete presets there, built-in ones included; **Reset built-ins**
   puts the three built-in presets back as they were and keeps your own. Presets are saved with
   the app settings and included in backups.
+
 - **Scoring**: keep a score for each player and team. It can't be changed once the game exists.
 - **Visibility**: what player phones and the screen show (question text, answers, media).
 - **Advanced** (collapsed): the individual joining and buzzer settings.
 
-| Option | What it does |
-|---|---|
-| Individual play | Players may join without a team |
-| Players may create teams | Players may type a new team name when they join |
-| Allow late join / rejoin | Who may join after the start, and whether a dropped player comes back as themselves |
-| Require approval | New players wait in Join requests until you approve them |
-| Max teams / Max per team | Team limits; **No limit** (∞) by default |
-| Auto-lock after a correct answer | Lock the buzzer after the first correct ruling |
-| Record false starts | Keep buzzes that arrive while the buzzer is locked |
-| Buzz display | `First per player` or `All attempts` |
+| Option                           | What it does                                                                        |
+| -------------------------------- | ----------------------------------------------------------------------------------- |
+| Individual play                  | Players may join without a team                                                     |
+| Players may create teams         | Players may type a new team name when they join                                     |
+| Allow late join / rejoin         | Who may join after the start, and whether a dropped player comes back as themselves |
+| Require approval                 | New players wait in Join requests until you approve them                            |
+| Max teams / Max per team         | Team limits; **No limit** (∞) by default                                            |
+| Auto-lock after a correct answer | Lock the buzzer after the first correct ruling                                      |
+| Record false starts              | Keep buzzes that arrive while the buzzer is locked                                  |
+| Buzz display                     | `First per player` or `All attempts`                                                |
 
 During the game, **Game settings** in the header opens a drawer to change the joining and buzzer
 settings live. Visibility is changed on the question panel. A preset picked there only
 changes joining and the buzzer.
+
+Its **Layouts** section chooses what the projector screen, players' phones and your own play
+column show, for all phases or one phase at a time. **Automatic** names the layout used
+without a choice. Above the play column, **Layouts for** holds a phase by hand, such as the
+scoreboard between rounds; the command palette (Ctrl/⌘+K) has the same, plus **Show layout
+on screen** and **Show layout on phones** for the phase the game is in.
 
 ---
 
@@ -150,6 +157,7 @@ Room: XK7RQZ
 ```
 
 Players can join by:
+
 - Scanning the QR code with their phone camera.
 - Visiting the Viktorani URL and entering the room code manually.
 
@@ -164,13 +172,13 @@ use it. It must start with `http://` or `https://`; leave it empty to use the cu
 The GM sees a list of players in real time. Each player appears as they join, with an icon
 showing where they stand (hover it for a description):
 
-| Icon | State | Meaning |
-|---|---|---|
-| Green dot | Connected | Playing |
-| Gold crossed-out eye | Tab hidden | Connected, but looking at something else |
+| Icon                   | State        | Meaning                                                                                               |
+| ---------------------- | ------------ | ----------------------------------------------------------------------------------------------------- |
+| Green dot              | Connected    | Playing                                                                                               |
+| Gold crossed-out eye   | Tab hidden   | Connected, but looking at something else                                                              |
 | Grey crossed-out Wi-Fi | Disconnected | The connection dropped, or they haven't joined from a device; they can rejoin if rejoining is allowed |
-| Grey exit arrow | Left | They pressed Leave |
-| Red crossed-out person | Kicked | You removed them; if they rejoin, they wait for your approval, even after you reload the page |
+| Grey exit arrow        | Left         | They pressed Leave                                                                                    |
+| Red crossed-out person | Kicked       | You removed them; if they rejoin, they wait for your approval, even after you reload the page         |
 
 The count above the list shows connected players, with tab-hidden and disconnected
 players counted separately. Once everyone is in, click **Start** to begin the first round.
@@ -206,11 +214,11 @@ its keyboard shortcut, or press **Ctrl+K** (**⌘K** on a Mac) to open the comma
 The GM view shows the current question title, answer options, and media.
 Players see only what the GM explicitly reveals using the visibility toggles:
 
-| Toggle | What players see |
-|---|---|
-| Show Question | Question title |
-| Show Answers | Answer options (MC/TF only) |
-| Show Media | Attached image, audio, or video |
+| Toggle        | What players see                |
+| ------------- | ------------------------------- |
+| Show Question | Question title                  |
+| Show Answers  | Answer options (MC/TF only)     |
+| Show Media    | Attached image, audio, or video |
 
 ### Navigating questions
 
@@ -280,12 +288,12 @@ device or sets its volume; **Test sound** plays the timer beep.
 
 ### Controls
 
-| Action | Effect |
-|---|---|
+| Action                 | Effect                                                           |
+| ---------------------- | ---------------------------------------------------------------- |
 | Start / Pause / Resume | Start the countdown, freeze it, or continue from where it paused |
-| Restart | Start again from the full duration |
-| Timer settings | Change the label, notifications and auto-reset |
-| Delete | Remove the timer and hide it from players |
+| Restart                | Start again from the full duration                               |
+| Timer settings         | Change the label, notifications and auto-reset                   |
+| Delete                 | Remove the timer and hide it from players                        |
 
 The panel header also has **Pause all** / **Resume all**, **Restart all** and
 **Clear all**.
