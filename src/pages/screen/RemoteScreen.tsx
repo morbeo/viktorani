@@ -5,6 +5,7 @@ import { ScreenView } from '@/components/screen/ScreenView'
 import { useTransportEvents } from '@/hooks/useTransport'
 import { isAbortError, retry, transportManager } from '@/transport'
 import { PlayerTimers } from '@/components/timer/PlayerTimers'
+import { remotePhase } from '@/pages/player/player-session'
 import { INITIAL_SCREEN, reduceScreen } from './screen-session'
 import type { ScreenSession } from './screen-session'
 
@@ -129,6 +130,7 @@ export default function RemoteScreen() {
     <ScreenView
       layouts={session.layouts?.layouts}
       gameId={session.layouts?.gameId}
+      phase={remotePhase(session.phase, session.gameStatus)}
       data={{
         heading: session.gameStatus === 'paused' ? 'Paused' : null,
         content: session.content,

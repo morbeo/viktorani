@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { transportManager } from '@/transport'
+import type { GamePhase } from '@/db'
 import type { GameEvent, LayoutPayload, TransportEvent } from '@/transport/types'
 
 export type QuestionContent = Extract<GameEvent, { type: 'QUESTION_CONTENT' }>
@@ -31,6 +32,16 @@ export interface PlayerSession {
   message: { text: string } | null
   /** The host's stored layouts for players (see `LAYOUT`); `null` uses the built-in default. */
   layouts: RemoteLayouts | null
+  /** The phase the host picks layouts for (see `PHASE`); `null` until it says. */
+  phase: GamePhase | null
+}
+
+/**
+ * The phase a remote surface picks its layout for: `ended` once the game has ended, even if
+ * the host's last `PHASE` was lost as it disconnected; otherwise the host's phase.
+ */
+export function remotePhase(phase: GamePhase | null, status: GameStatus | null): GamePhase | null {
+  return status === 'ended' ? 'ended' : phase
 }
 
 /** The layouts a `LAYOUT` carried, and the game they are for. */
@@ -49,6 +60,7 @@ const INITIAL: PlayerSession = {
   gameStatus: null,
   message: null,
   layouts: null,
+  phase: null,
 }
 
 let session = INITIAL
@@ -91,6 +103,8 @@ export function reduceSession(s: PlayerSession, event: TransportEvent): PlayerSe
       return event.target === 'player'
         ? { ...s, layouts: { gameId: event.gameId, layouts: event.layouts } }
         : s
+    case 'PHASE':
+      return { ...s, phase: event.phase }
     default:
       return s
   }

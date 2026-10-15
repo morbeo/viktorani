@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ArrowLeft,
   ArrowRight,
+  LayoutTemplate,
   Lock,
   LockOpen,
   MessageSquare,
@@ -37,7 +38,11 @@ import { LayoutRenderer } from '@/widgets/LayoutRenderer'
 import { resolveLayout, type LayoutBundle } from '@/widgets/layouts'
 import { useRegisterCommands } from '@/components/command-palette/commands'
 import type { Command } from '@/components/command-palette/commands'
-import type { Game, GmDecision, Player, Team } from '@/db'
+import type { Game, GamePhase, GmDecision, Player, Team } from '@/db'
+import { GAME_PHASES } from '@/db'
+import { PHASE_LABELS } from '@/components/layout-designer/labels'
+import { PhaseControl } from '@/components/gamemaster/PhaseControl'
+import { autoPhase, effectivePhase } from '@/lib/layout-phase'
 import { updateQuestionStatus } from '@/db/games'
 import type { GameEvent } from '@/transport/types'
 
@@ -65,10 +70,18 @@ export interface ActiveGameProps {
   messages: MessagePanelProps
   /** Stored layouts for the play column; the built-in default is used when none fits. */
   layouts?: readonly LayoutBundle[]
+  /** The GM's chosen layout phase, or `null` to follow the game (#414). */
+  phaseOverride?: GamePhase | null
+  onPhaseOverride?: (phase: GamePhase | null) => void
+  /** Receives the phase layouts are picked for whenever it changes. */
+  onPhase?: (phase: GamePhase) => void
 }
 
 export type BuzzHandler = ReturnType<typeof useBuzzer>['handleIncomingBuzz']
 export type QuestionContent = Extract<GameEvent, { type: 'QUESTION_CONTENT' }>
+
+/** Phases the GM can hold by hand while the game runs. */
+const OVERRIDE_PHASES = GAME_PHASES.filter(p => p !== 'lobby' && p !== 'ended')
 
 type SideTab = 'people' | 'messages' | 'scoreboard' | 'log'
 type TabId = 'play' | SideTab
@@ -152,6 +165,9 @@ export function ActiveGame({
   screens,
   messages,
   layouts = [],
+  phaseOverride = null,
+  onPhaseOverride,
+  onPhase,
 }: ActiveGameProps) {
   const [showBoundary, setShowBoundary] = useState(false)
   // Narrow screens show either the play column or the side panel; wide screens show both
@@ -211,6 +227,14 @@ export function ActiveGame({
 
   const { displayBuzzes, buzzes, toggleLock, adjudicate, clearBuzzes, handleIncomingBuzz } =
     useBuzzer(game, currentQuestionId, onGameChange)
+
+  // The phase every surface's layout is picked for: from the buzzes on the question shown,
+  // unless the GM holds one by hand
+  const auto = autoPhase(game.status, buzzes)
+  const phase = effectivePhase(auto, phaseOverride)
+  useEffect(() => {
+    onPhase?.(phase)
+  }, [phase, onPhase])
 
   // Rule on the buzz, then record the result against the question shown
   const handleAdjudicate = useCallback(
@@ -304,7 +328,28 @@ export function ActiveGame({
       run: () => selectTab('scoreboard'),
     }
     if (game.status === 'ended') return [showScoreboard]
+    const phaseCommands: Command[] = onPhaseOverride
+      ? [
+          {
+            id: 'gm:phase:auto',
+            label: 'Layouts: automatic',
+            group: 'Layout',
+            icon: LayoutTemplate,
+            keywords: 'phase layout auto',
+            run: () => onPhaseOverride(null),
+          },
+          ...OVERRIDE_PHASES.map(p => ({
+            id: `gm:phase:${p}`,
+            label: `Layouts: ${PHASE_LABELS[p]}`,
+            group: 'Layout',
+            icon: LayoutTemplate,
+            keywords: 'phase layout show',
+            run: () => onPhaseOverride(p),
+          })),
+        ]
+      : []
     return [
+      ...phaseCommands,
       {
         id: 'gm:next',
         label: 'Next question',
@@ -357,6 +402,7 @@ export function ActiveGame({
     pauseTimer,
     resumeTimer,
     selectTab,
+    onPhaseOverride,
   ])
   useRegisterCommands('active-game', commands)
 
@@ -427,11 +473,16 @@ export function ActiveGame({
           className={`${view === 'play' ? 'block' : 'hidden'} lg:block flex-1 min-w-0 overflow-y-auto px-8 pb-6`}
         >
           <div className="max-w-3xl mx-auto">
+            {onPhaseOverride && !isEnded && (
+              <div className="flex justify-end pt-3">
+                <PhaseControl auto={auto} override={phaseOverride} onOverride={onPhaseOverride} />
+              </div>
+            )}
             <LayoutRenderer
               bundle={resolveLayout(layouts, {
                 target: 'gamemaster',
                 gameId: game.id,
-                phase: isEnded ? 'ended' : null,
+                phase,
               })}
               target="gamemaster"
               data={{

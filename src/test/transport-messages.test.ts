@@ -141,6 +141,7 @@ const FIXTURES: { [K in TransportEvent['type']]: Extract<TransportEvent, { type:
       },
     ],
   },
+  PHASE: { type: 'PHASE', phase: 'reveal' },
 }
 
 const CASES = Object.values(FIXTURES).map(f => [f.type, f] as const)
@@ -600,5 +601,17 @@ describe('LAYOUT', () => {
     expect(
       accepts({ ...event, layouts: [big, { ...big, layout: { ...big.layout, id: 'l2' } }] })
     ).toBe(false)
+  })
+})
+
+describe('PHASE', () => {
+  it.each(['lobby', 'question', 'buzzed', 'reveal', 'scoreboard', 'ended'])('accepts %s', phase => {
+    expect(accepts({ type: 'PHASE', phase })).toBe(true)
+  })
+
+  it('rejects an unknown or missing phase', () => {
+    expect(accepts({ type: 'PHASE', phase: 'intermission' })).toBe(false)
+    expect(accepts({ type: 'PHASE', phase: null })).toBe(false)
+    expect(accepts({ type: 'PHASE' })).toBe(false)
   })
 })

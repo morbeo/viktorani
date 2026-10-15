@@ -8,7 +8,12 @@ import { MAX_NAME_LENGTH } from '@/transport/messages'
 import { LayoutRenderer } from '@/widgets/LayoutRenderer'
 import { resolveLayout } from '@/widgets/layouts'
 import { getDeviceId } from './device-id'
-import { getPlayerSession, startPlayerSession, usePlayerSession } from './player-session'
+import {
+  getPlayerSession,
+  remotePhase,
+  startPlayerSession,
+  usePlayerSession,
+} from './player-session'
 
 // ── Main Play page ────────────────────────────────────────────────────────────
 
@@ -192,7 +197,7 @@ export default function Play() {
             bundle={resolveLayout(session.layouts?.layouts ?? [], {
               target: 'player',
               gameId: session.layouts?.gameId ?? null,
-              phase: ended ? 'ended' : null,
+              phase: remotePhase(session.phase, session.gameStatus),
             })}
             target="player"
             data={{

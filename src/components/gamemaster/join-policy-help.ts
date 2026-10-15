@@ -1,11 +1,7 @@
 import type { Game } from '@/db'
 
 type JoinSetting =
-  | 'allowIndividual'
-  | 'allowPlayerTeams'
-  | 'allowLateJoin'
-  | 'allowRejoin'
-  | 'requireApproval'
+  'allowIndividual' | 'allowPlayerTeams' | 'allowLateJoin' | 'allowRejoin' | 'requireApproval'
 
 /** Help text for the join settings, shared by the new-game wizard and the live panel. */
 export const JOIN_POLICY_HELP: Record<JoinSetting & keyof Game, string> = {
