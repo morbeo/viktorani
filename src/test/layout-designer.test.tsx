@@ -1,0 +1,310 @@
+// @vitest-pool vmForks
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import type { ReactNode } from 'react'
+import {
+  act,
+  createEvent,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { db } from '@/db'
+import type { Game, Layout, Widget } from '@/db'
+import { setSettings } from '@/lib/app-settings'
+import { DEFAULT_LAYOUT_THEME } from '@/lib/layout-grid'
+import Layouts from '@/pages/admin/Layouts'
+
+vi.mock('@/components/AdminLayout', () => ({
+  default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+}))
+
+const GAME = { id: 'g1', name: 'Quiz night', createdAt: 1 } as Game
+
+const LAYOUT: Layout = {
+  id: 'l1',
+  gameId: null,
+  name: 'Big screen',
+  target: 'screen',
+  phase: null,
+  theme: { ...DEFAULT_LAYOUT_THEME },
+  isActive: true,
+  order: 0,
+}
+
+const widget = (id: string, patch: Partial<Widget> = {}): Widget => ({
+  id,
+  layoutId: 'l1',
+  type: 'question',
+  config: {},
+  grid: { x: 0, y: 0, w: 12, h: 1 },
+  breakpoints: {},
+  order: 0,
+  ...patch,
+})
+
+function Where() {
+  return <p data-testid="where">{useLocation().pathname}</p>
+}
+
+function renderDesigner(path = '/admin/layouts') {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <Routes>
+        <Route path="/admin/layouts" element={<Layouts />} />
+        <Route path="/admin/layouts/:gameId" element={<Layouts />} />
+      </Routes>
+      <Where />
+    </MemoryRouter>
+  )
+}
+
+const widgets = () => db.widgets.where('layoutId').equals('l1').toArray()
+
+beforeEach(async () => {
+  localStorage.clear()
+  await Promise.all([db.layouts.clear(), db.widgets.clear(), db.games.clear()])
+  await db.games.put(GAME)
+})
+
+describe('layout designer', () => {
+  it('says surfaces use their default until a layout exists, then creates one', async () => {
+    const user = userEvent.setup()
+    renderDesigner()
+    expect(await screen.findByText(/built-in default/)).toBeInTheDocument()
+
+    const form = screen.getByRole('form', { name: 'New layout' })
+    await user.type(within(form).getByLabelText('Name'), 'Phones')
+    await user.selectOptions(within(form).getByLabelText('For'), 'player')
+    await user.selectOptions(within(form).getByLabelText('Phase'), 'ended')
+    await user.click(within(form).getByRole('button', { name: 'Create layout' }))
+
+    await waitFor(async () => expect(await db.layouts.count()).toBe(1))
+    const [created] = await db.layouts.toArray()
+    expect(created).toMatchObject({
+      name: 'Phones',
+      target: 'player',
+      phase: 'ended',
+      gameId: null,
+    })
+    // Only widgets allowed on player phones are offered
+    expect(await screen.findByRole('button', { name: 'Add Buzzer' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Add QR code' })).toBeNull()
+  })
+
+  it("creates a game's own layouts on its page, and switches scope", async () => {
+    const user = userEvent.setup()
+    renderDesigner('/admin/layouts/g1')
+    const form = await screen.findByRole('form', { name: 'New layout' })
+    await user.click(within(form).getByRole('button', { name: 'Create layout' }))
+    await waitFor(async () => expect((await db.layouts.toArray())[0]?.gameId).toBe('g1'))
+
+    await user.selectOptions(screen.getByLabelText('Layouts for'), '')
+    expect(screen.getByTestId('where')).toHaveTextContent(/^\/admin\/layouts$/)
+  })
+
+  it('adds a widget from the palette below the others and selects it', async () => {
+    const user = userEvent.setup()
+    await db.layouts.put(LAYOUT)
+    await db.widgets.put(widget('w1', { grid: { x: 0, y: 0, w: 12, h: 2 } }))
+    renderDesigner()
+
+    // Wait for the existing widget, so the new one is placed below it
+    await screen.findByRole('button', { name: 'Question widget' })
+    await user.click(screen.getByRole('button', { name: 'Add Scoreboard' }))
+    await waitFor(async () => expect(await widgets()).toHaveLength(2))
+    const added = (await widgets()).find(w => w.type === 'scoreboard')
+    expect(added).toMatchObject({ grid: { x: 0, y: 2, w: 6, h: 1 }, order: 1 })
+    expect(await screen.findByRole('heading', { name: 'Scoreboard' })).toBeInTheDocument()
+  })
+
+  it('edits placement in the inspector, keeping it on the grid', async () => {
+    const user = userEvent.setup()
+    await db.layouts.put(LAYOUT)
+    await db.widgets.put(widget('w1', { grid: { x: 0, y: 0, w: 6, h: 1 } }))
+    renderDesigner()
+
+    await user.click(await screen.findByRole('button', { name: 'Question widget' }))
+    fireEvent.change(screen.getByLabelText('Column'), { target: { value: '12' } })
+    // A 6-wide widget can start at column 7 at most
+    await waitFor(async () => expect((await widgets())[0].grid.x).toBe(6))
+  })
+
+  it('gives a widget its own placement on phones, and resets it', async () => {
+    const user = userEvent.setup()
+    await db.layouts.put(LAYOUT)
+    await db.widgets.put(widget('w1', { grid: { x: 0, y: 0, w: 6, h: 1 } }))
+    renderDesigner()
+
+    await user.click(await screen.findByRole('button', { name: 'Phone' }))
+    await user.click(await screen.findByRole('button', { name: 'Question widget' }))
+    fireEvent.change(screen.getByLabelText('Width'), { target: { value: '12' } })
+    await waitFor(async () =>
+      expect((await widgets())[0].breakpoints.phone).toEqual({ x: 0, y: 0, w: 12, h: 1 })
+    )
+    expect((await widgets())[0].grid.w).toBe(6)
+
+    await user.click(await screen.findByRole('button', { name: 'Use the base placement' }))
+    await waitFor(async () => expect((await widgets())[0].breakpoints).toEqual({}))
+  })
+
+  it('moves a widget by dragging it, snapping to cells', async () => {
+    await db.layouts.put(LAYOUT)
+    await db.widgets.put(widget('w1', { grid: { x: 0, y: 0, w: 4, h: 1 } }))
+    renderDesigner()
+    const box = await screen.findByRole('button', { name: 'Question widget' })
+    const canvas = screen.getByRole('application', { name: 'Layout canvas' })
+    // 1200px wide: 100px a column, 48px a row
+    vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({ width: 1200 } as DOMRect)
+
+    fireEvent.pointerDown(box, { button: 0, clientX: 10, clientY: 10, pointerId: 1 })
+    fireEvent.pointerMove(box, { clientX: 260, clientY: 110, pointerId: 1 })
+    fireEvent.pointerUp(box, { clientX: 260, clientY: 110, pointerId: 1 })
+    await waitFor(async () => expect((await widgets())[0].grid).toEqual({ x: 3, y: 2, w: 4, h: 1 }))
+  })
+
+  it('resizes a widget by dragging its corner', async () => {
+    await db.layouts.put(LAYOUT)
+    await db.widgets.put(widget('w1', { grid: { x: 0, y: 0, w: 4, h: 1 } }))
+    renderDesigner()
+    const box = await screen.findByRole('button', { name: 'Question widget' })
+    const canvas = screen.getByRole('application', { name: 'Layout canvas' })
+    vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({ width: 1200 } as DOMRect)
+    const handle = box.querySelector('[aria-hidden]') as HTMLElement
+
+    fireEvent.pointerDown(handle, { button: 0, clientX: 400, clientY: 48, pointerId: 1 })
+    fireEvent.pointerMove(handle, { clientX: 600, clientY: 96, pointerId: 1 })
+    fireEvent.pointerUp(handle, { clientX: 600, clientY: 96, pointerId: 1 })
+    await waitFor(async () => expect((await widgets())[0].grid).toEqual({ x: 0, y: 0, w: 6, h: 2 }))
+  })
+
+  it('reorders and removes widgets', async () => {
+    const user = userEvent.setup()
+    await db.layouts.put(LAYOUT)
+    await db.widgets.bulkPut([
+      widget('w1'),
+      widget('w2', { type: 'scoreboard', order: 1, grid: { x: 0, y: 1, w: 6, h: 1 } }),
+    ])
+    renderDesigner()
+
+    await user.click(await screen.findByRole('button', { name: 'Scoreboard widget' }))
+    expect(screen.getByRole('button', { name: 'Later' })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'Earlier' }))
+    await waitFor(async () => {
+      const byId = Object.fromEntries((await widgets()).map(w => [w.id, w.order]))
+      expect(byId.w2).toBeLessThan(byId.w1)
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Remove widget' }))
+    await waitFor(async () => expect((await widgets()).map(w => w.id)).toEqual(['w1']))
+  })
+
+  it('edits the layout and refuses a logo that is not a safe URL', async () => {
+    const user = userEvent.setup()
+    await db.layouts.put(LAYOUT)
+    renderDesigner()
+
+    const settings = await screen.findByRole('region', { name: 'Layout settings' })
+    const name = within(settings).getByLabelText('Name')
+    await user.clear(name)
+    await user.type(name, 'TV')
+    await user.tab()
+    await user.selectOptions(within(settings).getByLabelText('Phase'), 'reveal')
+    await user.click(screen.getByLabelText('Accent'))
+    await waitFor(async () =>
+      expect(await db.layouts.get('l1')).toMatchObject({
+        name: 'TV',
+        phase: 'reveal',
+        theme: { accent: '#c9a84c' },
+      })
+    )
+
+    const logo = screen.getByLabelText('Logo URL')
+    await user.type(logo, 'javascript:alert(1)')
+    await user.tab()
+    expect(await screen.findByRole('alert')).toHaveTextContent('https://')
+    expect((await db.layouts.get('l1'))?.theme.logo).toBeNull()
+
+    await user.clear(logo)
+    await user.type(logo, 'https://example.com/logo.png')
+    await user.tab()
+    await waitFor(async () =>
+      expect((await db.layouts.get('l1'))?.theme.logo).toBe('https://example.com/logo.png')
+    )
+  })
+
+  it('deletes a layout and its widgets after asking', async () => {
+    const user = userEvent.setup()
+    await db.layouts.put(LAYOUT)
+    await db.widgets.put(widget('w1'))
+    renderDesigner()
+
+    await user.click(await screen.findByRole('button', { name: 'Delete layout' }))
+    expect(await db.layouts.count()).toBe(1)
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
+    await waitFor(async () => expect(await db.layouts.count()).toBe(0))
+    expect(await db.widgets.count()).toBe(0)
+  })
+
+  it('deletes straight away when confirmations are off', async () => {
+    setSettings({ confirmDestructive: false })
+    const user = userEvent.setup()
+    await db.layouts.put(LAYOUT)
+    renderDesigner()
+    await user.click(await screen.findByRole('button', { name: 'Delete layout' }))
+    await waitFor(async () => expect(await db.layouts.count()).toBe(0))
+  })
+
+  it('previews a screen layout with sample data', async () => {
+    const user = userEvent.setup()
+    await db.layouts.put(LAYOUT)
+    await db.widgets.bulkPut([
+      widget('w1'),
+      widget('w2', { type: 'scoreboard', order: 1, grid: { x: 0, y: 1, w: 6, h: 1 } }),
+    ])
+    renderDesigner()
+
+    await user.click(await screen.findByRole('button', { name: 'Preview' }))
+    const preview = await screen.findByRole('region', { name: 'Preview' })
+    expect(await within(preview).findByRole('heading', { name: /Red Planet/ })).toBeInTheDocument()
+    expect(within(preview).getByText('The Quizzly Bears')).toBeInTheDocument()
+  })
+
+  it('says the game master surface has no live preview', async () => {
+    const user = userEvent.setup()
+    await db.layouts.put({ ...LAYOUT, target: 'gamemaster' })
+    renderDesigner()
+    await user.click(await screen.findByRole('button', { name: 'Preview' }))
+    expect(await screen.findByText(/live preview isn.t available/)).toBeInTheDocument()
+  })
+
+  it('adds a palette widget where it is dropped', async () => {
+    await db.layouts.put(LAYOUT)
+    renderDesigner()
+    const canvas = await screen.findByRole('application', { name: 'Layout canvas' })
+    vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({
+      width: 1200,
+      left: 0,
+      top: 0,
+    } as DOMRect)
+    const dataTransfer = {
+      types: ['application/x-viktorani-widget'],
+      getData: () => 'timer',
+    }
+    // jsdom's drag events carry no coordinates, so set them on the event itself
+    const drop = createEvent.drop(canvas, { dataTransfer })
+    Object.defineProperties(drop, { clientX: { value: 650 }, clientY: { value: 100 } })
+    await act(async () => {
+      fireEvent(canvas, drop)
+    })
+    await waitFor(async () =>
+      expect((await widgets())[0]).toMatchObject({
+        type: 'timer',
+        grid: { x: 6, y: 2, w: 6, h: 1 },
+      })
+    )
+  })
+})

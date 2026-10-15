@@ -6,6 +6,7 @@ import {
   Trophy,
   Users,
   NotebookPen,
+  LayoutTemplate,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -28,6 +29,7 @@ const nav: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/admin/questions', label: 'Questions', icon: CircleHelp },
   { to: '/admin/games', label: 'Games', icon: Trophy },
   { to: '/admin/players-teams', label: 'Players & Teams', icon: Users },
+  { to: '/admin/layouts', label: 'Layouts', icon: LayoutTemplate },
   { to: '/admin/notes', label: 'Notes', icon: NotebookPen },
   { to: '/admin/settings', label: 'Settings', icon: Settings },
 ]
