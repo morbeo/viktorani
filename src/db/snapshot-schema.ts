@@ -1,6 +1,20 @@
 import { z } from 'zod'
-import type { DifficultyLevel, Tag, Question, Round, Game, GameQuestion, Note } from '@/db'
+import { GAME_PHASES, LAYOUT_TARGETS, WIDGET_TYPES } from '@/db'
+import type {
+  DifficultyLevel,
+  Tag,
+  Question,
+  Round,
+  Game,
+  GameQuestion,
+  Note,
+  GridRect,
+  Layout,
+  LayoutTheme,
+  Widget,
+} from '@/db'
 import { AppSettingsSchema, MAX_TIMER_SECONDS } from '@/lib/app-settings'
+import { DEFAULT_LAYOUT_THEME, GRID_COLUMNS } from '@/lib/layout-grid'
 import { MAX_LIMIT } from '@/components/game-settings/game-settings'
 
 /**
@@ -126,20 +140,103 @@ export const NoteSchema = z.object({
   updatedAt: z.number(),
 }) satisfies z.ZodType<Note>
 
+/** Bottom edge of the grid: a widget can't start or extend below this row. */
+export const MAX_GRID_ROWS = 100
+
+/** Longest logo URL (a `data:image/` URL inlines the image), about 1.5 MB of image. */
+export const MAX_LOGO_LENGTH = 2_000_000
+
+const GridRectSchema = z
+  .object({
+    x: z
+      .number()
+      .int()
+      .min(0)
+      .max(GRID_COLUMNS - 1),
+    y: z
+      .number()
+      .int()
+      .min(0)
+      .max(MAX_GRID_ROWS - 1),
+    w: z.number().int().min(1).max(GRID_COLUMNS),
+    h: z.number().int().min(1).max(MAX_GRID_ROWS),
+  })
+  .refine(r => r.x + r.w <= GRID_COLUMNS, { error: 'widget overflows the grid columns' })
+  .refine(r => r.y + r.h <= MAX_GRID_ROWS, {
+    error: 'widget overflows the grid rows',
+  }) satisfies z.ZodType<GridRect>
+
+const HexColourSchema = z.string().regex(/^#[0-9a-f]{6}$/i, { error: 'expected a #rrggbb colour' })
+
+const LogoSchema = z
+  .string()
+  .max(MAX_LOGO_LENGTH)
+  .refine(src => src.startsWith('data:image/') || src.startsWith('https://'), {
+    error: 'logo must be a data:image/ or https:// URL',
+  })
+
+export const LayoutThemeSchema = z.object({
+  background: HexColourSchema.nullable(),
+  accent: HexColourSchema.nullable(),
+  fontScale: z.number().min(0.5).max(2),
+  logo: LogoSchema.nullable(),
+}) satisfies z.ZodType<LayoutTheme>
+
+export const LayoutSchema = z.object({
+  id: z.string(),
+  gameId: z.string().nullable(),
+  name: z.string(),
+  target: z.enum(LAYOUT_TARGETS),
+  phase: z.enum(GAME_PHASES).nullable().default(null),
+  theme: LayoutThemeSchema.default(() => ({ ...DEFAULT_LAYOUT_THEME })),
+  isActive: z.boolean(),
+  order: z.number(),
+}) satisfies z.ZodType<Layout>
+
+export const WidgetSchema = z.object({
+  id: z.string(),
+  layoutId: z.string(),
+  type: z.enum(WIDGET_TYPES),
+  // Validated per type against the widget registry where configs are used (#410, #411),
+  // since the db layer can't import the registry's UI components.
+  config: z.record(z.string(), z.unknown()),
+  grid: GridRectSchema,
+  breakpoints: z
+    .object({ phone: GridRectSchema.optional(), tv: GridRectSchema.optional() })
+    .default({}),
+  order: z.number(),
+}) satisfies z.ZodType<Widget>
+
 /**
  * Collections of a v1/v2 backup. Missing collections default to empty; v1's
- * `categories` array is stripped as an unknown key.
+ * `categories` array is stripped as an unknown key. Every widget must belong to a layout
+ * in the same file.
  */
-export const SnapshotSchema = z.object({
-  difficulties: z.array(DifficultyLevelSchema).default([]),
-  tags: z.array(TagSchema).default([]),
-  questions: z.array(QuestionSchema).default([]),
-  rounds: z.array(RoundSchema).default([]),
-  games: z.array(GameSchema).default([]),
-  gameQuestions: z.array(GameQuestionSchema).default([]),
-  notes: z.array(NoteSchema).default([]),
-  settings: AppSettingsSchema.optional(),
-})
+export const SnapshotSchema = z
+  .object({
+    difficulties: z.array(DifficultyLevelSchema).default([]),
+    tags: z.array(TagSchema).default([]),
+    questions: z.array(QuestionSchema).default([]),
+    rounds: z.array(RoundSchema).default([]),
+    games: z.array(GameSchema).default([]),
+    gameQuestions: z.array(GameQuestionSchema).default([]),
+    notes: z.array(NoteSchema).default([]),
+    layouts: z.array(LayoutSchema).default([]),
+    widgets: z.array(WidgetSchema).default([]),
+    settings: AppSettingsSchema.optional(),
+  })
+  .superRefine(({ layouts, widgets }, ctx) => {
+    const layoutIds = new Set(layouts.map(l => l.id))
+    widgets.forEach((w, i) => {
+      if (!layoutIds.has(w.layoutId)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['widgets', i, 'layoutId'],
+          message: `no layout with id ${w.layoutId}`,
+        })
+      }
+    })
+  })
 
 /** Accept numbers where strings are expected (e.g. `answer: 4`), as the old importer did. */
 const numberToString = (v: unknown) => (typeof v === 'number' ? String(v) : v)

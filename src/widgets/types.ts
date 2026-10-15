@@ -1,12 +1,10 @@
 import type { ComponentType } from 'react'
 import type { z } from 'zod'
-import type { WidgetType } from '@/db'
+import type { LayoutTarget, WidgetType } from '@/db'
+import type { GridSize } from '@/lib/layout-grid'
 
-/**
- * Surfaces a widget can be placed on. `screen` and `scoreboard` aren't real `Layout.target`
- * values yet (that db type only has `'admin' | 'player'`) — extending it is #409's job.
- */
-export type WidgetTarget = 'admin' | 'player' | 'screen' | 'scoreboard'
+/** Surfaces a widget can be placed on: the same set as `Layout.target`. */
+export type WidgetTarget = LayoutTarget
 
 /**
  * Everything the registry knows about one {@link WidgetType}.
@@ -25,7 +23,8 @@ export interface WidgetDefinition<TConfig = Record<string, never>> {
   type: WidgetType
   label: string
   allowedTargets: readonly WidgetTarget[]
-  preferredWidth: 'full' | 'half'
+  /** Size a newly placed widget gets on the 12-column grid. */
+  preferredSize: GridSize
   configSchema: z.ZodType<TConfig>
   defaultConfig: TConfig
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

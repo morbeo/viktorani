@@ -158,9 +158,8 @@ managedTeams, managedLabels.
 
 **Backup:** export a JSON snapshot from **Settings → Data → Export JSON**. Import it on
 any device to restore or share your question bank. It holds difficulties, tags,
-questions, rounds, games, gameQuestions and notes. Live-game data (teams, players,
-buzzEvents, timers, layouts, widgets) and the managed players, teams and labels are not
-included.
+questions, rounds, games, gameQuestions, notes, layouts and widgets. Live-game data (teams,
+players, buzzEvents, timers) and the managed players, teams and labels are not included.
 
 ---
 
