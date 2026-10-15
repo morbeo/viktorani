@@ -107,7 +107,7 @@ Epic: #364. Scope and dependency order are in the epic body: widget registry →
 - [x] Layout model v2 — responsive grid, phases, Dexie migration (#409) — #439
 - [x] `LayoutRenderer` and default layouts for all surfaces (#410) — the projector screen in #440, the game master's play column and the player view in this change. The scoreboard surface keeps its fixed view until it gets a page of its own.
 - [ ] `LAYOUT` transport event, validation, resend on admit/phase change — flagged needs-security-review (#411)
-- [ ] Designer: canvas, palette, drag/resize, inspector (#412)
+- [x] Designer: canvas, palette, drag/resize, inspector (#412) — `/admin/layouts` (templates) and `/admin/layouts/:gameId`
 - [ ] Designer: templates, undo/redo, device previews, keyboard editing (#413)
 - [ ] Phase-based automatic layout switching and the GM override (#414)
 - [ ] Assign layouts per surface and phase in game settings (#415)
@@ -117,6 +117,7 @@ Epic: #364. Scope and dependency order are in the epic body: widget registry →
 - **Phase 6 status:** #432, #433, #434 and #435 are merged. Only #424's remaining settings and the #421 timer design question are left in this phase.
 - **Layouts on the game master and player (#410):** only the game master's play column renders through its layout; the controls, navigation and side panel stay fixed around it. On the player, the name, score and connection or pause notices stay fixed. Both use the built-in default until #411/#415 deliver stored layouts.
 - **Next up:** #411 (`LAYOUT` transport event), then the designer (#412).
+- **Designer scope (#412):** live preview covers the player and projector screen only; the game master and scoreboard show a notice until they render from sample data. Keyboard editing on the canvas and undo/redo stay in #413 (the inspector's placement fields already work without a pointer). Config forms are generated from each widget's Zod schema; every schema is empty today, so the form shows "no settings".
 
 ## Decisions (2026-10-05)
 

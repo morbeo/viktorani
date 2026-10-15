@@ -88,7 +88,8 @@ The app uses `HashRouter` so it works on GitHub Pages without server rewrites
 | `/admin/players-teams`             | PlayersTeams   | Host    |
 | `/admin/notes`, `/admin/notes/:id` | Notes          | Host    |
 | `/admin/settings/:category`        | Settings       | Host    |
-| `/admin/layouts/:gameId`           | Layouts (stub) | Host    |
+| `/admin/layouts`                   | Layouts        | Host    |
+| `/admin/layouts/:gameId`           | Layouts        | Host    |
 | `/join`, `/join/:roomId`           | Join           | Players |
 | `/play/:roomId`                    | Play           | Players |
 
