@@ -1,5 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie'
 import type { ManagedPlayer, ManagedTeam, ManagedLabel } from '@/types/players-teams'
+import { DEFAULT_LAYOUT_THEME, migrateWidgetsToGrid, type LegacyWidget } from '@/lib/layout-grid'
 export type { ManagedPlayer, ManagedTeam, ManagedLabel } from '@/types/players-teams'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -52,26 +53,30 @@ export type PlayerPresence = 'connected' | 'hidden' | 'disconnected' | 'left' | 
 export type TiebreakerMode = 'serverOrder'
 
 /**
- * The set of widget types that can be placed in a GM layout.
- * Each type maps to a distinct React component in the GameMaster screen.
+ * The widget types that can be placed in a {@link Layout}. Each maps to an entry in the
+ * widget registry (`src/widgets/registry.tsx`), which supplies its component per target.
  */
-export type WidgetType =
-  | 'buzzer'
-  | 'question'
-  | 'answers'
-  | 'media'
-  | 'timer'
-  | 'buzz_order'
-  | 'scoreboard'
-  | 'leaderboard'
-  | 'player_list'
-  | 'round_info'
-  | 'text'
-  | 'qr_code'
-  | 'announcement'
-  | 'image'
-  | 'game_controls'
-  | 'progress'
+export const WIDGET_TYPES = [
+  'buzzer',
+  'question',
+  'answers',
+  'media',
+  'timer',
+  'buzz_order',
+  'scoreboard',
+  'leaderboard',
+  'player_list',
+  'round_info',
+  'text',
+  'qr_code',
+  'announcement',
+  'image',
+  'game_controls',
+  'progress',
+] as const
+
+/** See {@link WIDGET_TYPES}. */
+export type WidgetType = (typeof WIDGET_TYPES)[number]
 
 /**
  * A configurable difficulty tier with a point value and display colour.
@@ -347,21 +352,70 @@ export interface GameLogEntry {
   data: Record<string, string | number | boolean | null>
 }
 
+/** The surfaces a {@link Layout} can be shown on. */
+export const LAYOUT_TARGETS = ['gamemaster', 'player', 'screen', 'scoreboard'] as const
+
+/** See {@link LAYOUT_TARGETS}. */
+export type LayoutTarget = (typeof LAYOUT_TARGETS)[number]
+
 /**
- * A named arrangement of {@link Widget}s displayed on the GM screen.
+ * The game states that can each have their own {@link Layout}. The renderer picks the layout
+ * for the current phase automatically; the game master can override it (#414).
+ */
+export const GAME_PHASES = ['lobby', 'question', 'buzzed', 'reveal', 'scoreboard', 'ended'] as const
+
+/** See {@link GAME_PHASES}. */
+export type GamePhase = (typeof GAME_PHASES)[number]
+
+/** Device classes a {@link Widget} can override its base {@link GridRect} for. */
+export type LayoutBreakpoint = 'phone' | 'tv'
+
+/**
+ * A widget's place on the 12-column layout grid, in grid cells.
+ *
+ * @remarks
+ * `x` is the zero-based start column and `w` the column span, so `x + w` never exceeds
+ * `GRID_COLUMNS` (12). `y` is the zero-based start row and `h` the row span; how tall a row
+ * is, is up to the renderer.
+ */
+export interface GridRect {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+/**
+ * Per-layout look. Each `null` means "inherit the app theme".
+ *
+ * @remarks
+ * `background` and `accent` are `#rrggbb` colours; `logo` is a `data:image/` or `https://`
+ * URL; `fontScale` multiplies the base font size.
+ */
+export interface LayoutTheme {
+  background: string | null
+  accent: string | null
+  fontScale: number
+  logo: string | null
+}
+
+/**
+ * A named arrangement of {@link Widget}s for one surface.
  *
  * @remarks
  * `gameId === null` indicates a global reusable template.
- * `isActive` marks which layout is currently shown in the GM view.
- * The four default layouts correspond to game phases: lobby, active question,
- * scoreboard, and results.
+ * `phase === null` means the layout applies to every phase that has no layout of its own.
+ * `isActive` marks which of several layouts for the same game, target and phase is used.
  */
 export interface Layout {
   id: string
   /** `null` for global templates not tied to a specific game. */
   gameId: string | null
   name: string
-  target: 'admin' | 'player'
+  target: LayoutTarget
+  /** The game phase this layout is for, or `null` for all phases. */
+  phase: GamePhase | null
+  theme: LayoutTheme
   isActive: boolean
   /** Display order within the layout switcher. */
   order: number
@@ -376,8 +430,11 @@ export interface Widget {
   layoutId: string
   type: WidgetType
   config: Record<string, unknown>
-  width: 'full' | 'half'
-  /** Display order within the layout grid. */
+  /** Placement on the base (tablet/desktop) grid. */
+  grid: GridRect
+  /** Placement overrides for phones and TV screens; missing ones fall back to `grid`. */
+  breakpoints: Partial<Record<LayoutBreakpoint, GridRect>>
+  /** Reading and keyboard order within the layout. */
   order: number
 }
 
@@ -460,6 +517,10 @@ export interface GameQuestion {
  *   (`false`), `Game.autoStartTimerOnQuestionShow` (`false`), `Game.defaultTimerDuration` (`60`)
  *   and `Game.rejoinWindowSeconds` (`0`, unlimited) on existing games, and `Player.disconnectedAt`
  *   (`null`) on existing players.
+ * - 16: same stores; layout model v2 (#409). Layouts with target `'admin'` become
+ *   `'gamemaster'` and gain `phase` (`null`, all phases) and the default `theme`; each
+ *   widget's `width: 'full' | 'half'` becomes a 12-column `grid` rect, packed into rows in
+ *   `order`, with no `breakpoints` overrides.
  *
  * To change the schema, add a new `this.version(N + 1)` block below; keep existing blocks.
  */
@@ -619,6 +680,21 @@ export class ViktoraniDB extends Dexie {
           .modify((p: Partial<Player>) => {
             p.disconnectedAt ??= null
           })
+      })
+
+    this.version(16)
+      .stores({})
+      .upgrade(async tx => {
+        await tx
+          .table('layouts')
+          .toCollection()
+          .modify((l: Omit<Partial<Layout>, 'target'> & { target?: string }) => {
+            if (l.target === 'admin') l.target = 'gamemaster'
+            l.phase ??= null
+            l.theme ??= { ...DEFAULT_LAYOUT_THEME }
+          })
+        const widgets: LegacyWidget[] = await tx.table('widgets').toArray()
+        await tx.table('widgets').bulkPut(migrateWidgetsToGrid(widgets))
       })
   }
 }

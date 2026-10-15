@@ -45,7 +45,8 @@ async function seedRawDb(
   stores: Record<string, string>,
   game: Record<string, unknown> = {},
   players: Record<string, unknown>[] = [],
-  teams: Record<string, unknown>[] = []
+  teams: Record<string, unknown>[] = [],
+  rows: Record<string, Record<string, unknown>[]> = {}
 ) {
   const req = indexedDB.open(db.name, nativeVersion)
   req.onupgradeneeded = () => {
@@ -56,9 +57,12 @@ async function seedRawDb(
     }
   }
   const raw = await request(req)
-  const tx = raw.transaction(['games', 'players', 'teams'], 'readwrite')
+  const tx = raw.transaction(['games', 'players', 'teams', ...Object.keys(rows)], 'readwrite')
   players.forEach(p => tx.objectStore('players').put(p))
   teams.forEach(t => tx.objectStore('teams').put(t))
+  for (const [store, records] of Object.entries(rows)) {
+    records.forEach(r => tx.objectStore(store).put(r))
+  }
   tx.objectStore('games').put({
     id: 'g-old',
     name: 'Old game',
@@ -83,8 +87,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(15)
-    expect(db.backendDB().version).toBe(150)
+    expect(db.verno).toBe(16)
+    expect(db.backendDB().version).toBe(160)
     expect(db.backendDB().objectStoreNames.contains('managedPlayers')).toBe(true)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
     expect(await db.managedLabels.count()).toBe(0)
@@ -97,8 +101,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(15)
-    expect(db.backendDB().version).toBe(150)
+    expect(db.verno).toBe(16)
+    expect(db.backendDB().version).toBe(160)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
   })
 
@@ -203,5 +207,41 @@ describe('Dexie schema version', () => {
       rejoinWindowSeconds: 0,
     })
     expect(await db.players.get('p-old')).toMatchObject({ disconnectedAt: null })
+  })
+
+  it('moves layouts and widgets to the v2 model (v16)', async () => {
+    const layout = { gameId: 'g-old', name: 'L', isActive: true, order: 0 }
+    const widget = { type: 'text', config: {}, layoutId: 'l-admin' }
+    await seedRawDb(150, V1_STORES, {}, [], [], {
+      layouts: [
+        { ...layout, id: 'l-admin', target: 'admin' },
+        { ...layout, id: 'l-player', target: 'player' },
+      ],
+      widgets: [
+        { ...widget, id: 'w-full', order: 2, width: 'full' },
+        { ...widget, id: 'w-half-a', order: 0, width: 'half' },
+        { ...widget, id: 'w-half-b', order: 1, width: 'half' },
+      ],
+    })
+
+    await db.open()
+
+    const theme = { background: null, accent: null, fontScale: 1, logo: null }
+    expect(await db.layouts.get('l-admin')).toMatchObject({
+      target: 'gamemaster',
+      phase: null,
+      theme,
+    })
+    expect(await db.layouts.get('l-player')).toMatchObject({ target: 'player', phase: null })
+    const widgets = await db.widgets.toArray()
+    expect(Object.fromEntries(widgets.map(w => [w.id, w.grid]))).toEqual({
+      'w-half-a': { x: 0, y: 0, w: 6, h: 1 },
+      'w-half-b': { x: 6, y: 0, w: 6, h: 1 },
+      'w-full': { x: 0, y: 1, w: 12, h: 1 },
+    })
+    for (const w of widgets) {
+      expect(w).not.toHaveProperty('width')
+      expect(w.breakpoints).toEqual({})
+    }
   })
 })

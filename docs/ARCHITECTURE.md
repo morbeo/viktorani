@@ -62,14 +62,14 @@ flowchart TD
   Transport["transport/<br/>PeerJS, message contract"]
 ```
 
-| Layer         | Responsibility                                                                  |
-| ------------- | ------------------------------------------------------------------------------- |
-| `pages/`      | Route components. Load data, own page state, compose components.                 |
-| `components/` | Feature UI grouped by area (`buzzer/`, `gamemaster/`, `timer/`, …) and `ui/`.    |
-| `hooks/`      | Reusable stateful logic: buzzer, timers, navigation, scoreboard, lifecycle.      |
-| `db/`         | Dexie database, typed tables, multi-table helpers, backup import/export.         |
-| `transport/`  | Real-time messaging between host and players, and the zod message contract.      |
-| `types/`      | Shared types that don't belong to a single table (managed players and teams).   |
+| Layer         | Responsibility                                                                |
+| ------------- | ----------------------------------------------------------------------------- |
+| `pages/`      | Route components. Load data, own page state, compose components.              |
+| `components/` | Feature UI grouped by area (`buzzer/`, `gamemaster/`, `timer/`, …) and `ui/`. |
+| `hooks/`      | Reusable stateful logic: buzzer, timers, navigation, scoreboard, lifecycle.   |
+| `db/`         | Dexie database, typed tables, multi-table helpers, backup import/export.      |
+| `transport/`  | Real-time messaging between host and players, and the zod message contract.   |
+| `types/`      | Shared types that don't belong to a single table (managed players and teams). |
 
 Reads use `useLiveQuery` (dexie-react-hooks) or a one-off `db.table.get()`. Writes go straight
 to `db`, then the writer sends the matching transport event so players stay in sync.
@@ -79,18 +79,18 @@ to `db`, then the writer sends the matching transport event so players stay in s
 The app uses `HashRouter` so it works on GitHub Pages without server rewrites
 ([ADR 0004](adr/0004-hash-router.md)).
 
-| Route                                   | Page           | Who     |
-| --------------------------------------- | -------------- | ------- |
-| `/admin`                                | Dashboard      | Host    |
-| `/admin/questions`                      | Questions      | Host    |
-| `/admin/games`                          | Games (wizard) | Host    |
-| `/admin/game/:id`                       | GameMaster     | Host    |
-| `/admin/players-teams`                  | PlayersTeams   | Host    |
-| `/admin/notes`, `/admin/notes/:id`      | Notes          | Host    |
-| `/admin/settings/:category`             | Settings       | Host    |
-| `/admin/layouts/:gameId`                | Layouts (stub) | Host    |
-| `/join`, `/join/:roomId`                | Join           | Players |
-| `/play/:roomId`                         | Play           | Players |
+| Route                              | Page           | Who     |
+| ---------------------------------- | -------------- | ------- |
+| `/admin`                           | Dashboard      | Host    |
+| `/admin/questions`                 | Questions      | Host    |
+| `/admin/games`                     | Games (wizard) | Host    |
+| `/admin/game/:id`                  | GameMaster     | Host    |
+| `/admin/players-teams`             | PlayersTeams   | Host    |
+| `/admin/notes`, `/admin/notes/:id` | Notes          | Host    |
+| `/admin/settings/:category`        | Settings       | Host    |
+| `/admin/layouts/:gameId`           | Layouts (stub) | Host    |
+| `/join`, `/join/:roomId`           | Join           | Players |
+| `/play/:roomId`                    | Play           | Players |
 
 ## Source tree
 
@@ -169,13 +169,13 @@ classDiagram
 
 The equivalent of "inheritance" elsewhere is:
 
-| Need                     | Pattern used                                                       |
-| ------------------------ | ------------------------------------------------------------------ |
-| Share stateful behaviour | A custom hook (`useBuzzer`, `useTimer`, `useGameLifecycle`)        |
-| Share UI                 | A component with props (`Button`, `Modal`, `HostQuestionPanel`)    |
-| Share cross-cutting data | React context (`ToastProvider`, `ControlSizeContext`)             |
-| Vary by kind             | Discriminated unions (`TransportEvent`, `Question.type`)           |
-| Share pure logic         | Plain functions (`gamemaster-utils.ts`, `db/games.ts`)             |
+| Need                     | Pattern used                                                    |
+| ------------------------ | --------------------------------------------------------------- |
+| Share stateful behaviour | A custom hook (`useBuzzer`, `useTimer`, `useGameLifecycle`)     |
+| Share UI                 | A component with props (`Button`, `Modal`, `HostQuestionPanel`) |
+| Share cross-cutting data | React context (`ToastProvider`, `ControlSizeContext`)           |
+| Vary by kind             | Discriminated unions (`TransportEvent`, `Question.type`)        |
+| Share pure logic         | Plain functions (`gamemaster-utils.ts`, `db/games.ts`)          |
 
 ## Data model
 
@@ -212,7 +212,12 @@ erDiagram
   `teamIds`/`playerIds` link is kept in sync by `db/players-teams.ts`.
 - **Scores:** each `Player.score` and `Team.score` is stored separately; a team's score is not
   the sum of its members.
-- **Notes** and **layouts** are standalone (layouts are a stub for now).
+- **Notes** are standalone.
+- **Layouts:** a `layouts` row is one surface's arrangement (`gamemaster`, `player`, `screen`
+  or `scoreboard`) for one game phase or all of them, with its own theme. `gameId` is `null`
+  for a global template. Its `widgets` sit on a 12-column grid, with optional phone and TV
+  placement overrides ([ADR 0016](adr/0016-layout-model-v2.md)). The designer and renderer
+  are still to come (#364).
 
 ### Schema versions
 

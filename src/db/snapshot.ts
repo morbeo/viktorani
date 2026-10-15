@@ -1,6 +1,16 @@
 import type { z } from 'zod'
 import { db } from '@/db'
-import type { DifficultyLevel, Tag, Question, Round, Game, GameQuestion, Note } from '@/db'
+import type {
+  DifficultyLevel,
+  Tag,
+  Question,
+  Round,
+  Game,
+  GameQuestion,
+  Note,
+  Layout,
+  Widget,
+} from '@/db'
 import { SnapshotSchema, QuestionImportRowSchema } from '@/db/snapshot-schema'
 import { getSettings, setSettings } from '@/lib/app-settings'
 import type { AppSettings } from '@/lib/app-settings'
@@ -14,11 +24,14 @@ import type { AppSettings } from '@/lib/app-settings'
  * - **v2**: Categories removed; tags are the sole classifier. `gameQuestions` was
  *   added later; older v2 files without it restore games with no questions. `settings`
  *   (the app preferences) was added later still; files without it leave them unchanged.
+ *   `layouts` and `widgets` (layout model v2, #409) came next; files without them restore
+ *   no layouts.
  *
- * `gameQuestions` is included because it defines which questions each game plays.
+ * `gameQuestions` is included because it defines which questions each game plays, and
+ * `layouts` / `widgets` because they are designed by the host, not produced by play.
  * Runtime-only collections (`players`, `teams`, `buzzEvents`, `scoreEvents`, `gameLog`,
- * `timers`, `layouts`, `widgets`) are intentionally excluded — they represent transient
- * session state that is not meaningful to restore. A game's log is downloaded from the game
+ * `timers`) are intentionally excluded — they represent transient session state that is
+ * not meaningful to restore. A game's log is downloaded from the game
  * master view instead.
  */
 export interface DatabaseSnapshot {
@@ -31,6 +44,8 @@ export interface DatabaseSnapshot {
   games: Game[]
   gameQuestions: GameQuestion[]
   notes: Note[]
+  layouts: Layout[]
+  widgets: Widget[]
   settings?: AppSettings
 }
 
@@ -52,6 +67,8 @@ export async function exportDatabase(): Promise<void> {
     games: await db.games.toArray(),
     gameQuestions: await db.gameQuestions.toArray(),
     notes: await db.notes.toArray(),
+    layouts: await db.layouts.toArray(),
+    widgets: await db.widgets.toArray(),
     settings: getSettings(),
   }
 
@@ -119,7 +136,17 @@ export async function importDatabase(file: File): Promise<void> {
 
   await db.transaction(
     'rw',
-    [db.difficulties, db.tags, db.questions, db.rounds, db.games, db.gameQuestions, db.notes],
+    [
+      db.difficulties,
+      db.tags,
+      db.questions,
+      db.rounds,
+      db.games,
+      db.gameQuestions,
+      db.notes,
+      db.layouts,
+      db.widgets,
+    ],
     async () => {
       if (snapshot.difficulties.length) await db.difficulties.bulkPut(snapshot.difficulties)
       if (snapshot.tags.length) await db.tags.bulkPut(snapshot.tags)
@@ -128,6 +155,8 @@ export async function importDatabase(file: File): Promise<void> {
       if (snapshot.games.length) await db.games.bulkPut(snapshot.games)
       if (snapshot.gameQuestions.length) await db.gameQuestions.bulkPut(snapshot.gameQuestions)
       if (snapshot.notes.length) await db.notes.bulkPut(snapshot.notes)
+      if (snapshot.layouts.length) await db.layouts.bulkPut(snapshot.layouts)
+      if (snapshot.widgets.length) await db.widgets.bulkPut(snapshot.widgets)
     }
   )
   if (snapshot.settings) setSettings(snapshot.settings)
