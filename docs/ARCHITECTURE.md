@@ -216,8 +216,11 @@ erDiagram
 - **Layouts:** a `layouts` row is one surface's arrangement (`gamemaster`, `player`, `screen`
   or `scoreboard`) for one game phase or all of them, with its own theme. `gameId` is `null`
   for a global template. Its `widgets` sit on a 12-column grid, with optional phone and TV
-  placement overrides ([ADR 0016](adr/0016-layout-model-v2.md)). The designer and renderer
-  are still to come (#364).
+  placement overrides ([ADR 0016](adr/0016-layout-model-v2.md)). `widgets/LayoutRenderer`
+  renders a layout with the surface's live data, and `resolveLayout` picks the layout for a
+  target, game and phase, falling back to a built-in default
+  ([ADR 0017](adr/0017-layout-renderer-data-flow.md)). Only the projector screen renders
+  through it so far; the designer is still to come (#364).
 
 ### Schema versions
 
