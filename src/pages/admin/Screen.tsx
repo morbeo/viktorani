@@ -3,9 +3,10 @@ import { useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
 import type { Game, Timer } from '@/db'
-import { ScreenScores, ScreenView } from '@/components/screen/ScreenView'
+import { ScreenView } from '@/components/screen/ScreenView'
 import { useScoreboard } from '@/hooks/useScoreboard'
 import { formatTime } from '@/hooks/useTimer'
+import type { ScreenData } from '@/widgets/types'
 import { buildNavSequence, buildQuestionContent, orderRounds } from '@/pages/admin/gamemaster-utils'
 
 /** Seconds left on a timer at `now`, as the GM's timer panel computes it. */
@@ -36,7 +37,9 @@ function ScreenTimers({ gameId }: { gameId: string }) {
       {shown.map(t => (
         <div key={t.id} className="flex flex-col items-center">
           {t.label && (
-            <p className="text-2xl" style={{ color: 'var(--color-muted)' }}>{t.label}</p>
+            <p className="text-2xl" style={{ color: 'var(--color-muted)' }}>
+              {t.label}
+            </p>
           )}
           <p className="mono text-7xl font-bold tabular-nums">
             {formatTime(timerRemaining(t, now))}
@@ -47,9 +50,30 @@ function ScreenTimers({ gameId }: { gameId: string }) {
   )
 }
 
-function LocalScores({ game }: { game: Game }) {
+/** The screen layout with this game's scores and timers read from the local database. */
+function LocalScreen({
+  game,
+  heading,
+  content,
+}: {
+  game: Game
+  heading: string
+  content: ScreenData['content']
+}) {
   const { entries } = useScoreboard(game)
-  return <ScreenScores rows={game.scoringEnabled ? entries : []} />
+  return (
+    <ScreenView
+      gameId={game.id}
+      data={{
+        heading,
+        content,
+        message: null,
+        rows: game.scoringEnabled ? entries : [],
+        logEntries: [],
+        timers: <ScreenTimers gameId={game.id} />,
+      }}
+    />
+  )
 }
 
 /**
@@ -96,10 +120,5 @@ export default function Screen() {
     ? `${entry.roundName} · Question ${inRound.indexOf(entry) + 1} of ${inRound.length}`
     : game.name
 
-  return (
-    <ScreenView heading={heading} content={content}>
-      <ScreenTimers gameId={game.id} />
-      <LocalScores game={game} />
-    </ScreenView>
-  )
+  return <LocalScreen game={game} heading={heading} content={content} />
 }

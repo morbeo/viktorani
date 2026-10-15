@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Button } from '@/components/ui'
-import { ScreenLog, ScreenScores, ScreenView } from '@/components/screen/ScreenView'
+import { ScreenView } from '@/components/screen/ScreenView'
 import { useTransportEvents } from '@/hooks/useTransport'
 import { isAbortError, retry, transportManager } from '@/transport'
 import { PlayerTimers } from '@/components/timer/PlayerTimers'
@@ -81,10 +81,17 @@ export default function RemoteScreen() {
 
   if (ended && session.status === 'accepted') {
     return (
-      <ScreenView heading="Game over" content={null} message={session.message}>
-        <ScreenScores rows={session.rows} />
-        <ScreenLog entries={session.logEntries} />
-      </ScreenView>
+      <ScreenView
+        phase="ended"
+        data={{
+          heading: 'Game over',
+          content: null,
+          message: session.message,
+          rows: session.rows,
+          logEntries: session.logEntries,
+          timers: null,
+        }}
+      />
     )
   }
 
@@ -118,13 +125,14 @@ export default function RemoteScreen() {
 
   return (
     <ScreenView
-      heading={session.gameStatus === 'paused' ? 'Paused' : null}
-      content={session.content}
-      message={session.message}
-    >
-      <PlayerTimers />
-      <ScreenScores rows={session.rows} />
-      <ScreenLog entries={session.logEntries} />
-    </ScreenView>
+      data={{
+        heading: session.gameStatus === 'paused' ? 'Paused' : null,
+        content: session.content,
+        message: session.message,
+        rows: session.rows,
+        logEntries: session.logEntries,
+        timers: <PlayerTimers />,
+      }}
+    />
   )
 }
