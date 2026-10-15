@@ -1,3 +1,4 @@
+import { ProgressTrack } from '@/components/ProgressTrack'
 import { BuzzerPanel } from '@/components/buzzer/BuzzerPanel'
 import { GameLogPanel } from '@/components/gamemaster/GameLogPanel'
 import { QrCodePanel } from '@/components/gamemaster/QrCodePanel'
@@ -19,6 +20,15 @@ const isEnded = (data: GamemasterData) => data.game.status === 'ended'
 
 export function GamemasterRoundInfoWidget({ data }: GamemasterWidgetProps) {
   return <RoundInfo pos={data.pos} seq={data.seq} />
+}
+
+/** The progress track on its own, as in the header (#408). */
+export function GamemasterProgressWidget({ data }: GamemasterWidgetProps) {
+  return (
+    <div className="rounded-xl border border-(--color-border) bg-(--color-surface) px-4 py-3">
+      <ProgressTrack pos={data.pos} seq={data.seq} />
+    </div>
+  )
 }
 
 export function GamemasterQuestionWidget({ data }: GamemasterWidgetProps) {
