@@ -92,9 +92,11 @@ No tracking epic; standalone issues/PRs in the gamemaster area.
 - [x] Add player, bulk actions and team assignment from the roster (#422, #427)
 - [x] Rename teams, add team notes, and click-to-select members (#423, #429)
 - [x] Add player notes per game (#431)
-- [ ] Group the roster by team, log messages, and rework the log's kind filter (#433, PR open — CI green, awaiting security review and merge)
-- [ ] Cap total players per game, part of #424's scope (#432, PR open — CI green, awaiting security review and merge)
-- [ ] Expand game settings further: tiebreaker modes, auto-kick on disconnect, local-network-only join, auto-advance on correct/timer-expiry, confirm navigating away from an unruled question (#424, remaining scope — "floor scores at zero" already holds, see #432)
+- [x] Group the roster by team, log messages, and rework the log's kind filter (#433)
+- [x] Cap total players per game, part of #424's scope (#432)
+- [x] Rejoin window, confirm navigating away from an unruled question, auto-start timer, and timer sound mute, part of #424's scope (#434)
+- [x] Warn the host when a join's device doesn't match an existing player with that name (#435)
+- [ ] Expand game settings further: tiebreaker modes, auto-kick on disconnect, local-network-only join, auto-advance on correct/timer-expiry (#424, remaining scope — the player cap shipped in #432, confirm-navigation in #434, and "floor scores at zero" already holds)
 - [ ] Per-question/round/game timers — needs a design decision first: shortcut buttons vs. fully automatic timers (#421)
 
 ## Phase 7: Screen layout designer (in progress)
@@ -109,6 +111,11 @@ Epic: #364. Scope and dependency order are in the epic body: widget registry →
 - [ ] Designer: templates, undo/redo, device previews, keyboard editing (#413)
 - [ ] Phase-based automatic layout switching and the GM override (#414)
 - [ ] Assign layouts per surface and phase in game settings (#415)
+
+## Decisions (2026-10-15)
+
+- **Phase 6 status:** #432, #433, #434 and #435 are merged. Only #424's remaining settings and the #421 timer design question are left in this phase.
+- **Next up:** #409 (layout model v2), unchanged from the 2026-10-05 call.
 
 ## Decisions (2026-10-05)
 
