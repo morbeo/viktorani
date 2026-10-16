@@ -68,6 +68,11 @@ interface Theme {
 - The existing `system`/`light`/`dark` setting stays and picks which palette applies. A theme
   with `dark: null` uses the built-in dark palette with its own `accent` in dark mode, so a
   host can brand a game without designing two palettes.
+- **Mode is always the viewer's choice.** The host picks the theme; each device picks light,
+  dark or system for itself. Players get a light/dark/system switch in the player view
+  (today they have none and only follow whatever their browser stored). It is saved in that
+  device's own app settings and never sent over the transport. The host's mode setting
+  only affects the host's own screens.
 - Built-in themes ship in code: **Classic** (today's look, the default) and two or three
   more, so there is something to pick before anyone designs one. User themes go in a new
   Dexie `themes` table (next schema version), are editable and included in the JSON backup.
@@ -82,6 +87,10 @@ interface Theme {
 3. **Layout overrides**: the existing `Layout.theme` from ADR 0016, unchanged. Its `null`
    fields now inherit from the game theme rather than a fixed look. `background` and
    `accent` map to `bg` and `accent`; `logo` overrides the theme's wordmark for that layout.
+   A layout colour is a single value, not a light/dark pair, so on player surfaces the
+   `background` and `accent` overrides apply only in light mode. In dark mode the theme's
+   dark palette wins, so a player who switches to dark never gets light text on a light
+   override. Shared surfaces (projector, scoreboard) apply them in both modes.
 
 Layout themes stay as small per-screen overrides rather than becoming references to a
 `Theme`: a layout is about arrangement, and making it carry a whole theme would duplicate
@@ -130,7 +139,9 @@ sets. A host's own imagery goes in logos.
 
 Player phones and the projector don't have the host's database, so the host sends a new
 `THEME` transport event when a player joins and whenever the game theme changes. It carries
-the **resolved** theme (palettes, font keys, stroke, logos), not an id. The schema is strict:
+the **resolved** theme (palettes, font keys, stroke, logos), not an id. It always carries
+both palettes, with a light-only theme's dark palette filled in from the fallback, so each
+player can switch between light and dark without asking the host. It carries no mode. The schema is strict:
 hex colours only, font keys from the enum, logos through the existing logo schema and a total
 size cap. `LAYOUT` keeps carrying layout overrides as today. Since this adds a transport
 message, it needs a security review like #447 and #448.
@@ -162,8 +173,9 @@ game, layout)` helper with unit tests.
    and a live preview. Add curated fonts here.
 5. **Game theme** (`feat(gamemaster)`): `Game.themeId` in the game settings form; the
    game master, screen and layout renderer apply it; layout overrides inherit from it.
-6. **`THEME` transport event** (`feat(transport)`): send the resolved theme to players and
-   the screen; they apply it. Needs security review.
+6. **`THEME` transport event** (`feat(transport)`): send the resolved theme (both
+   palettes) to players and the screen; they apply it. Add the light/dark/system switch to
+   the player view. Needs security review.
 7. **Logo placements** (`feat(ui)`): wordmark in the admin header, screen and player join
    page; mark in compact headers.
 
@@ -178,6 +190,8 @@ game, layout)` helper with unit tests.
   kept short for that reason.
 - `Layout.theme` keeps its shape, so ADR 0016's data, backups and the `LAYOUT` schema don't
   change; only what `null` inherits from does.
-- Players see the host's theme only after `THEME` arrives; until then they see Classic.
+- Players see the host's theme only after `THEME` arrives; until then they see Classic in
+  the mode they chose.
+- `THEME` is larger than one palette would be, but switching mode needs no round trip.
 - Not covered: custom fonts, icon sets, per-player themes, and theming the installed PWA
   icon.
