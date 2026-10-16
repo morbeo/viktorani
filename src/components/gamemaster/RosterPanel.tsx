@@ -1,20 +1,11 @@
 import { useState } from 'react'
-import {
-  CircleDot,
-  EyeOff,
-  LogOut,
-  NotebookText,
-  Plus,
-  StickyNote,
-  UserX,
-  WifiOff,
-  type LucideIcon,
-} from 'lucide-react'
+import { NotebookText, Plus, StickyNote, UserX } from 'lucide-react'
 import { Icon, Button, Input } from '@/components/ui'
 import { canAssignToTeam, canCreateTeam, isConnected } from '@/pages/admin/gamemaster-utils'
 import { resolveIcon, TEAM_COLOURS } from '@/components/players-teams/teamIcons'
 import { RosterBulkActionBar } from './RosterBulkActionBar'
-import type { Game, Player, PlayerPresence, Team } from '@/db'
+import { PRESENCE } from './presence'
+import type { Game, Player, Team } from '@/db'
 
 interface RosterPanelProps {
   game: Game
@@ -32,38 +23,6 @@ interface RosterPanelProps {
    */
   selected?: Set<string>
   onSelectedChange?: (next: Set<string>) => void
-}
-
-/** How each presence is shown: icon, colour, short label and what it means. */
-const PRESENCE: Record<
-  PlayerPresence,
-  { icon: LucideIcon; color: string; label: string; meaning: string }
-> = {
-  connected: {
-    icon: CircleDot,
-    color: 'var(--color-green)',
-    label: 'Connected',
-    meaning: 'Playing.',
-  },
-  hidden: {
-    icon: EyeOff,
-    color: 'var(--color-gold)',
-    label: 'Tab hidden',
-    meaning: 'Connected, but looking at something else.',
-  },
-  disconnected: {
-    icon: WifiOff,
-    color: 'var(--color-muted)',
-    label: 'Disconnected',
-    meaning: 'Not connected. They can rejoin from their device if rejoining is allowed.',
-  },
-  left: {
-    icon: LogOut,
-    color: 'var(--color-muted)',
-    label: 'Left',
-    meaning: 'They left the game.',
-  },
-  kicked: { icon: UserX, color: 'var(--color-red)', label: 'Kicked', meaning: 'You removed them.' },
 }
 
 /**
