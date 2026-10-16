@@ -346,3 +346,9 @@ layouts every game uses, or a game to give it its own; a game's own layouts win.
 
 With a widget focused on the canvas, the arrow keys move it one cell, Shift+arrows resize it,
 Ctrl/⌘+D duplicates it and Delete removes it.
+
+Besides the panels of the default play column, your own layouts can add:
+
+- **Buzz order**: the buzzes and their judging buttons, without the lock or **Clear buzzes**.
+- **Player list**: who is in the game, connected or not, and their team.
+- **Game controls**: large **Previous**, **Next** and buzzer lock buttons, handy on a tablet.

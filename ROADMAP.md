@@ -112,6 +112,11 @@ Epic: #364. Scope and dependency order are in the epic body: widget registry →
 - [x] Phase-based automatic layout switching and the GM override (#414) — ADR 0019
 - [x] Assign layouts per surface and phase in game settings (#415) — ADR 0020
 
+## Decisions (2026-10-16)
+
+- **Game master widgets (#364):** `buzz_order` is the buzz queue with its judging buttons but no lock or clear; `player_list` is read-only and leaves out players who left or were kicked; `game_controls` has previous, next and the buzzer lock (pause and end stay in the toolbar). Like the buzzer, they hide once the game ends, and they don't preview in the designer.
+- **Next up:** the `text` and `image` widgets (the first with settings, sent over `LAYOUT`), then `leaderboard`.
+
 ## Decisions (2026-10-15)
 
 - **Phase 6 status:** #432, #433, #434 and #435 are merged. Only #424's remaining settings and the #421 timer design question are left in this phase.

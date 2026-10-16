@@ -49,6 +49,7 @@ function gmData(game: Partial<Game> = {}, rest: Partial<GamemasterData> = {}): G
     onGameChange: vi.fn(),
     pos: POS,
     seq: SEQ,
+    nav: { onPrev: vi.fn(), onNext: vi.fn() },
     questionId: 'q1',
     question: { id: 'q1' } as Question,
     gameQuestion: { id: 'gq1', questionId: 'q1' } as GameQuestion,
@@ -60,6 +61,8 @@ function gmData(game: Partial<Game> = {}, rest: Partial<GamemasterData> = {}): G
       onClear: vi.fn(),
     },
     timers: {} as UseTimerListResult,
+    players: [],
+    teams: [],
     ...rest,
   }
 }

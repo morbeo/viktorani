@@ -51,7 +51,11 @@ function commitSha(): string {
 }
 
 const buildInfo = {
-  version: (JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string }).version,
+  version: (
+    JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
+      version: string
+    }
+  ).version,
   commit: commitSha(),
   builtAt: new Date().toISOString(),
   runId: process.env.GITHUB_RUN_ID ?? null,
@@ -74,8 +78,7 @@ export default defineConfig({
       manifest: {
         name: 'Viktorani',
         short_name: 'Viktorani',
-        description:
-          'Bar trivia PWA with WebRTC multiplayer and buzzer gameplay.',
+        description: 'Bar trivia PWA with WebRTC multiplayer and buzzer gameplay.',
         theme_color: '#f5f0e8',
         background_color: '#f5f0e8',
         display: 'standalone',
@@ -88,9 +91,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        // Prevent the service worker from intercepting requests to the
-        // TypeDoc API docs deployed at /viktorani/api/
-        navigateFallbackDenylist: [/^\/viktorani\/api\//],
+        // Let navigations to the TypeDoc API docs (/viktorani/api and /viktorani/api/...)
+        // reach the network, so GitHub Pages can add the trailing slash and serve them
+        navigateFallbackDenylist: [/^\/viktorani\/api(\/|$)/],
       },
     }),
   ],
