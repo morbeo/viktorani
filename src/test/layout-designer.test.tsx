@@ -312,6 +312,19 @@ describe('layout designer', () => {
     expect(within(preview).getByText('The Quizzly Bears')).toBeInTheDocument()
   })
 
+  it('previews a leaderboard with its settings', async () => {
+    const user = userEvent.setup()
+    await db.layouts.put(LAYOUT)
+    await db.widgets.put(widget('w1', { type: 'leaderboard', config: { places: 2 } }))
+    renderDesigner()
+
+    await user.click(await screen.findByRole('button', { name: 'Preview' }))
+    const preview = await screen.findByRole('region', { name: 'Preview' })
+    const board = await within(preview).findByRole('region', { name: 'Leaderboard' })
+    expect(within(board).getAllByRole('listitem')).toHaveLength(2)
+    expect(board).toHaveTextContent('The Quizzly Bears')
+  })
+
   it('says the game master surface has no live preview', async () => {
     const user = userEvent.setup()
     await db.layouts.put({ ...LAYOUT, target: 'gamemaster' })

@@ -5,6 +5,7 @@ import rehypeRaw from 'rehype-raw'
 import rehypeSanitize from 'rehype-sanitize'
 import type { GameEvent, LogEntry, ScoreboardRow } from '@/transport/types'
 import { LOG_KIND_LABELS } from '@/lib/game-log-rows'
+import { topPlaces, type LeaderboardConfig } from '@/widgets/leaderboard'
 import type { ScreenData, WidgetProps } from '@/widgets/types'
 
 /**
@@ -118,6 +119,44 @@ export function ScreenScores({ rows }: { rows: ScoreboardRow[] }) {
   )
 }
 
+const PLACE_COLOUR = ['text-(--color-gold)', 'text-(--color-muted)', 'text-(--color-ink)']
+
+/**
+ * The top places, large, with their place numbers: for between rounds or the end of the
+ * game. Renders nothing for an empty list.
+ */
+export function ScreenLeaderboard({
+  rows,
+  title,
+  places,
+}: { rows: ScoreboardRow[] } & LeaderboardConfig) {
+  const top = topPlaces(rows, places)
+  if (top.length === 0) return null
+
+  return (
+    <section aria-label={title || 'Leaderboard'} className="w-full max-w-4xl flex flex-col gap-4">
+      {title && (
+        <h2 className="text-4xl font-bold" style={{ fontFamily: 'Playfair Display, serif' }}>
+          {title}
+        </h2>
+      )}
+      <ol className="flex flex-col gap-3">
+        {top.map(r => (
+          <li key={r.id} className="flex items-baseline gap-6 text-5xl">
+            <span
+              className={`mono w-16 shrink-0 text-right font-bold ${PLACE_COLOUR[r.place - 1] ?? 'text-(--color-muted)'}`}
+            >
+              {r.place}
+            </span>
+            <span className="flex-1 truncate text-left">{r.name}</span>
+            <span className="mono font-bold tabular-nums">{r.score}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}
+
 /** A live feed of recent public game events, newest first. Renders nothing for an empty list. */
 export function ScreenLog({ entries }: { entries: LogEntry[] }) {
   if (entries.length === 0) return null
@@ -163,6 +202,13 @@ export function ScreenTimersWidget({ data }: ScreenWidgetProps) {
 
 export function ScreenScoresWidget({ data }: ScreenWidgetProps) {
   return <ScreenScores rows={data.rows} />
+}
+
+export function ScreenLeaderboardWidget({
+  data,
+  config,
+}: WidgetProps<ScreenData, LeaderboardConfig>) {
+  return <ScreenLeaderboard rows={data.rows} {...config} />
 }
 
 export function ScreenLogWidget({ data }: ScreenWidgetProps) {

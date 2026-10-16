@@ -360,3 +360,7 @@ leave the field. Two widgets show what you set rather than game data, on any sur
 - **Image**: a picture from an `https://` address or a `data:image/` URL, with a description
   for screen readers. Phones and screens fetch an `https://` image themselves; prefer that for
   big images, since inlined ones are left out when a layout is too large to send.
+
+On the projector screen, **Leaderboard** shows the top places large, for between rounds or the
+end of the game. Its settings choose the title and how many places to show; teams on equal
+scores share a place.

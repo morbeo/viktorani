@@ -25,6 +25,7 @@ import {
   ScreenAnnouncementWidget,
   ScreenAnswersWidget,
   ScreenHeadingWidget,
+  ScreenLeaderboardWidget,
   ScreenLogWidget,
   ScreenMediaWidget,
   ScreenQuestionWidget,
@@ -33,6 +34,7 @@ import {
 } from '@/components/screen/screen-widgets'
 import { ImageConfigSchema, TextConfigSchema } from './content-config'
 import { ImageWidget, TextWidget } from './content-widgets'
+import { LeaderboardConfigSchema } from './leaderboard'
 import { WidgetPlaceholder } from './placeholder'
 import type { WidgetDefinition, WidgetTarget } from './types'
 
@@ -104,7 +106,15 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetDefinition> = {
     gamemaster: GamemasterScoreboardWidget,
     screen: ScreenScoresWidget,
   }),
-  leaderboard: widget('leaderboard', 'Leaderboard', ['screen', 'scoreboard'], HALF),
+  // The scoreboard surface has no page yet, so it keeps the placeholder
+  leaderboard: widget(
+    'leaderboard',
+    'Leaderboard',
+    ['screen', 'scoreboard'],
+    HALF,
+    { screen: ScreenLeaderboardWidget },
+    LeaderboardConfigSchema
+  ),
   player_list: widget('player_list', 'Player list', ['gamemaster'], HALF, {
     gamemaster: GamemasterPlayerListWidget,
   }),
