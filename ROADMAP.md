@@ -112,6 +112,11 @@ Epic: #364. Scope and dependency order are in the epic body: widget registry →
 - [x] Phase-based automatic layout switching and the GM override (#414) — ADR 0019
 - [x] Assign layouts per surface and phase in game settings (#415) — ADR 0020
 
+## Decisions (2026-10-16)
+
+- **Text and image widgets (#364):** the first widgets with settings, offered on every surface. Text is plain text (no markdown or HTML) up to 1,000 characters; an image address follows the logo's rule (`data:image/` or `https://`), capped at 400,000 characters so several phase layouts still fit in one `LAYOUT`, and inlined images are dropped before the whole event is. Text settings save on blur, one undo step per edit, and each setting merges into the stored config.
+- **Next up:** the `leaderboard` widget.
+
 ## Decisions (2026-10-15)
 
 - **Phase 6 status:** #432, #433, #434 and #435 are merged. Only #424's remaining settings and the #421 timer design question are left in this phase.

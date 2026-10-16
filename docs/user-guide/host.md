@@ -346,3 +346,11 @@ layouts every game uses, or a game to give it its own; a game's own layouts win.
 
 With a widget focused on the canvas, the arrow keys move it one cell, Shift+arrows resize it,
 Ctrl/⌘+D duplicates it and Delete removes it.
+
+The selected widget's **Settings** appear under its placement; text settings save when you
+leave the field. Two widgets show what you set rather than game data, on any surface:
+
+- **Text**: your own words, such as house rules or a drinks special, in a size and alignment.
+- **Image**: a picture from an `https://` address or a `data:image/` URL, with a description
+  for screen readers. Phones and screens fetch an `https://` image themselves; prefer that for
+  big images, since inlined ones are left out when a layout is too large to send.
