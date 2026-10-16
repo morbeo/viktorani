@@ -101,7 +101,8 @@ src/
 ├── pages/
 │   ├── admin/               host pages + GameMaster helpers
 │   │                        (gamemaster-utils.ts, player-connections.ts)
-│   └── player/              Join, Play
+│   ├── player/              Join, Play
+│   └── screen/              RemoteScreen for display devices
 ├── components/
 │   ├── ui/                  Button, Input, Modal, Toast, Icon, control size…
 │   ├── gamemaster/          GameControls, RosterPanel, TeamManagerPanel, GameSettingsDrawer
@@ -112,12 +113,17 @@ src/
 │   ├── scoreboard/          ScoreboardPanel
 │   ├── command-palette/     Ctrl/⌘+K palette and its command registry
 │   ├── players-teams/       managed roster: lists, forms, QR, labels
+│   ├── layout-designer/     Layouts page: canvas, widget palette, inspector
+│   ├── screen/              ScreenView and screen widgets
 │   └── settings/            Settings categories: appearance, tags, difficulties, data
+├── widgets/                 widget registry, built-in layouts, LayoutRenderer
 ├── hooks/                   useBuzzer, useTimer, useNavigation, useScoreboard, …
-├── lib/                     app-settings.ts (versioned preferences store), format.ts
+├── lib/                     app-settings.ts (versioned preferences store), format.ts,
+│                            layout helpers, rate-limit.ts
 ├── db/                      index.ts (schema), games.ts, players-teams.ts,
 │                            snapshot.ts + snapshot-schema.ts, demo.ts
 ├── transport/               types.ts, messages.ts, PeerJSTransport.ts, index.ts
+├── types/                   players-teams.ts (managed roster types)
 └── test/                    Vitest suites (mirrors the tree loosely)
 ```
 

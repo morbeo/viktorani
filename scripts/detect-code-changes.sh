@@ -6,7 +6,7 @@
 #   detect-code-changes.sh --staged     # diff staged files (pre-commit)
 set -euo pipefail
 
-CODE_PATTERNS="^src/|^public/|^index\.html$|^\.github/|vite\.config\.|tsconfig|package\.json|package-lock\.json|\.config\.ts"
+CODE_PATTERNS="^src/|^public/|^index\.html$|^\.github/|vite\.config\.|tsconfig|package\.json|package-lock\.json|\.config\.ts|^typedoc\.json$"
 
 if [[ "${1:-}" == "--staged" ]]; then
   CHANGED=$(git diff --cached --name-only)

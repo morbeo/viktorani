@@ -17,7 +17,7 @@
  * Written by the GameMaster epic; the Players & Teams epic owns the schema.
  */
 export interface GameLogEntry {
-  /** ID of the {@link Game} this entry belongs to. */
+  /** ID of the {@link db!Game | Game} this entry belongs to. */
   gameId: string
   date: Date
   /** Points scored in this game. */
