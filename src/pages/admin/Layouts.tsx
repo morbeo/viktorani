@@ -1,27 +1,35 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { Redo2, Undo2 } from 'lucide-react'
 import AdminLayout from '@/components/AdminLayout'
 import { Button, Modal } from '@/components/ui'
 import { db } from '@/db'
-import type { GridRect, LayoutBreakpoint, Widget, WidgetType } from '@/db'
+import type { GridRect, Layout, LayoutBreakpoint, Widget, WidgetType } from '@/db'
 import {
   addWidget,
+  copyLayout,
   createLayout,
   deleteLayout,
   deleteWidget,
+  duplicateWidget,
+  loadLayoutBundle,
   reorderWidgets,
   updateLayout,
   updateWidget,
 } from '@/db/layout-editor'
 import { useAppSettings } from '@/hooks/useAppSettings'
+import { useLayoutHistory } from '@/hooks/useLayoutHistory'
 import { clampRect, nextFreeRect, rectsOn, swapOrder } from '@/lib/layout-designer'
+import { BUILTIN_LAYOUTS } from '@/widgets/layouts'
 import { WIDGET_REGISTRY } from '@/widgets/registry'
 import { DesignerCanvas } from '@/components/layout-designer/DesignerCanvas'
 import { LayoutPreview } from '@/components/layout-designer/LayoutPreview'
 import { LayoutSettings } from '@/components/layout-designer/LayoutSettings'
 import { PHASE_LABELS, TARGET_LABELS } from '@/components/layout-designer/labels'
+import { LayoutCopies } from '@/components/layout-designer/LayoutCopies'
 import { NewLayoutForm } from '@/components/layout-designer/NewLayoutForm'
+import type { LayoutSource } from '@/components/layout-designer/NewLayoutForm'
 import { WidgetInspector } from '@/components/layout-designer/WidgetInspector'
 import { WidgetPalette } from '@/components/layout-designer/WidgetPalette'
 
@@ -34,6 +42,21 @@ const DEVICES: { id: Device; label: string; breakpoint: LayoutBreakpoint | null;
     { id: 'tv', label: 'TV (16:9)', breakpoint: 'tv', width: 'max-w-[1280px]' },
   ]
 
+const BUILTIN_SOURCES: LayoutSource[] = BUILTIN_LAYOUTS.map(({ layout }) => ({
+  id: layout.id,
+  label: `Built-in default${layout.phase ? ` (${PHASE_LABELS[layout.phase]})` : ''}`,
+  target: layout.target,
+}))
+
+/** Whether a key press is meant for a text field, which has its own undo. */
+function inField(e: KeyboardEvent) {
+  const el = e.target
+  return (
+    el instanceof HTMLElement &&
+    (el.isContentEditable || ['INPUT', 'SELECT', 'TEXTAREA'].includes(el.tagName))
+  )
+}
+
 const tab = (on: boolean) =>
   `px-3 py-1 text-sm ${on ? 'bg-(--color-ink) text-(--color-cream)' : 'text-(--color-muted)'}`
 
@@ -41,7 +64,9 @@ const tab = (on: boolean) =>
  * The layout designer (#412): global templates at `/admin/layouts`, a game's own layouts at
  * `/admin/layouts/:gameId`. Pick or create a layout, place widgets from the palette on the
  * canvas, drag and resize them, edit the selected one in the inspector, and switch device
- * or to a live preview with sample data. Every change is saved as it is made.
+ * or to a live preview with sample data. Every change is saved as it is made, and can be
+ * undone (#413). New layouts can start from a built-in default or a template, and layouts
+ * can be duplicated, saved as templates or copied into a game.
  */
 export default function Layouts() {
   const { gameId = null } = useParams<{ gameId: string }>()
@@ -72,6 +97,17 @@ export default function Layouts() {
   const ordered = [...widgets].sort((a, b) => a.order - b.order)
   const selected = widgets.find(w => w.id === selectedWidgetId) ?? null
   const { breakpoint, width } = DEVICES.find(d => d.id === device)!
+  const { edit, undo, redo, canUndo, canRedo } = useLayoutHistory(layoutId)
+  // In a game's scope, its new layouts can also start from a template
+  const templates =
+    useLiveQuery(
+      () => (gameId ? db.layouts.filter(l => l.gameId === null).sortBy('order') : []),
+      [gameId]
+    ) ?? []
+  const sources: LayoutSource[] = [
+    ...templates.map(l => ({ id: l.id, label: `Template: ${l.name}`, target: l.target })),
+    ...BUILTIN_SOURCES,
+  ]
 
   function chooseLayout(id: string) {
     setChosenId(id)
@@ -79,11 +115,67 @@ export default function Layouts() {
   }
 
   function place(widget: Widget, rect: GridRect) {
-    void updateWidget(
-      widget.id,
-      breakpoint ? { breakpoints: { ...widget.breakpoints, [breakpoint]: rect } } : { grid: rect }
+    void edit(() =>
+      updateWidget(
+        widget.id,
+        breakpoint ? { breakpoints: { ...widget.breakpoints, [breakpoint]: rect } } : { grid: rect }
+      )
     )
   }
+
+  function removeWidget(widget: Widget) {
+    if (widget.id === selectedWidgetId) setSelectedWidgetId(null)
+    void edit(() => deleteWidget(widget.id))
+  }
+
+  function duplicate(widget: Widget) {
+    void edit(async () => {
+      const copy = await duplicateWidget(widget.id)
+      if (copy) setSelectedWidgetId(copy.id)
+    })
+  }
+
+  async function create(input: {
+    name: string
+    target: Layout['target']
+    phase: Layout['phase']
+    sourceId: string | null
+  }) {
+    const { sourceId, ...rest } = input
+    const source = sourceId
+      ? (BUILTIN_LAYOUTS.find(b => b.layout.id === sourceId) ?? (await loadLayoutBundle(sourceId)))
+      : null
+    const created = source
+      ? await copyLayout(source, { gameId, name: rest.name, phase: rest.phase })
+      : await createLayout({ gameId, ...rest })
+    chooseLayout(created.id)
+  }
+
+  async function copyTo(target: string | null, newScope: boolean) {
+    if (!layout) return
+    const bundle = await loadLayoutBundle(layout.id)
+    if (!bundle) return
+    const name = newScope ? layout.name : `${layout.name} (copy)`
+    const copy = await copyLayout(bundle, { gameId: target, name })
+    if (!newScope) chooseLayout(copy.id)
+  }
+
+  // On the window, since an undo can remove the focused widget and leave focus on the page
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (!(e.ctrlKey || e.metaKey) || inField(e)) return
+      const key = e.key.toLowerCase()
+      if (key === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        void undo()
+      } else if ((key === 'z' && e.shiftKey) || key === 'y') {
+        e.preventDefault()
+        void redo()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [undo, redo])
 
   async function add(type: WidgetType, cell?: { x: number; y: number }) {
     if (!layout) return
@@ -91,8 +183,10 @@ export default function Layouts() {
     const grid = cell
       ? clampRect({ ...cell, ...preferredSize })
       : nextFreeRect(rectsOn(widgets, breakpoint), preferredSize)
-    const widget = await addWidget({ layoutId: layout.id, type, grid, config: defaultConfig })
-    setSelectedWidgetId(widget.id)
+    await edit(async () => {
+      const widget = await addWidget({ layoutId: layout.id, type, grid, config: defaultConfig })
+      setSelectedWidgetId(widget.id)
+    })
   }
 
   async function removeLayout() {
@@ -172,11 +266,7 @@ export default function Layouts() {
                   </li>
                 ))}
               </ul>
-              <NewLayoutForm
-                onCreate={async input =>
-                  chooseLayout((await createLayout({ gameId, ...input })).id)
-                }
-              />
+              <NewLayoutForm sources={sources} onCreate={input => void create(input)} />
             </section>
             {layout && <WidgetPalette target={layout.target} onAdd={type => void add(type)} />}
           </aside>
@@ -225,6 +315,26 @@ export default function Layouts() {
                       Preview
                     </button>
                   </div>
+                  <div role="group" aria-label="History" className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={!canUndo}
+                      aria-keyshortcuts="Control+Z"
+                      onClick={() => void undo()}
+                    >
+                      <Undo2 size={14} aria-hidden /> Undo
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={!canRedo}
+                      aria-keyshortcuts="Control+Shift+Z Control+Y"
+                      onClick={() => void redo()}
+                    >
+                      <Redo2 size={14} aria-hidden /> Redo
+                    </Button>
+                  </div>
                 </div>
                 <div className={`w-full ${width}`}>
                   {preview ? (
@@ -242,6 +352,8 @@ export default function Layouts() {
                       onSelect={setSelectedWidgetId}
                       onPlace={place}
                       onDropNew={(type, cell) => void add(type, cell)}
+                      onDelete={removeWidget}
+                      onDuplicate={duplicate}
                     />
                   )}
                 </div>
@@ -267,25 +379,34 @@ export default function Layouts() {
                   if (!breakpoint) return
                   const rest = { ...selected.breakpoints }
                   delete rest[breakpoint]
-                  void updateWidget(selected.id, { breakpoints: rest })
+                  void edit(() => updateWidget(selected.id, { breakpoints: rest }))
                 }}
-                onConfig={config => void updateWidget(selected.id, { config })}
-                onMove={dir => void reorderWidgets(swapOrder(widgets, selected.id, dir))}
-                onDelete={() => {
-                  setSelectedWidgetId(null)
-                  void deleteWidget(selected.id)
-                }}
+                onConfig={config => void edit(() => updateWidget(selected.id, { config }))}
+                onMove={dir =>
+                  void edit(() => reorderWidgets(swapOrder(widgets, selected.id, dir)))
+                }
+                onDuplicate={() => duplicate(selected)}
+                onDelete={() => removeWidget(selected)}
               />
             ) : (
               layout && (
-                <LayoutSettings
-                  key={layout.id}
-                  layout={layout}
-                  onChange={patch => void updateLayout(layout.id, patch)}
-                  onDelete={() =>
-                    confirmDestructive ? setConfirmingDelete(true) : void removeLayout()
-                  }
-                />
+                <div className="flex flex-col gap-6">
+                  <LayoutSettings
+                    key={layout.id}
+                    layout={layout}
+                    onChange={patch => void edit(() => updateLayout(layout.id, patch))}
+                    onDelete={() =>
+                      confirmDestructive ? setConfirmingDelete(true) : void removeLayout()
+                    }
+                  />
+                  <LayoutCopies
+                    key={`copies-${layout.id}`}
+                    gameId={gameId}
+                    games={games ?? []}
+                    onDuplicate={() => void copyTo(gameId, false)}
+                    onCopyTo={target => copyTo(target, true)}
+                  />
+                </div>
               )
             )}
           </aside>

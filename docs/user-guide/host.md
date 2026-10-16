@@ -17,6 +17,7 @@ Everything you need to run a trivia night with Viktorani.
 4. [During a round](#4-during-a-round)
 5. [Timer usage](#5-timer-usage)
 6. [Ending the game](#6-ending-the-game)
+7. [Designing layouts](#7-designing-layouts)
 
 ---
 
@@ -38,15 +39,15 @@ Example tags: `History`, `Pop Culture`, `Music`, `Local`.
 
 Go to **Questions → Add Question**. Fill in:
 
-| Field | Required | Notes |
-|---|---|---|
-| Title | ✓ | The question text shown to players |
-| Type | ✓ | See question types below |
-| Answer | ✓ | Correct answer (not shown to players automatically) |
-| Difficulty | — | Determines point value on correct buzz |
-| Tags | — | Multi-select; used for filtering |
-| Description | — | Markdown body (flavour text, citations) |
-| Media | — | Upload an image, audio, or video file |
+| Field       | Required | Notes                                               |
+| ----------- | -------- | --------------------------------------------------- |
+| Title       | ✓        | The question text shown to players                  |
+| Type        | ✓        | See question types below                            |
+| Answer      | ✓        | Correct answer (not shown to players automatically) |
+| Difficulty  | —        | Determines point value on correct buzz              |
+| Tags        | —        | Multi-select; used for filtering                    |
+| Description | —        | Markdown body (flavour text, citations)             |
+| Media       | —        | Upload an image, audio, or video file               |
 
 #### Question types
 
@@ -116,20 +117,21 @@ The first step of the **New game** wizard holds the game settings. They start fr
   edit, rename, reorder and delete presets there, built-in ones included; **Reset built-ins**
   puts the three built-in presets back as they were and keeps your own. Presets are saved with
   the app settings and included in backups.
+
 - **Scoring**: keep a score for each player and team. It can't be changed once the game exists.
 - **Visibility**: what player phones and the screen show (question text, answers, media).
 - **Advanced** (collapsed): the individual joining and buzzer settings.
 
-| Option | What it does |
-|---|---|
-| Individual play | Players may join without a team |
-| Players may create teams | Players may type a new team name when they join |
-| Allow late join / rejoin | Who may join after the start, and whether a dropped player comes back as themselves |
-| Require approval | New players wait in Join requests until you approve them |
-| Max teams / Max per team | Team limits; **No limit** (∞) by default |
-| Auto-lock after a correct answer | Lock the buzzer after the first correct ruling |
-| Record false starts | Keep buzzes that arrive while the buzzer is locked |
-| Buzz display | `First per player` or `All attempts` |
+| Option                           | What it does                                                                        |
+| -------------------------------- | ----------------------------------------------------------------------------------- |
+| Individual play                  | Players may join without a team                                                     |
+| Players may create teams         | Players may type a new team name when they join                                     |
+| Allow late join / rejoin         | Who may join after the start, and whether a dropped player comes back as themselves |
+| Require approval                 | New players wait in Join requests until you approve them                            |
+| Max teams / Max per team         | Team limits; **No limit** (∞) by default                                            |
+| Auto-lock after a correct answer | Lock the buzzer after the first correct ruling                                      |
+| Record false starts              | Keep buzzes that arrive while the buzzer is locked                                  |
+| Buzz display                     | `First per player` or `All attempts`                                                |
 
 During the game, **Game settings** in the header opens a drawer to change the joining and buzzer
 settings live. Visibility is changed on the question panel. A preset picked there only
@@ -150,6 +152,7 @@ Room: XK7RQZ
 ```
 
 Players can join by:
+
 - Scanning the QR code with their phone camera.
 - Visiting the Viktorani URL and entering the room code manually.
 
@@ -164,13 +167,13 @@ use it. It must start with `http://` or `https://`; leave it empty to use the cu
 The GM sees a list of players in real time. Each player appears as they join, with an icon
 showing where they stand (hover it for a description):
 
-| Icon | State | Meaning |
-|---|---|---|
-| Green dot | Connected | Playing |
-| Gold crossed-out eye | Tab hidden | Connected, but looking at something else |
+| Icon                   | State        | Meaning                                                                                               |
+| ---------------------- | ------------ | ----------------------------------------------------------------------------------------------------- |
+| Green dot              | Connected    | Playing                                                                                               |
+| Gold crossed-out eye   | Tab hidden   | Connected, but looking at something else                                                              |
 | Grey crossed-out Wi-Fi | Disconnected | The connection dropped, or they haven't joined from a device; they can rejoin if rejoining is allowed |
-| Grey exit arrow | Left | They pressed Leave |
-| Red crossed-out person | Kicked | You removed them; if they rejoin, they wait for your approval, even after you reload the page |
+| Grey exit arrow        | Left         | They pressed Leave                                                                                    |
+| Red crossed-out person | Kicked       | You removed them; if they rejoin, they wait for your approval, even after you reload the page         |
 
 The count above the list shows connected players, with tab-hidden and disconnected
 players counted separately. Once everyone is in, click **Start** to begin the first round.
@@ -206,11 +209,11 @@ its keyboard shortcut, or press **Ctrl+K** (**⌘K** on a Mac) to open the comma
 The GM view shows the current question title, answer options, and media.
 Players see only what the GM explicitly reveals using the visibility toggles:
 
-| Toggle | What players see |
-|---|---|
-| Show Question | Question title |
-| Show Answers | Answer options (MC/TF only) |
-| Show Media | Attached image, audio, or video |
+| Toggle        | What players see                |
+| ------------- | ------------------------------- |
+| Show Question | Question title                  |
+| Show Answers  | Answer options (MC/TF only)     |
+| Show Media    | Attached image, audio, or video |
 
 ### Navigating questions
 
@@ -280,12 +283,12 @@ device or sets its volume; **Test sound** plays the timer beep.
 
 ### Controls
 
-| Action | Effect |
-|---|---|
+| Action                 | Effect                                                           |
+| ---------------------- | ---------------------------------------------------------------- |
 | Start / Pause / Resume | Start the countdown, freeze it, or continue from where it paused |
-| Restart | Start again from the full duration |
-| Timer settings | Change the label, notifications and auto-reset |
-| Delete | Remove the timer and hide it from players |
+| Restart                | Start again from the full duration                               |
+| Timer settings         | Change the label, notifications and auto-reset                   |
+| Delete                 | Remove the timer and hide it from players                        |
 
 The panel header also has **Pause all** / **Resume all**, **Restart all** and
 **Clear all**.
@@ -317,3 +320,23 @@ buttons, control size, sound, timer and game defaults, presets, general settings
 To try things out, **Settings → Data → Load demo data** (or "Load demo data" in the command
 palette, Ctrl/⌘+K) adds sample questions, rounds, teams and a ready-to-run game named
 **Demo Night**. Loading it twice adds nothing.
+
+---
+
+## 7. Designing layouts
+
+**Layouts** in the admin menu arranges what each surface shows: the projector screen, player
+phones, the game master's play column and the scoreboard. Pick **Templates** to edit the
+layouts every game uses, or a game to give it its own; a game's own layouts win.
+
+- **New layout**: choose the surface and phase, and start from **Empty**, a **Built-in
+  default** or (for a game) one of your templates.
+- **Widgets**: drag one from the list onto the canvas, or click it to add it below the
+  others. Drag a widget to move it and its bottom-right corner to resize it.
+- **Phone / Tablet / TV**: changes made on Phone or TV apply only to that device.
+- **Copies**: **Duplicate layout**, **Save as template** (from a game) or **Copy to game**
+  (from the templates).
+- **Undo / Redo**: Ctrl/⌘+Z and Ctrl/⌘+Shift+Z (or Ctrl+Y).
+
+With a widget focused on the canvas, the arrow keys move it one cell, Shift+arrows resize it,
+Ctrl/⌘+D duplicates it and Delete removes it.
