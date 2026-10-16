@@ -1,5 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
+import { GamemasterProgressWidget } from '@/components/gamemaster/gamemaster-widgets'
+import type { GamemasterData } from '@/widgets/types'
+import { WIDGET_REGISTRY } from '@/widgets/registry'
 import { NavHeader } from '@/components/NavHeader'
 import type { NavEntry, NavPosition } from '@/pages/admin/gamemaster-utils'
 import {
@@ -434,6 +437,22 @@ describe('NavHeader', () => {
     const bar = screen.getByRole('progressbar')
     expect(bar).toHaveAttribute('aria-valuenow', '4')
     expect(bar).toHaveAttribute('aria-valuemax', '6')
+  })
+})
+
+describe('GamemasterProgressWidget', () => {
+  it('shows the same progress track as the header, without the arrows', () => {
+    const seq = makeSeq([2, 3])
+    const pos = makePos(seq, 3)
+    const data = { pos, seq } as unknown as GamemasterData
+    render(<GamemasterProgressWidget data={data} config={{}} />)
+    expect(screen.getByRole('progressbar', { name: 'Question 4 of 5' })).toBeInTheDocument()
+    expect(screen.getByText('Round 2')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Next question')).toBeNull()
+  })
+
+  it('is offered only on the game master, which has the navigation data', () => {
+    expect(WIDGET_REGISTRY.progress.allowedTargets).toEqual(['gamemaster'])
   })
 })
 

@@ -103,7 +103,7 @@ No tracking epic; standalone issues/PRs in the gamemaster area.
 
 Epic: #364. Scope and dependency order are in the epic body: widget registry → layout model v2 → `LayoutRenderer` → `LAYOUT` transport event → designer UI (canvas, then templates/polish) → phase-based switching → per-game assignment. #374 (game log widget) and #377 (host message panel) are related but separate issues, both already merged.
 
-- [x] Widget registry and extract current views into widgets (#408) — registry built in #417; QR, `round_info`, `announcement`, and screen-side `question`/`answers`/`media` extracted in #417/#418. Only the `progress` widget stays a placeholder (its pills are fused with `NavHeader`'s keyboard navigation); #408 is left open to track that, deferred until the designer actually needs a standalone widget.
+- [x] Widget registry and extract current views into widgets (#408) — registry built in #417; QR, `round_info`, `announcement`, and screen-side `question`/`answers`/`media` extracted in #417/#418. The `progress` widget followed once the designer existed: the track is now its own `ProgressTrack`, shared by `NavHeader` and the game master's widget.
 - [x] Layout model v2 — responsive grid, phases, Dexie migration (#409) — #439
 - [x] `LayoutRenderer` and default layouts for all surfaces (#410) — the projector screen in #440, the game master's play column and the player view in this change. The scoreboard surface keeps its fixed view until it gets a page of its own.
 - [x] `LAYOUT` transport event, validation, resend on admit/phase change (#411). Each phase's layout is sent up front, so a phase change needs no resend (ADR 0018).
@@ -120,7 +120,8 @@ Epic: #364. Scope and dependency order are in the epic body: widget registry →
 - **Designer polish (#413):** undo/redo snapshots the whole layout before each change and keeps 50 steps per layout, cleared when another layout is chosen; deleting a whole layout isn't undoable (it asks first). Templates are plain layouts with no game: new layouts start empty, from a built-in default or a template, and any layout can be duplicated, saved as a template or copied into a game. Device previews were already in #412.
 - **Phase switching (#414):** the phase follows the buzzes (`question`, `buzzed`, `reveal`); `scoreboard` only comes from the GM's override, which is kept per game in local storage so the projector window on the host machine follows it. The GM's play column and that window now read stored layouts too.
 - **Layout choices (#415):** a game's choices are stored on the game (`layoutAssignments`, per surface and phase or all phases) and win over the automatic pick; `LAYOUT` carries them so remote surfaces choose the same. The scoreboard surface has no page yet, so it isn't offered.
-- **Next up:** the #408 `progress` widget, the last open item under #364.
+- **Progress widget (#408):** only the game master offers it, since players and screens get no navigation data; `leaderboard`, `text`, `image`, `buzz_order`, `player_list` and `game_controls` remain placeholders, each needing data or config of its own.
+- **Next up:** every item under #364 is done; the remaining placeholder widgets need issues of their own.
 
 ## Decisions (2026-10-05)
 

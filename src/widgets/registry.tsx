@@ -5,6 +5,7 @@ import { GRID_COLUMNS, type GridSize } from '@/lib/layout-grid'
 import {
   GamemasterBuzzerWidget,
   GamemasterLogWidget,
+  GamemasterProgressWidget,
   GamemasterQrCodeWidget,
   GamemasterQuestionWidget,
   GamemasterRoundInfoWidget,
@@ -110,7 +111,10 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetDefinition> = {
   }),
   image: widget('image', 'Image', ['gamemaster', 'player', 'screen', 'scoreboard'], HALF),
   game_controls: widget('game_controls', 'Game controls', ['gamemaster'], FULL),
-  progress: widget('progress', 'Progress', ['gamemaster', 'player', 'screen'], FULL),
+  // Players and screens get no navigation data, so only the game master can show progress
+  progress: widget('progress', 'Progress', ['gamemaster'], FULL, {
+    gamemaster: GamemasterProgressWidget,
+  }),
   game_log: widget('game_log', 'Game log', ['gamemaster', 'screen', 'scoreboard'], HALF, {
     gamemaster: GamemasterLogWidget,
     screen: ScreenLogWidget,
