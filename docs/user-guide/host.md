@@ -17,6 +17,7 @@ Everything you need to run a trivia night with Viktorani.
 4. [During a round](#4-during-a-round)
 5. [Timer usage](#5-timer-usage)
 6. [Ending the game](#6-ending-the-game)
+7. [Designing layouts](#7-designing-layouts)
 
 ---
 
@@ -325,3 +326,23 @@ buttons, control size, sound, timer and game defaults, presets, general settings
 To try things out, **Settings → Data → Load demo data** (or "Load demo data" in the command
 palette, Ctrl/⌘+K) adds sample questions, rounds, teams and a ready-to-run game named
 **Demo Night**. Loading it twice adds nothing.
+
+---
+
+## 7. Designing layouts
+
+**Layouts** in the admin menu arranges what each surface shows: the projector screen, player
+phones, the game master's play column and the scoreboard. Pick **Templates** to edit the
+layouts every game uses, or a game to give it its own; a game's own layouts win.
+
+- **New layout**: choose the surface and phase, and start from **Empty**, a **Built-in
+  default** or (for a game) one of your templates.
+- **Widgets**: drag one from the list onto the canvas, or click it to add it below the
+  others. Drag a widget to move it and its bottom-right corner to resize it.
+- **Phone / Tablet / TV**: changes made on Phone or TV apply only to that device.
+- **Copies**: **Duplicate layout**, **Save as template** (from a game) or **Copy to game**
+  (from the templates).
+- **Undo / Redo**: Ctrl/⌘+Z and Ctrl/⌘+Shift+Z (or Ctrl+Y).
+
+With a widget focused on the canvas, the arrow keys move it one cell, Shift+arrows resize it,
+Ctrl/⌘+D duplicates it and Delete removes it.

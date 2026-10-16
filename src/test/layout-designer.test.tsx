@@ -308,3 +308,156 @@ describe('layout designer', () => {
     )
   })
 })
+
+describe('layout designer: undo, keyboard and copies (#413)', () => {
+  it('undoes and redoes a change, from the buttons and the keyboard', async () => {
+    const user = userEvent.setup()
+    await db.layouts.put(LAYOUT)
+    renderDesigner()
+
+    const undo = await screen.findByRole('button', { name: 'Undo' })
+    expect(undo).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'Add Timer' }))
+    await waitFor(async () => expect(await widgets()).toHaveLength(1))
+
+    await waitFor(() => expect(undo).toBeEnabled())
+    await user.click(undo)
+    await waitFor(async () => expect(await widgets()).toHaveLength(0))
+
+    await user.click(screen.getByRole('button', { name: 'Redo' }))
+    await waitFor(async () => expect(await widgets()).toHaveLength(1))
+
+    // Ctrl+Z from anywhere in the designer except a text field
+    await user.click(screen.getByRole('button', { name: 'Timer widget' }))
+    await user.keyboard('{Control>}z{/Control}')
+    await waitFor(async () => expect(await widgets()).toHaveLength(0))
+    await user.keyboard('{Control>}{Shift>}z{/Shift}{/Control}')
+    await waitFor(async () => expect(await widgets()).toHaveLength(1))
+  })
+
+  it('undoes a layout rename and shows the old name again', async () => {
+    const user = userEvent.setup()
+    await db.layouts.put(LAYOUT)
+    renderDesigner()
+
+    const settings = await screen.findByRole('region', { name: 'Layout settings' })
+    const name = within(settings).getByLabelText('Name')
+    await user.clear(name)
+    await user.type(name, 'Renamed')
+    await user.tab()
+    await waitFor(async () => expect((await db.layouts.get('l1'))?.name).toBe('Renamed'))
+
+    await user.click(screen.getByRole('button', { name: 'Undo' }))
+    await waitFor(async () => expect((await db.layouts.get('l1'))?.name).toBe('Big screen'))
+    await waitFor(() => expect(name).toHaveValue('Big screen'))
+  })
+
+  it('moves, resizes, duplicates and removes a widget from the keyboard', async () => {
+    const user = userEvent.setup()
+    await db.layouts.put(LAYOUT)
+    await db.widgets.put(widget('w1', { grid: { x: 0, y: 0, w: 6, h: 1 } }))
+    renderDesigner()
+
+    const box = await screen.findByRole('button', { name: 'Question widget' })
+    box.focus()
+    await user.keyboard('{ArrowRight}')
+    await waitFor(async () => expect((await widgets())[0].grid).toMatchObject({ x: 1, y: 0 }))
+    expect(screen.getByRole('status')).toHaveTextContent('column 2, row 1, 6 wide, 1 high')
+
+    await user.keyboard('{Shift>}{ArrowDown}{/Shift}')
+    await waitFor(async () => expect((await widgets())[0].grid).toMatchObject({ h: 2 }))
+
+    // Moving past the edge leaves it where it is
+    await user.keyboard('{ArrowUp}')
+    await waitFor(async () => expect((await widgets())[0].grid.y).toBe(0))
+
+    await user.keyboard('{Control>}d{/Control}')
+    await waitFor(async () => expect(await widgets()).toHaveLength(2))
+    const copy = (await widgets()).find(w => w.id !== 'w1')
+    expect(copy).toMatchObject({ type: 'question', grid: { x: 1, y: 2, w: 6, h: 2 }, order: 1 })
+
+    screen.getAllByRole('button', { name: 'Question widget' })[0].focus()
+    await user.keyboard('{Delete}')
+    await waitFor(async () => expect(await widgets()).toHaveLength(1))
+  })
+
+  it('duplicates the selected widget from the inspector', async () => {
+    const user = userEvent.setup()
+    await db.layouts.put(LAYOUT)
+    await db.widgets.put(widget('w1', { breakpoints: { phone: { x: 0, y: 3, w: 12, h: 1 } } }))
+    renderDesigner()
+
+    await user.click(await screen.findByRole('button', { name: 'Question widget' }))
+    await user.click(screen.getByRole('button', { name: 'Duplicate' }))
+    await waitFor(async () => expect(await widgets()).toHaveLength(2))
+    const copy = (await widgets()).find(w => w.id !== 'w1')
+    expect(copy?.breakpoints).toEqual({ phone: { x: 0, y: 3, w: 12, h: 1 } })
+    // The copy is selected
+    expect(
+      screen
+        .getAllByRole('button', { name: 'Question widget' })
+        .filter(b => b.getAttribute('aria-pressed') === 'true')
+    ).toHaveLength(1)
+  })
+
+  it('starts a new layout from a built-in default', async () => {
+    const user = userEvent.setup()
+    renderDesigner()
+
+    const form = await screen.findByRole('form', { name: 'New layout' })
+    await user.selectOptions(within(form).getByLabelText('For'), 'player')
+    await user.selectOptions(within(form).getByLabelText('Start from'), 'builtin:player:all')
+    await user.click(within(form).getByRole('button', { name: 'Create layout' }))
+
+    await waitFor(async () => expect(await db.layouts.count()).toBe(1))
+    const [created] = await db.layouts.toArray()
+    expect(created).toMatchObject({ target: 'player', gameId: null, phase: null })
+    expect(created.id.startsWith('builtin:')).toBe(false)
+    const copied = await db.widgets.where('layoutId').equals(created.id).sortBy('order')
+    expect(copied.map(w => w.type)).toEqual(['announcement', 'question', 'buzzer', 'timer'])
+  })
+
+  it("starts a game's layout from a template", async () => {
+    const user = userEvent.setup()
+    await db.layouts.put(LAYOUT)
+    await db.widgets.put(widget('w1'))
+    renderDesigner('/admin/layouts/g1')
+
+    const form = await screen.findByRole('form', { name: 'New layout' })
+    await within(form).findByRole('option', { name: 'Template: Big screen' })
+    await user.selectOptions(within(form).getByLabelText('Start from'), 'Template: Big screen')
+    await user.click(within(form).getByRole('button', { name: 'Create layout' }))
+
+    await waitFor(async () => expect(await db.layouts.where('gameId').equals('g1').count()).toBe(1))
+    const created = await db.layouts.where('gameId').equals('g1').first()
+    expect(await db.widgets.where('layoutId').equals(created!.id).count()).toBe(1)
+  })
+
+  it('duplicates a layout and copies a template into a game', async () => {
+    const user = userEvent.setup()
+    await db.layouts.put(LAYOUT)
+    await db.widgets.put(widget('w1'))
+    renderDesigner()
+
+    await user.click(await screen.findByRole('button', { name: 'Duplicate layout' }))
+    await waitFor(async () => expect(await db.layouts.count()).toBe(2))
+    expect(await screen.findByRole('button', { name: /Big screen \(copy\)/, current: true }))
+
+    await user.click(screen.getByRole('button', { name: 'Copy' }))
+    expect(await screen.findByText('Copied to Quiz night.')).toBeInTheDocument()
+    const inGame = await db.layouts.where('gameId').equals('g1').toArray()
+    expect(inGame).toHaveLength(1)
+    expect(await db.widgets.where('layoutId').equals(inGame[0].id).count()).toBe(1)
+  })
+
+  it("saves a game's layout as a template", async () => {
+    const user = userEvent.setup()
+    await db.layouts.put({ ...LAYOUT, gameId: 'g1' })
+    renderDesigner('/admin/layouts/g1')
+
+    await user.click(await screen.findByRole('button', { name: 'Save as template' }))
+    expect(await screen.findByText('Saved as a template.')).toBeInTheDocument()
+    const templates = await db.layouts.filter(l => l.gameId === null).toArray()
+    expect(templates).toMatchObject([{ name: 'Big screen', target: 'screen' }])
+  })
+})
