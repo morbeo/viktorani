@@ -25,12 +25,13 @@ import { useAppSettings } from '@/hooks/useAppSettings'
 import { hostNow } from '@/hooks/useBuzzer'
 import { runningTimerEvents } from '@/hooks/useTimer'
 import { useGameLifecycle } from '@/hooks/useGameLifecycle'
+import { usePhaseOverride } from '@/hooks/usePhaseOverride'
 import { adjustScore, buildScoreEntries, readScores } from '@/hooks/useScoreboard'
 import { buildLogRows, toPublicLogEntries } from '@/lib/game-log-rows'
 import { PlayerConnections, messageRecipients, resolveJoin } from '@/pages/admin/player-connections'
 import { buildLayoutEvent, type LayoutEvent } from '@/pages/admin/remote-layouts'
 import type { JoinResult, MessageTarget, PendingJoin } from '@/pages/admin/player-connections'
-import type { Game, Player, Team } from '@/db'
+import type { Game, GamePhase, Player, Team } from '@/db'
 import { MAX_LOG_ENTRIES, MAX_SCOREBOARD_ROWS } from '@/transport/messages'
 import type {
   LogEntry,
@@ -141,6 +142,8 @@ export default function GameMaster() {
   // The LAYOUT each kind of remote surface gets; `null` until the stored layouts have loaded
   const playerLayoutRef = useRef<LayoutEvent | null>(null)
   const screenLayoutRef = useRef<LayoutEvent | null>(null)
+  // The phase remote surfaces pick layouts for; `null` until it is known
+  const phaseRef = useRef<GamePhase | null>(null)
 
   useEffect(() => {
     gameRef.current = game
@@ -322,6 +325,8 @@ export default function GameMaster() {
       }
       if (questionContentRef.current) transportManager.sendTo(connId, questionContentRef.current)
       if (playerLayoutRef.current) transportManager.sendTo(connId, playerLayoutRef.current)
+      if (phaseRef.current)
+        transportManager.sendTo(connId, { type: 'PHASE', phase: phaseRef.current })
       if (g) await sendRunningTimers(connId, g.id)
       addToast(`${player.name} joined the game`, { variant: 'info', durationMs: 4000 })
     },
@@ -416,6 +421,22 @@ export default function GameMaster() {
     if (!screenLayout) return
     for (const connId of screensRef.current) transportManager.sendTo(connId, screenLayout)
   }, [screenLayout])
+
+  // The layout phase, sent to admitted players and approved screens when it changes. The
+  // running game reports it (it knows the buzzes); before the start it is the lobby.
+  const [phaseOverride, setPhaseOverride] = usePhaseOverride(id ?? null)
+  const handlePhase = useCallback((phase: GamePhase) => {
+    if (phaseRef.current === phase) return
+    phaseRef.current = phase
+    const event = { type: 'PHASE', phase } as const
+    for (const connId of connectionsRef.current.connections())
+      transportManager.sendTo(connId, event)
+    for (const connId of screensRef.current) transportManager.sendTo(connId, event)
+  }, [])
+  const inLobby = game?.status === 'waiting'
+  useEffect(() => {
+    if (inLobby) handlePhase('lobby')
+  }, [inLobby, handlePhase])
 
   const enqueueJoin = useCallback((task: () => Promise<void>) => {
     const run = joinQueueRef.current.then(task)
@@ -644,6 +665,8 @@ export default function GameMaster() {
       transportManager.sendTo(connId, { type: 'SCOREBOARD', rows: scoreboardRef.current })
       transportManager.sendTo(connId, { type: 'LOG', entries: logRef.current })
       if (screenLayoutRef.current) transportManager.sendTo(connId, screenLayoutRef.current)
+      if (phaseRef.current)
+        transportManager.sendTo(connId, { type: 'PHASE', phase: phaseRef.current })
       const g = gameRef.current
       if (g) void sendRunningTimers(connId, g.id)
       if (g?.status === 'paused') {
@@ -956,6 +979,10 @@ export default function GameMaster() {
           onScreenContent={handleScreenContent}
           screens={screens}
           messages={messages}
+          layouts={storedLayouts}
+          phaseOverride={phaseOverride}
+          onPhaseOverride={setPhaseOverride}
+          onPhase={handlePhase}
         />
       </ControlSizeContext.Provider>
     </AdminLayout>

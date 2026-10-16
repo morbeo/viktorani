@@ -14,7 +14,12 @@ vi.mock('@/transport', () => ({
   },
 }))
 
-import { reduceSession, startPlayerSession, usePlayerSession } from '@/pages/player/player-session'
+import {
+  reduceSession,
+  remotePhase,
+  startPlayerSession,
+  usePlayerSession,
+} from '@/pages/player/player-session'
 import type { PlayerSession, QuestionContent } from '@/pages/player/player-session'
 
 const EMPTY: PlayerSession = {
@@ -27,6 +32,7 @@ const EMPTY: PlayerSession = {
   gameStatus: null,
   message: null,
   layouts: null,
+  phase: null,
 }
 
 function content(target: 'players' | 'screen'): QuestionContent {
@@ -125,6 +131,16 @@ describe('reduceSession', () => {
     const s = reduceSession(EMPTY, event)
     expect(s.layouts).toEqual({ gameId: 'g1', layouts: [] })
     expect(reduceSession(s, { ...event, target: 'screen' })).toBe(s)
+  })
+
+  it('keeps the latest PHASE', () => {
+    expect(reduceSession(EMPTY, { type: 'PHASE', phase: 'buzzed' }).phase).toBe('buzzed')
+  })
+
+  it('picks layouts for ended once the game has ended, whatever the last PHASE was', () => {
+    expect(remotePhase('question', 'active')).toBe('question')
+    expect(remotePhase(null, 'active')).toBeNull()
+    expect(remotePhase('question', 'ended')).toBe('ended')
   })
 
   it('returns the same session for unrelated events', () => {

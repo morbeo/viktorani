@@ -107,6 +107,10 @@ describe('reduceScreen', () => {
     expect(reduceScreen(s, { ...event, target: 'player' })).toBe(s)
   })
 
+  it('keeps the latest PHASE', () => {
+    expect(reduceScreen(INITIAL_SCREEN, { type: 'PHASE', phase: 'reveal' }).phase).toBe('reveal')
+  })
+
   it('keeps the latest LOG feed', () => {
     const entries = [{ id: 'e1', at: 1, kind: 'buzz' as const, who: 'Ann', details: '' }]
     const s = reduceScreen(INITIAL_SCREEN, { type: 'LOG', entries })
@@ -177,6 +181,13 @@ describe('RemoteScreen', () => {
         layout('end', 'ended', 'scoreboard'),
       ],
     })
+    expect(document.querySelector('[data-layout-id="tv"]')).not.toBeNull()
+    // The host's phase picks the layout; scoreboard has none of its own, so the all-phase one
+    emit({ type: 'PHASE', phase: 'scoreboard' })
+    expect(document.querySelector('[data-layout-id="tv"]')).not.toBeNull()
+    emit({ type: 'PHASE', phase: 'ended' })
+    expect(document.querySelector('[data-layout-id="end"]')).not.toBeNull()
+    emit({ type: 'PHASE', phase: 'question' })
     expect(document.querySelector('[data-layout-id="tv"]')).not.toBeNull()
     emit({ type: 'GAME_STATUS', status: 'ended' })
     expect(document.querySelector('[data-layout-id="end"]')).not.toBeNull()

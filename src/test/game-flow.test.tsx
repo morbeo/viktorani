@@ -539,3 +539,36 @@ describe('layouts over the transport', () => {
     expect(player.view.queryByRole('button', { name: 'Buzz' })).toBeNull()
   }, 20_000)
 })
+
+describe('layout phase over the transport', () => {
+  const phasesOf = (received: TransportEvent[]) =>
+    received.flatMap(e => (e.type === 'PHASE' ? [e.phase] : []))
+
+  it('follows the buzzes, and the GM can hold a phase by hand', async () => {
+    const user = userEvent.setup()
+    await seedGame()
+    const { db } = await import('@/db')
+    await db.buzzEvents.clear()
+    localStorage.removeItem('viktorani:layout-phase:g1')
+    const host = await mountSide('host', '/admin/game/g1')
+    await host.waitFor(() => expect(hub.state.host).not.toBeNull())
+
+    const { client, received } = await connectClient()
+    client.send({ ...JOIN, playerName: 'Ivy', deviceId: 'device-ivy' } as TransportEvent)
+    await host.waitFor(() => expect(phasesOf(received)).toContain('question'), SLOW)
+
+    client.send({ type: 'BUZZ', timestamp: Date.now() })
+    await host.waitFor(() => expect(phasesOf(received).at(-1)).toBe('buzzed'), SLOW)
+
+    const picker = await host.view.findByLabelText('Layouts for')
+    expect(picker).toHaveDisplayValue('Automatic (Buzzed)')
+    await user.selectOptions(picker, 'scoreboard')
+    await host.waitFor(() => expect(phasesOf(received).at(-1)).toBe('scoreboard'))
+    // Kept for the projector window on this machine
+    expect(localStorage.getItem('viktorani:layout-phase:g1')).toBe('scoreboard')
+
+    await user.selectOptions(picker, '')
+    await host.waitFor(() => expect(phasesOf(received).at(-1)).toBe('buzzed'))
+    expect(localStorage.getItem('viktorani:layout-phase:g1')).toBeNull()
+  }, 20_000)
+})

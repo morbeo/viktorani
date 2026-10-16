@@ -213,6 +213,10 @@ export const GameEventSchemas = {
       layouts: z.array(layoutPayload).max(MAX_LAYOUTS),
     })
     .refine(e => JSON.stringify(e).length <= MAX_LAYOUT_EVENT_LENGTH, 'Layout too large'),
+  PHASE: z.strictObject({
+    type: z.literal('PHASE'),
+    phase: z.enum(GAME_PHASES),
+  }),
 }
 
 /** Schemas for events sent by players to the GameMaster. */
@@ -260,6 +264,7 @@ export const TransportEventSchema = z.discriminatedUnion('type', [
   GameEventSchemas.MESSAGE,
   GameEventSchemas.LOG,
   GameEventSchemas.LAYOUT,
+  GameEventSchemas.PHASE,
   PlayerEventSchemas.BUZZ,
   PlayerEventSchemas.JOIN,
   PlayerEventSchemas.LEAVE,

@@ -1,3 +1,4 @@
+import type { GamePhase } from '@/db'
 import type { LogEntry, ScoreboardRow, TransportEvent } from '@/transport/types'
 import { knownStatus } from '@/pages/player/player-session'
 import type { GameStatus, QuestionContent, RemoteLayouts } from '@/pages/player/player-session'
@@ -19,6 +20,8 @@ export interface ScreenSession {
   logEntries: LogEntry[]
   /** The host's stored layouts for screens (see `LAYOUT`); `null` uses the built-in default. */
   layouts: RemoteLayouts | null
+  /** The phase the host picks layouts for (see `PHASE`); `null` until it says. */
+  phase: GamePhase | null
 }
 
 export const INITIAL_SCREEN: ScreenSession = {
@@ -30,6 +33,7 @@ export const INITIAL_SCREEN: ScreenSession = {
   message: null,
   logEntries: [],
   layouts: null,
+  phase: null,
 }
 
 /** Drop media the screen must not load (see {@link isSafeMedia}). */
@@ -66,6 +70,8 @@ export function reduceScreen(s: ScreenSession, event: TransportEvent): ScreenSes
       return event.target === 'screen'
         ? { ...s, layouts: { gameId: event.gameId, layouts: event.layouts } }
         : s
+    case 'PHASE':
+      return { ...s, phase: event.phase }
     default:
       return s
   }

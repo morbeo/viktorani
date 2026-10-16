@@ -223,7 +223,10 @@ erDiagram
   ([ADR 0017](adr/0017-layout-renderer-data-flow.md)). The projector screen, the game
   master's play column and the player's view render through it. Remote players and screens
   get the host's stored layouts in a `LAYOUT` event
-  ([ADR 0018](adr/0018-layout-transport-event.md)); the designer is still to come (#364).
+  ([ADR 0018](adr/0018-layout-transport-event.md)) and the current phase in a `PHASE` event;
+  the phase follows the game's state unless the GM holds one by hand
+  ([ADR 0019](adr/0019-layout-phase-switching.md)). Layouts are made in the designer at
+  `/admin/layouts`.
 
 ### Schema versions
 
@@ -284,7 +287,7 @@ flowchart LR
     g4[VISIBILITY / QUESTION_CONTENT]
     g5[SLIDE_CHANGE / SCORE_UPDATE]
     g6[TIMER_START / PAUSE / RESUME<br/>RESET / EXPIRED]
-    g7[LAYOUT]
+    g7[LAYOUT / PHASE]
   end
   subgraph PlayerEvent["Players → host (PlayerEvent)"]
     direction TB
