@@ -17,6 +17,7 @@ import {
   reorderWidgets,
   updateLayout,
   updateWidget,
+  updateWidgetConfig,
 } from '@/db/layout-editor'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { useLayoutHistory } from '@/hooks/useLayoutHistory'
@@ -381,7 +382,9 @@ export default function Layouts() {
                   delete rest[breakpoint]
                   void edit(() => updateWidget(selected.id, { breakpoints: rest }))
                 }}
-                onConfig={config => void edit(() => updateWidget(selected.id, { config }))}
+                onConfig={(key, value) =>
+                  void edit(() => updateWidgetConfig(selected.id, { [key]: value }))
+                }
                 onMove={dir =>
                   void edit(() => reorderWidgets(swapOrder(widgets, selected.id, dir)))
                 }
