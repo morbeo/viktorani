@@ -4,7 +4,11 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
 import type { Game, Timer } from '@/db'
 import { ScreenView } from '@/components/screen/ScreenView'
+import { loadGameLayouts } from '@/db/layouts'
+import { loadBuzzesForQuestion } from '@/hooks/useBuzzer'
+import { usePhaseOverride } from '@/hooks/usePhaseOverride'
 import { useScoreboard } from '@/hooks/useScoreboard'
+import { autoPhase, effectivePhase } from '@/lib/layout-phase'
 import { formatTime } from '@/hooks/useTimer'
 import type { ScreenData } from '@/widgets/types'
 import { buildNavSequence, buildQuestionContent, orderRounds } from '@/pages/admin/gamemaster-utils'
@@ -55,14 +59,26 @@ function LocalScreen({
   game,
   heading,
   content,
+  questionId,
 }: {
   game: Game
   heading: string
   content: ScreenData['content']
+  questionId: string | null
 }) {
   const { entries } = useScoreboard(game)
+  const layouts = useLiveQuery(() => loadGameLayouts(game.id), [game.id])
+  // The same phase the GM's window works out, and the GM's override from it
+  const buzzes = useLiveQuery(
+    () => (questionId ? loadBuzzesForQuestion(game.id, questionId) : []),
+    [game.id, questionId]
+  )
+  const [override] = usePhaseOverride(game.id)
+  const phase = effectivePhase(autoPhase(game.status, buzzes ?? []), override)
   return (
     <ScreenView
+      layouts={layouts}
+      phase={phase}
       gameId={game.id}
       data={{
         heading,
@@ -79,7 +95,8 @@ function LocalScreen({
 /**
  * The projector view of a game, opened by the GM in a second window on the host machine.
  * Reads everything from the local database, so it follows navigation, the `screen`
- * visibility toggles, timers and scores live without a transport connection.
+ * visibility toggles, timers, scores, stored layouts and the layout phase live without a
+ * transport connection.
  */
 export default function Screen() {
   const { id = '' } = useParams<{ id: string }>()
@@ -120,5 +137,5 @@ export default function Screen() {
     ? `${entry.roundName} · Question ${inRound.indexOf(entry) + 1} of ${inRound.length}`
     : game.name
 
-  return <LocalScreen game={game} heading={heading} content={content} />
+  return <LocalScreen game={game} heading={heading} content={content} questionId={questionId} />
 }

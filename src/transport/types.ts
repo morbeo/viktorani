@@ -1,4 +1,4 @@
-import type { GameVisibility, Layout, Widget } from '@/db'
+import type { GamePhase, GameVisibility, Layout, Widget } from '@/db'
 
 // ── Shared event types ────────────────────────────────────────────────────────
 
@@ -102,6 +102,11 @@ export type GameEvent =
    * stored layouts change.
    */
   | { type: 'LAYOUT'; target: RemoteLayoutTarget; gameId: string; layouts: LayoutPayload[] }
+  /**
+   * The phase layouts are picked for: worked out from the game's state, or chosen by the
+   * GM. Sent to players and screens whenever it changes, on admit and on screen approval.
+   */
+  | { type: 'PHASE'; phase: GamePhase }
 
 /** Surfaces on other devices that get their layout over the transport. */
 export type RemoteLayoutTarget = 'player' | 'screen'

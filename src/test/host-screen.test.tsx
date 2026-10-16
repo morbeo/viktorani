@@ -1,9 +1,11 @@
 // @vitest-pool vmForks
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { db } from '@/db'
-import type { Game, Question } from '@/db'
+import type { Game, GamePhase, Question } from '@/db'
+import { DEFAULT_LAYOUT_THEME } from '@/lib/layout-grid'
+import { writePhaseOverride } from '@/lib/layout-phase'
 import Screen from '@/pages/admin/Screen'
 
 vi.mock('@/transport', () => ({ transportManager: { send: vi.fn() } }))
@@ -79,7 +81,11 @@ beforeEach(async () => {
     db.timers.clear(),
     db.players.clear(),
     db.teams.clear(),
+    db.layouts.clear(),
+    db.widgets.clear(),
+    db.buzzEvents.clear(),
   ])
+  localStorage.clear()
   await db.games.add(GAME)
   await db.rounds.add({
     id: 'r1',
@@ -160,5 +166,56 @@ describe('Screen', () => {
   it('reports an unknown game', async () => {
     renderScreen('missing')
     expect(await screen.findByRole('alert')).toHaveTextContent('Game not found')
+  })
+
+  it("uses the game's stored layouts for the phase, and the GM's override", async () => {
+    const stored = (id: string, phase: GamePhase | null) => ({
+      id,
+      gameId: 'g1',
+      name: id,
+      target: 'screen' as const,
+      phase,
+      theme: { ...DEFAULT_LAYOUT_THEME },
+      isActive: true,
+      order: 0,
+    })
+    await db.layouts.bulkAdd([
+      stored('all', null),
+      stored('buzzed', 'buzzed'),
+      stored('board', 'scoreboard'),
+    ])
+    await db.widgets.bulkAdd(
+      ['all', 'buzzed', 'board'].map(layoutId => ({
+        id: `${layoutId}-w`,
+        layoutId,
+        type: 'question' as const,
+        config: {},
+        grid: { x: 0, y: 0, w: 12, h: 1 },
+        breakpoints: {},
+        order: 0,
+      }))
+    )
+    const layoutId = () =>
+      document.querySelector('[data-layout-id]')?.getAttribute('data-layout-id')
+    renderScreen()
+    await waitFor(() => expect(layoutId()).toBe('all'))
+
+    await db.buzzEvents.add({
+      id: 'b1',
+      gameId: 'g1',
+      questionId: 'q1',
+      playerId: 'p1',
+      playerName: 'Ann',
+      teamId: null,
+      timestamp: 1,
+      receivedAt: 1,
+      isFalseStart: false,
+      gmDecision: null,
+      decidedAt: null,
+    })
+    await waitFor(() => expect(layoutId()).toBe('buzzed'))
+
+    act(() => writePhaseOverride('g1', 'scoreboard'))
+    await waitFor(() => expect(layoutId()).toBe('board'))
   })
 })
