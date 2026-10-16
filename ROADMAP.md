@@ -112,6 +112,11 @@ Epic: #364. Scope and dependency order are in the epic body: widget registry →
 - [x] Phase-based automatic layout switching and the GM override (#414) — ADR 0019
 - [x] Assign layouts per surface and phase in game settings (#415) — ADR 0020
 
+## Decisions (2026-10-16)
+
+- **Leaderboard widget (#364):** the screen's top places, large and numbered, with a title and 1 to 10 places (three by default). Equal scores share a place, and a tie at the cut-off is shown whole. The scoreboard surface keeps the placeholder until it has a page.
+- **Next up:** every placeholder widget except the scoreboard surface's is now real; that surface needs a page of its own first.
+
 ## Decisions (2026-10-15)
 
 - **Phase 6 status:** #432, #433, #434 and #435 are merged. Only #424's remaining settings and the #421 timer design question are left in this phase.

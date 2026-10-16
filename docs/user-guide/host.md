@@ -346,3 +346,7 @@ layouts every game uses, or a game to give it its own; a game's own layouts win.
 
 With a widget focused on the canvas, the arrow keys move it one cell, Shift+arrows resize it,
 Ctrl/⌘+D duplicates it and Delete removes it.
+
+On the projector screen, **Leaderboard** shows the top places large, for between rounds or the
+end of the game. Its settings choose the title and how many places to show; teams on equal
+scores share a place.
