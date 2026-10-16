@@ -401,13 +401,22 @@ export default function GameMaster() {
   // Stored layouts for remote players and screens, resent whenever they change. Each
   // surface picks the one for its phase itself, so a phase change needs no resend.
   const storedLayouts = useLiveQuery(() => (id ? loadGameLayouts(id) : []), [id])
+  // Compared as JSON, so other game changes don't rebuild and resend the layouts
+  const playerAssignments = JSON.stringify(game?.layoutAssignments?.player ?? {})
+  const screenAssignments = JSON.stringify(game?.layoutAssignments?.screen ?? {})
   const playerLayout = useMemo(
-    () => (id && storedLayouts ? buildLayoutEvent(storedLayouts, 'player', id) : null),
-    [id, storedLayouts]
+    () =>
+      id && storedLayouts
+        ? buildLayoutEvent(storedLayouts, 'player', id, JSON.parse(playerAssignments))
+        : null,
+    [id, storedLayouts, playerAssignments]
   )
   const screenLayout = useMemo(
-    () => (id && storedLayouts ? buildLayoutEvent(storedLayouts, 'screen', id) : null),
-    [id, storedLayouts]
+    () =>
+      id && storedLayouts
+        ? buildLayoutEvent(storedLayouts, 'screen', id, JSON.parse(screenAssignments))
+        : null,
+    [id, storedLayouts, screenAssignments]
   )
   useEffect(() => {
     playerLayoutRef.current = playerLayout

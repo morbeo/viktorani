@@ -1,5 +1,5 @@
 import { GAME_PHASES } from '@/db'
-import type { GamePhase, Layout, LayoutTarget, Widget, WidgetType } from '@/db'
+import type { GamePhase, Layout, LayoutAssignments, LayoutTarget, Widget, WidgetType } from '@/db'
 import { LayoutSchema, WidgetSchema } from '@/db/snapshot-schema'
 import { DEFAULT_LAYOUT_THEME, GRID_COLUMNS } from '@/lib/layout-grid'
 import { WIDGET_REGISTRY } from './registry'
@@ -123,14 +123,36 @@ function pick(
 }
 
 /**
+ * The layout the host chose for `phase` in `assignments` (or for all phases, when it chose
+ * none for this one), if it is in `candidates`, fits the target and game, and can render.
+ */
+function assigned(
+  candidates: readonly LayoutBundle[],
+  target: LayoutTarget,
+  gameId: string | null,
+  phase: GamePhase | null,
+  assignments: LayoutAssignments | undefined
+): LayoutBundle | null {
+  const id = (phase && assignments?.[phase]) || assignments?.all
+  if (!id) return null
+  const bundle = candidates.find(b => b.layout.id === id)
+  if (!bundle) return null
+  const { layout } = bundle
+  const fits = layout.gameId === null || layout.gameId === gameId
+  return fits && isRenderable(bundle, target) ? bundle : null
+}
+
+/**
  * The layout a surface shows.
  *
  * @remarks
- * Picks from `stored` the best renderable layout for `target` that belongs to `gameId` or is
- * a global template (`gameId: null`), and is for `phase` or for all phases. This game's own
- * layouts beat templates, an exact phase beats an all-phase layout, then the active one and
- * the lowest `order` win. A layout that fails {@link isRenderable} is skipped. With nothing
- * left, the built-in default for the target and phase is used.
+ * The layout the host chose for this game, surface and phase in `assignments` comes first
+ * (#415), then its choice for all phases; a built-in default can be chosen too. Without a
+ * usable choice, picks from `stored` the best renderable layout for `target` that belongs to
+ * `gameId` or is a global template (`gameId: null`), and is for `phase` or for all phases.
+ * This game's own layouts beat templates, an exact phase beats an all-phase layout, then the
+ * active one and the lowest `order` win. A layout that fails {@link isRenderable} is
+ * skipped. With nothing left, the built-in default for the target and phase is used.
  */
 export function resolveLayout(
   stored: readonly LayoutBundle[],
@@ -138,31 +160,44 @@ export function resolveLayout(
     target,
     gameId,
     phase,
-  }: { target: LayoutTarget; gameId: string | null; phase: GamePhase | null }
+    assignments,
+  }: {
+    target: LayoutTarget
+    gameId: string | null
+    phase: GamePhase | null
+    assignments?: LayoutAssignments
+  }
 ): LayoutBundle {
-  const chosen = pick(stored, target, gameId, phase) ?? pick(BUILTIN_LAYOUTS, target, null, phase)
+  const chosen =
+    assigned([...stored, ...BUILTIN_LAYOUTS], target, gameId, phase, assignments) ??
+    pick(stored, target, gameId, phase) ??
+    pick(BUILTIN_LAYOUTS, target, null, phase)
   if (!chosen) throw new Error(`No built-in layout for ${target}`)
   return chosen
 }
 
 /**
  * The stored layouts a remote surface needs to pick its layout itself: for each phase (and
- * for no phase), the one {@link resolveLayout} would pick from `stored`, without duplicates.
+ * for no phase), the one {@link resolveLayout} would pick from `stored` with `assignments`,
+ * without duplicates.
  *
  * @remarks
- * Resolving among just these gives the same layout for every phase as resolving among all
- * of `stored`, since each phase's best layout is in the set. So the host can send them
- * once and the surface switches with the phase on its own. Empty when only the built-in
- * default fits, which the surface has already.
+ * Resolving among just these, with the same `assignments`, gives the same layout for every
+ * phase as resolving among all of `stored`: each phase's pick is in the set, and a chosen
+ * layout outranks the rest. So the host can send them once and the surface switches with
+ * the phase on its own. Built-in layouts are left out, since the surface has them already;
+ * empty when only those are used.
  */
 export function layoutsForPhases(
   stored: readonly LayoutBundle[],
   target: LayoutTarget,
-  gameId: string
+  gameId: string,
+  assignments?: LayoutAssignments
 ): LayoutBundle[] {
   const picked = new Map<string, LayoutBundle>()
   for (const phase of [null, ...GAME_PHASES]) {
-    const bundle = pick(stored, target, gameId, phase)
+    const bundle =
+      assigned(stored, target, gameId, phase, assignments) ?? pick(stored, target, gameId, phase)
     if (bundle) picked.set(bundle.layout.id, bundle)
   }
   return [...picked.values()]

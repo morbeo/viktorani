@@ -127,9 +127,15 @@ describe('reduceSession', () => {
   })
 
   it('keeps the latest LAYOUT for players and ignores the screens one', () => {
-    const event = { type: 'LAYOUT' as const, target: 'player' as const, gameId: 'g1', layouts: [] }
+    const event = {
+      type: 'LAYOUT' as const,
+      target: 'player' as const,
+      gameId: 'g1',
+      layouts: [],
+      assignments: {},
+    }
     const s = reduceSession(EMPTY, event)
-    expect(s.layouts).toEqual({ gameId: 'g1', layouts: [] })
+    expect(s.layouts).toEqual({ gameId: 'g1', layouts: [], assignments: {} })
     expect(reduceSession(s, { ...event, target: 'screen' })).toBe(s)
   })
 

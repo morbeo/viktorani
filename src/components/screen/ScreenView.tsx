@@ -1,4 +1,4 @@
-import type { GamePhase } from '@/db'
+import type { GamePhase, LayoutAssignments } from '@/db'
 import { LayoutRenderer } from '@/widgets/LayoutRenderer'
 import { resolveLayout, type LayoutBundle } from '@/widgets/layouts'
 import type { ScreenData } from '@/widgets/types'
@@ -9,6 +9,8 @@ interface ScreenViewProps {
   layouts?: readonly LayoutBundle[]
   gameId?: string | null
   phase?: GamePhase | null
+  /** The layouts the host chose for the screen, per phase. */
+  assignments?: LayoutAssignments
 }
 
 /**
@@ -19,8 +21,14 @@ interface ScreenViewProps {
  * so the spacing matches the stacked view this replaced: one gap above every piece that
  * shows, and none for pieces that render nothing.
  */
-export function ScreenView({ data, layouts = [], gameId = null, phase = null }: ScreenViewProps) {
-  const bundle = resolveLayout(layouts, { target: 'screen', gameId, phase })
+export function ScreenView({
+  data,
+  layouts = [],
+  gameId = null,
+  phase = null,
+  assignments,
+}: ScreenViewProps) {
+  const bundle = resolveLayout(layouts, { target: 'screen', gameId, phase, assignments })
   return (
     <LayoutRenderer
       as="main"

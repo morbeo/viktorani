@@ -220,6 +220,11 @@ export interface Game {
   defaultTimerDuration: number
   // Sound
   soundEffectsMuted: boolean
+  /**
+   * Layouts the host chose for this game, per surface and phase (#415). A surface with no
+   * choice for the phase uses its choice for all phases, then picks automatically.
+   */
+  layoutAssignments?: Partial<Record<LayoutTarget, LayoutAssignments>>
   // Timestamps
   createdAt: number
   updatedAt: number
@@ -367,6 +372,15 @@ export const GAME_PHASES = ['lobby', 'question', 'buzzed', 'reveal', 'scoreboard
 
 /** See {@link GAME_PHASES}. */
 export type GamePhase = (typeof GAME_PHASES)[number]
+
+/** A phase a layout can be chosen for, or `all` for every phase with no choice of its own. */
+export type LayoutSlot = GamePhase | 'all'
+
+/** The slots of {@link LayoutAssignments}, `all` first. */
+export const LAYOUT_SLOTS: readonly LayoutSlot[] = ['all', ...GAME_PHASES]
+
+/** For one surface of one game: the id of the layout chosen for each slot. */
+export type LayoutAssignments = Partial<Record<LayoutSlot, string>>
 
 /** Device classes a {@link Widget} can override its base {@link GridRect} for. */
 export type LayoutBreakpoint = 'phone' | 'tv'

@@ -137,6 +137,12 @@ During the game, **Game settings** in the header opens a drawer to change the jo
 settings live. Visibility is changed on the question panel. A preset picked there only
 changes joining and the buzzer.
 
+Its **Layouts** section chooses what the projector screen, players' phones and your own play
+column show, for all phases or one phase at a time. **Automatic** names the layout used
+without a choice. Above the play column, **Layouts for** holds a phase by hand, such as the
+scoreboard between rounds; the command palette (Ctrl/⌘+K) has the same, plus **Show layout
+on screen** and **Show layout on phones** for the phase the game is in.
+
 ---
 
 ## 3. Running a game

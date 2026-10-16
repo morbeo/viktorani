@@ -198,6 +198,7 @@ export default function Play() {
               target: 'player',
               gameId: session.layouts?.gameId ?? null,
               phase: remotePhase(session.phase, session.gameStatus),
+              assignments: session.layouts?.assignments,
             })}
             target="player"
             data={{

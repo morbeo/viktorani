@@ -2,6 +2,7 @@ import { useEffect, useId, useState } from 'react'
 import { Settings2 } from 'lucide-react'
 import { Button, Icon } from '@/components/ui'
 import { GameSettingsForm } from '@/components/game-settings/GameSettingsForm'
+import { GameLayoutsPanel } from '@/components/gamemaster/GameLayoutsPanel'
 import type { GameSettings } from '@/components/game-settings/game-settings'
 import { db } from '@/db'
 import type { Game } from '@/db'
@@ -85,6 +86,7 @@ export function GameSettingsDrawer({ game, onGameChange }: GameSettingsDrawerPro
               mode="live"
               disabled={saving}
             />
+            <GameLayoutsPanel game={game} onGameChange={onGameChange} disabled={saving} />
             {error && (
               <p role="alert" className="text-xs" style={{ color: 'var(--color-red)' }}>
                 {error}
