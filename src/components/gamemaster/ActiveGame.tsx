@@ -469,6 +469,7 @@ export function ActiveGame({
                 onGameChange,
                 pos,
                 seq,
+                nav: { onPrev: goPrev, onNext: confirmedGoNext },
                 questionId: currentQuestionId,
                 question: question ?? null,
                 gameQuestion: gameQuestion ?? null,
@@ -480,6 +481,8 @@ export function ActiveGame({
                   onClear: () => currentQuestionId && void clearBuzzes(currentQuestionId),
                 },
                 timers: timerHook,
+                players,
+                teams,
               }}
               cellClassName="mt-6"
             />
