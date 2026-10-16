@@ -138,7 +138,7 @@ const TEAMS = [
 /**
  * Seeds a ready-to-run demo game with questions, rounds, teams and players.
  * Idempotent: does nothing if the demo game already exists.
- * Expects {@link seedDefaults} to have completed (difficulties and tags exist).
+ * Expects {@link db!seedDefaults | seedDefaults} to have completed (difficulties and tags exist).
  */
 export async function seedDemo(): Promise<void> {
   if ((await db.games.filter(g => g.name === DEMO_GAME_NAME).count()) > 0) return

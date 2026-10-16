@@ -113,7 +113,7 @@ const layoutPayload = z.strictObject({
     .max(MAX_LAYOUT_WIDGETS),
 })
 
-/** Schema for {@link SerializedGameState}. */
+/** Schema for {@link transport/types!SerializedGameState | SerializedGameState}. */
 export const SerializedGameStateSchema = z.strictObject({
   gameId: id,
   status: z.string().max(MAX_STATUS_LENGTH),
