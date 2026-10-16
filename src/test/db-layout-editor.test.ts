@@ -2,7 +2,13 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { db } from '@/db'
 import type { Layout, Widget } from '@/db'
-import { copyLayout, duplicateWidget, loadLayoutBundle, restoreLayout } from '@/db/layout-editor'
+import {
+  copyLayout,
+  duplicateWidget,
+  loadLayoutBundle,
+  restoreLayout,
+  updateWidgetConfig,
+} from '@/db/layout-editor'
 import { DEFAULT_LAYOUT_THEME } from '@/lib/layout-grid'
 import { BUILTIN_LAYOUTS } from '@/widgets/layouts'
 
@@ -30,6 +36,26 @@ const widget = (id: string, patch: Partial<Widget> = {}): Widget => ({
 
 beforeEach(async () => {
   await Promise.all([db.layouts.clear(), db.widgets.clear()])
+})
+
+describe('updateWidgetConfig', () => {
+  it('merges settings into the stored config, so quick saves keep each other', async () => {
+    await db.widgets.put(widget('w1', { type: 'text', config: { size: 'small' } }))
+    await Promise.all([
+      updateWidgetConfig('w1', { text: 'Happy hour' }),
+      updateWidgetConfig('w1', { align: 'left' }),
+    ])
+    expect((await db.widgets.get('w1'))?.config).toEqual({
+      size: 'small',
+      text: 'Happy hour',
+      align: 'left',
+    })
+  })
+
+  it('does nothing for a widget that is gone', async () => {
+    await updateWidgetConfig('missing', { text: 'x' })
+    expect(await db.widgets.count()).toBe(0)
+  })
 })
 
 describe('copyLayout', () => {

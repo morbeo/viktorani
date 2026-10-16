@@ -127,6 +127,20 @@ export async function updateWidget(
   await db.widgets.update(id, patch)
 }
 
+/**
+ * Merge `patch` into a widget's config as stored now, so settings saved in quick succession
+ * (a text field on blur, then a choice) don't overwrite each other.
+ */
+export async function updateWidgetConfig(
+  id: string,
+  patch: Record<string, unknown>
+): Promise<void> {
+  await db.transaction('rw', db.widgets, async () => {
+    const widget = await db.widgets.get(id)
+    if (widget) await db.widgets.update(id, { config: { ...widget.config, ...patch } })
+  })
+}
+
 /** Apply several `order` changes at once, e.g. two widgets swapping places. */
 export async function reorderWidgets(changes: { id: string; order: number }[]): Promise<void> {
   await db.transaction('rw', db.widgets, async () => {

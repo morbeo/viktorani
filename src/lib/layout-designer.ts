@@ -89,20 +89,30 @@ export function swapOrder(
     .filter(({ id: wid, order }) => sorted.find(w => w.id === wid)?.order !== order)
 }
 
-/** One field of a widget config form, read from the config's Zod schema. */
-export type ConfigField =
-  | { key: string; kind: 'text' }
-  | { key: string; kind: 'number'; min?: number; max?: number }
-  | { key: string; kind: 'boolean' }
-  | { key: string; kind: 'choice'; options: string[] }
+/**
+ * One field of a widget config form, read from the config's Zod schema. `label` is the
+ * field's description (`.describe()` or `.meta({ description })`), or the key when it has
+ * none; a text field with `.meta({ multiline: true })` gets a multi-line box.
+ */
+export type ConfigField = { key: string; label: string } & (
+  | { kind: 'text'; multiline: boolean }
+  | { kind: 'number'; min?: number; max?: number }
+  | { kind: 'boolean' }
+  | { kind: 'choice'; options: string[] }
+)
 
-/** Unwrap optional, nullable and default wrappers to the schema that holds the value. */
-function inner(schema: z.ZodType): z.ZodType {
+/**
+ * Unwrap optional, nullable and default wrappers to the schema that holds the value, with
+ * the metadata set on any of them (outer wrappers win).
+ */
+function inner(schema: z.ZodType): { s: z.ZodType; meta: Record<string, unknown> } {
   let s = schema
+  let meta = { ...z.globalRegistry.get(s) }
   while (s instanceof z.ZodOptional || s instanceof z.ZodNullable || s instanceof z.ZodDefault) {
     s = s.unwrap() as z.ZodType
+    meta = { ...z.globalRegistry.get(s), ...meta }
   }
-  return s
+  return { s, meta }
 }
 
 /**
@@ -114,14 +124,17 @@ export function configFields(schema: z.ZodType): ConfigField[] {
   if (!(schema instanceof z.ZodObject)) return []
   const fields: ConfigField[] = []
   for (const [key, value] of Object.entries(schema.shape as Record<string, z.ZodType>)) {
-    const s = inner(value)
-    if (s instanceof z.ZodString) fields.push({ key, kind: 'text' })
-    else if (s instanceof z.ZodBoolean) fields.push({ key, kind: 'boolean' })
+    const { s, meta } = inner(value)
+    const label = typeof meta.description === 'string' ? meta.description : key
+    if (s instanceof z.ZodString) {
+      fields.push({ key, label, kind: 'text', multiline: meta.multiline === true })
+    } else if (s instanceof z.ZodBoolean) fields.push({ key, label, kind: 'boolean' })
     else if (s instanceof z.ZodEnum) {
-      fields.push({ key, kind: 'choice', options: s.options.map(String) })
+      fields.push({ key, label, kind: 'choice', options: s.options.map(String) })
     } else if (s instanceof z.ZodNumber) {
       fields.push({
         key,
+        label,
         kind: 'number',
         ...(Number.isFinite(s.minValue) && { min: s.minValue as number }),
         ...(Number.isFinite(s.maxValue) && { max: s.maxValue as number }),

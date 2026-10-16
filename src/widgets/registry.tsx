@@ -31,6 +31,8 @@ import {
   ScreenScoresWidget,
   ScreenTimersWidget,
 } from '@/components/screen/screen-widgets'
+import { ImageConfigSchema, TextConfigSchema } from './content-config'
+import { ImageWidget, TextWidget } from './content-widgets'
 import { WidgetPlaceholder } from './placeholder'
 import type { WidgetDefinition, WidgetTarget } from './types'
 
@@ -47,7 +49,8 @@ function placeholderFor(label: string): ComponentType {
 
 /**
  * One registry entry. Targets in `overrides` get their real widget adapter; the rest get a
- * placeholder until the designer (#412) needs them.
+ * placeholder until the designer (#412) needs them. The default config is what
+ * `configSchema` makes of `{}`, so every setting needs a default.
  */
 function widget(
   type: WidgetType,
@@ -55,7 +58,8 @@ function widget(
   allowedTargets: readonly WidgetTarget[],
   preferredSize: GridSize,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  overrides: Partial<Record<WidgetTarget, ComponentType<any>>> = {}
+  overrides: Partial<Record<WidgetTarget, ComponentType<any>>> = {},
+  configSchema: z.ZodType<Record<string, unknown>> = z.strictObject({})
 ): WidgetDefinition {
   const Placeholder = placeholderFor(label)
   const components: WidgetDefinition['components'] = {}
@@ -65,8 +69,8 @@ function widget(
     label,
     allowedTargets,
     preferredSize,
-    configSchema: z.strictObject({}),
-    defaultConfig: {},
+    configSchema,
+    defaultConfig: configSchema.parse({}),
     components,
   }
 }
@@ -108,7 +112,14 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetDefinition> = {
     gamemaster: GamemasterRoundInfoWidget,
     screen: ScreenHeadingWidget,
   }),
-  text: widget('text', 'Text', ['gamemaster', 'player', 'screen', 'scoreboard'], HALF),
+  text: widget(
+    'text',
+    'Text',
+    ['gamemaster', 'player', 'screen', 'scoreboard'],
+    HALF,
+    { gamemaster: TextWidget, player: TextWidget, screen: TextWidget, scoreboard: TextWidget },
+    TextConfigSchema
+  ),
   qr_code: widget('qr_code', 'QR code', ['gamemaster'], HALF, {
     gamemaster: GamemasterQrCodeWidget,
   }),
@@ -116,7 +127,14 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetDefinition> = {
     player: PlayerAnnouncementWidget,
     screen: ScreenAnnouncementWidget,
   }),
-  image: widget('image', 'Image', ['gamemaster', 'player', 'screen', 'scoreboard'], HALF),
+  image: widget(
+    'image',
+    'Image',
+    ['gamemaster', 'player', 'screen', 'scoreboard'],
+    HALF,
+    { gamemaster: ImageWidget, player: ImageWidget, screen: ImageWidget, scoreboard: ImageWidget },
+    ImageConfigSchema
+  ),
   game_controls: widget('game_controls', 'Game controls', ['gamemaster'], FULL, {
     gamemaster: GamemasterGameControlsWidget,
   }),

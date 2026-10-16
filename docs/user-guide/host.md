@@ -352,3 +352,11 @@ Besides the panels of the default play column, your own layouts can add:
 - **Buzz order**: the buzzes and their judging buttons, without the lock or **Clear buzzes**.
 - **Player list**: who is in the game, connected or not, and their team.
 - **Game controls**: large **Previous**, **Next** and buzzer lock buttons, handy on a tablet.
+
+The selected widget's **Settings** appear under its placement; text settings save when you
+leave the field. Two widgets show what you set rather than game data, on any surface:
+
+- **Text**: your own words, such as house rules or a drinks special, in a size and alignment.
+- **Image**: a picture from an `https://` address or a `data:image/` URL, with a description
+  for screen readers. Phones and screens fetch an `https://` image themselves; prefer that for
+  big images, since inlined ones are left out when a layout is too large to send.

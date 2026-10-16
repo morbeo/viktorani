@@ -172,12 +172,17 @@ export const GridRectSchema = z
 
 const HexColourSchema = z.string().regex(/^#[0-9a-f]{6}$/i, { error: 'expected a #rrggbb colour' })
 
-const LogoSchema = z
-  .string()
-  .max(MAX_LOGO_LENGTH)
-  .refine(src => src.startsWith('data:image/') || src.startsWith('https://'), {
-    error: 'logo must be a data:image/ or https:// URL',
-  })
+/**
+ * Whether `src` may be used as an image source in a layout: an inlined `data:image/` URL or
+ * a remote `https://` one. Anything else (javascript:, http:, other data types) is refused.
+ */
+export function isSafeImageSrc(src: string): boolean {
+  return src.startsWith('data:image/') || src.startsWith('https://')
+}
+
+const LogoSchema = z.string().max(MAX_LOGO_LENGTH).refine(isSafeImageSrc, {
+  error: 'logo must be a data:image/ or https:// URL',
+})
 
 export const LayoutThemeSchema = z.object({
   background: HexColourSchema.nullable(),
