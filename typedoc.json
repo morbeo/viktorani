@@ -1,11 +1,18 @@
 {
   "$schema": "https://typedoc.org/schema.json",
   "entryPointStrategy": "expand",
-  "entryPoints": ["src/transport", "src/db", "src/hooks"],
+  "entryPoints": [
+    "src/transport",
+    "src/db",
+    "src/hooks",
+    "src/types",
+    "src/lib/app-settings.ts",
+    "src/widgets/layouts.ts",
+    "src/components/game-settings/game-settings.ts"
+  ],
   "exclude": [
     "src/test/**",
     "src/pages/**",
-    "src/components/**",
     "**/*.test.*",
     "src/hooks/useNavigation.ts",
     "src/hooks/useKeyNav.ts",
@@ -15,5 +22,6 @@
   "name": "Viktorani API",
   "readme": "none",
   "includeVersion": true,
-  "disableSources": false
+  "disableSources": false,
+  "treatWarningsAsErrors": true
 }

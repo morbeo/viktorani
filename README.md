@@ -33,6 +33,7 @@ No backend — runs entirely in the browser.
 | Storage     | Dexie.js (IndexedDB)         |
 | Multiplayer | PeerJS (WebRTC)              |
 | Routing     | React Router v7 (HashRouter) |
+| Validation  | Zod                          |
 
 ---
 
@@ -55,6 +56,7 @@ To try it with sample data, run `npm run demo` instead. It opens the admin panel
 | `npm run demo`          | Dev server + seed demo data, opens admin panel |
 | `npm run build`         | Type-check + production build → `dist/`        |
 | `npm run docs`          | Generate API docs → `docs/api/` (gitignored)   |
+| `npm run check:size`    | Check built bundle sizes against limits        |
 | `npm run lint`          | ESLint across all `*.ts` / `*.tsx` files       |
 | `npm run typecheck`     | Type-check app and test files (both tsconfigs) |
 | `npm run test`          | Run unit tests once via Vitest                 |
@@ -62,29 +64,28 @@ To try it with sample data, run `npm run demo` instead. It opens the admin panel
 | `npm run test:coverage` | Run tests with V8 coverage report              |
 | `npm run preview`       | Serve the production build locally             |
 | `npm run pack`          | Build release tarball via `scripts/pack.sh`    |
-| `npm run release:dry`   | Preview release — no changes made              |
-| `npm run release`       | Interactive release: choose version, tag, push |
-| `npm run release:patch` | Non-interactive patch bump                     |
-| `npm run release:minor` | Non-interactive minor bump                     |
 
 ---
 
 ## Documentation
 
-| Document                                            | Description                              |
-| --------------------------------------------------- | ---------------------------------------- |
-| [Host guide](docs/user-guide/host.md)               | Setting up and running a trivia night    |
-| [Player guide](docs/user-guide/player.md)           | Joining a game and buzzing in            |
-| [API docs](https://morbeo.github.io/viktorani/api/) | Generated TypeDoc — transport, DB, hooks |
-| [Architecture guide](docs/ARCHITECTURE.md)          | Layers, data model, transport, diagrams  |
-| [Architecture decisions](docs/adr/)                 | ADRs for all major technical decisions   |
+| Document                                            | Description                                                 |
+| --------------------------------------------------- | ----------------------------------------------------------- |
+| [Host guide](docs/user-guide/host.md)               | Setting up and running a trivia night                       |
+| [Player guide](docs/user-guide/player.md)           | Joining a game and buzzing in                               |
+| [API docs](https://morbeo.github.io/viktorani/api/) | Generated TypeDoc — transport, DB, hooks, settings, layouts |
+| [Architecture guide](docs/ARCHITECTURE.md)          | Layers, data model, transport, diagrams                     |
+| [Architecture decisions](docs/adr/)                 | ADRs for all major technical decisions                      |
 
 To generate API docs locally:
 
 ```bash
 npm run docs
-# Output: docs/api/ (gitignored — generated at build time)
+# Output: docs/api/ (gitignored)
 ```
+
+TypeDoc treats warnings as errors, so a broken `{@link}` fails `npm run docs`. CI runs it on every
+PR, and `deploy.yml` publishes the output to `/viktorani/api/` alongside the app.
 
 ---
 
@@ -92,50 +93,27 @@ npm run docs
 
 ```
 src/
-├── db/
-│   ├── index.ts          # Dexie schema — all collections
-│   └── snapshot.ts       # JSON export / import
-├── transport/
-│   ├── types.ts          # GameEvent / PlayerEvent interfaces
-│   ├── PeerJSTransport.ts
-│   └── index.ts          # TransportManager — PeerJS connection + event fan-out
-├── hooks/
-│   ├── useTransport.ts
-│   ├── useBuzzer.ts
-│   ├── useGameVisibility.ts
-│   ├── useScoreboard.ts
-│   └── useTimer.ts
-├── components/
-│   ├── AdminLayout.tsx
-│   ├── host/             # HostQuestionPanel and sub-components
-│   ├── timer/            # TimerPanel, TimerCard, CreateTimerModal
-│   └── ui/index.tsx      # Button, Card, Input, Modal, Badge…
+├── App.tsx, main.tsx     # HashRouter, routes, providers
 ├── pages/
-│   ├── admin/            # Dashboard, Questions, Games, GameMaster, Layouts, Notes, Settings
-│   └── player/           # Join, Play
-├── test/
-│   ├── setup.ts          # jsdom polyfills (fake-indexeddb, URL mocks)
-│   ├── transport.test.ts
-│   ├── db.test.ts
-│   ├── db-migration.test.ts
-│   ├── ui.test.tsx
-│   ├── routing.test.tsx
-│   ├── questions-search.test.ts
-│   ├── settings.test.tsx
-│   ├── host/             # HostQuestionPanel component tests
-│   ├── buzzer.test.ts
-│   └── timer/            # Timer hook and component tests
-└── App.tsx               # HashRouter + all routes
+│   ├── admin/            # Dashboard, Questions, Games, GameMaster, Layouts, Notes, Players & Teams, Settings
+│   ├── player/           # Join, Play
+│   └── screen/           # Remote display screens
+├── components/           # Feature UI (gamemaster, host, buzzer, timer, layout-designer, ...) + ui/ primitives
+├── widgets/              # Layout widget registry, built-in layouts, LayoutRenderer
+├── hooks/                # useTransport, useBuzzer, useTimer, useScoreboard, useGameLifecycle, ...
+├── lib/                  # App settings store, layout helpers, formatting, rate limiting
+├── db/                   # Dexie schema (index.ts), game/roster helpers, snapshot export/import, demo data
+├── transport/            # PeerJS transport, TransportManager, message types and Zod schemas
+├── types/                # Shared types (managed players and teams)
+└── test/                 # Vitest suites
 
 docs/
+├── ARCHITECTURE.md       # Layers, data model, transport, diagrams
 ├── adr/                  # Architecture Decision Records
 └── user-guide/           # Host and player guides
-
-public/
-├── favicon.svg           # SVG favicon (source of truth)
-├── icon-192.png          # PWA icon — generate from favicon.svg (see Favicon section)
-└── icon-512.png          # PWA icon — generate from favicon.svg
 ```
+
+The [architecture guide](docs/ARCHITECTURE.md#source-tree) has a more detailed tree.
 
 ---
 
@@ -153,13 +131,14 @@ All data lives in **IndexedDB** (via Dexie.js) on the host device. Nothing is se
 any server.
 
 **Collections:** difficulties, tags, questions, rounds, games, teams, players,
-buzzEvents, layouts, widgets, notes, timers, gameQuestions, managedPlayers,
-managedTeams, managedLabels.
+buzzEvents, scoreEvents, gameLog, layouts, widgets, notes, timers, gameQuestions,
+managedPlayers, managedTeams, managedLabels.
 
 **Backup:** export a JSON snapshot from **Settings → Data → Export JSON**. Import it on
 any device to restore or share your question bank. It holds difficulties, tags,
-questions, rounds, games, gameQuestions, notes, layouts and widgets. Live-game data (teams,
-players, buzzEvents, timers) and the managed players, teams and labels are not included.
+questions, rounds, games, gameQuestions, notes, layouts, widgets and app settings. Live-game data (teams,
+players, buzzEvents, scoreEvents, gameLog, timers) and the managed players, teams and labels
+are not included.
 
 ---
 
@@ -167,17 +146,21 @@ players, buzzEvents, timers) and the managed players, teams and labels are not i
 
 ### Workflows
 
-| Workflow        | Trigger                         | Purpose                                                                |
-| --------------- | ------------------------------- | ---------------------------------------------------------------------- |
-| `ci.yml`        | PRs to `master`                 | PR title lint + type-check, lint, test, build — both required to merge |
-| `deploy.yml`    | push to `master` + manual       | Type-check → lint → test → build → deploy to GitHub Pages              |
-| `docs.yml`      | push to `master` (src/ changes) | Generate TypeDoc → publish to `gh-pages` under `/api/`                 |
-| `release.yml`   | push of `v*` tags               | Build tarball → generate release notes → publish GitHub Release        |
-| `automerge.yml` | `CI` workflow completes         | Auto-merge Dependabot patch/minor PRs when CI passes                   |
+| Workflow                   | Trigger                      | Purpose                                                              |
+| -------------------------- | ---------------------------- | -------------------------------------------------------------------- |
+| `ci.yml`                   | PRs to `master`              | PR title lint + type-check, lint, test, build, bundle size, API docs |
+| `deploy.yml`               | push to `master` + manual    | Build the app and TypeDoc API docs → deploy to GitHub Pages          |
+| `release.yml`              | manual (`workflow_dispatch`) | Bump version, update changelog, tag, publish GitHub Release, deploy  |
+| `dependabot-automerge.yml` | `CI` workflow completes      | Auto-merge Dependabot patch/minor PRs when CI passes                 |
 
-All workflows set `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` to opt into the Node 24 runner ahead of the June 2026 forced migration.
+All workflows set `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` to opt into the Node 24 runner.
 
-`deploy.yml` only triggers on pushes that touch `src/`, `public/`, `index.html`, `vite.config.ts`, or `package*.json`, and ignores tag pushes — preventing a collision with `release.yml` when `release-it` bumps the version.
+`deploy.yml` only triggers on pushes that touch `src/`, `public/`, `index.html`, `vite.config.ts`,
+`typedoc.json`, or `package*.json`, and ignores tag pushes and `chore(release):` commits;
+`release.yml` triggers the deploy itself after tagging.
+
+`ci.yml` skips the build job when a PR changes no code (docs-only PRs), per
+`scripts/detect-code-changes.sh`.
 
 ### Branch protection
 
@@ -194,8 +177,6 @@ Force pushes and branch deletion are blocked. To apply or re-apply protection:
 bash scripts/protect-master.sh
 ```
 
-> **Note:** `scripts/` is gitignored. Add scripts explicitly with `git add --force scripts/`
-
 ### Dependabot
 
 Dependencies are updated weekly (Monday 08:00 Sofia time). Patch and minor updates are grouped into a single PR per ecosystem and auto-merged once CI passes. Major bumps require manual review.
@@ -209,32 +190,22 @@ gh label create ci --color e4e669 --description "CI/CD changes"
 
 ### Versioning & releasing
 
-[Conventional commits](https://www.conventionalcommits.org/) drive automatic versioning via `release-it` + `git-cliff`:
-
-| Commit prefix                 | Version bump    |
-| ----------------------------- | --------------- |
-| `feat:`                       | minor (`0.x.0`) |
-| `fix:`, `perf:`               | patch (`0.0.x`) |
-| `feat!:` / `BREAKING CHANGE:` | major (`x.0.0`) |
-
-**To cut a release locally:**
+Releases are cut from GitHub Actions: run the **Release** workflow and pick the bump
+(`patch`, `minor` or `major`), optionally marking it a pre-release.
 
 ```bash
-npm run release:dry     # preview — no changes made
-npm run release         # interactive: choose version, tag, push, publish
-npm run release:patch   # non-interactive patch bump
-npm run release:minor   # non-interactive minor bump
+gh workflow run release.yml -f bump=patch
 ```
 
-`release-it` will:
+The workflow will:
 
-1. Run lint + tests
+1. Run lint, typecheck and tests
 2. Bump the version in `package.json`
-3. Build the release tarball via `scripts/pack.sh`
-4. Commit, tag, and push
-5. Update `CHANGELOG.md`
-
-Pushing the tag triggers `release.yml`, which builds a fresh tarball, generates per-release notes with `git-cliff`, and publishes the GitHub Release. `GITHUB_TOKEN` is sufficient — no extra PAT required.
+3. Regenerate `CHANGELOG.md` with `git-cliff` from the conventional commits
+4. Commit `chore(release): vX.Y.Z`, tag, and push to `master` (uses the `RELEASE_PAT` secret to
+   bypass branch protection)
+5. Publish a GitHub Release with the notes for that version
+6. Trigger `deploy.yml` (unless `deploy` is set to `false`)
 
 ---
 
@@ -271,7 +242,8 @@ npm run test:watch      # watch mode during development
 npm run test:coverage   # coverage report → coverage/lcov.info
 ```
 
-Tests run on every commit locally (pre-commit hook) and on every push to `master` (deploy workflow gate).
+Tests run locally on every commit that stages code (pre-commit hook), in CI on every PR, and in the
+release workflow before tagging.
 
 Two tsconfigs keep app and test types separate:
 
@@ -285,15 +257,17 @@ Two tsconfigs keep app and test types separate:
 1. Fork → branch off `master`
 2. Follow conventional commits (`feat(scope): description`)
 3. Pre-commit hooks (husky) run lint-staged (ESLint + Prettier on staged files), typecheck, and the full test suite automatically
-4. PR title must pass conventional commit lint (checked by `pr-title.yml`)
+4. PR title must pass conventional commit lint (the `lint-title` job in `ci.yml`)
 5. Open PR against `master`
 
 ### Commit types
 
-`feat` · `fix` · `refactor` · `perf` · `test` · `docs` · `ci` · `chore` · `build` · `epic`
+`feat` · `fix` · `chore` · `refactor` · `perf` · `test` · `build` · `revert` · `epic`
+
+Documentation-only changes use `chore(docs): …`.
 
 > `epic` is used as the type on PR-level commits that close a multi-subtask issue.
 
 ### Commit scopes
 
-`admin` · `player` · `gamemaster` · `transport` · `db` · `ui` · `routing` · `pwa` · `build` · `deps` · `release` · `test` · `lint` · `github`
+`admin` · `player` · `gamemaster` · `transport` · `db` · `ui` · `routing` · `pwa` · `build` · `deps` · `docs` · `release` · `test` · `lint` · `github`

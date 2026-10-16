@@ -82,3 +82,6 @@ jobs:
 
       - name: Check bundle size
         run: npm run check:size
+
+      - name: API docs
+        run: npm run docs

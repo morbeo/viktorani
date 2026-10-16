@@ -109,6 +109,7 @@ export const RETRY_DELAYS = [1000, 3000, 6000]
  * the delays are used up.
  *
  * @param attempt - The operation to try, e.g. connecting and re-sending a JOIN.
+ * @param options - Retry controls; all optional.
  * @param options.onRetry - Called before each wait with the retry number (from 1).
  * @param options.cancelled - Checked after each failure and wait.
  * @param options.delays - Defaults to {@link RETRY_DELAYS}.
@@ -141,7 +142,7 @@ export async function retry<T>(
 export type StatusListener = (status: TransportStatus, type: TransportType) => void
 
 /**
- * Facade over {@link PeerJSTransport} that handles connection lifecycle and
+ * Facade over {@link transport/PeerJSTransport!PeerJSTransport | PeerJSTransport} that handles connection lifecycle and
  * event fan-out.
  *
  * @remarks

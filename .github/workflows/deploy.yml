@@ -9,6 +9,7 @@ on:
       - 'public/**'
       - 'index.html'
       - 'vite.config.ts'
+      - 'typedoc.json'
       - 'package.json'
       - 'package-lock.json'
 
@@ -54,6 +55,10 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      # Served at /viktorani/api/; the service worker skips this path (vite.config.ts)
+      - name: Generate API docs
+        run: npm run docs -- --out dist/api
 
       - name: Setup Pages
         uses: actions/configure-pages@v6
