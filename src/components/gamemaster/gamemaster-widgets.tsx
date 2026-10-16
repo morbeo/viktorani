@@ -1,5 +1,6 @@
 import { ProgressTrack } from '@/components/ProgressTrack'
 import { BuzzerPanel } from '@/components/buzzer/BuzzerPanel'
+import { BuzzList } from '@/components/buzzer/BuzzList'
 import { GameLogPanel } from '@/components/gamemaster/GameLogPanel'
 import { QrCodePanel } from '@/components/gamemaster/QrCodePanel'
 import { RoundInfo } from '@/components/gamemaster/RoundInfo'
@@ -57,6 +58,25 @@ export function GamemasterBuzzerWidget({ data }: GamemasterWidgetProps) {
       onAdjudicate={buzzer.onAdjudicate}
       onClear={buzzer.onClear}
     />
+  )
+}
+
+/**
+ * Just the buzz queue, in arrival order, with the judging buttons: for layouts that place
+ * the lock and clear controls elsewhere or leave them out.
+ */
+export function GamemasterBuzzOrderWidget({ data }: GamemasterWidgetProps) {
+  const { game, buzzer } = data
+  if (isEnded(data) || !game.buzzerEnabled) return null
+  return (
+    <section aria-label="Buzz order">
+      <BuzzList
+        buzzes={buzzer.displayBuzzes}
+        allBuzzes={buzzer.buzzes}
+        onAdjudicate={buzzer.onAdjudicate}
+        showAll={game.buzzDeduplication === 'all'}
+      />
+    </section>
   )
 }
 

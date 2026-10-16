@@ -3,6 +3,7 @@ import type { ComponentType } from 'react'
 import type { WidgetType } from '@/db'
 import { GRID_COLUMNS, type GridSize } from '@/lib/layout-grid'
 import {
+  GamemasterBuzzOrderWidget,
   GamemasterBuzzerWidget,
   GamemasterLogWidget,
   GamemasterProgressWidget,
@@ -90,7 +91,9 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetDefinition> = {
     player: PlayerTimerWidget,
     screen: ScreenTimersWidget,
   }),
-  buzz_order: widget('buzz_order', 'Buzz order', ['gamemaster'], HALF),
+  buzz_order: widget('buzz_order', 'Buzz order', ['gamemaster'], HALF, {
+    gamemaster: GamemasterBuzzOrderWidget,
+  }),
   scoreboard: widget('scoreboard', 'Scoreboard', ['gamemaster', 'screen'], HALF, {
     gamemaster: GamemasterScoreboardWidget,
     screen: ScreenScoresWidget,
