@@ -211,6 +211,7 @@ export const GameEventSchemas = {
       target: z.enum(['player', 'screen']),
       gameId: id,
       layouts: z.array(layoutPayload).max(MAX_LAYOUTS),
+      assignments: z.partialRecord(z.enum(['all', ...GAME_PHASES]), id),
     })
     .refine(e => JSON.stringify(e).length <= MAX_LAYOUT_EVENT_LENGTH, 'Layout too large'),
   PHASE: z.strictObject({

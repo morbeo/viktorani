@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { transportManager } from '@/transport'
-import type { GamePhase } from '@/db'
+import type { GamePhase, LayoutAssignments } from '@/db'
 import type { GameEvent, LayoutPayload, TransportEvent } from '@/transport/types'
 
 export type QuestionContent = Extract<GameEvent, { type: 'QUESTION_CONTENT' }>
@@ -48,6 +48,8 @@ export function remotePhase(phase: GamePhase | null, status: GameStatus | null):
 export interface RemoteLayouts {
   gameId: string
   layouts: LayoutPayload[]
+  /** The layouts the host chose for this surface, per phase. */
+  assignments: LayoutAssignments
 }
 
 const INITIAL: PlayerSession = {
@@ -101,7 +103,14 @@ export function reduceSession(s: PlayerSession, event: TransportEvent): PlayerSe
       return { ...s, message: event.text ? { text: event.text } : null }
     case 'LAYOUT':
       return event.target === 'player'
-        ? { ...s, layouts: { gameId: event.gameId, layouts: event.layouts } }
+        ? {
+            ...s,
+            layouts: {
+              gameId: event.gameId,
+              layouts: event.layouts,
+              assignments: event.assignments,
+            },
+          }
         : s
     case 'PHASE':
       return { ...s, phase: event.phase }

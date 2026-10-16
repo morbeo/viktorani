@@ -203,3 +203,48 @@ describe('layoutsForPhases', () => {
     }
   })
 })
+
+describe('resolveLayout with assignments (#415)', () => {
+  const stored = [
+    bundle('mine', { gameId: 'g1' }),
+    bundle('tpl', {}),
+    bundle('reveal-tpl', { phase: 'reveal' }),
+    bundle('other-game', { gameId: 'g2' }),
+    bundle('phones', { target: 'player' }),
+    bundle('broken', {}, [{ type: 'buzzer' }]),
+  ]
+  const chosen = (phase: Layout['phase'], assignments: Record<string, string>) =>
+    resolveLayout(stored, { target: 'screen', gameId: 'g1', phase, assignments }).layout.id
+
+  it("uses the choice for the phase over the game's own layout", () => {
+    expect(chosen('question', { question: 'tpl' })).toBe('tpl')
+    expect(chosen('reveal', { question: 'tpl' })).toBe('mine')
+  })
+
+  it('falls back to the choice for all phases, also when the phase is unknown', () => {
+    expect(chosen('reveal', { all: 'tpl' })).toBe('tpl')
+    expect(chosen(null, { all: 'tpl', reveal: 'mine' })).toBe('tpl')
+    expect(chosen('reveal', { all: 'tpl', reveal: 'reveal-tpl' })).toBe('reveal-tpl')
+  })
+
+  it('can choose a built-in default', () => {
+    expect(chosen('question', { question: 'builtin:screen:ended' })).toBe('builtin:screen:ended')
+  })
+
+  it("ignores a choice that is missing, another game's, for another surface or broken", () => {
+    for (const id of ['gone', 'other-game', 'phones', 'broken', 'builtin:player:all']) {
+      expect(chosen('question', { question: id })).toBe('mine')
+    }
+  })
+
+  it('sends remote surfaces what they need to make the same choices', () => {
+    const assignments = { all: 'tpl', ended: 'builtin:screen:all', reveal: 'reveal-tpl' }
+    const picks = layoutsForPhases(stored, 'screen', 'g1', assignments)
+    expect(picks.map(b => b.layout.id).sort()).toEqual(['mine', 'reveal-tpl', 'tpl'])
+    for (const phase of [null, 'lobby', 'question', 'reveal', 'ended'] as const) {
+      const remote = resolveLayout(picks, { target: 'screen', gameId: 'g1', phase, assignments })
+      const host = resolveLayout(stored, { target: 'screen', gameId: 'g1', phase, assignments })
+      expect(remote.layout.id).toBe(host.layout.id)
+    }
+  })
+})

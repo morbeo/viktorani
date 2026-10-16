@@ -1,13 +1,18 @@
 // @vitest-pool vmForks
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { GameSettingsDrawer } from '@/components/gamemaster/GameSettingsDrawer'
 import type { Game } from '@/db'
 
-vi.mock('@/db', () => ({ db: { games: { update: vi.fn() } } }))
-
+import { MemoryRouter } from 'react-router-dom'
+import type { ReactElement } from 'react'
 import { db } from '@/db'
+import type { Layout } from '@/db'
+import { DEFAULT_LAYOUT_THEME } from '@/lib/layout-grid'
+
+/** The drawer links to the layout designer, so it renders inside a router. */
+const inRouter = (ui: ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>)
 
 const GAME: Game = {
   id: 'g1',
@@ -45,20 +50,21 @@ const GAME: Game = {
   updatedAt: 0,
 }
 
-beforeEach(() => {
-  vi.clearAllMocks()
-  vi.mocked(db.games.update).mockResolvedValue(1)
+beforeEach(async () => {
+  vi.restoreAllMocks()
+  vi.spyOn(db.games, 'update').mockResolvedValue(1)
+  await Promise.all([db.layouts.clear(), db.widgets.clear()])
 })
 
 async function openDrawer(onGameChange = vi.fn()) {
-  render(<GameSettingsDrawer game={GAME} onGameChange={onGameChange} />)
+  inRouter(<GameSettingsDrawer game={GAME} onGameChange={onGameChange} />)
   await userEvent.click(screen.getByRole('button', { name: 'Game settings' }))
   return onGameChange
 }
 
 describe('GameSettingsDrawer', () => {
   it('opens on demand and reflects the game settings', async () => {
-    render(<GameSettingsDrawer game={GAME} onGameChange={vi.fn()} />)
+    inRouter(<GameSettingsDrawer game={GAME} onGameChange={vi.fn()} />)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Game settings' }))
     expect(screen.getByRole('dialog', { name: 'Game settings' })).toBeInTheDocument()
@@ -110,5 +116,56 @@ describe('GameSettingsDrawer', () => {
     await openDrawer()
     await userEvent.keyboard('{Escape}')
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+})
+
+describe('GameLayoutsPanel in the drawer', () => {
+  const layout = (id: string, gameId: string | null, name: string): Layout => ({
+    id,
+    gameId,
+    name,
+    target: 'screen',
+    phase: null,
+    theme: { ...DEFAULT_LAYOUT_THEME },
+    isActive: true,
+    order: 0,
+  })
+
+  it('chooses a layout for a surface and phase, and names what Automatic picks', async () => {
+    await db.layouts.bulkPut([layout('own', 'g1', 'Big screen'), layout('tpl', null, 'Pub')])
+    const onGameChange = await openDrawer()
+    const panel = screen.getByRole('group', { name: 'Layouts' })
+
+    // The game's own layout wins over the template
+    const all = await within(panel).findByLabelText('All phases')
+    expect(all).toHaveDisplayValue('Automatic: Big screen')
+    const reveal = within(panel).getByLabelText('Reveal')
+    await userEvent.selectOptions(reveal, 'Pub (template)')
+
+    await waitFor(() =>
+      expect(db.games.update).toHaveBeenCalledWith('g1', {
+        layoutAssignments: { screen: { reveal: 'tpl' } },
+        updatedAt: expect.any(Number),
+      })
+    )
+    expect(onGameChange).toHaveBeenCalledWith(
+      expect.objectContaining({ layoutAssignments: { screen: { reveal: 'tpl' } } })
+    )
+    expect(within(panel).getByRole('link', { name: "Edit this game's layouts" })).toHaveAttribute(
+      'href',
+      '/admin/layouts/g1'
+    )
+  })
+
+  it('offers each surface its own layouts and the built-in defaults', async () => {
+    await openDrawer()
+    const panel = screen.getByRole('group', { name: 'Layouts' })
+    await userEvent.selectOptions(within(panel).getByLabelText('Surface'), 'player')
+    const options = within(await within(panel).findByLabelText('Game over')).getAllByRole('option')
+    expect(options.map(o => o.textContent)).toEqual([
+      'Automatic: Built-in default (Game over)',
+      'Built-in default',
+      'Built-in default (Game over)',
+    ])
   })
 })

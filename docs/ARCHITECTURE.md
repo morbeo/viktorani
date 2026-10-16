@@ -225,7 +225,9 @@ erDiagram
   get the host's stored layouts in a `LAYOUT` event
   ([ADR 0018](adr/0018-layout-transport-event.md)) and the current phase in a `PHASE` event;
   the phase follows the game's state unless the GM holds one by hand
-  ([ADR 0019](adr/0019-layout-phase-switching.md)). Layouts are made in the designer at
+  ([ADR 0019](adr/0019-layout-phase-switching.md)). A game can choose its layout per surface
+  and phase (`Game.layoutAssignments`), which wins over the automatic pick
+  ([ADR 0020](adr/0020-layout-assignments.md)). Layouts are made in the designer at
   `/admin/layouts`.
 
 ### Schema versions

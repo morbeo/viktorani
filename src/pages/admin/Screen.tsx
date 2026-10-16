@@ -79,6 +79,7 @@ function LocalScreen({
     <ScreenView
       layouts={layouts}
       phase={phase}
+      assignments={game.layoutAssignments?.screen}
       gameId={game.id}
       data={{
         heading,

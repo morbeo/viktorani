@@ -115,6 +115,7 @@ const FIXTURES: { [K in TransportEvent['type']]: Extract<TransportEvent, { type:
     type: 'LAYOUT',
     target: 'player',
     gameId: 'g1',
+    assignments: { all: 'l1', reveal: 'builtin:player:all' },
     layouts: [
       {
         layout: {
@@ -601,6 +602,18 @@ describe('LAYOUT', () => {
     expect(
       accepts({ ...event, layouts: [big, { ...big, layout: { ...big.layout, id: 'l2' } }] })
     ).toBe(false)
+  })
+})
+
+describe('LAYOUT assignments', () => {
+  const event = FIXTURES.LAYOUT
+
+  it('accepts no choices, and rejects an unknown slot or an oversized id', () => {
+    expect(accepts({ ...event, assignments: {} })).toBe(true)
+    expect(accepts({ ...event, assignments: { intermission: 'l1' } })).toBe(false)
+    expect(accepts({ ...event, assignments: { all: 'x'.repeat(MAX_ID_LENGTH + 1) } })).toBe(false)
+    expect(accepts({ ...event, assignments: { all: 1 } })).toBe(false)
+    expect(accepts({ ...event, assignments: undefined })).toBe(false)
   })
 })
 

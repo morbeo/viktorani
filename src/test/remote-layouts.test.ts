@@ -64,4 +64,20 @@ describe('buildLayoutEvent', () => {
     expect(GameEventSchemas.LAYOUT.safeParse(event).success).toBe(true)
     warn.mockRestore()
   })
+
+  it("carries the host's choices, and sends the chosen layout", () => {
+    const stored = [bundle('all'), bundle('tpl', { gameId: null })]
+    const event = buildLayoutEvent(stored, 'player', 'g1', { reveal: 'tpl' })
+    expect(event.assignments).toEqual({ reveal: 'tpl' })
+    expect(event.layouts.map(b => b.layout.id).sort()).toEqual(['all', 'tpl'])
+    expect(GameEventSchemas.LAYOUT.safeParse(event).success).toBe(true)
+  })
+
+  it('drops the choices along with the layouts when they still do not pass', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const stored = [bundle('huge', {}, MAX_LAYOUT_WIDGETS + 1)]
+    const event = buildLayoutEvent(stored, 'player', 'g1', { all: 'huge' })
+    expect(event).toMatchObject({ layouts: [], assignments: {} })
+    warn.mockRestore()
+  })
 })
