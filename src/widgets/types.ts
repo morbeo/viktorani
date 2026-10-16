@@ -6,7 +6,9 @@ import type {
   GameQuestion,
   GmDecision,
   LayoutTarget,
+  Player,
   Question,
+  Team,
   WidgetType,
 } from '@/db'
 import type { GameEvent, LogEntry, ScoreboardRow } from '@/transport/types'
@@ -80,6 +82,9 @@ export interface GamemasterData {
   }
   /** The game's timers and their controls. */
   timers: UseTimerListResult
+  /** Everyone who has joined the game, and its teams. */
+  players: Player[]
+  teams: Team[]
 }
 
 /** What a player's phone knows about the game, as handed to its widgets. */

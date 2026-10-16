@@ -480,6 +480,8 @@ export function ActiveGame({
                   onClear: () => currentQuestionId && void clearBuzzes(currentQuestionId),
                 },
                 timers: timerHook,
+                players,
+                teams,
               }}
               cellClassName="mt-6"
             />

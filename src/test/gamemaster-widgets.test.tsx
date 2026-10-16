@@ -1,8 +1,11 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { BuzzEvent, Game } from '@/db'
-import { GamemasterBuzzOrderWidget } from '@/components/gamemaster/gamemaster-widgets'
+import type { BuzzEvent, Game, Player, PlayerPresence, Team } from '@/db'
+import {
+  GamemasterBuzzOrderWidget,
+  GamemasterPlayerListWidget,
+} from '@/components/gamemaster/gamemaster-widgets'
 import type { GamemasterData } from '@/widgets/types'
 import { WIDGET_REGISTRY } from '@/widgets/registry'
 
@@ -70,5 +73,36 @@ describe('GamemasterBuzzOrderWidget', () => {
 
   it('is registered for the game master', () => {
     expect(WIDGET_REGISTRY.buzz_order.components.gamemaster).toBe(GamemasterBuzzOrderWidget)
+  })
+})
+
+describe('GamemasterPlayerListWidget', () => {
+  const TEAMS = [{ id: 't1', name: 'Quizzly Bears', color: '#c0392b' }] as Team[]
+  const player = (id: string, name: string, presence: PlayerPresence, teamId: string | null) =>
+    ({ id, name, presence, teamId }) as Player
+
+  it("lists who is still in the game, with each one's presence and team", () => {
+    const players = [
+      player('p1', 'Ann', 'connected', 't1'),
+      player('p2', 'Bob', 'disconnected', null),
+      player('p3', 'Cy', 'left', null),
+      player('p4', 'Di', 'kicked', 't1'),
+    ]
+    render(<GamemasterPlayerListWidget data={gmData({}, { players, teams: TEAMS })} config={{}} />)
+    const list = screen.getByRole('region', { name: /Players/ })
+    expect(list).toHaveTextContent('Connected 1/2')
+    const rows = within(list).getAllByRole('listitem')
+    expect(rows.map(r => r.textContent)).toEqual(['AnnQuizzly Bears', 'Bob'])
+    expect(within(rows[0]).getByRole('img', { name: 'Connected' })).toBeInTheDocument()
+    expect(within(rows[1]).getByRole('img', { name: 'Disconnected' })).toBeInTheDocument()
+  })
+
+  it('says so when nobody has joined', () => {
+    render(<GamemasterPlayerListWidget data={gmData({}, { players: [], teams: [] })} config={{}} />)
+    expect(screen.getByText('No players yet.')).toBeInTheDocument()
+  })
+
+  it('is registered for the game master', () => {
+    expect(WIDGET_REGISTRY.player_list.components.gamemaster).toBe(GamemasterPlayerListWidget)
   })
 })

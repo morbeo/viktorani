@@ -1,12 +1,16 @@
+import { useId } from 'react'
 import { ProgressTrack } from '@/components/ProgressTrack'
 import { BuzzerPanel } from '@/components/buzzer/BuzzerPanel'
 import { BuzzList } from '@/components/buzzer/BuzzList'
 import { GameLogPanel } from '@/components/gamemaster/GameLogPanel'
 import { QrCodePanel } from '@/components/gamemaster/QrCodePanel'
+import { PRESENCE } from '@/components/gamemaster/presence'
 import { RoundInfo } from '@/components/gamemaster/RoundInfo'
 import { HostQuestionPanel } from '@/components/host/HostQuestionPanel'
 import { ScoreboardPanel } from '@/components/scoreboard/ScoreboardPanel'
 import { TimerPanel } from '@/components/timer/TimerPanel'
+import { Icon } from '@/components/ui'
+import { isConnected } from '@/pages/admin/gamemaster-utils'
 import type { GamemasterData, WidgetProps } from '@/widgets/types'
 
 /**
@@ -97,4 +101,73 @@ export function GamemasterLogWidget({ data }: GamemasterWidgetProps) {
 
 export function GamemasterQrCodeWidget({ data }: GamemasterWidgetProps) {
   return <QrCodePanel game={data.game} />
+}
+
+/**
+ * Who is in the game, read-only: each player's presence, name and team. Players who left or
+ * were kicked are left out; the People tab still lists them.
+ */
+export function GamemasterPlayerListWidget({ data }: GamemasterWidgetProps) {
+  const players = data.players.filter(p => p.presence !== 'left' && p.presence !== 'kicked')
+  const teams = new Map(data.teams.map(t => [t.id, t]))
+  const connected = players.filter(p => p.presence === 'connected').length
+  // A layout may place the widget more than once
+  const headingId = useId()
+  return (
+    <section
+      aria-labelledby={headingId}
+      className="rounded-xl border border-(--color-border) bg-(--color-surface)"
+    >
+      <h2
+        id={headingId}
+        className="flex justify-between px-4 py-2 text-xs font-semibold uppercase text-(--color-muted)"
+      >
+        Players
+        <span className="normal-case font-normal">
+          Connected {connected}/{players.length}
+        </span>
+      </h2>
+      {players.length === 0 ? (
+        <p className="px-4 pb-3 text-sm text-(--color-muted)">No players yet.</p>
+      ) : (
+        <ul>
+          {players.map(player => {
+            const presence = PRESENCE[player.presence]
+            const team = player.teamId ? teams.get(player.teamId) : undefined
+            return (
+              <li
+                key={player.id}
+                className="flex items-center gap-2 border-t border-(--color-border) px-4 py-1.5 text-sm"
+              >
+                <span
+                  role="img"
+                  aria-label={presence.label}
+                  title={presence.label}
+                  className="shrink-0"
+                  style={{ color: presence.color }}
+                >
+                  <Icon icon={presence.icon} size="sm" aria-hidden />
+                </span>
+                <span
+                  className={`flex-1 truncate ${isConnected(player) ? 'text-(--color-ink)' : 'text-(--color-muted)'}`}
+                >
+                  {player.name}
+                </span>
+                {team && (
+                  <span className="flex items-center gap-1 truncate text-xs text-(--color-muted)">
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ background: team.color }}
+                      aria-hidden
+                    />
+                    {team.name}
+                  </span>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </section>
+  )
 }

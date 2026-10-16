@@ -60,6 +60,8 @@ function gmData(game: Partial<Game> = {}, rest: Partial<GamemasterData> = {}): G
       onClear: vi.fn(),
     },
     timers: {} as UseTimerListResult,
+    players: [],
+    teams: [],
     ...rest,
   }
 }

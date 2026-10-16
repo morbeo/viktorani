@@ -6,6 +6,7 @@ import {
   GamemasterBuzzOrderWidget,
   GamemasterBuzzerWidget,
   GamemasterLogWidget,
+  GamemasterPlayerListWidget,
   GamemasterProgressWidget,
   GamemasterQrCodeWidget,
   GamemasterQuestionWidget,
@@ -99,7 +100,9 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetDefinition> = {
     screen: ScreenScoresWidget,
   }),
   leaderboard: widget('leaderboard', 'Leaderboard', ['screen', 'scoreboard'], HALF),
-  player_list: widget('player_list', 'Player list', ['gamemaster'], HALF),
+  player_list: widget('player_list', 'Player list', ['gamemaster'], HALF, {
+    gamemaster: GamemasterPlayerListWidget,
+  }),
   round_info: widget('round_info', 'Round info', ['gamemaster', 'screen'], FULL, {
     gamemaster: GamemasterRoundInfoWidget,
     screen: ScreenHeadingWidget,
