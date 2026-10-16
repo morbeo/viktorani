@@ -137,11 +137,22 @@ describe('configFields', () => {
       tags: z.array(z.string()),
     })
     expect(configFields(schema)).toEqual([
-      { key: 'title', kind: 'text' },
-      { key: 'size', kind: 'number', min: 1, max: 5 },
-      { key: 'count', kind: 'number' },
-      { key: 'shown', kind: 'boolean' },
-      { key: 'align', kind: 'choice', options: ['left', 'center'] },
+      { key: 'title', label: 'title', kind: 'text', multiline: false },
+      { key: 'size', label: 'size', kind: 'number', min: 1, max: 5 },
+      { key: 'count', label: 'count', kind: 'number' },
+      { key: 'shown', label: 'shown', kind: 'boolean' },
+      { key: 'align', label: 'align', kind: 'choice', options: ['left', 'center'] },
+    ])
+  })
+
+  it('labels a field with its description and marks multi-line text', () => {
+    const schema = z.strictObject({
+      body: z.string().max(500).meta({ description: 'Text', multiline: true }).default(''),
+      alt: z.string().describe('Description').optional(),
+    })
+    expect(configFields(schema)).toEqual([
+      { key: 'body', label: 'Text', kind: 'text', multiline: true },
+      { key: 'alt', label: 'Description', kind: 'text', multiline: false },
     ])
   })
 

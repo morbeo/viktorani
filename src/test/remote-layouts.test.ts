@@ -1,9 +1,10 @@
 import { describe, it, expect, vi } from 'vitest'
-import type { Layout } from '@/db'
+import { GAME_PHASES, type Layout } from '@/db'
 import { DEFAULT_LAYOUT_THEME } from '@/lib/layout-grid'
 import { GameEventSchemas, MAX_LAYOUT_EVENT_LENGTH, MAX_LAYOUT_WIDGETS } from '@/transport/messages'
 import { buildLayoutEvent } from '@/pages/admin/remote-layouts'
 import type { LayoutBundle } from '@/widgets/layouts'
+import { MAX_IMAGE_SRC_LENGTH } from '@/widgets/content-config'
 
 function bundle(id: string, layout: Partial<Layout> = {}, widgetCount = 1): LayoutBundle {
   return {
@@ -54,6 +55,35 @@ describe('buildLayoutEvent', () => {
     expect(event.layouts.every(b => b.layout.theme.logo === null)).toBe(true)
     expect(GameEventSchemas.LAYOUT.safeParse(event).success).toBe(true)
     expect(warn).toHaveBeenCalled()
+    warn.mockRestore()
+  })
+
+  it('then leaves out inlined images, keeping linked ones', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const theme = { ...DEFAULT_LAYOUT_THEME, logo: logo(MAX_LAYOUT_EVENT_LENGTH / 2) }
+    // Two images per layout, so the images alone are too large too
+    const withImage = (id: string, src: string, phase: Layout['phase']) => {
+      const b = bundle(id, { phase, theme })
+      for (const n of [1, 2]) {
+        b.widgets.push({ ...b.widgets[0], id: `${id}-img${n}`, type: 'image', config: { src } })
+      }
+      return b
+    }
+    // Every phase inlines its images, except the ended one, which links to them
+    const stored = GAME_PHASES.map(phase =>
+      phase === 'ended'
+        ? withImage(phase, 'https://example.com/a.png', phase)
+        : withImage(phase, logo(MAX_IMAGE_SRC_LENGTH - 100), phase)
+    )
+    stored.push(withImage('all', logo(MAX_IMAGE_SRC_LENGTH - 100), null))
+    const event = buildLayoutEvent(stored, 'player', 'g1')
+    const srcs = event.layouts.flatMap(b =>
+      b.widgets.filter(w => w.type === 'image').map(w => w.config.src)
+    )
+    const linked = 'https://example.com/a.png'
+    expect(srcs.sort()).toEqual([...Array(GAME_PHASES.length * 2).fill(''), linked, linked])
+    expect(event.layouts.every(b => b.layout.theme.logo === null)).toBe(true)
+    expect(GameEventSchemas.LAYOUT.safeParse(event).success).toBe(true)
     warn.mockRestore()
   })
 

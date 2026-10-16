@@ -3,8 +3,11 @@ import type { ComponentType } from 'react'
 import type { WidgetType } from '@/db'
 import { GRID_COLUMNS, type GridSize } from '@/lib/layout-grid'
 import {
+  GamemasterBuzzOrderWidget,
   GamemasterBuzzerWidget,
+  GamemasterGameControlsWidget,
   GamemasterLogWidget,
+  GamemasterPlayerListWidget,
   GamemasterProgressWidget,
   GamemasterQrCodeWidget,
   GamemasterQuestionWidget,
@@ -29,6 +32,8 @@ import {
   ScreenScoresWidget,
   ScreenTimersWidget,
 } from '@/components/screen/screen-widgets'
+import { ImageConfigSchema, TextConfigSchema } from './content-config'
+import { ImageWidget, TextWidget } from './content-widgets'
 import { LeaderboardConfigSchema } from './leaderboard'
 import { WidgetPlaceholder } from './placeholder'
 import type { WidgetDefinition, WidgetTarget } from './types'
@@ -94,7 +99,9 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetDefinition> = {
     player: PlayerTimerWidget,
     screen: ScreenTimersWidget,
   }),
-  buzz_order: widget('buzz_order', 'Buzz order', ['gamemaster'], HALF),
+  buzz_order: widget('buzz_order', 'Buzz order', ['gamemaster'], HALF, {
+    gamemaster: GamemasterBuzzOrderWidget,
+  }),
   scoreboard: widget('scoreboard', 'Scoreboard', ['gamemaster', 'screen'], HALF, {
     gamemaster: GamemasterScoreboardWidget,
     screen: ScreenScoresWidget,
@@ -108,12 +115,21 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetDefinition> = {
     { screen: ScreenLeaderboardWidget },
     LeaderboardConfigSchema
   ),
-  player_list: widget('player_list', 'Player list', ['gamemaster'], HALF),
+  player_list: widget('player_list', 'Player list', ['gamemaster'], HALF, {
+    gamemaster: GamemasterPlayerListWidget,
+  }),
   round_info: widget('round_info', 'Round info', ['gamemaster', 'screen'], FULL, {
     gamemaster: GamemasterRoundInfoWidget,
     screen: ScreenHeadingWidget,
   }),
-  text: widget('text', 'Text', ['gamemaster', 'player', 'screen', 'scoreboard'], HALF),
+  text: widget(
+    'text',
+    'Text',
+    ['gamemaster', 'player', 'screen', 'scoreboard'],
+    HALF,
+    { gamemaster: TextWidget, player: TextWidget, screen: TextWidget, scoreboard: TextWidget },
+    TextConfigSchema
+  ),
   qr_code: widget('qr_code', 'QR code', ['gamemaster'], HALF, {
     gamemaster: GamemasterQrCodeWidget,
   }),
@@ -121,8 +137,17 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetDefinition> = {
     player: PlayerAnnouncementWidget,
     screen: ScreenAnnouncementWidget,
   }),
-  image: widget('image', 'Image', ['gamemaster', 'player', 'screen', 'scoreboard'], HALF),
-  game_controls: widget('game_controls', 'Game controls', ['gamemaster'], FULL),
+  image: widget(
+    'image',
+    'Image',
+    ['gamemaster', 'player', 'screen', 'scoreboard'],
+    HALF,
+    { gamemaster: ImageWidget, player: ImageWidget, screen: ImageWidget, scoreboard: ImageWidget },
+    ImageConfigSchema
+  ),
+  game_controls: widget('game_controls', 'Game controls', ['gamemaster'], FULL, {
+    gamemaster: GamemasterGameControlsWidget,
+  }),
   // Players and screens get no navigation data, so only the game master can show progress
   progress: widget('progress', 'Progress', ['gamemaster'], FULL, {
     gamemaster: GamemasterProgressWidget,

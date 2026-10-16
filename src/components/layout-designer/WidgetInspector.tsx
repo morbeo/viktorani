@@ -1,3 +1,4 @@
+import { useState, type ChangeEvent } from 'react'
 import type { GridRect, LayoutBreakpoint, Widget } from '@/db'
 import { Button } from '@/components/ui'
 import { resolveRect } from '@/lib/layout-grid'
@@ -13,7 +14,8 @@ interface WidgetInspectorProps {
   isLast: boolean
   onPlace: (rect: GridRect) => void
   onResetPlacement: () => void
-  onConfig: (config: Record<string, unknown>) => void
+  /** Saves one setting; the page merges it into the stored config. */
+  onConfig: (key: string, value: unknown) => void
   onMove: (dir: -1 | 1) => void
   onDuplicate: () => void
   onDelete: () => void
@@ -27,6 +29,67 @@ const PLACEMENT: { key: keyof GridRect; label: string; offset: number }[] = [
   { key: 'h', label: 'Height', offset: 0 },
 ]
 
+const INPUT =
+  'rounded border border-(--color-border) bg-(--color-cream) px-2 py-1 text-sm text-(--color-ink)'
+
+/**
+ * A text setting, saved when the field loses focus, as the layout's logo is. A value the
+ * schema rejects (say an http:// image address) stays in the field, marked as not saved.
+ * While the field has focus it keeps what was typed; after that, a change from outside,
+ * such as undo, replaces it.
+ */
+function TextConfigInput({
+  field,
+  value,
+  onChange,
+}: {
+  field: Extract<ConfigField, { kind: 'text' }>
+  value: unknown
+  onChange: (value: unknown) => boolean
+}) {
+  const id = `widget-config-${field.key}`
+  const errorId = `${id}-error`
+  const stored = typeof value === 'string' ? value : ''
+  const [draft, setDraft] = useState(stored)
+  const [rejected, setRejected] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [seen, setSeen] = useState(stored)
+  if (!editing && seen !== stored) {
+    setSeen(stored)
+    setDraft(stored)
+    setRejected(false)
+  }
+  const props = {
+    id,
+    className: INPUT,
+    value: draft,
+    'aria-invalid': rejected,
+    'aria-describedby': rejected ? errorId : undefined,
+    onFocus: () => setEditing(true),
+    onBlur: () => {
+      setEditing(false)
+      if (draft !== stored) setRejected(!onChange(draft))
+    },
+    onChange: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setDraft(e.target.value)
+      setRejected(false)
+    },
+  }
+  return (
+    <div className="flex flex-col gap-1">
+      <label htmlFor={id} className="flex flex-col gap-1 text-xs text-(--color-muted)">
+        {field.label}
+        {field.multiline ? <textarea rows={4} {...props} /> : <input type="text" {...props} />}
+      </label>
+      {rejected && (
+        <p id={errorId} role="alert" className="text-xs text-(--color-red)">
+          Not saved: this value isn&apos;t allowed.
+        </p>
+      )}
+    </div>
+  )
+}
+
 function ConfigInput({
   field,
   value,
@@ -34,11 +97,11 @@ function ConfigInput({
 }: {
   field: ConfigField
   value: unknown
-  onChange: (value: unknown) => void
+  onChange: (value: unknown) => boolean
 }) {
   const id = `widget-config-${field.key}`
-  const input =
-    'rounded border border-(--color-border) bg-(--color-cream) px-2 py-1 text-sm text-(--color-ink)'
+  if (field.kind === 'text')
+    return <TextConfigInput field={field} value={value} onChange={onChange} />
   if (field.kind === 'boolean') {
     return (
       <label className="flex items-center gap-2 text-sm text-(--color-ink)">
@@ -47,17 +110,17 @@ function ConfigInput({
           checked={value === true}
           onChange={e => onChange(e.target.checked)}
         />
-        {field.key}
+        {field.label}
       </label>
     )
   }
   return (
     <label htmlFor={id} className="flex flex-col gap-1 text-xs text-(--color-muted)">
-      {field.key}
+      {field.label}
       {field.kind === 'choice' ? (
         <select
           id={id}
-          className={input}
+          className={INPUT}
           value={String(value ?? '')}
           onChange={e => onChange(e.target.value)}
         >
@@ -68,14 +131,12 @@ function ConfigInput({
       ) : (
         <input
           id={id}
-          className={input}
-          type={field.kind === 'number' ? 'number' : 'text'}
-          min={field.kind === 'number' ? field.min : undefined}
-          max={field.kind === 'number' ? field.max : undefined}
+          className={INPUT}
+          type="number"
+          min={field.min}
+          max={field.max}
           value={String(value ?? '')}
-          onChange={e =>
-            onChange(field.kind === 'number' ? Number(e.target.value) : e.target.value)
-          }
+          onChange={e => onChange(Number(e.target.value))}
         />
       )}
     </label>
@@ -105,9 +166,11 @@ export function WidgetInspector({
   const fields = configFields(def.configSchema)
   const overridden = breakpoint !== null && !!widget.breakpoints[breakpoint]
 
-  function setConfig(key: string, value: unknown) {
-    const next = { ...widget.config, [key]: value }
-    if (def.configSchema.safeParse(next).success) onConfig(next)
+  /** Saves the setting when the schema accepts it; says whether it did. */
+  function setConfig(key: string, value: unknown): boolean {
+    if (!def.configSchema.safeParse({ ...widget.config, [key]: value }).success) return false
+    onConfig(key, value)
+    return true
   }
 
   return (
@@ -175,7 +238,7 @@ export function WidgetInspector({
         ) : (
           fields.map(field => (
             <ConfigInput
-              key={field.key}
+              key={`${widget.id}:${field.key}`}
               field={field}
               value={widget.config[field.key]}
               onChange={value => setConfig(field.key, value)}

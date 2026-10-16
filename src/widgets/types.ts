@@ -6,7 +6,9 @@ import type {
   GameQuestion,
   GmDecision,
   LayoutTarget,
+  Player,
   Question,
+  Team,
   WidgetType,
 } from '@/db'
 import type { GameEvent, LogEntry, ScoreboardRow } from '@/transport/types'
@@ -66,6 +68,8 @@ export interface GamemasterData {
   /** Where navigation is, for the round and question position. */
   pos: NavPosition
   seq: NavEntry[]
+  /** Moves to the previous or next question, as the header's arrows do. */
+  nav: { onPrev: () => void; onNext: () => void }
   /** The id of the question navigation is on, even while it loads. */
   questionId: string | null
   /** The current question and its per-game record, once both have loaded. */
@@ -80,6 +84,9 @@ export interface GamemasterData {
   }
   /** The game's timers and their controls. */
   timers: UseTimerListResult
+  /** Everyone who has joined the game, and its teams. */
+  players: Player[]
+  teams: Team[]
 }
 
 /** What a player's phone knows about the game, as handed to its widgets. */

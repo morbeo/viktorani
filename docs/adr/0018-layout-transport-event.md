@@ -35,11 +35,14 @@ to run script, load arbitrary content or exhaust a phone's memory.
   `https://` URL, as for stored layouts and question media. Widget configs are bounded
   records, checked against their type's schema by `isRenderable` before anything renders;
   a layout that fails is skipped like an invalid stored one. Layouts carry no HTML, CSS or
-  free-form URLs, and the renderer only sets numbers and colours as inline styles.
+  free-form URLs, and the renderer only sets numbers and colours as inline styles. The text
+  widget's text is bounded plain text, rendered as such; the image widget's address follows
+  the logo's rule (`data:image/` or `https://`, bounded) and loads with no referrer.
 - **Size caps.** At most one layout per phase plus one, 64 widgets each, 32 config keys per
   widget, and 3,000,000 characters for the whole event, about one logo at its own limit. The
   host builds the event to pass the same schema: when logos make it too large it leaves them
-  out, and when it still doesn't pass it sends no layouts.
+  out, then if need be the image widgets' `data:` addresses, and when it still doesn't pass
+  it sends no layouts.
 
 ---
 
@@ -51,3 +54,4 @@ to run script, load arbitrary content or exhaust a phone's memory.
   not"; the layouts for every phase are already there.
 - An `https://` logo is fetched by every phone and screen, which tells that server their
   addresses. It is the same trade-off as `https://` question media; a `data:` logo avoids it.
+  The same goes for an image widget's `https://` address.

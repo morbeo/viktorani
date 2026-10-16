@@ -133,6 +133,45 @@ describe('layout designer', () => {
     await waitFor(async () => expect((await widgets())[0].grid.x).toBe(6))
   })
 
+  it("edits a text widget's settings through labelled fields", async () => {
+    const user = userEvent.setup()
+    await db.layouts.put(LAYOUT)
+    await db.widgets.put(widget('w1', { type: 'text', config: {} }))
+    renderDesigner()
+
+    await user.click(await screen.findByRole('button', { name: 'Text widget' }))
+    const text = screen.getByRole('textbox', { name: 'Text' })
+    expect(text.tagName).toBe('TEXTAREA')
+    await user.type(text, 'Happy hour')
+    await user.selectOptions(screen.getByLabelText('Size'), 'large')
+    await waitFor(async () =>
+      expect((await widgets())[0].config).toMatchObject({ text: 'Happy hour', size: 'large' })
+    )
+  })
+
+  it('saves an image address on leaving the field, and refuses an unsafe one', async () => {
+    const user = userEvent.setup()
+    await db.layouts.put(LAYOUT)
+    await db.widgets.put(widget('w1', { type: 'image', config: {} }))
+    renderDesigner()
+
+    await user.click(await screen.findByRole('button', { name: 'Image widget' }))
+    const src = screen.getByRole('textbox', { name: /Image address/ })
+    await user.type(src, 'javascript:alert(1)')
+    await user.tab()
+    expect(src).toHaveValue('javascript:alert(1)')
+    expect(src).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByRole('alert')).toHaveTextContent(/Not saved/)
+
+    await user.clear(src)
+    await user.type(src, 'https://example.com/logo.png')
+    await user.tab()
+    await waitFor(async () =>
+      expect((await widgets())[0].config).toMatchObject({ src: 'https://example.com/logo.png' })
+    )
+    expect(src).toHaveAttribute('aria-invalid', 'false')
+  })
+
   it('gives a widget its own placement on phones, and resets it', async () => {
     const user = userEvent.setup()
     await db.layouts.put(LAYOUT)
