@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import { ChevronLeft, ChevronRight, Lock, LockOpen } from 'lucide-react'
 import { ProgressTrack } from '@/components/ProgressTrack'
 import { BuzzerPanel } from '@/components/buzzer/BuzzerPanel'
 import { BuzzList } from '@/components/buzzer/BuzzList'
@@ -9,7 +10,7 @@ import { RoundInfo } from '@/components/gamemaster/RoundInfo'
 import { HostQuestionPanel } from '@/components/host/HostQuestionPanel'
 import { ScoreboardPanel } from '@/components/scoreboard/ScoreboardPanel'
 import { TimerPanel } from '@/components/timer/TimerPanel'
-import { Icon } from '@/components/ui'
+import { Button, Icon } from '@/components/ui'
 import { isConnected } from '@/pages/admin/gamemaster-utils'
 import type { GamemasterData, WidgetProps } from '@/widgets/types'
 
@@ -169,5 +170,36 @@ export function GamemasterPlayerListWidget({ data }: GamemasterWidgetProps) {
         </ul>
       )}
     </section>
+  )
+}
+
+/**
+ * Large previous, next and buzzer lock buttons, for running the game from a touch screen.
+ * Next asks before skipping unjudged buzzes, as the header's arrow does.
+ */
+export function GamemasterGameControlsWidget({ data }: GamemasterWidgetProps) {
+  const { game, pos, nav, buzzer } = data
+  if (isEnded(data)) return null
+  return (
+    <div
+      role="group"
+      aria-label="Game controls"
+      className="grid auto-cols-fr grid-flow-col gap-3 [&>button]:w-full"
+    >
+      <Button size="lg" onClick={nav.onPrev} disabled={pos.isFirst}>
+        <Icon icon={ChevronLeft} size="md" aria-hidden />
+        Previous
+      </Button>
+      {game.buzzerEnabled && (
+        <Button size="lg" onClick={buzzer.onToggleLock}>
+          <Icon icon={game.buzzerLocked ? LockOpen : Lock} size="md" aria-hidden />
+          {game.buzzerLocked ? 'Unlock buzzer' : 'Lock buzzer'}
+        </Button>
+      )}
+      <Button size="lg" variant="primary" onClick={nav.onNext} disabled={pos.isLast}>
+        Next
+        <Icon icon={ChevronRight} size="md" aria-hidden />
+      </Button>
+    </div>
   )
 }

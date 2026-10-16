@@ -4,8 +4,10 @@ import userEvent from '@testing-library/user-event'
 import type { BuzzEvent, Game, Player, PlayerPresence, Team } from '@/db'
 import {
   GamemasterBuzzOrderWidget,
+  GamemasterGameControlsWidget,
   GamemasterPlayerListWidget,
 } from '@/components/gamemaster/gamemaster-widgets'
+import type { NavPosition } from '@/pages/admin/gamemaster-utils'
 import type { GamemasterData } from '@/widgets/types'
 import { WIDGET_REGISTRY } from '@/widgets/registry'
 
@@ -104,5 +106,53 @@ describe('GamemasterPlayerListWidget', () => {
 
   it('is registered for the game master', () => {
     expect(WIDGET_REGISTRY.player_list.components.gamemaster).toBe(GamemasterPlayerListWidget)
+  })
+})
+
+describe('GamemasterGameControlsWidget', () => {
+  const POS = { isFirst: false, isLast: false } as NavPosition
+
+  function controls(game: Partial<Game> = {}, pos: Partial<NavPosition> = {}) {
+    const data = gmData(game, {
+      pos: { ...POS, ...pos },
+      nav: { onPrev: vi.fn(), onNext: vi.fn() },
+    })
+    render(<GamemasterGameControlsWidget data={data} config={{}} />)
+    return data
+  }
+
+  it('moves between questions and locks the buzzer', async () => {
+    const data = controls()
+    await userEvent.click(screen.getByRole('button', { name: 'Previous' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Lock buzzer' }))
+    expect(data.nav.onPrev).toHaveBeenCalledOnce()
+    expect(data.nav.onNext).toHaveBeenCalledOnce()
+    expect(data.buzzer.onToggleLock).toHaveBeenCalledOnce()
+  })
+
+  it('offers to unlock a locked buzzer', () => {
+    controls({ buzzerLocked: true })
+    expect(screen.getByRole('button', { name: 'Unlock buzzer' })).toBeInTheDocument()
+  })
+
+  it('disables the arrows at either end of the game', () => {
+    controls({}, { isFirst: true, isLast: true })
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled()
+  })
+
+  it('leaves the lock out when the game has no buzzer', () => {
+    controls({ buzzerEnabled: false })
+    expect(screen.queryByRole('button', { name: /buzzer/ })).toBeNull()
+  })
+
+  it('renders nothing once the game has ended', () => {
+    controls({ status: 'ended' })
+    expect(screen.queryByRole('group', { name: 'Game controls' })).toBeNull()
+  })
+
+  it('is registered for the game master', () => {
+    expect(WIDGET_REGISTRY.game_controls.components.gamemaster).toBe(GamemasterGameControlsWidget)
   })
 })

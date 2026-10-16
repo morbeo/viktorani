@@ -469,6 +469,7 @@ export function ActiveGame({
                 onGameChange,
                 pos,
                 seq,
+                nav: { onPrev: goPrev, onNext: confirmedGoNext },
                 questionId: currentQuestionId,
                 question: question ?? null,
                 gameQuestion: gameQuestion ?? null,

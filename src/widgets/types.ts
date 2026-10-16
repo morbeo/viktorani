@@ -68,6 +68,8 @@ export interface GamemasterData {
   /** Where navigation is, for the round and question position. */
   pos: NavPosition
   seq: NavEntry[]
+  /** Moves to the previous or next question, as the header's arrows do. */
+  nav: { onPrev: () => void; onNext: () => void }
   /** The id of the question navigation is on, even while it loads. */
   questionId: string | null
   /** The current question and its per-game record, once both have loaded. */
