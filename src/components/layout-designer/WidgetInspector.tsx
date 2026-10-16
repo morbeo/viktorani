@@ -15,6 +15,7 @@ interface WidgetInspectorProps {
   onResetPlacement: () => void
   onConfig: (config: Record<string, unknown>) => void
   onMove: (dir: -1 | 1) => void
+  onDuplicate: () => void
   onDelete: () => void
 }
 
@@ -96,6 +97,7 @@ export function WidgetInspector({
   onResetPlacement,
   onConfig,
   onMove,
+  onDuplicate,
   onDelete,
 }: WidgetInspectorProps) {
   const def = WIDGET_REGISTRY[widget.type]
@@ -182,9 +184,14 @@ export function WidgetInspector({
         )}
       </fieldset>
 
-      <Button size="sm" variant="danger" onClick={onDelete}>
-        Remove widget
-      </Button>
+      <div className="flex gap-2">
+        <Button size="sm" onClick={onDuplicate} aria-keyshortcuts="Control+D">
+          Duplicate
+        </Button>
+        <Button size="sm" variant="danger" onClick={onDelete}>
+          Remove widget
+        </Button>
+      </div>
     </section>
   )
 }

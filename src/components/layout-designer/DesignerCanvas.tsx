@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import type { DragEvent, PointerEvent } from 'react'
+import type { DragEvent, KeyboardEvent, PointerEvent } from 'react'
 import type { GridRect, LayoutBreakpoint, Widget, WidgetType } from '@/db'
 import { GRID_COLUMNS, resolveRect } from '@/lib/layout-grid'
 import { moveRect, pixelsToCells, pointToCell, resizeRect } from '@/lib/layout-designer'
@@ -21,6 +21,22 @@ interface DesignerCanvasProps {
   onPlace: (widget: Widget, rect: GridRect) => void
   /** A palette item was dropped on cell (`x`, `y`). */
   onDropNew: (type: WidgetType, cell: { x: number; y: number }) => void
+  /** Delete or Backspace on a widget. */
+  onDelete: (widget: Widget) => void
+  /** Ctrl+D (⌘D) on a widget. */
+  onDuplicate: (widget: Widget) => void
+}
+
+const ARROWS: Record<string, [number, number]> = {
+  ArrowLeft: [-1, 0],
+  ArrowRight: [1, 0],
+  ArrowUp: [0, -1],
+  ArrowDown: [0, 1],
+}
+
+/** Where `rect` is, as a screen reader hears it after a keyboard move. */
+function describeRect(label: string, { x, y, w, h }: GridRect): string {
+  return `${label}: column ${x + 1}, row ${y + 1}, ${w} wide, ${h} high`
 }
 
 interface Gesture {
@@ -37,6 +53,9 @@ interface Gesture {
  * move it, drag its corner to resize it, click it to select it, and drop palette items on
  * an empty spot to add them. Positions snap to whole cells and stay on the grid; the move
  * is saved when the pointer is released.
+ *
+ * From the keyboard: arrow keys move the focused widget one cell, Shift+arrows resize it,
+ * Ctrl+D (⌘D) duplicates it and Delete removes it. Each move is announced.
  */
 export function DesignerCanvas({
   widgets,
@@ -45,9 +64,39 @@ export function DesignerCanvas({
   onSelect,
   onPlace,
   onDropNew,
+  onDelete,
+  onDuplicate,
 }: DesignerCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null)
   const [gesture, setGesture] = useState<Gesture | null>(null)
+  const [announcement, setAnnouncement] = useState('')
+
+  function handleKey(e: KeyboardEvent, widget: Widget) {
+    const label = WIDGET_REGISTRY[widget.type].label
+    const arrow = ARROWS[e.key]
+    if (arrow && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault()
+      const start = resolveRect(widget, breakpoint)
+      const [dx, dy] = arrow
+      const rect = e.shiftKey ? resizeRect(start, dx, dy) : moveRect(start, dx, dy)
+      onSelect(widget.id)
+      setAnnouncement(describeRect(label, rect))
+      if (rect.x !== start.x || rect.y !== start.y || rect.w !== start.w || rect.h !== start.h) {
+        onPlace(widget, rect)
+      }
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      onSelect(widget.id)
+    } else if (e.key === 'Delete' || e.key === 'Backspace') {
+      e.preventDefault()
+      setAnnouncement(`${label} removed`)
+      onDelete(widget)
+    } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
+      e.preventDefault()
+      setAnnouncement(`${label} duplicated`)
+      onDuplicate(widget)
+    }
+  }
 
   const cellWidth = () => (canvasRef.current?.getBoundingClientRect().width ?? 0) / GRID_COLUMNS
 
@@ -138,12 +187,8 @@ export function DesignerCanvas({
               aria-label={`${label} widget`}
               data-widget-id={widget.id}
               onPointerDown={e => begin(e, widget, 'move')}
-              onKeyDown={e => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  onSelect(widget.id)
-                }
-              }}
+              aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Shift+ArrowRight Shift+ArrowDown Control+D Delete"
+              onKeyDown={e => handleKey(e, widget)}
               className={`relative z-10 m-0.5 flex items-center justify-center rounded border-2 text-sm font-medium cursor-move touch-none ${
                 selected
                   ? 'border-(--color-gold) bg-(--color-gold-light)'
@@ -166,6 +211,9 @@ export function DesignerCanvas({
             </div>
           )
         })}
+      <p role="status" className="sr-only">
+        {announcement}
+      </p>
     </div>
   )
 }
