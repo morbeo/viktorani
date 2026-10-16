@@ -1,5 +1,13 @@
 import { db } from './index'
-import type { Game, GameQuestion, GmDecision, Round } from './index'
+import type {
+  Game,
+  GameQuestion,
+  GmDecision,
+  LayoutAssignments,
+  LayoutSlot,
+  LayoutTarget,
+  Round,
+} from './index'
 import { generateRoomId } from '@/transport'
 
 /**
@@ -129,4 +137,50 @@ export async function updateQuestionStatus(
     const status = nextQuestionStatus(gq.status, event)
     if (status !== gq.status) await db.gameQuestions.update(gameQuestionId, { status })
   })
+}
+
+/** `assignments` without the choice for `slot`. */
+export function withoutSlot(
+  assignments: LayoutAssignments | undefined,
+  slot: LayoutSlot
+): LayoutAssignments {
+  const rest = { ...assignments }
+  delete rest[slot]
+  return rest
+}
+
+/**
+ * The game's `layoutAssignments` with `layoutId` chosen for `target` and `slot`, or that
+ * choice cleared when `layoutId` is `null`. Surfaces with no choices left are dropped.
+ */
+export function assign(
+  current: Game['layoutAssignments'],
+  target: LayoutTarget,
+  slot: LayoutSlot,
+  layoutId: string | null
+): NonNullable<Game['layoutAssignments']> {
+  const forTarget = withoutSlot(current?.[target], slot)
+  if (layoutId) forTarget[slot] = layoutId
+  const next = { ...current }
+  if (Object.keys(forTarget).length > 0) next[target] = forTarget
+  else delete next[target]
+  return next
+}
+
+/**
+ * Choose `layoutId` for `target` and `slot` in a game, or clear that choice with `null`.
+ * Returns the patch it saved, for the caller's copy of the game.
+ */
+export async function setLayoutAssignment(
+  game: Pick<Game, 'id' | 'layoutAssignments'>,
+  target: LayoutTarget,
+  slot: LayoutSlot,
+  layoutId: string | null
+): Promise<Pick<Game, 'layoutAssignments' | 'updatedAt'>> {
+  const patch = {
+    layoutAssignments: assign(game.layoutAssignments, target, slot, layoutId),
+    updatedAt: Date.now(),
+  }
+  await db.games.update(game.id, patch)
+  return patch
 }

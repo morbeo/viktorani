@@ -101,9 +101,15 @@ describe('reduceScreen', () => {
   })
 
   it('keeps the latest LAYOUT for screens and ignores the players one', () => {
-    const event = { type: 'LAYOUT' as const, target: 'screen' as const, gameId: 'g1', layouts: [] }
+    const event = {
+      type: 'LAYOUT' as const,
+      target: 'screen' as const,
+      gameId: 'g1',
+      layouts: [],
+      assignments: {},
+    }
     const s = reduceScreen(INITIAL_SCREEN, event)
-    expect(s.layouts).toEqual({ gameId: 'g1', layouts: [] })
+    expect(s.layouts).toEqual({ gameId: 'g1', layouts: [], assignments: {} })
     expect(reduceScreen(s, { ...event, target: 'player' })).toBe(s)
   })
 
@@ -174,6 +180,7 @@ describe('RemoteScreen', () => {
       type: 'LAYOUT',
       target: 'screen',
       gameId: 'g1',
+      assignments: {},
       // The buzzer has no screen component, so that layout can't render and is skipped
       layouts: [
         layout('broken', null, 'buzzer'),

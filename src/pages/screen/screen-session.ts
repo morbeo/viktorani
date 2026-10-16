@@ -68,7 +68,14 @@ export function reduceScreen(s: ScreenSession, event: TransportEvent): ScreenSes
       return { ...s, logEntries: event.entries }
     case 'LAYOUT':
       return event.target === 'screen'
-        ? { ...s, layouts: { gameId: event.gameId, layouts: event.layouts } }
+        ? {
+            ...s,
+            layouts: {
+              gameId: event.gameId,
+              layouts: event.layouts,
+              assignments: event.assignments,
+            },
+          }
         : s
     case 'PHASE':
       return { ...s, phase: event.phase }
