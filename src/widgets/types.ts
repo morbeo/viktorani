@@ -27,7 +27,7 @@ export type WidgetTarget = LayoutTarget
  * designer (#412) needs them. Props are untyped here (`ComponentType<any>`) because each
  * target's adapters take a different data contract; `LayoutRenderer` supplies the right one.
  */
-export interface WidgetDefinition<TConfig = Record<string, never>> {
+export interface WidgetDefinition<TConfig = Record<string, unknown>> {
   type: WidgetType
   label: string
   allowedTargets: readonly WidgetTarget[]

@@ -22,12 +22,14 @@ import {
   ScreenAnnouncementWidget,
   ScreenAnswersWidget,
   ScreenHeadingWidget,
+  ScreenLeaderboardWidget,
   ScreenLogWidget,
   ScreenMediaWidget,
   ScreenQuestionWidget,
   ScreenScoresWidget,
   ScreenTimersWidget,
 } from '@/components/screen/screen-widgets'
+import { LeaderboardConfigSchema } from './leaderboard'
 import { WidgetPlaceholder } from './placeholder'
 import type { WidgetDefinition, WidgetTarget } from './types'
 
@@ -44,7 +46,8 @@ function placeholderFor(label: string): ComponentType {
 
 /**
  * One registry entry. Targets in `overrides` get their real widget adapter; the rest get a
- * placeholder until the designer (#412) needs them.
+ * placeholder until the designer (#412) needs them. The default config is what
+ * `configSchema` makes of `{}`, so every setting needs a default.
  */
 function widget(
   type: WidgetType,
@@ -52,7 +55,8 @@ function widget(
   allowedTargets: readonly WidgetTarget[],
   preferredSize: GridSize,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  overrides: Partial<Record<WidgetTarget, ComponentType<any>>> = {}
+  overrides: Partial<Record<WidgetTarget, ComponentType<any>>> = {},
+  configSchema: z.ZodType<Record<string, unknown>> = z.strictObject({})
 ): WidgetDefinition {
   const Placeholder = placeholderFor(label)
   const components: WidgetDefinition['components'] = {}
@@ -62,8 +66,8 @@ function widget(
     label,
     allowedTargets,
     preferredSize,
-    configSchema: z.strictObject({}),
-    defaultConfig: {},
+    configSchema,
+    defaultConfig: configSchema.parse({}),
     components,
   }
 }
@@ -95,7 +99,15 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetDefinition> = {
     gamemaster: GamemasterScoreboardWidget,
     screen: ScreenScoresWidget,
   }),
-  leaderboard: widget('leaderboard', 'Leaderboard', ['screen', 'scoreboard'], HALF),
+  // The scoreboard surface has no page yet, so it keeps the placeholder
+  leaderboard: widget(
+    'leaderboard',
+    'Leaderboard',
+    ['screen', 'scoreboard'],
+    HALF,
+    { screen: ScreenLeaderboardWidget },
+    LeaderboardConfigSchema
+  ),
   player_list: widget('player_list', 'Player list', ['gamemaster'], HALF),
   round_info: widget('round_info', 'Round info', ['gamemaster', 'screen'], FULL, {
     gamemaster: GamemasterRoundInfoWidget,
