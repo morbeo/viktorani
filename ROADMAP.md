@@ -114,6 +114,7 @@ Epic: #364. Scope and dependency order are in the epic body: widget registry →
 
 ## Decisions (2026-10-16)
 
+- **Game master widgets (#364):** `buzz_order` is the buzz queue with its judging buttons but no lock or clear; `player_list` is read-only and leaves out players who left or were kicked; `game_controls` has previous, next and the buzzer lock (pause and end stay in the toolbar). Like the buzzer, they hide once the game ends, and they don't preview in the designer.
 - **Text and image widgets (#364):** the first widgets with settings, offered on every surface. Text is plain text (no markdown or HTML) up to 1,000 characters; an image address follows the logo's rule (`data:image/` or `https://`), capped at 400,000 characters so several phase layouts still fit in one `LAYOUT`, and inlined images are dropped before the whole event is. Text settings save on blur, one undo step per edit, and each setting merges into the stored config.
 - **Next up:** the `leaderboard` widget.
 

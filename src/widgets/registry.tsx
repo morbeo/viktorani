@@ -3,8 +3,11 @@ import type { ComponentType } from 'react'
 import type { WidgetType } from '@/db'
 import { GRID_COLUMNS, type GridSize } from '@/lib/layout-grid'
 import {
+  GamemasterBuzzOrderWidget,
   GamemasterBuzzerWidget,
+  GamemasterGameControlsWidget,
   GamemasterLogWidget,
+  GamemasterPlayerListWidget,
   GamemasterProgressWidget,
   GamemasterQrCodeWidget,
   GamemasterQuestionWidget,
@@ -94,13 +97,17 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetDefinition> = {
     player: PlayerTimerWidget,
     screen: ScreenTimersWidget,
   }),
-  buzz_order: widget('buzz_order', 'Buzz order', ['gamemaster'], HALF),
+  buzz_order: widget('buzz_order', 'Buzz order', ['gamemaster'], HALF, {
+    gamemaster: GamemasterBuzzOrderWidget,
+  }),
   scoreboard: widget('scoreboard', 'Scoreboard', ['gamemaster', 'screen'], HALF, {
     gamemaster: GamemasterScoreboardWidget,
     screen: ScreenScoresWidget,
   }),
   leaderboard: widget('leaderboard', 'Leaderboard', ['screen', 'scoreboard'], HALF),
-  player_list: widget('player_list', 'Player list', ['gamemaster'], HALF),
+  player_list: widget('player_list', 'Player list', ['gamemaster'], HALF, {
+    gamemaster: GamemasterPlayerListWidget,
+  }),
   round_info: widget('round_info', 'Round info', ['gamemaster', 'screen'], FULL, {
     gamemaster: GamemasterRoundInfoWidget,
     screen: ScreenHeadingWidget,
@@ -128,7 +135,9 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetDefinition> = {
     { gamemaster: ImageWidget, player: ImageWidget, screen: ImageWidget, scoreboard: ImageWidget },
     ImageConfigSchema
   ),
-  game_controls: widget('game_controls', 'Game controls', ['gamemaster'], FULL),
+  game_controls: widget('game_controls', 'Game controls', ['gamemaster'], FULL, {
+    gamemaster: GamemasterGameControlsWidget,
+  }),
   // Players and screens get no navigation data, so only the game master can show progress
   progress: widget('progress', 'Progress', ['gamemaster'], FULL, {
     gamemaster: GamemasterProgressWidget,
