@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { GAME_PHASES, LAYOUT_TARGETS, WIDGET_TYPES } from '@/db'
+import { FONT_KEYS, GAME_PHASES, ICON_STROKES, LAYOUT_TARGETS, WIDGET_TYPES } from '@/db'
 import type {
   DifficultyLevel,
   Tag,
@@ -11,10 +11,13 @@ import type {
   GridRect,
   Layout,
   LayoutTheme,
+  Theme,
+  ThemePalette,
   Widget,
 } from '@/db'
 import { AppSettingsSchema, MAX_TIMER_SECONDS } from '@/lib/app-settings'
 import { DEFAULT_LAYOUT_THEME, GRID_COLUMNS } from '@/lib/layout-grid'
+import { BUILT_IN_THEME_IDS } from '@/lib/theme'
 import { MAX_LIMIT } from '@/components/game-settings/game-settings'
 
 /**
@@ -191,6 +194,38 @@ export const LayoutThemeSchema = z.object({
   logo: LogoSchema.nullable(),
 }) satisfies z.ZodType<LayoutTheme>
 
+const ThemePaletteSchema = z.object({
+  bg: HexColourSchema,
+  surface: HexColourSchema,
+  text: HexColourSchema,
+  muted: HexColourSchema,
+  border: HexColourSchema,
+  accent: HexColourSchema,
+  accentSubtle: HexColourSchema,
+  onAccent: HexColourSchema.nullable(),
+  positive: HexColourSchema,
+  negative: HexColourSchema,
+}) satisfies z.ZodType<ThemePalette>
+
+const FontKeySchema = z.enum(FONT_KEYS)
+
+/** A host theme (ADR 0022). Built-in theme ids are reserved, so a file can't shadow one. */
+export const ThemeSchema = z.object({
+  id: z
+    .string()
+    .min(1)
+    .max(64)
+    .refine(id => !BUILT_IN_THEME_IDS.includes(id), {
+      error: 'id is reserved for a built-in theme',
+    }),
+  name: z.string().trim().min(1).max(60),
+  light: ThemePaletteSchema,
+  dark: ThemePaletteSchema.nullable(),
+  fonts: z.object({ display: FontKeySchema, body: FontKeySchema, mono: FontKeySchema }),
+  iconStroke: z.literal(ICON_STROKES),
+  logo: z.object({ wordmark: LogoSchema.nullable(), mark: LogoSchema.nullable() }),
+}) satisfies z.ZodType<Theme>
+
 export const LayoutSchema = z.object({
   id: z.string(),
   gameId: z.string().nullable(),
@@ -232,6 +267,7 @@ export const SnapshotSchema = z
     notes: z.array(NoteSchema).default([]),
     layouts: z.array(LayoutSchema).default([]),
     widgets: z.array(WidgetSchema).default([]),
+    themes: z.array(ThemeSchema).default([]),
     settings: AppSettingsSchema.optional(),
   })
   .superRefine(({ layouts, widgets }, ctx) => {

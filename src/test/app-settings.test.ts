@@ -13,8 +13,9 @@ beforeEach(() => {
 describe('app settings', () => {
   it('defaults every field', () => {
     expect(getSettings()).toEqual({
-      version: 4,
+      version: 5,
       theme: 'system',
+      themeId: 'classic',
       actionMode: 'icons',
       controlSize: 'sm',
       soundMuted: false,
@@ -43,7 +44,7 @@ describe('app settings', () => {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({ version: 2, soundVolume: 40 }))
     expect(getSettings()).toEqual(
       expect.objectContaining({
-        version: 4,
+        version: 5,
         soundVolume: 40,
         gameDefaults: { ...defaultSettings(), tiebreakerMode: 'serverOrder' },
       })
@@ -68,8 +69,22 @@ describe('app settings', () => {
   it('gives a version 3 entry the built-in presets', () => {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({ version: 3, theme: 'dark' }))
     expect(getSettings()).toEqual(
-      expect.objectContaining({ version: 4, theme: 'dark', gamePresets: BUILT_IN_PRESETS })
+      expect.objectContaining({ version: 5, theme: 'dark', gamePresets: BUILT_IN_PRESETS })
     )
+  })
+
+  it('gives a version 4 entry the Classic theme and keeps its mode', () => {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ version: 4, theme: 'light' }))
+    expect(getSettings()).toEqual(
+      expect.objectContaining({ version: 5, theme: 'light', themeId: 'classic' })
+    )
+  })
+
+  it('falls back to Classic on an invalid theme id', () => {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ version: 5, themeId: '' }))
+    expect(getSettings().themeId).toBe('classic')
+    setSettings({ themeId: 'pub' })
+    expect(getSettings().themeId).toBe('pub')
   })
 
   it('drops invalid and duplicate presets and repairs bad settings', () => {
@@ -97,7 +112,7 @@ describe('app settings', () => {
       JSON.stringify({ version: 1, theme: 'dark', actionMode: 'text', controlSize: 'lg' })
     )
     expect(getSettings()).toEqual(
-      expect.objectContaining({ version: 4, theme: 'dark', soundVolume: 100, timerDuration: 60 })
+      expect.objectContaining({ version: 5, theme: 'dark', soundVolume: 100, timerDuration: 60 })
     )
   })
 
