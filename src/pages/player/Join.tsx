@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ModeSwitch } from '@/components/ModeSwitch'
+import { ThemeLogo } from '@/components/ThemeLogo'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Button, Card, Input } from '@/components/ui'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
@@ -130,6 +131,7 @@ export default function Join() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-bg">
       <Card className="w-full max-w-sm flex flex-col gap-4">
+        <ThemeLogo kind="wordmark" className="max-h-16 max-w-full self-center" />
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-xl font-semibold">Join a game</h1>
           <ModeSwitch />
