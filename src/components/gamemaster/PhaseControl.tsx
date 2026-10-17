@@ -23,8 +23,8 @@ export function PhaseControl({ auto, override, onOverride }: PhaseControlProps) 
         onChange={e => onOverride((e.target.value || null) as GamePhase | null)}
         className={`rounded border px-2 py-1 text-sm ${
           override
-            ? 'border-(--color-gold) bg-(--color-gold-light) text-(--color-ink)'
-            : 'border-(--color-border) bg-(--color-cream) text-(--color-ink)'
+            ? 'border-(--color-accent) bg-(--color-accent-subtle) text-(--color-text)'
+            : 'border-(--color-border) bg-(--color-bg) text-(--color-text)'
         }`}
       >
         <option value="">Automatic ({PHASE_LABELS[auto]})</option>

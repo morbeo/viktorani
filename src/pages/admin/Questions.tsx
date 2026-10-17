@@ -191,24 +191,17 @@ function QuestionForm({ question, difficulties, tags, onSave, onClose }: FormPro
         {/* Options */}
         {form.type === 'multiple_choice' && (
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium" style={{ color: 'var(--color-muted)' }}>
-              Answer options
-            </span>
+            <span className="text-xs font-medium text-muted">Answer options</span>
             {form.options.map((opt, i) => (
               <div key={i} className="flex items-center gap-2">
-                <span
-                  className="mono text-xs w-5 text-center"
-                  style={{ color: 'var(--color-muted)' }}
-                >
+                <span className="mono text-xs w-5 text-center text-muted">
                   {String.fromCharCode(65 + i)}
                 </span>
                 <input
-                  className="flex-1 px-3 py-1.5 rounded border text-sm outline-none"
+                  className="flex-1 px-3 py-1.5 rounded border text-sm outline-none bg-bg text-text"
                   style={{
                     borderColor:
-                      form.answer === opt && opt ? 'var(--color-green)' : 'var(--color-border)',
-                    background: 'var(--color-cream)',
-                    color: 'var(--color-ink)',
+                      form.answer === opt && opt ? 'var(--color-positive)' : 'var(--color-border)',
                   }}
                   value={opt}
                   onChange={e => setOption(i, e.target.value)}
@@ -220,8 +213,9 @@ function QuestionForm({ question, difficulties, tags, onSave, onClose }: FormPro
                   className="px-2 py-1 rounded text-xs border transition-all"
                   style={{
                     borderColor:
-                      form.answer === opt && opt ? 'var(--color-green)' : 'var(--color-border)',
-                    background: form.answer === opt && opt ? 'var(--color-green)' : 'transparent',
+                      form.answer === opt && opt ? 'var(--color-positive)' : 'var(--color-border)',
+                    background:
+                      form.answer === opt && opt ? 'var(--color-positive)' : 'transparent',
                     color: form.answer === opt && opt ? '#fff' : 'var(--color-muted)',
                   }}
                 >
@@ -240,9 +234,9 @@ function QuestionForm({ question, difficulties, tags, onSave, onClose }: FormPro
                 onClick={() => set('answer', v)}
                 className="flex-1 py-2 rounded border text-sm font-medium transition-all"
                 style={{
-                  borderColor: form.answer === v ? 'var(--color-green)' : 'var(--color-border)',
-                  background: form.answer === v ? 'var(--color-green)' : 'transparent',
-                  color: form.answer === v ? '#fff' : 'var(--color-ink)',
+                  borderColor: form.answer === v ? 'var(--color-positive)' : 'var(--color-border)',
+                  background: form.answer === v ? 'var(--color-positive)' : 'transparent',
+                  color: form.answer === v ? '#fff' : 'var(--color-text)',
                 }}
               >
                 {v}
@@ -260,12 +254,7 @@ function QuestionForm({ question, difficulties, tags, onSave, onClose }: FormPro
 
         {tags.length > 0 && (
           <div>
-            <span
-              className="text-xs font-medium block mb-1.5"
-              style={{ color: 'var(--color-muted)' }}
-            >
-              Tags
-            </span>
+            <span className="text-xs font-medium block mb-1.5 text-muted">Tags</span>
             <div className="flex flex-wrap gap-1.5">
               {tags.map(tag => (
                 <button
@@ -275,7 +264,7 @@ function QuestionForm({ question, difficulties, tags, onSave, onClose }: FormPro
                   style={{
                     borderColor: form.tags.includes(tag.id) ? tag.color : 'var(--color-border)',
                     background: form.tags.includes(tag.id) ? tag.color : 'transparent',
-                    color: form.tags.includes(tag.id) ? '#fff' : 'var(--color-ink)',
+                    color: form.tags.includes(tag.id) ? '#fff' : 'var(--color-text)',
                   }}
                 >
                   {tag.name}
@@ -294,10 +283,7 @@ function QuestionForm({ question, difficulties, tags, onSave, onClose }: FormPro
         />
       </div>
 
-      <div
-        className="flex justify-end gap-2 pt-3 mt-3 border-t"
-        style={{ borderColor: 'var(--color-border)' }}
-      >
+      <div className="flex justify-end gap-2 pt-3 mt-3 border-t border-border">
         <Button variant="ghost" onClick={onClose}>
           Cancel
         </Button>
@@ -333,20 +319,9 @@ function RoundSidebar({
   onAddToRound,
 }: RoundSidebarProps) {
   return (
-    <aside
-      className="w-52 shrink-0 border-r flex flex-col"
-      style={{ borderColor: 'var(--color-border)' }}
-    >
-      <div
-        className="px-4 py-3 border-b flex items-center justify-between"
-        style={{ borderColor: 'var(--color-border)' }}
-      >
-        <span
-          className="text-xs font-semibold uppercase tracking-wider"
-          style={{ color: 'var(--color-muted)' }}
-        >
-          Rounds
-        </span>
+    <aside className="w-52 shrink-0 border-r flex flex-col border-border">
+      <div className="px-4 py-3 border-b flex items-center justify-between border-border">
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted">Rounds</span>
         <button
           onClick={onNewRound}
           className="text-lg leading-none hover:opacity-60 transition-opacity"
@@ -360,8 +335,8 @@ function RoundSidebar({
           onClick={() => onSelect(null)}
           className="w-full text-left px-4 py-2 text-sm transition-all"
           style={{
-            background: selected === null ? 'var(--color-gold-light)' : 'transparent',
-            color: selected === null ? 'var(--color-ink)' : 'var(--color-muted)',
+            background: selected === null ? 'var(--color-accent-subtle)' : 'transparent',
+            color: selected === null ? 'var(--color-text)' : 'var(--color-muted)',
             fontWeight: selected === null ? 600 : 400,
           }}
         >
@@ -373,8 +348,8 @@ function RoundSidebar({
               onClick={() => onSelect(r.id)}
               className="flex-1 text-left px-4 py-2 text-sm transition-all"
               style={{
-                background: selected === r.id ? 'var(--color-gold-light)' : 'transparent',
-                color: selected === r.id ? 'var(--color-ink)' : 'var(--color-muted)',
+                background: selected === r.id ? 'var(--color-accent-subtle)' : 'transparent',
+                color: selected === r.id ? 'var(--color-text)' : 'var(--color-muted)',
                 fontWeight: selected === r.id ? 600 : 400,
               }}
             >
@@ -385,8 +360,7 @@ function RoundSidebar({
               {selectedQIds.length > 0 && (
                 <button
                   onClick={() => onAddToRound(r.id)}
-                  className="text-xs px-1.5 py-0.5 rounded transition-all"
-                  style={{ color: 'var(--color-gold)', background: 'var(--color-gold-light)' }}
+                  className="text-xs px-1.5 py-0.5 rounded transition-all text-accent bg-accent-subtle"
                   title="Add selected questions to this round"
                 >
                   +add
@@ -397,8 +371,7 @@ function RoundSidebar({
                   e.stopPropagation()
                   onEditRound(r)
                 }}
-                className="text-xs px-1 py-0.5 rounded transition-all hover:bg-black/5"
-                style={{ color: 'var(--color-muted)' }}
+                className="text-xs px-1 py-0.5 rounded transition-all hover:bg-black/5 text-muted"
                 title="Rename round"
               >
                 ✎
@@ -408,8 +381,7 @@ function RoundSidebar({
                   e.stopPropagation()
                   onDeleteRound(r)
                 }}
-                className="text-xs px-1 py-0.5 rounded transition-all hover:bg-black/5"
-                style={{ color: 'var(--color-red)' }}
+                className="text-xs px-1 py-0.5 rounded transition-all hover:bg-black/5 text-negative"
                 title="Delete round"
               >
                 ×
@@ -436,13 +408,8 @@ function TagFilterBar({ tags, tagFilters, onChange, onClear }: TagFilterBarProps
   const hasActive = Object.values(tagFilters).some(s => s !== 'none')
 
   return (
-    <div
-      className="px-6 py-2 border-b flex items-center gap-2 flex-wrap"
-      style={{ borderColor: 'var(--color-border)' }}
-    >
-      <span className="text-xs shrink-0" style={{ color: 'var(--color-muted)' }}>
-        Tags
-      </span>
+    <div className="px-6 py-2 border-b flex items-center gap-2 flex-wrap border-border">
+      <span className="text-xs shrink-0 text-muted">Tags</span>
       {tags.map(tag => (
         <TagFilterPill
           key={tag.id}
@@ -454,8 +421,7 @@ function TagFilterBar({ tags, tagFilters, onChange, onClear }: TagFilterBarProps
       {hasActive && (
         <button
           onClick={onClear}
-          className="text-xs hover:opacity-70 transition-opacity ml-1"
-          style={{ color: 'var(--color-muted)' }}
+          className="text-xs hover:opacity-70 transition-opacity ml-1 text-muted"
         >
           Clear
         </button>
@@ -793,13 +759,9 @@ export default function Questions() {
         {/* Main content */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Toolbar */}
-          <div
-            className="px-6 py-4 border-b flex flex-wrap items-center gap-3"
-            style={{ borderColor: 'var(--color-border)' }}
-          >
+          <div className="px-6 py-4 border-b flex flex-wrap items-center gap-3 border-border">
             <input
-              className="px-3 py-1.5 rounded border text-sm outline-none flex-1 min-w-40"
-              style={{ borderColor: 'var(--color-border)', background: 'var(--color-cream)' }}
+              className="px-3 py-1.5 rounded border text-sm outline-none flex-1 min-w-40 border-border bg-bg"
               placeholder="Search questions…"
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -878,10 +840,7 @@ export default function Questions() {
           />
 
           {/* Count / select-all bar */}
-          <div
-            className="px-6 py-2 border-b flex items-center gap-3"
-            style={{ borderColor: 'var(--color-border)' }}
-          >
+          <div className="px-6 py-2 border-b flex items-center gap-3 border-border">
             <input
               type="checkbox"
               title={allMatchedSelected ? 'Deselect all' : 'Select all matched'}
@@ -893,7 +852,7 @@ export default function Questions() {
               className="cursor-pointer"
               disabled={sorted.length === 0}
             />
-            <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
+            <span className="text-xs text-muted">
               {selected.size > 0 ? (
                 <>
                   {selected.size} of {sorted.length} selected ·{' '}
@@ -918,7 +877,7 @@ export default function Questions() {
             {sorted.length === 0 ? (
               <Empty icon="?" message="No questions yet. Add your first one." />
             ) : (
-              <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
+              <div className="divide-y border-border">
                 {sorted.map(q => {
                   const diff = difficulties.find(d => d.id === q.difficulty)
                   const isSelected = selected.has(q.id)
@@ -926,7 +885,7 @@ export default function Questions() {
                     <div
                       key={q.id}
                       className="flex items-start gap-3 px-6 py-4 hover:bg-black/[0.02] transition-colors"
-                      style={{ background: isSelected ? 'var(--color-gold-light)' : undefined }}
+                      style={{ background: isSelected ? 'var(--color-accent-subtle)' : undefined }}
                     >
                       <input
                         type="checkbox"
@@ -965,11 +924,7 @@ export default function Questions() {
                             </Badge>
                           </div>
                         </div>
-                        {q.answer && (
-                          <p className="text-xs mt-1" style={{ color: 'var(--color-green)' }}>
-                            ✓ {q.answer}
-                          </p>
-                        )}
+                        {q.answer && <p className="text-xs mt-1 text-positive">✓ {q.answer}</p>}
                         {q.tags.length > 0 && (
                           <div className="flex gap-1 mt-1.5 flex-wrap">
                             {q.tags.map(tid => {
@@ -1004,7 +959,7 @@ export default function Questions() {
                           onClick={() => requestDelete([q.id])}
                           aria-label="Delete question"
                           title="Delete"
-                          style={{ color: 'var(--color-red)' }}
+                          className="text-negative"
                         >
                           <Icon icon={Trash2} size="sm" />
                         </Button>
@@ -1034,59 +989,43 @@ export default function Questions() {
         <Modal open title="Import complete" onClose={() => setImportResult(null)}>
           <div className="flex flex-col gap-4">
             <div className="flex gap-4">
-              <div
-                className="flex-1 rounded-lg border p-3 text-center"
-                style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-              >
+              <div className="flex-1 rounded-lg border p-3 text-center border-border bg-surface">
                 <p
-                  className="text-2xl font-bold"
-                  style={{ fontFamily: 'Playfair Display, serif', color: 'var(--color-green)' }}
+                  className="text-2xl font-bold text-positive"
+                  style={{ fontFamily: 'Playfair Display, serif' }}
                 >
                   {importResult.imported}
                 </p>
-                <p className="text-xs mt-1" style={{ color: 'var(--color-muted)' }}>
-                  imported
-                </p>
+                <p className="text-xs mt-1 text-muted">imported</p>
               </div>
-              <div
-                className="flex-1 rounded-lg border p-3 text-center"
-                style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-              >
+              <div className="flex-1 rounded-lg border p-3 text-center border-border bg-surface">
                 <p
-                  className="text-2xl font-bold"
-                  style={{ fontFamily: 'Playfair Display, serif', color: 'var(--color-muted)' }}
+                  className="text-2xl font-bold text-muted"
+                  style={{ fontFamily: 'Playfair Display, serif' }}
                 >
                   {importResult.skipped}
                 </p>
-                <p className="text-xs mt-1" style={{ color: 'var(--color-muted)' }}>
-                  skipped
-                </p>
+                <p className="text-xs mt-1 text-muted">skipped</p>
               </div>
             </div>
 
             {importResult.errors.length > 0 && (
               <div
-                className="rounded-lg border p-3 flex flex-col gap-1"
-                style={{ borderColor: 'var(--color-red)', background: '#c0392b11' }}
+                className="rounded-lg border p-3 flex flex-col gap-1 border-negative"
+                style={{ background: '#c0392b11' }}
               >
-                <p className="text-xs font-semibold mb-1" style={{ color: 'var(--color-red)' }}>
-                  Errors
-                </p>
+                <p className="text-xs font-semibold mb-1 text-negative">Errors</p>
                 {importResult.errors.map((e, i) => (
-                  <p key={i} className="text-xs mono" style={{ color: 'var(--color-red)' }}>
+                  <p key={i} className="text-xs mono text-negative">
                     {e}
                   </p>
                 ))}
               </div>
             )}
 
-            <div
-              className="flex items-center justify-between pt-2 border-t"
-              style={{ borderColor: 'var(--color-border)' }}
-            >
+            <div className="flex items-center justify-between pt-2 border-t border-border">
               <button
-                className="text-xs hover:opacity-70 transition-opacity"
-                style={{ color: 'var(--color-muted)' }}
+                className="text-xs hover:opacity-70 transition-opacity text-muted"
                 onClick={downloadExampleQuestions}
               >
                 ↓ Download example file
@@ -1109,7 +1048,7 @@ export default function Questions() {
             placeholder="e.g. Round 1 – Pop Culture"
           />
           {selected.size > 0 && (
-            <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
+            <p className="text-sm text-muted">
               {selected.size} selected question{selected.size > 1 ? 's' : ''} will be added to this
               round.
             </p>
@@ -1152,7 +1091,7 @@ export default function Questions() {
         onClose={() => setDeletingIds(null)}
       >
         <div className="flex flex-col gap-4">
-          <p className="text-sm" style={{ color: 'var(--color-ink)' }}>
+          <p className="text-sm text-text">
             {deletingIds?.length === 1
               ? 'Delete this question?'
               : `Delete ${deletingIds?.length} questions?`}{' '}
@@ -1172,7 +1111,7 @@ export default function Questions() {
       {/* Delete round confirm modal */}
       <Modal open={!!deletingRound} title="Delete round" onClose={() => setDeletingRound(null)}>
         <div className="flex flex-col gap-4">
-          <p className="text-sm" style={{ color: 'var(--color-ink)' }}>
+          <p className="text-sm text-text">
             Delete <strong>{deletingRound?.name}</strong>? The questions inside will not be deleted.
           </p>
           <div className="flex justify-end gap-2">

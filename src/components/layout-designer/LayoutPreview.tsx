@@ -19,7 +19,7 @@ interface LayoutPreviewProps {
 export function LayoutPreview({ layout, widgets, breakpoint, gameId }: LayoutPreviewProps) {
   const sample = useLiveQuery(() => loadPreviewSample(gameId), [gameId])
   const bundle = { layout, widgets }
-  const frame = 'rounded border border-(--color-border) bg-(--color-cream) text-(--color-ink)'
+  const frame = 'rounded border border-(--color-border) bg-(--color-bg) text-(--color-text)'
 
   if (layout.target !== 'player' && layout.target !== 'screen') {
     return (

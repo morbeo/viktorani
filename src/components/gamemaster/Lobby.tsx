@@ -98,9 +98,7 @@ export function Lobby({
           <h1 className="text-3xl font-black" style={{ fontFamily: 'Playfair Display, serif' }}>
             {game.name}
           </h1>
-          <p className="text-sm mt-1" style={{ color: 'var(--color-muted)' }}>
-            Lobby · waiting for players
-          </p>
+          <p className="text-sm mt-1 text-muted">Lobby · waiting for players</p>
         </div>
         <div className="flex items-center gap-2">
           <GameSettingsDrawer game={game} onGameChange={onGameChange} />
@@ -150,28 +148,22 @@ export function Lobby({
       </div>
 
       {/* Game info strip */}
-      <div
-        className="rounded-lg border px-4 py-3 flex flex-wrap gap-x-6 gap-y-1 text-sm"
-        style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-      >
-        <span style={{ color: 'var(--color-muted)' }}>
-          Rounds: <strong style={{ color: 'var(--color-ink)' }}>{game.roundIds.length}</strong>
+      <div className="rounded-lg border px-4 py-3 flex flex-wrap gap-x-6 gap-y-1 text-sm border-border bg-surface">
+        <span className="text-muted">
+          Rounds: <strong className="text-text">{game.roundIds.length}</strong>
         </span>
         {game.scoringEnabled && (
-          <span style={{ color: 'var(--color-muted)' }}>
-            Scoring: <strong style={{ color: 'var(--color-ink)' }}>on</strong>
+          <span className="text-muted">
+            Scoring: <strong className="text-text">on</strong>
           </span>
         )}
       </div>
 
       {/* Start controls */}
-      <div
-        className="rounded-xl border p-5 flex items-center justify-between gap-4"
-        style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-      >
+      <div className="rounded-xl border p-5 flex items-center justify-between gap-4 border-border bg-surface">
         <div>
           <p className="text-sm font-semibold">Ready to start?</p>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
+          <p className="text-xs mt-0.5 text-muted">
             {canStart
               ? `${soloBypass ? 'Solo mode — ' : ''}${activePlayers.length} player${activePlayers.length !== 1 ? 's' : ''} connected`
               : status !== 'connected'
@@ -187,16 +179,14 @@ export function Lobby({
               aria-checked={soloBypass}
               onClick={onToggleSolo}
               className="w-9 h-5 rounded-full transition-all relative shrink-0"
-              style={{ background: soloBypass ? 'var(--color-gold)' : 'var(--color-border)' }}
+              style={{ background: soloBypass ? 'var(--color-accent)' : 'var(--color-border)' }}
             >
               <span
                 className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all"
                 style={{ left: soloBypass ? '1.1rem' : '0.1rem' }}
               />
             </button>
-            <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
-              Solo mode
-            </span>
+            <span className="text-xs text-muted">Solo mode</span>
           </label>
 
           <Button variant="primary" size="lg" onClick={onStart} disabled={!canStart || starting}>

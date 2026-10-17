@@ -10,16 +10,8 @@ export function HostQuestionMedia({ question }: HostQuestionMediaProps) {
 
   return (
     <div className="flex flex-col gap-2">
-      <p
-        className="text-xs font-semibold uppercase tracking-wide"
-        style={{ color: 'var(--color-muted)' }}
-      >
-        Media
-      </p>
-      <div
-        className="rounded-lg border overflow-hidden"
-        style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-      >
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted">Media</p>
+      <div className="rounded-lg border overflow-hidden border-border bg-surface">
         {mediaType === 'image' && (
           <img src={media} alt="Question media" className="w-full max-h-72 object-contain" />
         )}

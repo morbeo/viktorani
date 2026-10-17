@@ -122,12 +122,8 @@ export default function ManageDifficulties() {
     <section>
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h2 className="font-semibold text-base" style={{ color: 'var(--color-ink)' }}>
-            Difficulty levels
-          </h2>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
-            Score value and colour — drag to reorder
-          </p>
+          <h2 className="font-semibold text-base text-text">Difficulty levels</h2>
+          <p className="text-xs mt-0.5 text-muted">Score value and colour — drag to reorder</p>
         </div>
         {!editing && (
           <Button variant="secondary" size="sm" onClick={startAdd}>
@@ -138,29 +134,23 @@ export default function ManageDifficulties() {
 
       {error && (
         <p
-          className="text-xs mb-3 px-3 py-2 rounded"
-          style={{ color: 'var(--color-red)', background: 'var(--color-red)1a' }}
+          className="text-xs mb-3 px-3 py-2 rounded text-negative"
+          style={{ background: 'var(--color-negative)1a' }}
         >
           {error}
         </p>
       )}
 
-      <div
-        className="rounded-lg overflow-hidden border"
-        style={{ borderColor: 'var(--color-border)' }}
-      >
+      <div className="rounded-lg overflow-hidden border border-border">
         {/* Add row */}
         {editing?.id === null && (
-          <div
-            className="flex items-center gap-2 px-3 py-2 border-b"
-            style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-          >
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-surface">
             <input
               type="color"
               value={editing.color}
               onChange={e => setEditing(s => s && { ...s, color: e.target.value })}
-              className="w-7 h-7 rounded cursor-pointer border"
-              style={{ borderColor: 'var(--color-border)', padding: '1px' }}
+              className="w-7 h-7 rounded cursor-pointer border border-border"
+              style={{ padding: '1px' }}
               aria-label="Difficulty colour"
             />
             <Input
@@ -192,7 +182,7 @@ export default function ManageDifficulties() {
         )}
 
         {difficulties?.length === 0 && !editing && (
-          <p className="px-4 py-6 text-sm text-center" style={{ color: 'var(--color-muted)' }}>
+          <p className="px-4 py-6 text-sm text-center text-muted">
             No difficulty levels yet — add one above
           </p>
         )}
@@ -200,24 +190,20 @@ export default function ManageDifficulties() {
         {difficulties?.map((d, i) => (
           <div
             key={d.id}
-            className="border-b last:border-b-0"
-            style={{ borderColor: 'var(--color-border)' }}
+            className="border-b last:border-b-0 border-border"
             draggable={!editing}
             onDragStart={e => onDragStart(e, i)}
             onDragOver={e => onDragOver(e)}
             onDrop={e => onDrop(e, i)}
           >
             {isEditing(d.id) ? (
-              <div
-                className="flex items-center gap-2 px-3 py-2"
-                style={{ background: 'var(--color-surface)' }}
-              >
+              <div className="flex items-center gap-2 px-3 py-2 bg-surface">
                 <input
                   type="color"
                   value={editing!.color}
                   onChange={e => setEditing(s => s && { ...s, color: e.target.value })}
-                  className="w-7 h-7 rounded cursor-pointer border"
-                  style={{ borderColor: 'var(--color-border)', padding: '1px' }}
+                  className="w-7 h-7 rounded cursor-pointer border border-border"
+                  style={{ padding: '1px' }}
                   aria-label="Difficulty colour"
                 />
                 <Input
@@ -249,8 +235,8 @@ export default function ManageDifficulties() {
                 {/* Drag handle — only shown when not editing anything */}
                 {!editing && (
                   <span
-                    className="text-xs cursor-grab select-none"
-                    style={{ color: 'var(--color-muted)', letterSpacing: '0.5px' }}
+                    className="text-xs cursor-grab select-none text-muted"
+                    style={{ letterSpacing: '0.5px' }}
                     aria-hidden
                   >
                     ⠿
@@ -261,24 +247,18 @@ export default function ManageDifficulties() {
                   style={{ background: d.color }}
                   aria-hidden
                 />
-                <span className="flex-1 text-sm" style={{ color: 'var(--color-ink)' }}>
-                  {d.name}
-                </span>
-                <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
-                  {d.score} pts
-                </span>
+                <span className="flex-1 text-sm text-text">{d.name}</span>
+                <span className="text-xs text-muted">{d.score} pts</span>
                 <button
                   onClick={() => startEdit(d)}
-                  className="text-xs px-2 py-1 rounded transition-colors hover:bg-black/5"
-                  style={{ color: 'var(--color-muted)' }}
+                  className="text-xs px-2 py-1 rounded transition-colors hover:bg-black/5 text-muted"
                   aria-label={`Edit ${d.name}`}
                 >
                   Edit
                 </button>
                 <button
                   onClick={() => remove(d)}
-                  className="text-xs px-2 py-1 rounded transition-colors hover:bg-black/5"
-                  style={{ color: 'var(--color-red)' }}
+                  className="text-xs px-2 py-1 rounded transition-colors hover:bg-black/5 text-negative"
                   aria-label={`Delete ${d.name}`}
                 >
                   Delete

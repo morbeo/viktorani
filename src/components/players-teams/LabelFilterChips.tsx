@@ -44,9 +44,9 @@ export default function LabelFilterChips({ filter, onChange }: Props) {
         onClick={reset}
         className="inline-flex items-center px-2 py-0.5 rounded-full text-xs border transition-all"
         style={{
-          borderColor: hasAny ? 'var(--color-border)' : 'var(--color-gold)',
-          background: hasAny ? 'transparent' : 'var(--color-gold-light)',
-          color: hasAny ? 'var(--color-muted)' : 'var(--color-gold)',
+          borderColor: hasAny ? 'var(--color-border)' : 'var(--color-accent)',
+          background: hasAny ? 'transparent' : 'var(--color-accent-subtle)',
+          color: hasAny ? 'var(--color-muted)' : 'var(--color-accent)',
         }}
         aria-pressed={!hasAny}
         aria-label="Show all labels"
@@ -68,14 +68,18 @@ export default function LabelFilterChips({ filter, onChange }: Props) {
               borderColor: isInclude
                 ? `color-mix(in srgb, ${label.color} 40%, transparent)`
                 : isExclude
-                  ? 'color-mix(in srgb, #c0392b 40%, transparent)'
+                  ? 'color-mix(in srgb, var(--color-negative) 40%, transparent)'
                   : 'var(--color-border)',
               background: isInclude
                 ? `color-mix(in srgb, ${label.color} 12%, transparent)`
                 : isExclude
-                  ? 'color-mix(in srgb, #c0392b 10%, transparent)'
+                  ? 'color-mix(in srgb, var(--color-negative) 10%, transparent)'
                   : 'transparent',
-              color: isInclude ? label.color : isExclude ? '#922b21' : 'var(--color-muted)',
+              color: isInclude
+                ? label.color
+                : isExclude
+                  ? 'var(--color-negative)'
+                  : 'var(--color-muted)',
             }}
             aria-label={`Label ${label.name}: ${state ?? 'neutral'}`}
           >

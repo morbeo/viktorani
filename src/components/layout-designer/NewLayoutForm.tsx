@@ -24,7 +24,7 @@ interface NewLayoutFormProps {
 }
 
 const field =
-  'rounded border border-(--color-border) bg-(--color-cream) px-2 py-1 text-sm text-(--color-ink)'
+  'rounded border border-(--color-border) bg-(--color-bg) px-2 py-1 text-sm text-(--color-text)'
 
 /** Name, surface and phase for a new layout, empty or copied from a default or template. */
 export function NewLayoutForm({ sources, onCreate }: NewLayoutFormProps) {

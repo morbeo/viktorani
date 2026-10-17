@@ -60,17 +60,15 @@ export default function PlayerQrModal({ player, open, onClose }: Props) {
     <Modal open={open} onClose={onClose} title={`QR — ${player.name}`} maxWidth="320px">
       <div className="flex flex-col items-center gap-4">
         <div
-          className="p-3 rounded-lg border"
-          style={{ borderColor: 'var(--color-border)', background: '#ffffff' }}
+          className="p-3 rounded-lg border border-border"
+          style={{ background: '#ffffff' }}
           aria-label="Player QR code"
         >
           <QRCodeSVG value={value} size={180} level="M" ref={svgRef as React.Ref<SVGSVGElement>} />
         </div>
 
         <div className="w-full text-left flex flex-col gap-1">
-          <p className="text-sm font-medium" style={{ color: 'var(--color-ink)' }}>
-            {player.name}
-          </p>
+          <p className="text-sm font-medium text-text">{player.name}</p>
           {labels.length > 0 && (
             <div className="flex gap-1 flex-wrap">
               {labels.map(l => (
@@ -88,9 +86,7 @@ export default function PlayerQrModal({ player, open, onClose }: Props) {
               ))}
             </div>
           )}
-          <p className="text-xs mt-1" style={{ color: 'var(--color-muted)' }}>
-            Generated fresh — always reflects current data.
-          </p>
+          <p className="text-xs mt-1 text-muted">Generated fresh — always reflects current data.</p>
         </div>
 
         <div className="flex gap-2 w-full">

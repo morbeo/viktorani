@@ -116,27 +116,16 @@ export function RosterPanel({
   }
 
   return (
-    <div
-      className="rounded-xl border flex flex-col"
-      style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-    >
+    <div className="rounded-xl border flex flex-col border-border bg-surface">
       {/* Header */}
-      <div
-        className="px-4 py-3 border-b flex items-center justify-between gap-2"
-        style={{ borderColor: 'var(--color-border)' }}
-      >
-        <span
-          className="text-xs font-semibold uppercase tracking-wider"
-          style={{ color: 'var(--color-muted)' }}
-        >
-          Players
-        </span>
+      <div className="px-4 py-3 border-b flex items-center justify-between gap-2 border-border">
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted">Players</span>
         <div className="flex items-center gap-2">
           <span
             className="text-xs font-bold px-2 py-0.5 rounded-full"
             style={{
-              background: onlineCount > 0 ? 'var(--color-green)22' : 'var(--color-border)',
-              color: onlineCount > 0 ? 'var(--color-green)' : 'var(--color-muted)',
+              background: onlineCount > 0 ? 'var(--color-positive)22' : 'var(--color-border)',
+              color: onlineCount > 0 ? 'var(--color-positive)' : 'var(--color-muted)',
             }}
             aria-live="polite"
           >
@@ -160,10 +149,7 @@ export function RosterPanel({
 
       {/* Add team form */}
       {addingTeam && (
-        <div
-          className="px-4 py-3 border-b flex items-end gap-2"
-          style={{ borderColor: 'var(--color-border)' }}
-        >
+        <div className="px-4 py-3 border-b flex items-end gap-2 border-border">
           <div className="flex-1">
             <Input
               label="Name"
@@ -194,10 +180,7 @@ export function RosterPanel({
 
       {/* Add player form */}
       {adding && (
-        <div
-          className="px-4 py-3 border-b flex items-end gap-2"
-          style={{ borderColor: 'var(--color-border)' }}
-        >
+        <div className="px-4 py-3 border-b flex items-end gap-2 border-border">
           <div className="flex-1">
             <Input
               label="Name"
@@ -216,12 +199,7 @@ export function RosterPanel({
             <select
               value={newTeamId}
               onChange={e => setNewTeamId(e.target.value)}
-              className="text-xs rounded border px-2 py-2"
-              style={{
-                borderColor: 'var(--color-border)',
-                background: 'var(--color-cream)',
-                color: 'var(--color-ink)',
-              }}
+              className="text-xs rounded border px-2 py-2 border-border bg-bg text-text"
               aria-label="New player's team"
             >
               <option value="">No team</option>
@@ -248,10 +226,7 @@ export function RosterPanel({
 
       {/* Select all */}
       {players.length > 0 && (
-        <div
-          className="px-4 py-1.5 border-b flex items-center gap-2"
-          style={{ borderColor: 'var(--color-border)' }}
-        >
+        <div className="px-4 py-1.5 border-b flex items-center gap-2 border-border">
           <input
             type="checkbox"
             checked={allSelected}
@@ -259,7 +234,7 @@ export function RosterPanel({
             aria-label="Select all players"
             className="w-3.5 h-3.5 cursor-pointer"
           />
-          <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
+          <span className="text-xs text-muted">
             {selected.size > 0 ? `${selected.size} selected` : 'Select all'}
           </span>
         </div>
@@ -269,9 +244,7 @@ export function RosterPanel({
       <div className="flex-1 overflow-y-auto" style={{ maxHeight: 400 }}>
         {players.length === 0 ? (
           <div className="flex items-center justify-center py-10">
-            <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
-              No players yet
-            </p>
+            <p className="text-sm text-muted">No players yet</p>
           </div>
         ) : (
           <>
@@ -304,10 +277,7 @@ export function RosterPanel({
             {noTeam.length > 0 && (
               <div>
                 {teams.length > 0 && (
-                  <div
-                    className="px-4 py-1.5 text-xs font-semibold uppercase tracking-wider"
-                    style={{ color: 'var(--color-muted)', background: 'var(--color-cream)' }}
-                  >
+                  <div className="px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-muted bg-bg">
                     No team
                   </div>
                 )}
@@ -374,7 +344,7 @@ function TeamGroupHeader({
       }}
       aria-label={`Select ${team.name}'s members`}
       className="flex items-center gap-2 px-4 py-1.5 cursor-pointer transition-colors hover:bg-black/5"
-      style={{ background: 'var(--color-cream)' }}
+      style={{ background: 'var(--color-bg)' }}
     >
       <span
         className="w-5 h-5 rounded flex items-center justify-center shrink-0 text-white"
@@ -384,7 +354,7 @@ function TeamGroupHeader({
         <Icon icon={TeamIcon} size="sm" />
       </span>
       <span className="flex-1 text-xs font-semibold truncate">{team.name}</span>
-      <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
+      <span className="text-xs text-muted">
         Connected {connected}/{total}
       </span>
     </div>
@@ -422,7 +392,7 @@ function PlayerRow({
   const presence = PRESENCE[player.presence]
 
   return (
-    <div className="border-b last:border-b-0" style={{ borderColor: 'var(--color-border)' }}>
+    <div className="border-b last:border-b-0 border-border">
       <div className="flex items-center gap-3 px-4 py-2.5">
         <input
           type="checkbox"
@@ -446,7 +416,7 @@ function PlayerRow({
         {/* Name */}
         <span
           className="flex-1 text-sm truncate"
-          style={{ color: isConnected(player) ? 'var(--color-ink)' : 'var(--color-muted)' }}
+          style={{ color: isConnected(player) ? 'var(--color-text)' : 'var(--color-muted)' }}
         >
           {player.name}
         </span>
@@ -455,11 +425,10 @@ function PlayerRow({
         <select
           value={player.teamId ?? ''}
           onChange={e => void onAssignPlayer(player.id, e.target.value || null)}
-          className="text-xs rounded border px-1.5 py-1 shrink-0"
+          className="text-xs rounded border px-1.5 py-1 shrink-0 border-border"
           style={{
-            borderColor: 'var(--color-border)',
-            background: team ? team.color : 'var(--color-cream)',
-            color: team ? '#fff' : 'var(--color-ink)',
+            background: team ? team.color : 'var(--color-bg)',
+            color: team ? '#fff' : 'var(--color-text)',
             maxWidth: 108,
           }}
           aria-label={`Assign ${player.name} to team`}
@@ -477,10 +446,7 @@ function PlayerRow({
         </select>
 
         {/* Score */}
-        <span
-          className="mono text-sm font-bold w-8 text-right shrink-0"
-          style={{ color: 'var(--color-ink)' }}
-        >
+        <span className="mono text-sm font-bold w-8 text-right shrink-0 text-text">
           {player.score}
         </span>
 
@@ -491,7 +457,7 @@ function PlayerRow({
           onClick={() => setShowNotes(s => !s)}
           aria-label={`${player.name} notes`}
           title="Notes"
-          style={{ padding: '0.25rem', color: player.notes ? 'var(--color-gold)' : undefined }}
+          style={{ padding: '0.25rem', color: player.notes ? 'var(--color-accent)' : undefined }}
         >
           <Icon icon={player.notes ? NotebookText : StickyNote} size="sm" aria-hidden />
         </Button>
@@ -503,7 +469,8 @@ function PlayerRow({
           onClick={() => onKick(player.id)}
           aria-label={`Kick ${player.name}`}
           title={`Kick ${player.name}`}
-          style={{ color: 'var(--color-red)', padding: '0.25rem' }}
+          className="text-negative"
+          style={{ padding: '0.25rem' }}
         >
           <Icon icon={UserX} size="sm" aria-hidden />
         </Button>
@@ -520,10 +487,8 @@ function PlayerRow({
             placeholder="Notes for this player…"
             maxLength={2000}
             aria-label={`Notes for ${player.name}`}
-            className="w-full text-sm px-2 py-1.5 rounded border resize-y"
+            className="w-full text-sm px-2 py-1.5 rounded border resize-y border-border bg-bg"
             style={{
-              borderColor: 'var(--color-border)',
-              background: 'var(--color-cream)',
               minHeight: 60,
             }}
           />

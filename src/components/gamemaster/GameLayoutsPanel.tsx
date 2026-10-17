@@ -55,7 +55,7 @@ export function GameLayoutsPanel({ game, onGameChange, disabled = false }: GameL
         <select
           value={target}
           onChange={e => setTarget(e.target.value as LayoutTarget)}
-          className="rounded border border-(--color-border) bg-(--color-cream) px-2 py-1 text-sm text-(--color-ink)"
+          className="rounded border border-(--color-border) bg-(--color-bg) px-2 py-1 text-sm text-(--color-text)"
         >
           {SURFACES.map(t => (
             <option key={t} value={t}>
@@ -75,10 +75,10 @@ export function GameLayoutsPanel({ game, onGameChange, disabled = false }: GameL
               value={assignments?.[slot] ?? ''}
               disabled={disabled}
               onChange={e => void choose(slot, e.target.value || null)}
-              className={`min-w-0 rounded border px-2 py-1 text-sm text-(--color-ink) ${
+              className={`min-w-0 rounded border px-2 py-1 text-sm text-(--color-text) ${
                 assignments?.[slot]
-                  ? 'border-(--color-gold) bg-(--color-gold-light)'
-                  : 'border-(--color-border) bg-(--color-cream)'
+                  ? 'border-(--color-accent) bg-(--color-accent-subtle)'
+                  : 'border-(--color-border) bg-(--color-bg)'
               }`}
             >
               <option value="">Automatic: {automatic(slot)}</option>
@@ -92,7 +92,7 @@ export function GameLayoutsPanel({ game, onGameChange, disabled = false }: GameL
         ))}
       <Link
         to={`/admin/layouts/${game.id}`}
-        className="text-xs text-(--color-gold) underline underline-offset-2"
+        className="text-xs text-(--color-accent) underline underline-offset-2"
       >
         Edit this game's layouts
       </Link>

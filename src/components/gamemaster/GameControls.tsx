@@ -91,10 +91,7 @@ export function GameControls({ game, onGameChange, lifecycle }: GameControlsProp
 
   return (
     <>
-      <div
-        className="flex items-center gap-2 px-4 py-2 border-b shrink-0"
-        style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-      >
+      <div className="flex items-center gap-2 px-4 py-2 border-b shrink-0 border-border bg-surface">
         {/* Back */}
         <Button
           variant="ghost"
@@ -107,26 +104,21 @@ export function GameControls({ game, onGameChange, lifecycle }: GameControlsProp
         </Button>
 
         {/* Game name */}
-        <span
-          className="flex-1 text-sm font-semibold truncate"
-          style={{ color: 'var(--color-ink)' }}
-        >
-          {game.name}
-        </span>
+        <span className="flex-1 text-sm font-semibold truncate text-text">{game.name}</span>
 
         {/* Status badge */}
         {isEnded && (
           <span
-            className="text-xs font-semibold px-2 py-0.5 rounded-full"
-            style={{ background: 'var(--color-muted)22', color: 'var(--color-muted)' }}
+            className="text-xs font-semibold px-2 py-0.5 rounded-full text-muted"
+            style={{ background: 'var(--color-muted)22' }}
           >
             Ended
           </span>
         )}
         {isPaused && !isEnded && (
           <span
-            className="text-xs font-semibold px-2 py-0.5 rounded-full"
-            style={{ background: 'var(--color-gold)22', color: 'var(--color-gold)' }}
+            className="text-xs font-semibold px-2 py-0.5 rounded-full text-accent"
+            style={{ background: 'var(--color-accent)22' }}
           >
             Paused
           </span>

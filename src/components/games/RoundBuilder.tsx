@@ -40,41 +40,28 @@ export function RoundBuilder({ value, onChange, questions, tags }: RoundBuilderP
 
   if (questions.length === 0) {
     return (
-      <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
-        No questions yet. Add some on the Questions page first.
-      </p>
+      <p className="text-sm text-muted">No questions yet. Add some on the Questions page first.</p>
     )
   }
 
   return (
     <div className="flex flex-col gap-3">
       {value.map((round, i) => (
-        <div
-          key={round.id}
-          className="rounded-lg border"
-          style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-        >
+        <div key={round.id} className="rounded-lg border border-border bg-surface">
           <div className="flex items-center gap-2 p-2">
-            <span className="mono text-xs w-5 text-center" style={{ color: 'var(--color-muted)' }}>
-              {i + 1}
-            </span>
+            <span className="mono text-xs w-5 text-center text-muted">{i + 1}</span>
             <input
               value={round.name}
               onChange={e => patch(round.id, { name: e.target.value })}
               aria-label={`Name of round ${i + 1}`}
-              className="flex-1 min-w-0 px-2 py-1 rounded border text-sm outline-none"
-              style={{
-                borderColor: 'var(--color-border)',
-                background: 'var(--color-cream)',
-                color: 'var(--color-ink)',
-              }}
+              className="flex-1 min-w-0 px-2 py-1 rounded border text-sm outline-none border-border bg-bg text-text"
             />
             <button
               onClick={() => setOpenId(openId === round.id ? null : round.id)}
               aria-expanded={openId === round.id}
               className="text-xs px-2 py-1 rounded hover:opacity-70"
               style={{
-                color: round.questionIds.length ? 'var(--color-ink)' : 'var(--color-red)',
+                color: round.questionIds.length ? 'var(--color-text)' : 'var(--color-negative)',
               }}
             >
               {round.questionIds.length} question{round.questionIds.length !== 1 ? 's' : ''}
@@ -155,7 +142,7 @@ function QuestionPicker({
   }
 
   return (
-    <div className="border-t p-2 flex flex-col gap-2" style={{ borderColor: 'var(--color-border)' }}>
+    <div className="border-t p-2 flex flex-col gap-2 border-border">
       <div className="flex gap-2">
         <div className="flex-1">
           <Input
@@ -170,12 +157,7 @@ function QuestionPicker({
             value={tagId}
             onChange={e => setTagId(e.target.value)}
             aria-label="Filter by tag"
-            className="px-2 py-2 rounded border text-sm outline-none"
-            style={{
-              borderColor: 'var(--color-border)',
-              background: 'var(--color-cream)',
-              color: 'var(--color-ink)',
-            }}
+            className="px-2 py-2 rounded border text-sm outline-none border-border bg-bg text-text"
           >
             <option value="">Any tag</option>
             {tags.map(t => (
@@ -200,9 +182,7 @@ function QuestionPicker({
           </li>
         ))}
         {shown.length === 0 && (
-          <li className="px-1 py-2 text-sm" style={{ color: 'var(--color-muted)' }}>
-            No matching questions
-          </li>
+          <li className="px-1 py-2 text-sm text-muted">No matching questions</li>
         )}
       </ul>
     </div>

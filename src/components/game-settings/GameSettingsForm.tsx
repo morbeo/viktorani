@@ -243,12 +243,7 @@ export function GameSettingsForm({
                     const p = gamePresets.find(x => x.id === e.target.value)
                     if (p) onChange(presetPatch(p, presetKeys))
                   }}
-                  className="px-2 py-1 rounded border text-xs outline-none max-w-[12rem]"
-                  style={{
-                    borderColor: 'var(--color-border)',
-                    background: 'var(--color-cream)',
-                    color: 'var(--color-ink)',
-                  }}
+                  className="px-2 py-1 rounded border text-xs outline-none max-w-[12rem] border-border bg-bg text-text"
                 >
                   {!preset && (
                     <option value="" disabled>
@@ -298,7 +293,7 @@ export function GameSettingsForm({
               </Button>
             </div>
           )}
-          <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
+          <p className="text-xs text-muted">
             {preset
               ? preset.description || `Matches the ${preset.label} preset.`
               : 'Custom: the settings below do not match a preset.'}
@@ -311,10 +306,7 @@ export function GameSettingsForm({
           label="Scoring"
           help="Scoring is set when the game is created and can't be changed once it exists."
         >
-          <span
-            className="inline-flex items-center gap-1 text-xs"
-            style={{ color: 'var(--color-muted)' }}
-          >
+          <span className="inline-flex items-center gap-1 text-xs text-muted">
             <Icon icon={Lock} size="sm" />
             {value.scoringEnabled ? 'On' : 'Off'} · set when the game was created
           </span>
@@ -349,8 +341,7 @@ export function GameSettingsForm({
           <button
             type="button"
             aria-expanded={showAdvanced}
-            className="flex items-center gap-2 text-xs text-left transition-opacity hover:opacity-70"
-            style={{ color: 'var(--color-muted)' }}
+            className="flex items-center gap-2 text-xs text-left transition-opacity hover:opacity-70 text-muted"
             onClick={() => setShowAdvanced(s => !s)}
           >
             <span
@@ -380,14 +371,8 @@ export function GameSettingsForm({
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <fieldset
-      className="flex flex-col gap-2 rounded-lg border px-3 pb-3 pt-1"
-      style={{ borderColor: 'var(--color-border)' }}
-    >
-      <legend
-        className="px-1 text-xs font-semibold uppercase tracking-wider"
-        style={{ color: 'var(--color-muted)' }}
-      >
+    <fieldset className="flex flex-col gap-2 rounded-lg border px-3 pb-3 pt-1 border-border">
+      <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-muted">
         {title}
       </legend>
       {children}
@@ -430,7 +415,7 @@ function Toggle({
         disabled={disabled}
         onClick={() => onChange(!checked)}
         className="w-10 h-5 rounded-full transition-all relative shrink-0"
-        style={{ background: checked ? 'var(--color-ink)' : 'var(--color-border)' }}
+        style={{ background: checked ? 'var(--color-text)' : 'var(--color-border)' }}
       >
         <span
           className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all"
@@ -458,8 +443,7 @@ function Segmented<T extends string | null>({
     <div
       role="radiogroup"
       aria-label={label}
-      className="inline-flex rounded border overflow-hidden shrink-0"
-      style={{ borderColor: 'var(--color-border)' }}
+      className="inline-flex rounded border overflow-hidden shrink-0 border-border"
     >
       {options.map(o => {
         const on = o.value === value
@@ -473,8 +457,8 @@ function Segmented<T extends string | null>({
             onClick={() => onChange(o.value)}
             className="px-2.5 py-1 text-xs font-medium transition-all"
             style={{
-              background: on ? 'var(--color-ink)' : 'transparent',
-              color: on ? 'var(--color-cream)' : 'var(--color-muted)',
+              background: on ? 'var(--color-text)' : 'transparent',
+              color: on ? 'var(--color-bg)' : 'var(--color-muted)',
             }}
           >
             {o.label}
@@ -530,8 +514,7 @@ function LimitStepper({
           aria-label={`No limit for ${label}`}
           disabled={disabled || value === 0}
           onClick={() => onChange(0)}
-          className="text-xs underline disabled:opacity-40 disabled:no-underline"
-          style={{ color: 'var(--color-muted)' }}
+          className="text-xs underline disabled:opacity-40 disabled:no-underline text-muted"
         >
           ∞
         </button>
@@ -561,8 +544,8 @@ function DurationInput({
   const seconds = value % 60
   const inputStyle = {
     borderColor: 'var(--color-border)',
-    background: 'var(--color-cream)',
-    color: 'var(--color-ink)',
+    background: 'var(--color-bg)',
+    color: 'var(--color-text)',
   }
   function setDuration(m: number, s: number) {
     onChange(Math.min(MAX_TIMER_SECONDS, Math.max(1, m * 60 + s)))
@@ -571,7 +554,7 @@ function DurationInput({
     <Row label={label}>
       <fieldset className="flex items-end gap-2">
         <legend className="sr-only">{label}</legend>
-        <label className="flex flex-col gap-1 text-xs" style={{ color: 'var(--color-muted)' }}>
+        <label className="flex flex-col gap-1 text-xs text-muted">
           Minutes
           <input
             type="number"
@@ -584,7 +567,7 @@ function DurationInput({
             style={inputStyle}
           />
         </label>
-        <label className="flex flex-col gap-1 text-xs" style={{ color: 'var(--color-muted)' }}>
+        <label className="flex flex-col gap-1 text-xs text-muted">
           Seconds
           <input
             type="number"
@@ -614,10 +597,7 @@ function VisibilityMatrix({
   return (
     <table className="w-full text-sm">
       <caption className="text-left pb-1">
-        <span
-          className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider"
-          style={{ color: 'var(--color-muted)' }}
-        >
+        <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted">
           Visibility
           <HelpTip
             label="About Visibility"
@@ -629,12 +609,7 @@ function VisibilityMatrix({
         <tr>
           <th className="sr-only">Shown</th>
           {VISIBILITY_COLUMNS.map(c => (
-            <th
-              key={c.target}
-              scope="col"
-              className="text-xs font-medium w-20"
-              style={{ color: 'var(--color-muted)' }}
-            >
+            <th key={c.target} scope="col" className="text-xs font-medium w-20 text-muted">
               {c.label}
             </th>
           ))}
@@ -642,7 +617,7 @@ function VisibilityMatrix({
       </thead>
       <tbody>
         {VISIBILITY_ROWS.map(r => (
-          <tr key={r.key} className="border-t" style={{ borderColor: 'var(--color-border)' }}>
+          <tr key={r.key} className="border-t border-border">
             <th scope="row" className="text-left font-normal py-1">
               {r.label}
             </th>
@@ -660,7 +635,7 @@ function VisibilityMatrix({
                     })
                   }
                   className="w-4 h-4 cursor-pointer"
-                  style={{ accentColor: 'var(--color-ink)' }}
+                  style={{ accentColor: 'var(--color-text)' }}
                 />
               </td>
             ))}

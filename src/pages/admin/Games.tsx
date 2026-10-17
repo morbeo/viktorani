@@ -62,8 +62,8 @@ function Steps({ current }: { current: number }) {
             <div
               className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all"
               style={{
-                background: i <= current ? 'var(--color-ink)' : 'var(--color-border)',
-                color: i <= current ? 'var(--color-cream)' : 'var(--color-muted)',
+                background: i <= current ? 'var(--color-text)' : 'var(--color-border)',
+                color: i <= current ? 'var(--color-bg)' : 'var(--color-muted)',
               }}
             >
               {i + 1}
@@ -71,16 +71,14 @@ function Steps({ current }: { current: number }) {
             <span
               className="text-sm"
               style={{
-                color: i === current ? 'var(--color-ink)' : 'var(--color-muted)',
+                color: i === current ? 'var(--color-text)' : 'var(--color-muted)',
                 fontWeight: i === current ? 600 : 400,
               }}
             >
               {label}
             </span>
           </div>
-          {i < steps.length - 1 && (
-            <div className="w-8 h-px mx-3" style={{ background: 'var(--color-border)' }} />
-          )}
+          {i < steps.length - 1 && <div className="w-8 h-px mx-3 bg-border" />}
         </div>
       ))}
     </div>
@@ -153,18 +151,15 @@ function Step2({
   return (
     <div className="flex flex-col gap-4">
       {/* Mode tabs */}
-      <div
-        className="flex rounded-lg border overflow-hidden"
-        style={{ borderColor: 'var(--color-border)' }}
-      >
+      <div className="flex rounded-lg border overflow-hidden border-border">
         {(['existing', 'custom'] as const).map(m => (
           <button
             key={m}
             onClick={() => set('roundMode', m)}
             className="flex-1 py-2 text-sm font-medium transition-all"
             style={{
-              background: state.roundMode === m ? 'var(--color-ink)' : 'transparent',
-              color: state.roundMode === m ? 'var(--color-cream)' : 'var(--color-muted)',
+              background: state.roundMode === m ? 'var(--color-text)' : 'transparent',
+              color: state.roundMode === m ? 'var(--color-bg)' : 'var(--color-muted)',
             }}
           >
             {m === 'existing' ? 'Use existing rounds' : 'Create new rounds'}
@@ -178,9 +173,7 @@ function Step2({
             <Empty icon="◎" message="No rounds yet. Create some in the Questions page first." />
           ) : (
             <>
-              <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
-                Select and order the rounds for this game.
-              </p>
+              <p className="text-sm text-muted">Select and order the rounds for this game.</p>
               <div className="flex flex-col gap-2">
                 {rounds.map(r => {
                   const selected = state.selectedRoundIds.includes(r.id)
@@ -190,24 +183,26 @@ function Step2({
                       key={r.id}
                       className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all"
                       style={{
-                        borderColor: selected ? 'var(--color-gold)' : 'var(--color-border)',
-                        background: selected ? 'var(--color-gold-light)' : 'var(--color-surface)',
+                        borderColor: selected ? 'var(--color-accent)' : 'var(--color-border)',
+                        background: selected
+                          ? 'var(--color-accent-subtle)'
+                          : 'var(--color-surface)',
                       }}
                       onClick={() => toggleRound(r.id)}
                     >
                       <div
                         className="w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 text-xs font-bold"
                         style={{
-                          borderColor: selected ? 'var(--color-gold)' : 'var(--color-border)',
-                          background: selected ? 'var(--color-gold)' : 'transparent',
-                          color: '#fff',
+                          borderColor: selected ? 'var(--color-accent)' : 'var(--color-border)',
+                          background: selected ? 'var(--color-accent)' : 'transparent',
+                          color: 'var(--color-on-accent)',
                         }}
                       >
                         {selected ? pos + 1 : ''}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium">{r.name}</p>
-                        <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
+                        <p className="text-xs text-muted">
                           {r.questionIds.length} question{r.questionIds.length !== 1 ? 's' : ''}
                           {r.description ? ` · ${r.description}` : ''}
                         </p>
@@ -233,7 +228,7 @@ function Step2({
                 })}
               </div>
               {state.selectedRoundIds.length > 0 && (
-                <p className="text-sm font-medium" style={{ color: 'var(--color-green)' }}>
+                <p className="text-sm font-medium text-positive">
                   ✓ {state.selectedRoundIds.length} round
                   {state.selectedRoundIds.length > 1 ? 's' : ''} · {totalQuestions} questions total
                 </p>
@@ -287,17 +282,14 @@ function Step3({ state, rounds }: { state: WizardState; rounds: Round[] }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div
-        className="rounded-lg border overflow-hidden"
-        style={{ borderColor: 'var(--color-border)' }}
-      >
+      <div className="rounded-lg border overflow-hidden border-border">
         {rows.map(([label, value], i) => (
           <div
             key={label}
             className="flex items-center justify-between px-4 py-2.5 text-sm"
             style={{ background: i % 2 === 0 ? 'var(--color-surface)' : 'transparent' }}
           >
-            <span style={{ color: 'var(--color-muted)' }}>{label}</span>
+            <span className="text-muted">{label}</span>
             <span className="font-medium">{value}</span>
           </div>
         ))}
@@ -305,23 +297,15 @@ function Step3({ state, rounds }: { state: WizardState; rounds: Round[] }) {
 
       {selectedRounds.length > 0 && (
         <div>
-          <p
-            className="text-xs font-semibold uppercase tracking-wider mb-2"
-            style={{ color: 'var(--color-muted)' }}
-          >
+          <p className="text-xs font-semibold uppercase tracking-wider mb-2 text-muted">
             Round order
           </p>
           <div className="flex flex-col gap-1.5">
             {selectedRounds.map((r, i) => (
               <div key={r.id} className="flex items-center gap-3 text-sm">
-                <span
-                  className="mono text-xs w-5 text-center"
-                  style={{ color: 'var(--color-muted)' }}
-                >
-                  {i + 1}
-                </span>
+                <span className="mono text-xs w-5 text-center text-muted">{i + 1}</span>
                 <span className="font-medium">{r.name}</span>
-                <span style={{ color: 'var(--color-muted)' }}>· {r.questionIds.length}q</span>
+                <span className="text-muted">· {r.questionIds.length}q</span>
               </div>
             ))}
           </div>
@@ -431,27 +415,21 @@ function GameWizard({
       onClick={onClose}
     >
       <div
-        className="w-full rounded-xl border shadow-2xl flex flex-col"
+        className="w-full rounded-xl border shadow-2xl flex flex-col bg-bg border-border"
         style={{
           maxWidth: 560,
           maxHeight: 'calc(100vh - 80px)',
-          background: 'var(--color-cream)',
-          borderColor: 'var(--color-border)',
         }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div
-          className="flex items-center justify-between px-6 pt-4 pb-3 shrink-0 border-b"
-          style={{ borderColor: 'var(--color-border)' }}
-        >
+        <div className="flex items-center justify-between px-6 pt-4 pb-3 shrink-0 border-b border-border">
           <h3 className="text-lg font-bold" style={{ fontFamily: 'Playfair Display, serif' }}>
             New game
           </h3>
           <button
             onClick={onClose}
-            className="text-xl leading-none hover:opacity-60 transition-opacity"
-            style={{ color: 'var(--color-muted)' }}
+            className="text-xl leading-none hover:opacity-60 transition-opacity text-muted"
           >
             ×
           </button>
@@ -478,10 +456,7 @@ function GameWizard({
         </div>
 
         {/* Pinned footer — always visible */}
-        <div
-          className="flex justify-between gap-2 px-6 py-3 shrink-0 border-t"
-          style={{ borderColor: 'var(--color-border)' }}
-        >
+        <div className="flex justify-between gap-2 px-6 py-3 shrink-0 border-t border-border">
           <Button variant="ghost" onClick={step === 0 ? onClose : () => setStep(s => s - 1)}>
             {step === 0 ? 'Cancel' : '← Back'}
           </Button>
@@ -506,9 +481,9 @@ function GameWizard({
 
 const STATUS_COLOR: Record<string, string> = {
   waiting: 'var(--color-muted)',
-  active: 'var(--color-green)',
-  paused: 'var(--color-gold)',
-  ended: 'var(--color-red)',
+  active: 'var(--color-positive)',
+  paused: 'var(--color-accent)',
+  ended: 'var(--color-negative)',
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -573,7 +548,7 @@ export default function Games() {
   return (
     <AdminLayout title="Games">
       <div className="flex items-center justify-between mb-6">
-        <p style={{ color: 'var(--color-muted)' }}>
+        <p className="text-muted">
           {games.length} game{games.length !== 1 ? 's' : ''}
         </p>
         <Button variant="primary" onClick={() => setWizard(true)}>
@@ -588,10 +563,7 @@ export default function Games() {
           {Object.entries(grouped).map(([group, gs]) =>
             gs.length === 0 ? null : (
               <div key={group}>
-                <p
-                  className="text-xs font-semibold uppercase tracking-wider mb-3"
-                  style={{ color: 'var(--color-muted)' }}
-                >
+                <p className="text-xs font-semibold uppercase tracking-wider mb-3 text-muted">
                   {group === 'active'
                     ? 'Active / Paused'
                     : group === 'waiting'
@@ -603,21 +575,14 @@ export default function Games() {
                     return (
                       <div
                         key={game.id}
-                        className="flex items-center gap-4 p-4 rounded-lg border transition-all hover:shadow-sm"
-                        style={{
-                          borderColor: 'var(--color-border)',
-                          background: 'var(--color-surface)',
-                        }}
+                        className="flex items-center gap-4 p-4 rounded-lg border transition-all hover:shadow-sm border-border bg-surface"
                       >
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-semibold truncate">{game.name}</span>
                             <StatusBadge status={game.status} />
                           </div>
-                          <div
-                            className="flex items-center gap-3 text-xs"
-                            style={{ color: 'var(--color-muted)' }}
-                          >
+                          <div className="flex items-center gap-3 text-xs text-muted">
                             <span className="mono">{game.roomId}</span>
                             <span>·</span>
                             <span>
@@ -641,7 +606,7 @@ export default function Games() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            style={{ color: 'var(--color-red)' }}
+                            className="text-negative"
                             onClick={() =>
                               confirmDestructive ? setDeleting(game) : void handleDelete(game)
                             }
@@ -672,7 +637,7 @@ export default function Games() {
 
       {/* Delete confirm */}
       <Modal open={!!deleting} title="Delete game" onClose={() => setDeleting(null)}>
-        <p className="text-sm mb-5" style={{ color: 'var(--color-muted)' }}>
+        <p className="text-sm mb-5 text-muted">
           Delete <strong>{deleting?.name}</strong>? This will permanently remove all players, buzz
           events, and scores. This cannot be undone.
         </p>

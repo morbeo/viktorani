@@ -105,8 +105,8 @@ export default function TeamForm({ team, open, onClose }: Props) {
       <div className="flex flex-col gap-5">
         {error && (
           <p
-            className="text-xs px-3 py-2 rounded"
-            style={{ color: 'var(--color-red)', background: 'var(--color-red)1a' }}
+            className="text-xs px-3 py-2 rounded text-negative"
+            style={{ background: 'var(--color-negative)1a' }}
           >
             {error}
           </p>
@@ -126,9 +126,7 @@ export default function TeamForm({ team, open, onClose }: Props) {
 
         {/* Color + live badge preview */}
         <div className="flex flex-col gap-2">
-          <span className="text-xs font-medium" style={{ color: 'var(--color-muted)' }}>
-            Colour
-          </span>
+          <span className="text-xs font-medium text-muted">Colour</span>
 
           {/* Preset swatches */}
           <div className="flex gap-2 flex-wrap">
@@ -140,7 +138,7 @@ export default function TeamForm({ team, open, onClose }: Props) {
                 className="w-6 h-6 rounded transition-all"
                 style={{
                   background: c,
-                  outline: form.color === c ? `2px solid var(--color-ink)` : 'none',
+                  outline: form.color === c ? `2px solid var(--color-text)` : 'none',
                   outlineOffset: 2,
                 }}
                 aria-label={`Set colour ${c}`}
@@ -152,8 +150,8 @@ export default function TeamForm({ team, open, onClose }: Props) {
               type="color"
               value={form.color}
               onChange={e => setForm(f => ({ ...f, color: e.target.value }))}
-              className="w-6 h-6 rounded cursor-pointer border"
-              style={{ borderColor: 'var(--color-border)', padding: '1px' }}
+              className="w-6 h-6 rounded cursor-pointer border border-border"
+              style={{ padding: '1px' }}
               aria-label="Custom colour"
             />
           </div>
@@ -192,16 +190,12 @@ export default function TeamForm({ team, open, onClose }: Props) {
 
         {/* Icon picker */}
         <div className="flex flex-col gap-2">
-          <span className="text-xs font-medium" style={{ color: 'var(--color-muted)' }}>
-            Icon
-          </span>
+          <span className="text-xs font-medium text-muted">Icon</span>
           <div
-            className="grid gap-1 overflow-y-auto rounded border p-2"
+            className="grid gap-1 overflow-y-auto rounded border p-2 border-border bg-bg"
             style={{
               gridTemplateColumns: 'repeat(10, 1fr)',
               maxHeight: 160,
-              borderColor: 'var(--color-border)',
-              background: 'var(--color-cream)',
             }}
           >
             {TEAM_ICONS.map(({ key, icon }) => {
@@ -231,9 +225,7 @@ export default function TeamForm({ team, open, onClose }: Props) {
         {/* Label assignment */}
         {labels && labels.length > 0 && (
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium" style={{ color: 'var(--color-muted)' }}>
-              Labels
-            </span>
+            <span className="text-xs font-medium text-muted">Labels</span>
             <div className="flex flex-wrap gap-2">
               {labels.map(label => {
                 const selected = form.labelIds.includes(label.id)

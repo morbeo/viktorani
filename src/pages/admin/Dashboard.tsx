@@ -28,8 +28,7 @@ interface TileProps {
 function StatTile({ icon, label, value, sub, badge, onClick, primary, secondary }: TileProps) {
   return (
     <div
-      className="rounded-lg border flex flex-col overflow-hidden transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
-      style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
+      className="rounded-lg border flex flex-col overflow-hidden transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer border-border bg-surface"
       onClick={onClick}
       role="button"
       tabIndex={0}
@@ -41,10 +40,7 @@ function StatTile({ icon, label, value, sub, badge, onClick, primary, secondary 
         <div className="flex items-start justify-between mb-3">
           <Icon icon={icon} size="md" aria-hidden />
           {badge && (
-            <span
-              className="text-xs font-semibold px-2 py-0.5 rounded-full"
-              style={{ background: 'var(--color-gold-light)', color: 'var(--color-ink)' }}
-            >
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-accent-subtle text-text">
               {badge}
             </span>
           )}
@@ -53,30 +49,25 @@ function StatTile({ icon, label, value, sub, badge, onClick, primary, secondary 
           {value}
         </div>
         <div className="text-sm font-medium mt-0.5">{label}</div>
-        <div className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
-          {sub}
-        </div>
+        <div className="text-xs mt-0.5 text-muted">{sub}</div>
       </div>
 
       {/* Structural footer — flush, no internal padding, split by divider */}
       <div
-        className="flex border-t text-xs font-medium"
-        style={{ borderColor: 'var(--color-border)' }}
+        className="flex border-t text-xs font-medium border-border"
         onClick={e => e.stopPropagation()}
       >
         <button
-          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 transition-colors hover:bg-black/5"
-          style={{ color: 'var(--color-muted)' }}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 transition-colors hover:bg-black/5 text-muted"
           onClick={primary.onClick}
           aria-label={primary.label}
         >
           <Icon icon={primary.icon} size="sm" aria-hidden />
           {primary.label}
         </button>
-        <div className="w-px self-stretch" style={{ background: 'var(--color-border)' }} />
+        <div className="w-px self-stretch bg-border" />
         <button
-          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 transition-colors hover:bg-black/5"
-          style={{ color: 'var(--color-muted)' }}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 transition-colors hover:bg-black/5 text-muted"
           onClick={secondary.onClick}
           aria-label={secondary.label}
         >
@@ -143,7 +134,7 @@ export default function Dashboard() {
         <h1 className="text-4xl font-black mb-1" style={{ fontFamily: 'Playfair Display, serif' }}>
           Viktorani
         </h1>
-        <p style={{ color: 'var(--color-muted)' }}>Your bar trivia command centre.</p>
+        <p className="text-muted">Your bar trivia command centre.</p>
       </div>
 
       {/* Tile grid */}

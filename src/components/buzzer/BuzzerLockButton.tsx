@@ -28,9 +28,9 @@ export function BuzzerLockButton({ isLocked, onToggle, disabled }: BuzzerLockBut
       style={{
         minHeight: pickBySize(step, [32, 48, 56] as const),
         border: '2px solid',
-        borderColor: isLocked ? 'var(--color-red)' : 'var(--color-green)',
-        background: isLocked ? 'var(--color-red)11' : 'var(--color-green)11',
-        color: isLocked ? 'var(--color-red)' : 'var(--color-green)',
+        borderColor: isLocked ? 'var(--color-negative)' : 'var(--color-positive)',
+        background: isLocked ? 'var(--color-negative)11' : 'var(--color-positive)11',
+        color: isLocked ? 'var(--color-negative)' : 'var(--color-positive)',
         cursor: disabled ? 'not-allowed' : 'pointer',
       }}
     >

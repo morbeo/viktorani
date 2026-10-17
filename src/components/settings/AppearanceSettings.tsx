@@ -42,12 +42,8 @@ function Choice<T extends string>({
   return (
     <section>
       <div className="mb-3">
-        <h2 className="font-semibold text-base" style={{ color: 'var(--color-ink)' }}>
-          {title}
-        </h2>
-        <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
-          {hint}
-        </p>
+        <h2 className="font-semibold text-base text-text">{title}</h2>
+        <p className="text-xs mt-0.5 text-muted">{hint}</p>
       </div>
       <div className="flex gap-2">
         {options.map(opt => (
@@ -56,9 +52,9 @@ function Choice<T extends string>({
             onClick={() => onChange(opt.value)}
             className="flex-1 flex flex-col items-center gap-1 rounded-lg border py-3 px-2 text-xs font-medium transition-all"
             style={{
-              borderColor: value === opt.value ? 'var(--color-ink)' : 'var(--color-border)',
-              background: value === opt.value ? 'var(--color-ink)' : 'var(--color-surface)',
-              color: value === opt.value ? 'var(--color-cream)' : 'var(--color-muted)',
+              borderColor: value === opt.value ? 'var(--color-text)' : 'var(--color-border)',
+              background: value === opt.value ? 'var(--color-text)' : 'var(--color-surface)',
+              color: value === opt.value ? 'var(--color-bg)' : 'var(--color-muted)',
             }}
             aria-pressed={value === opt.value}
             aria-label={opt.description}

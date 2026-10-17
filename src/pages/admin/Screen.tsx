@@ -40,11 +40,7 @@ function ScreenTimers({ gameId }: { gameId: string }) {
     <div className="flex flex-wrap justify-center gap-10">
       {shown.map(t => (
         <div key={t.id} className="flex flex-col items-center">
-          {t.label && (
-            <p className="text-2xl" style={{ color: 'var(--color-muted)' }}>
-              {t.label}
-            </p>
-          )}
+          {t.label && <p className="text-2xl text-muted">{t.label}</p>}
           <p className="mono text-7xl font-bold tabular-nums">
             {formatTime(timerRemaining(t, now))}
           </p>

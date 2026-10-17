@@ -38,24 +38,16 @@ export function ScreensPanel({
 
   return (
     <div
-      className="rounded-xl border flex flex-col"
+      className="rounded-xl border flex flex-col bg-surface"
       style={{
-        borderColor: pending.length > 0 ? 'var(--color-gold)' : 'var(--color-border)',
-        background: 'var(--color-surface)',
+        borderColor: pending.length > 0 ? 'var(--color-accent)' : 'var(--color-border)',
       }}
     >
-      <div
-        className="px-4 py-3 border-b text-xs font-semibold uppercase tracking-wider"
-        style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted)' }}
-      >
+      <div className="px-4 py-3 border-b text-xs font-semibold uppercase tracking-wider border-border text-muted">
         Screens
       </div>
       <div className="px-4 py-2 flex items-center gap-2">
-        <span
-          className="flex-1 min-w-0 truncate text-xs mono"
-          style={{ color: 'var(--color-muted)' }}
-          title={url}
-        >
+        <span className="flex-1 min-w-0 truncate text-xs mono text-muted" title={url}>
           {url}
         </span>
         <Button size="sm" variant="ghost" onClick={handleCopy} aria-label="Copy screen URL">
@@ -88,7 +80,7 @@ export function ScreensPanel({
         </ul>
       )}
       {connected.length > 0 && (
-        <ul className="flex flex-col border-t" style={{ borderColor: 'var(--color-border)' }}>
+        <ul className="flex flex-col border-t border-border">
           {connected.map((connId, i) => (
             <li key={connId} className="px-4 py-2 flex items-center gap-2">
               <span className="flex-1 min-w-0 truncate text-sm">Screen {i + 1}</span>

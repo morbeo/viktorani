@@ -19,11 +19,7 @@ type ScreenWidgetProps = WidgetProps<ScreenData>
 /** The line above the question, e.g. the round and question number. */
 export function ScreenHeading({ heading }: { heading: string | null }) {
   if (!heading) return null
-  return (
-    <p className="text-2xl" style={{ color: 'var(--color-muted)' }}>
-      {heading}
-    </p>
-  )
+  return <p className="text-2xl text-muted">{heading}</p>
 }
 
 /** The host's message to the screens. Renders nothing when there isn't one. */
@@ -32,8 +28,7 @@ export function ScreenAnnouncement({ message }: { message?: string | null }) {
   return (
     <p
       role="status"
-      className="w-full max-w-5xl rounded-2xl px-10 py-6 text-4xl font-semibold whitespace-pre-wrap break-words"
-      style={{ background: 'var(--color-ink)', color: 'var(--color-cream)' }}
+      className="w-full max-w-5xl rounded-2xl px-10 py-6 text-4xl font-semibold whitespace-pre-wrap break-words bg-text text-bg"
     >
       {message}
     </p>
@@ -88,14 +83,8 @@ export function ScreenAnswers({ content }: { content: QuestionContent | null }) 
   return (
     <ol className="grid grid-cols-2 gap-4 w-full max-w-4xl text-3xl text-left">
       {content.options.map((option, i) => (
-        <li
-          key={i}
-          className="rounded-xl border px-6 py-4"
-          style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-        >
-          <span className="mono mr-4" style={{ color: 'var(--color-muted)' }}>
-            {String.fromCharCode(65 + i)}
-          </span>
+        <li key={i} className="rounded-xl border px-6 py-4 border-border bg-surface">
+          <span className="mono mr-4 text-muted">{String.fromCharCode(65 + i)}</span>
           {option}
         </li>
       ))}
@@ -119,7 +108,7 @@ export function ScreenScores({ rows }: { rows: ScoreboardRow[] }) {
   )
 }
 
-const PLACE_COLOUR = ['text-(--color-gold)', 'text-(--color-muted)', 'text-(--color-ink)']
+const PLACE_COLOUR = ['text-(--color-accent)', 'text-(--color-muted)', 'text-(--color-text)']
 
 /**
  * The top places, large, with their place numbers: for between rounds or the end of the
@@ -164,8 +153,8 @@ export function ScreenLog({ entries }: { entries: LogEntry[] }) {
   return (
     <ul className="w-full max-w-3xl flex flex-col gap-1 text-left">
       {entries.map(e => (
-        <li key={e.id} className="text-lg" style={{ color: 'var(--color-muted)' }}>
-          <span style={{ color: 'var(--color-ink)' }}>{LOG_KIND_LABELS[e.kind]}</span>
+        <li key={e.id} className="text-lg text-muted">
+          <span className="text-text">{LOG_KIND_LABELS[e.kind]}</span>
           {e.who && ` · ${e.who}`}
           {e.details && ` · ${e.details}`}
         </li>

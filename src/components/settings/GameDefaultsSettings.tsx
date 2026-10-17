@@ -19,10 +19,8 @@ export default function GameDefaultsSettings() {
     <div className="flex flex-col gap-10">
       <section className="flex flex-col gap-4">
         <div>
-          <h2 className="font-semibold text-base" style={{ color: 'var(--color-ink)' }}>
-            New games
-          </h2>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
+          <h2 className="font-semibold text-base text-text">New games</h2>
+          <p className="text-xs mt-0.5 text-muted">
             What the new-game wizard starts with. Existing games keep their settings.
           </p>
         </div>

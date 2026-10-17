@@ -62,43 +62,36 @@ export function RosterBulkActionBar({
   return (
     <>
       <div
-        className="flex items-center gap-2 px-3 py-2 mt-2 rounded-lg border"
-        style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
+        className="flex items-center gap-2 px-3 py-2 mt-2 rounded-lg border border-border bg-surface"
         role="toolbar"
         aria-label="Bulk actions"
       >
-        <span className="text-xs font-medium mr-1" style={{ color: 'var(--color-ink)' }}>
-          {count} selected
-        </span>
+        <span className="text-xs font-medium mr-1 text-text">{count} selected</span>
         <div className="flex-1" />
         <button
           onClick={() => setAction('assign-team')}
-          className="text-xs px-2.5 py-1.5 rounded border transition-colors hover:bg-black/5"
-          style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink)' }}
+          className="text-xs px-2.5 py-1.5 rounded border transition-colors hover:bg-black/5 border-border text-text"
           aria-label="Assign team to selected players"
         >
           Assign team
         </button>
         <button
           onClick={() => setAction('adjust-score')}
-          className="text-xs px-2.5 py-1.5 rounded border transition-colors hover:bg-black/5"
-          style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink)' }}
+          className="text-xs px-2.5 py-1.5 rounded border transition-colors hover:bg-black/5 border-border text-text"
           aria-label="Adjust score for selected players"
         >
           Adjust score
         </button>
         <button
           onClick={() => (confirmDestructive ? setAction('kick') : handleKickConfirm())}
-          className="text-xs px-2.5 py-1.5 rounded border transition-colors hover:bg-black/5"
-          style={{ borderColor: 'var(--color-red)', color: 'var(--color-red)' }}
+          className="text-xs px-2.5 py-1.5 rounded border transition-colors hover:bg-black/5 border-negative text-negative"
           aria-label="Kick selected players"
         >
           Kick
         </button>
         <button
           onClick={onDone}
-          className="text-xs px-2 py-1.5 rounded transition-colors hover:bg-black/5"
-          style={{ color: 'var(--color-muted)' }}
+          className="text-xs px-2 py-1.5 rounded transition-colors hover:bg-black/5 text-muted"
           aria-label="Clear selection"
         >
           ✕
@@ -112,14 +105,13 @@ export function RosterBulkActionBar({
         maxWidth="320px"
       >
         <div className="flex flex-col gap-2">
-          <p className="text-xs mb-1" style={{ color: 'var(--color-muted)' }}>
+          <p className="text-xs mb-1 text-muted">
             Move {count} player{count !== 1 ? 's' : ''} to a team:
           </p>
           <button
             onClick={() => void handleAssignTeam(null)}
             disabled={busy}
-            className="flex items-center gap-2 px-3 py-2 rounded border text-sm text-left transition-colors hover:bg-black/5 disabled:opacity-50"
-            style={{ borderColor: 'var(--color-border)' }}
+            className="flex items-center gap-2 px-3 py-2 rounded border text-sm text-left transition-colors hover:bg-black/5 disabled:opacity-50 border-border"
           >
             No team
           </button>
@@ -128,8 +120,7 @@ export function RosterBulkActionBar({
               key={team.id}
               onClick={() => void handleAssignTeam(team.id)}
               disabled={busy}
-              className="flex items-center gap-2 px-3 py-2 rounded border text-sm text-left transition-colors hover:bg-black/5 disabled:opacity-50"
-              style={{ borderColor: 'var(--color-border)' }}
+              className="flex items-center gap-2 px-3 py-2 rounded border text-sm text-left transition-colors hover:bg-black/5 disabled:opacity-50 border-border"
             >
               <Icon icon={resolveIcon(team.icon)} />
               {team.name}
@@ -145,7 +136,7 @@ export function RosterBulkActionBar({
         maxWidth="280px"
       >
         <div className="flex flex-col gap-3">
-          <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
+          <p className="text-xs text-muted">
             Apply the same change to {count} player{count !== 1 ? 's' : ''}:
           </p>
           <Input
@@ -173,7 +164,7 @@ export function RosterBulkActionBar({
         maxWidth="320px"
       >
         <div className="flex flex-col gap-3">
-          <p className="text-sm" style={{ color: 'var(--color-ink)' }}>
+          <p className="text-sm text-text">
             Kicking {count} player{count !== 1 ? 's' : ''}. They can rejoin if the game allows it.
           </p>
           <div className="flex justify-end gap-2 pt-1">

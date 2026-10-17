@@ -36,13 +36,10 @@ export function ProgressTrack({ pos, seq, className = '' }: ProgressTrackProps) 
     <div className={`flex flex-col gap-2 min-w-0 ${className}`}>
       {/* Label row */}
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-sm font-semibold truncate" style={{ color: 'var(--color-ink)' }}>
+        <span className="text-sm font-semibold truncate text-text">
           {pos.roundIdx >= 0 ? `Round ${pos.roundIdx + 1}` : ''}
         </span>
-        <span
-          className="flex items-center gap-1.5 text-xs shrink-0 mono"
-          style={{ color: 'var(--color-muted)' }}
-        >
+        <span className="flex items-center gap-1.5 text-xs shrink-0 mono text-muted">
           Q {pos.flatIndex + 1} / {seq.length}
           <HelpTip
             label="About the progress track"
@@ -110,11 +107,10 @@ function CollapsedRoundPill({ done }: { done: boolean }) {
 function ActiveRoundPill({ round, questionIdx }: { round: RoundSummary; questionIdx: number }) {
   return (
     <div
-      className="flex items-center gap-1 rounded-full px-2 shrink-0"
+      className="flex items-center gap-1 rounded-full px-2 shrink-0 bg-border"
       style={{
         paddingTop: 4,
         paddingBottom: 4,
-        background: 'var(--color-border)',
         opacity: 1,
       }}
     >

@@ -111,9 +111,9 @@ export default function DebugInfo() {
   return (
     <section>
       <div className="mb-3 flex items-start justify-between gap-4">
-        <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
-          Build and runtime info for bug reports. Demo data adds sample questions, rounds, teams
-          and a ready-to-run game; loading it twice adds nothing.
+        <p className="text-xs mt-0.5 text-muted">
+          Build and runtime info for bug reports. Demo data adds sample questions, rounds, teams and
+          a ready-to-run game; loading it twice adds nothing.
         </p>
         <div className="flex gap-2">
           <Button variant="secondary" size="sm" onClick={handleLoadDemo} disabled={loadingDemo}>
@@ -127,14 +127,11 @@ export default function DebugInfo() {
         </div>
       </div>
 
-      <dl
-        className="rounded-lg border p-4 grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1.5 text-xs"
-        style={{ borderColor: 'var(--color-border)' }}
-      >
+      <dl className="rounded-lg border p-4 grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1.5 text-xs border-border">
         {rows.map(r => (
           <div key={r.label} className="contents">
-            <dt style={{ color: 'var(--color-muted)' }}>{r.label}</dt>
-            <dd className="font-mono break-all" style={{ color: 'var(--color-ink)' }}>
+            <dt className="text-muted">{r.label}</dt>
+            <dd className="font-mono break-all text-text">
               {r.href ? (
                 <a href={r.href} target="_blank" rel="noreferrer" className="underline">
                   {r.value}

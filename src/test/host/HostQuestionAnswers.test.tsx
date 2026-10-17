@@ -31,11 +31,15 @@ describe('HostQuestionAnswers — multiple_choice', () => {
   })
   it('highlights the correct option with green background', () => {
     render(<HostQuestionAnswers question={q({})} />)
-    expect(screen.getByText('Paris').closest('li')).toHaveStyle({ background: '#f0fdf4' })
+    expect(screen.getByText('Paris').closest('li')?.getAttribute('style')).toContain(
+      '--color-positive'
+    )
   })
   it('does not highlight incorrect options', () => {
     render(<HostQuestionAnswers question={q({})} />)
-    expect(screen.getByText('Lyon').closest('li')).not.toHaveStyle({ background: '#f0fdf4' })
+    expect(screen.getByText('Lyon').closest('li')?.getAttribute('style')).not.toContain(
+      '--color-positive'
+    )
   })
   it('shows "✓ Correct" marker only on the correct option', () => {
     render(<HostQuestionAnswers question={q({})} />)
@@ -59,8 +63,12 @@ describe('HostQuestionAnswers — true_false', () => {
   })
   it('highlights True when answer is True', () => {
     render(<HostQuestionAnswers question={tf} />)
-    expect(screen.getByText('True').closest('div')).toHaveStyle({ background: '#f0fdf4' })
-    expect(screen.getByText('False').closest('div')).not.toHaveStyle({ background: '#f0fdf4' })
+    expect(screen.getByText('True').closest('div')?.getAttribute('style')).toContain(
+      '--color-positive'
+    )
+    expect(screen.getByText('False').closest('div')?.getAttribute('style')).not.toContain(
+      '--color-positive'
+    )
   })
   it('highlights False when answer is False', () => {
     render(
@@ -68,8 +76,12 @@ describe('HostQuestionAnswers — true_false', () => {
         question={q({ type: 'true_false', options: ['True', 'False'], answer: 'False' })}
       />
     )
-    expect(screen.getByText('False').closest('div')).toHaveStyle({ background: '#f0fdf4' })
-    expect(screen.getByText('True').closest('div')).not.toHaveStyle({ background: '#f0fdf4' })
+    expect(screen.getByText('False').closest('div')?.getAttribute('style')).toContain(
+      '--color-positive'
+    )
+    expect(screen.getByText('True').closest('div')?.getAttribute('style')).not.toContain(
+      '--color-positive'
+    )
   })
 })
 

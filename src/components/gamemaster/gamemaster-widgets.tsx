@@ -150,7 +150,7 @@ export function GamemasterPlayerListWidget({ data }: GamemasterWidgetProps) {
                   <Icon icon={presence.icon} size="sm" aria-hidden />
                 </span>
                 <span
-                  className={`flex-1 truncate ${isConnected(player) ? 'text-(--color-ink)' : 'text-(--color-muted)'}`}
+                  className={`flex-1 truncate ${isConnected(player) ? 'text-(--color-text)' : 'text-(--color-muted)'}`}
                 >
                   {player.name}
                 </span>

@@ -21,25 +21,21 @@ export default function TimerSettings() {
 
   const inputStyle = {
     borderColor: 'var(--color-border)',
-    background: 'var(--color-cream)',
-    color: 'var(--color-ink)',
+    background: 'var(--color-bg)',
+    color: 'var(--color-text)',
   }
 
   return (
     <section className="flex flex-col gap-4">
       <div>
-        <h2 className="font-semibold text-base" style={{ color: 'var(--color-ink)' }}>
-          New timers
-        </h2>
-        <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
+        <h2 className="font-semibold text-base text-text">New timers</h2>
+        <p className="text-xs mt-0.5 text-muted">
           Defaults for timers created on the game master page. Existing timers keep their settings.
         </p>
       </div>
       <fieldset className="flex items-end gap-2">
-        <legend className="text-xs font-medium mb-1" style={{ color: 'var(--color-muted)' }}>
-          Duration
-        </legend>
-        <label className="flex flex-col gap-1 text-xs" style={{ color: 'var(--color-muted)' }}>
+        <legend className="text-xs font-medium mb-1 text-muted">Duration</legend>
+        <label className="flex flex-col gap-1 text-xs text-muted">
           Minutes
           <input
             type="number"
@@ -51,7 +47,7 @@ export default function TimerSettings() {
             style={inputStyle}
           />
         </label>
-        <label className="flex flex-col gap-1 text-xs" style={{ color: 'var(--color-muted)' }}>
+        <label className="flex flex-col gap-1 text-xs text-muted">
           Seconds
           <input
             type="number"
