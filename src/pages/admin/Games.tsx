@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import AdminLayout from '@/components/AdminLayout'
 import { Button, Badge, Input, Modal, Empty } from '@/components/ui'
 import { GameSettingsForm } from '@/components/game-settings/GameSettingsForm'
+import { GameThemePicker } from '@/components/game-settings/GameThemePicker'
 import { getSettings } from '@/lib/app-settings'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import type { GameDefaults } from '@/lib/app-settings'
@@ -21,6 +22,7 @@ import { createGame, cloneGame, deleteGame } from '@/db/games'
 interface WizardState extends GameDefaults {
   // Step 1
   name: string
+  themeId: string | null
   // Step 2
   roundMode: 'existing' | 'custom'
   selectedRoundIds: string[]
@@ -41,6 +43,7 @@ function describeVisibility(v: TargetVisibility): string {
 function defaultWizard(): WizardState {
   return {
     name: '',
+    themeId: null,
     ...getSettings().gameDefaults,
     roundMode: 'existing',
     selectedRoundIds: [],
@@ -106,6 +109,7 @@ function Step1({
         onChange={e => set('name', e.target.value)}
         placeholder="e.g. Friday Night Trivia"
       />
+      <GameThemePicker value={state.themeId} onChange={themeId => set('themeId', themeId)} />
       <GameSettingsForm value={state} onChange={update} mode="create" />
     </div>
   )
@@ -396,6 +400,7 @@ function GameWizard({
         autoStartTimerOnQuestionShow: state.autoStartTimerOnQuestionShow,
         defaultTimerDuration: state.defaultTimerDuration,
         soundEffectsMuted: state.soundEffectsMuted,
+        themeId: state.themeId,
         createdAt: now,
         updatedAt: now,
       }

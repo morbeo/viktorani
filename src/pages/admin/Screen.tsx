@@ -5,6 +5,7 @@ import { db } from '@/db'
 import type { Game, Timer } from '@/db'
 import { ScreenView } from '@/components/screen/ScreenView'
 import { loadGameLayouts } from '@/db/layouts'
+import { useGameTheme } from '@/hooks/useAppTheme'
 import { loadBuzzesForQuestion } from '@/hooks/useBuzzer'
 import { usePhaseOverride } from '@/hooks/usePhaseOverride'
 import { useScoreboard } from '@/hooks/useScoreboard'
@@ -98,6 +99,7 @@ function LocalScreen({
 export default function Screen() {
   const { id = '' } = useParams<{ id: string }>()
   const game = useLiveQuery(() => db.games.get(id).then(g => g ?? null), [id])
+  useGameTheme(game?.themeId)
   const gameQuestions = useLiveQuery(
     () => db.gameQuestions.where('gameId').equals(id).toArray(),
     [id]

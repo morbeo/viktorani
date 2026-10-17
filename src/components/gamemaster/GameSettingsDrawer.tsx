@@ -2,6 +2,7 @@ import { useEffect, useId, useState } from 'react'
 import { Settings2 } from 'lucide-react'
 import { Button, Icon } from '@/components/ui'
 import { GameSettingsForm } from '@/components/game-settings/GameSettingsForm'
+import { GameThemePicker } from '@/components/game-settings/GameThemePicker'
 import { GameLayoutsPanel } from '@/components/gamemaster/GameLayoutsPanel'
 import type { GameSettings } from '@/components/game-settings/game-settings'
 import { db } from '@/db'
@@ -29,7 +30,7 @@ export function GameSettingsDrawer({ game, onGameChange }: GameSettingsDrawerPro
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [open])
 
-  async function save(settings: Partial<GameSettings>) {
+  async function save(settings: Partial<GameSettings> | Pick<Game, 'themeId'>) {
     const patch: Partial<Game> = { ...settings, updatedAt: Date.now() }
     setSaving(true)
     setError(null)
@@ -78,6 +79,11 @@ export function GameSettingsDrawer({ game, onGameChange }: GameSettingsDrawerPro
             <p className="text-xs text-muted">
               Changes apply at once. Visibility is set on the question panel.
             </p>
+            <GameThemePicker
+              value={game.themeId}
+              onChange={themeId => void save({ themeId })}
+              disabled={saving}
+            />
             <GameSettingsForm
               value={game}
               onChange={patch => void save(patch)}

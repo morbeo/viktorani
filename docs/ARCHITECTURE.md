@@ -146,7 +146,9 @@ from `@fontsource` in `src/fonts.ts` and precached, so they also render offline.
 The app theme is chosen and edited in Settings → Appearance. `AppTheme` resolves it
 (`resolveTheme` in `src/lib/theme.ts`) and sets the token, font and `--icon-stroke` variables
 as inline styles on `<html>`; the CSP blocks injected `<style>` elements. Light or dark stays
-a per-device choice.
+a per-device choice. A game can pick its own theme (`Game.themeId`); the game master and
+screen pages show it through `useGameTheme`, and `LayoutRenderer` sets a layout's colour
+overrides on its own root (`layoutVars`), so they apply over the game theme.
 
 ## Why there is no class hierarchy
 
