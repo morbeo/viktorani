@@ -90,10 +90,7 @@ export default function QrScanner({ onScan, onError }: Props) {
 
   if (status === 'unsupported') {
     return (
-      <div
-        className="flex flex-col items-center justify-center gap-3 py-8 text-center px-4"
-        style={{ color: 'var(--color-muted)' }}
-      >
+      <div className="flex flex-col items-center justify-center gap-3 py-8 text-center px-4 text-muted">
         <span className="text-3xl opacity-40">⊘</span>
         <p className="text-sm">QR scanning requires Chrome 83+, Edge 83+, or Safari 17+.</p>
         <p className="text-xs">Use Chrome or update your browser to enable the camera scanner.</p>
@@ -103,10 +100,7 @@ export default function QrScanner({ onScan, onError }: Props) {
 
   if (status === 'denied') {
     return (
-      <div
-        className="flex flex-col items-center justify-center gap-3 py-8 text-center px-4"
-        style={{ color: 'var(--color-muted)' }}
-      >
+      <div className="flex flex-col items-center justify-center gap-3 py-8 text-center px-4 text-muted">
         <span className="text-3xl opacity-40">⊘</span>
         <p className="text-sm">Camera access was denied.</p>
         <p className="text-xs">Allow camera permission in your browser settings and try again.</p>
@@ -140,7 +134,7 @@ export default function QrScanner({ onScan, onError }: Props) {
           />
         </div>
       </div>
-      <p className="text-xs text-center" style={{ color: 'var(--color-muted)' }}>
+      <p className="text-xs text-center text-muted">
         {status === 'starting' ? 'Starting camera...' : 'Point at a Viktorani QR code'}
       </p>
     </div>

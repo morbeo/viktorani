@@ -23,24 +23,21 @@ function isTied(a: BuzzEvent, b: BuzzEvent): boolean {
 }
 
 const RANK_COLORS = [
-  { bg: 'var(--color-gold)22', border: 'var(--color-gold)', color: 'var(--color-gold)' },
+  { bg: 'var(--color-accent)22', border: 'var(--color-accent)', color: 'var(--color-accent)' },
   { bg: 'var(--color-border)', border: 'var(--color-border)', color: 'var(--color-muted)' },
   { bg: 'var(--color-border)', border: 'var(--color-border)', color: 'var(--color-muted)' },
 ]
 
 const DECISION_STYLE: Record<GmDecision, React.CSSProperties> = {
-  Correct: { background: 'var(--color-green)22', color: 'var(--color-green)' },
-  Incorrect: { background: 'var(--color-red)22', color: 'var(--color-red)' },
+  Correct: { background: 'var(--color-positive)22', color: 'var(--color-positive)' },
+  Incorrect: { background: 'var(--color-negative)22', color: 'var(--color-negative)' },
   Skip: { background: 'var(--color-muted)22', color: 'var(--color-muted)' },
 }
 
 export function BuzzList({ buzzes, allBuzzes, onAdjudicate, showAll }: BuzzListProps) {
   if (buzzes.length === 0) {
     return (
-      <div
-        className="flex items-center justify-center py-10 rounded-xl border"
-        style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted)' }}
-      >
+      <div className="flex items-center justify-center py-10 rounded-xl border border-border text-muted">
         <span className="text-sm">No buzzes yet</span>
       </div>
     )
@@ -74,7 +71,7 @@ export function BuzzList({ buzzes, allBuzzes, onAdjudicate, showAll }: BuzzListP
             className="rounded-xl border p-4 flex items-center gap-3 transition-all"
             style={{
               borderColor: buzz.isFalseStart
-                ? 'var(--color-gold)'
+                ? 'var(--color-accent)'
                 : buzz.gmDecision
                   ? 'var(--color-border)'
                   : idx === 0
@@ -103,8 +100,8 @@ export function BuzzList({ buzzes, allBuzzes, onAdjudicate, showAll }: BuzzListP
 
                 {buzz.isFalseStart && (
                   <span
-                    className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded font-medium"
-                    style={{ background: 'var(--color-gold)22', color: 'var(--color-gold)' }}
+                    className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded font-medium text-accent"
+                    style={{ background: 'var(--color-accent)22' }}
                   >
                     <Icon icon={TriangleAlert} size="sm" />
                     False Start
@@ -112,21 +109,15 @@ export function BuzzList({ buzzes, allBuzzes, onAdjudicate, showAll }: BuzzListP
                 )}
                 {tied && (
                   <span
-                    className="text-xs px-1.5 py-0.5 rounded font-medium"
-                    style={{ background: 'var(--color-muted)22', color: 'var(--color-muted)' }}
+                    className="text-xs px-1.5 py-0.5 rounded font-medium text-muted"
+                    style={{ background: 'var(--color-muted)22' }}
                   >
                     Tied
                   </span>
                 )}
-                {hiddenCount > 0 && (
-                  <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
-                    +{hiddenCount} more
-                  </span>
-                )}
+                {hiddenCount > 0 && <span className="text-xs text-muted">+{hiddenCount} more</span>}
               </div>
-              <div className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
-                {elapsedLabel(buzz, first)}
-              </div>
+              <div className="text-xs mt-0.5 text-muted">{elapsedLabel(buzz, first)}</div>
             </div>
 
             {/* Decision or action buttons */}
@@ -143,8 +134,8 @@ export function BuzzList({ buzzes, allBuzzes, onAdjudicate, showAll }: BuzzListP
                   size="sm"
                   onClick={() => onAdjudicate(buzz.id, 'Correct')}
                   aria-label="Mark correct"
+                  className="bg-positive"
                   style={{
-                    background: 'var(--color-green)',
                     color: '#fff',
                     minHeight: 36,
                     minWidth: 36,
@@ -158,8 +149,8 @@ export function BuzzList({ buzzes, allBuzzes, onAdjudicate, showAll }: BuzzListP
                   size="sm"
                   onClick={() => onAdjudicate(buzz.id, 'Incorrect')}
                   aria-label="Mark incorrect"
+                  className="bg-negative"
                   style={{
-                    background: 'var(--color-red)',
                     color: '#fff',
                     minHeight: 36,
                     minWidth: 36,

@@ -69,10 +69,8 @@ export default function ManageTags() {
     <section>
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h2 className="font-semibold text-base" style={{ color: 'var(--color-ink)' }}>
-            Tags
-          </h2>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
+          <h2 className="font-semibold text-base text-text">Tags</h2>
+          <p className="text-xs mt-0.5 text-muted">
             Label questions for filtering — tags replace categories
           </p>
         </div>
@@ -85,29 +83,23 @@ export default function ManageTags() {
 
       {error && (
         <p
-          className="text-xs mb-3 px-3 py-2 rounded"
-          style={{ color: 'var(--color-red)', background: 'var(--color-red)1a' }}
+          className="text-xs mb-3 px-3 py-2 rounded text-negative"
+          style={{ background: 'var(--color-negative)1a' }}
         >
           {error}
         </p>
       )}
 
-      <div
-        className="rounded-lg overflow-hidden border"
-        style={{ borderColor: 'var(--color-border)' }}
-      >
+      <div className="rounded-lg overflow-hidden border border-border">
         {/* Add row */}
         {editing?.id === null && (
-          <div
-            className="flex items-center gap-2 px-3 py-2 border-b"
-            style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-          >
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-surface">
             <input
               type="color"
               value={editing.color}
               onChange={e => setEditing(s => s && { ...s, color: e.target.value })}
-              className="w-7 h-7 rounded cursor-pointer border"
-              style={{ borderColor: 'var(--color-border)', padding: '1px' }}
+              className="w-7 h-7 rounded cursor-pointer border border-border"
+              style={{ padding: '1px' }}
               aria-label="Tag colour"
             />
             <Input
@@ -131,28 +123,19 @@ export default function ManageTags() {
         )}
 
         {tags?.length === 0 && !editing && (
-          <p className="px-4 py-6 text-sm text-center" style={{ color: 'var(--color-muted)' }}>
-            No tags yet — add one above
-          </p>
+          <p className="px-4 py-6 text-sm text-center text-muted">No tags yet — add one above</p>
         )}
 
         {tags?.map(tag => (
-          <div
-            key={tag.id}
-            className="border-b last:border-b-0"
-            style={{ borderColor: 'var(--color-border)' }}
-          >
+          <div key={tag.id} className="border-b last:border-b-0 border-border">
             {isEditing(tag.id) ? (
-              <div
-                className="flex items-center gap-2 px-3 py-2"
-                style={{ background: 'var(--color-surface)' }}
-              >
+              <div className="flex items-center gap-2 px-3 py-2 bg-surface">
                 <input
                   type="color"
                   value={editing!.color}
                   onChange={e => setEditing(s => s && { ...s, color: e.target.value })}
-                  className="w-7 h-7 rounded cursor-pointer border"
-                  style={{ borderColor: 'var(--color-border)', padding: '1px' }}
+                  className="w-7 h-7 rounded cursor-pointer border border-border"
+                  style={{ padding: '1px' }}
                   aria-label="Tag colour"
                 />
                 <Input
@@ -179,21 +162,17 @@ export default function ManageTags() {
                   style={{ background: tag.color }}
                   aria-hidden
                 />
-                <span className="flex-1 text-sm" style={{ color: 'var(--color-ink)' }}>
-                  {tag.name}
-                </span>
+                <span className="flex-1 text-sm text-text">{tag.name}</span>
                 <button
                   onClick={() => startEditing({ id: tag.id, name: tag.name, color: tag.color })}
-                  className="text-xs px-2 py-1 rounded transition-colors hover:bg-black/5"
-                  style={{ color: 'var(--color-muted)' }}
+                  className="text-xs px-2 py-1 rounded transition-colors hover:bg-black/5 text-muted"
                   aria-label={`Edit ${tag.name}`}
                 >
                   Edit
                 </button>
                 <button
                   onClick={() => remove(tag)}
-                  className="text-xs px-2 py-1 rounded transition-colors hover:bg-black/5"
-                  style={{ color: 'var(--color-red)' }}
+                  className="text-xs px-2 py-1 rounded transition-colors hover:bg-black/5 text-negative"
                   aria-label={`Delete ${tag.name}`}
                 >
                   Delete

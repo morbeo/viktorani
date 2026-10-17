@@ -34,17 +34,13 @@ export function RoundBoundary({ roundName, roundIdx, onDone }: RoundBoundaryProp
         animation: 'fadeIn 0.15s ease',
       }}
     >
-      <p
-        className="text-xs font-semibold uppercase tracking-widest"
-        style={{ color: 'var(--color-gold)' }}
-      >
+      <p className="text-xs font-semibold uppercase tracking-widest text-accent">
         Round {roundIdx + 1}
       </p>
       <h2
-        className="text-4xl font-black text-center px-8"
+        className="text-4xl font-black text-center px-8 text-bg"
         style={{
           fontFamily: 'Playfair Display, serif',
-          color: 'var(--color-cream)',
         }}
       >
         {roundName}

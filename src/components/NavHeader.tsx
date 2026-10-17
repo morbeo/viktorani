@@ -15,10 +15,7 @@ export function NavHeader({ pos, seq, onPrev, onNext }: NavHeaderProps) {
   const arrowSize = pickBySize(useControlSizeStep(), ['w-6 h-6', 'w-8 h-8', 'w-10 h-10'] as const)
 
   return (
-    <div
-      className="px-6 py-3 border-b flex items-center gap-4"
-      style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-    >
+    <div className="px-6 py-3 border-b flex items-center gap-4 border-border bg-surface">
       {/* Prev */}
       <button
         onClick={onPrev}
@@ -26,7 +23,7 @@ export function NavHeader({ pos, seq, onPrev, onNext }: NavHeaderProps) {
         aria-label="Previous question"
         title="Previous question (←)"
         className={`${arrowSize} rounded flex items-center justify-center transition-all hover:bg-black/5 disabled:opacity-30 disabled:cursor-not-allowed shrink-0`}
-        style={{ color: 'var(--color-ink)' }}
+        style={{ color: 'var(--color-text)' }}
       >
         <Icon icon={ChevronLeft} size="md" />
       </button>
@@ -41,7 +38,7 @@ export function NavHeader({ pos, seq, onPrev, onNext }: NavHeaderProps) {
         aria-label="Next question"
         title="Next question (→)"
         className={`${arrowSize} rounded flex items-center justify-center transition-all hover:bg-black/5 disabled:opacity-30 disabled:cursor-not-allowed shrink-0`}
-        style={{ color: 'var(--color-ink)' }}
+        style={{ color: 'var(--color-text)' }}
       >
         <Icon icon={ChevronRight} size="md" />
       </button>

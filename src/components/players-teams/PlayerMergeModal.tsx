@@ -41,31 +41,20 @@ export default function PlayerMergeModal({ conflict, open, onApply, onCancel }: 
       maxWidth="440px"
     >
       <div className="flex flex-col gap-0 -mx-6 -mb-6">
-        <p
-          className="text-xs px-6 py-3 border-b"
-          style={{ color: 'var(--color-muted)', borderColor: 'var(--color-border)' }}
-        >
+        <p className="text-xs px-6 py-3 border-b text-muted border-border">
           Incoming QR matches an existing record. Choose which value to keep per field.
         </p>
 
         {/* Column headers */}
-        <div className="flex border-b" style={{ borderColor: 'var(--color-border)' }}>
+        <div className="flex border-b border-border">
           <div className="w-20 shrink-0" />
-          <div
-            className="flex-1 text-xs font-medium px-3 py-2 border-r"
-            style={{
-              color: 'var(--color-muted)',
-              background: 'var(--color-surface)',
-              borderColor: 'var(--color-border)',
-            }}
-          >
+          <div className="flex-1 text-xs font-medium px-3 py-2 border-r text-muted bg-surface border-border">
             Current
           </div>
           <div
-            className="flex-1 text-xs font-medium px-3 py-2"
+            className="flex-1 text-xs font-medium px-3 py-2 text-positive"
             style={{
-              color: 'var(--color-green)',
-              background: 'color-mix(in srgb, #2d7a46 6%, transparent)',
+              background: 'color-mix(in srgb, var(--color-positive) 6%, transparent)',
             }}
           >
             Incoming (QR)
@@ -96,10 +85,7 @@ export default function PlayerMergeModal({ conflict, open, onApply, onCancel }: 
 
         {/* Collapsed unchanged fields hint */}
         {diffs.length < 2 && (
-          <p
-            className="text-xs text-center py-2 border-b italic"
-            style={{ color: 'var(--color-muted)', borderColor: 'var(--color-border)' }}
-          >
+          <p className="text-xs text-center py-2 border-b italic text-muted border-border">
             {2 - diffs.length} unchanged field{2 - diffs.length !== 1 ? 's' : ''} — identical, no
             choice needed
           </p>
@@ -135,23 +121,13 @@ interface DiffRowProps {
 
 function DiffRow({ label, currentValue, incomingValue, hasDiff, choice, onChoose }: DiffRowProps) {
   return (
-    <div className="flex border-b" style={{ borderColor: 'var(--color-border)' }}>
-      <div
-        className="w-20 shrink-0 flex items-center px-3 py-3 text-xs border-r"
-        style={{ color: 'var(--color-muted)', borderColor: 'var(--color-border)' }}
-      >
+    <div className="flex border-b border-border">
+      <div className="w-20 shrink-0 flex items-center px-3 py-3 text-xs border-r text-muted border-border">
         {label}
       </div>
 
       {/* Current */}
-      <div
-        className="flex-1 flex items-center gap-2 px-3 py-3 border-r text-xs"
-        style={{
-          background: 'var(--color-surface)',
-          borderColor: 'var(--color-border)',
-          color: 'var(--color-ink)',
-        }}
-      >
+      <div className="flex-1 flex items-center gap-2 px-3 py-3 border-r text-xs bg-surface border-border text-text">
         {hasDiff && (
           <input
             type="radio"
@@ -167,10 +143,11 @@ function DiffRow({ label, currentValue, incomingValue, hasDiff, choice, onChoose
 
       {/* Incoming */}
       <div
-        className="flex-1 flex items-center gap-2 px-3 py-3 text-xs"
+        className="flex-1 flex items-center gap-2 px-3 py-3 text-xs text-text"
         style={{
-          background: hasDiff ? 'color-mix(in srgb, #2d7a46 6%, transparent)' : 'transparent',
-          color: 'var(--color-ink)',
+          background: hasDiff
+            ? 'color-mix(in srgb, var(--color-positive) 6%, transparent)'
+            : 'transparent',
         }}
       >
         {hasDiff && (

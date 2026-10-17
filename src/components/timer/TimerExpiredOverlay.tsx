@@ -78,7 +78,7 @@ export function TimerExpiredOverlay({
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={circumference * (1 - progress)}
-            style={{ stroke: 'var(--color-red)', transition: 'stroke-dashoffset 0.1s linear' }}
+            style={{ stroke: 'var(--color-negative)', transition: 'stroke-dashoffset 0.1s linear' }}
             transform="rotate(-90 24 24)"
           />
         </svg>

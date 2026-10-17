@@ -36,8 +36,7 @@ export function ScreenView({
       target="screen"
       data={data}
       breakpoint="tv"
-      className="min-h-screen px-12 pb-10 text-center"
-      style={{ background: 'var(--color-cream)', color: 'var(--color-ink)' }}
+      className="min-h-screen px-12 pb-10 text-center bg-bg text-text"
       cellClassName="mt-10 flex flex-col items-center gap-10"
     />
   )

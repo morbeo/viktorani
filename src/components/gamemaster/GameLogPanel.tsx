@@ -89,21 +89,17 @@ function KindFilterButton({
                 checked={selected.has(k)}
                 onChange={() => onToggle(k)}
                 className="w-4 h-4 cursor-pointer"
-                style={{ accentColor: 'var(--color-ink)' }}
+                style={{ accentColor: 'var(--color-text)' }}
               />
               {LOG_KIND_LABELS[k]}
             </label>
           ))}
         </div>
-        <div
-          className="flex items-center justify-between pt-3 mt-2 border-t"
-          style={{ borderColor: 'var(--color-border)' }}
-        >
+        <div className="flex items-center justify-between pt-3 mt-2 border-t border-border">
           <button
             onClick={onClear}
             disabled={selected.size === 0}
-            className="text-xs underline disabled:no-underline disabled:opacity-40"
-            style={{ color: 'var(--color-muted)' }}
+            className="text-xs underline disabled:no-underline disabled:opacity-40 text-muted"
           >
             Clear
           </button>
@@ -214,20 +210,9 @@ export function GameLogPanel({ game }: { game: Game }) {
   const hasFilters = selectedKinds.size > 0 || selectedWho !== '' || selectedRound !== ''
 
   return (
-    <div
-      className="rounded-xl border flex flex-col"
-      style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-    >
-      <div
-        className="px-4 py-3 border-b flex items-center justify-between gap-2"
-        style={{ borderColor: 'var(--color-border)' }}
-      >
-        <span
-          className="text-xs font-semibold uppercase tracking-wider"
-          style={{ color: 'var(--color-muted)' }}
-        >
-          Game log
-        </span>
+    <div className="rounded-xl border flex flex-col border-border bg-surface">
+      <div className="px-4 py-3 border-b flex items-center justify-between gap-2 border-border">
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted">Game log</span>
         <div className="flex gap-2">
           {(['csv', 'json'] as const).map(format => (
             <Button
@@ -244,10 +229,7 @@ export function GameLogPanel({ game }: { game: Game }) {
         </div>
       </div>
 
-      <div
-        className="px-4 py-3 border-b flex flex-wrap items-end gap-3"
-        style={{ borderColor: 'var(--color-border)' }}
-      >
+      <div className="px-4 py-3 border-b flex flex-wrap items-end gap-3 border-border">
         <Input
           placeholder="Search…"
           aria-label="Search the game log"
@@ -288,8 +270,7 @@ export function GameLogPanel({ game }: { game: Game }) {
               setSelectedWho('')
               setSelectedRound('')
             }}
-            className="text-xs underline"
-            style={{ color: 'var(--color-muted)' }}
+            className="text-xs underline text-muted"
           >
             Clear filters
           </button>
@@ -297,16 +278,13 @@ export function GameLogPanel({ game }: { game: Game }) {
       </div>
 
       {rows.length === 0 ? (
-        <p className="text-sm text-center py-8" style={{ color: 'var(--color-muted)' }}>
+        <p className="text-sm text-center py-8 text-muted">
           {!data ? 'Loading…' : allRows.length === 0 ? 'Nothing has happened yet' : 'No matches'}
         </p>
       ) : (
         <table className="w-full text-sm border-collapse">
           <thead>
-            <tr
-              className="text-xs text-left border-b"
-              style={{ color: 'var(--color-muted)', borderColor: 'var(--color-border)' }}
-            >
+            <tr className="text-xs text-left border-b text-muted border-border">
               <SortHeader
                 label="Time"
                 sortKey="at"
@@ -332,18 +310,15 @@ export function GameLogPanel({ game }: { game: Game }) {
           </thead>
           <tbody>
             {rows.slice(0, LOG_LIMIT).map(r => (
-              <tr key={r.id} className="border-b" style={{ borderColor: 'var(--color-border)' }}>
-                <td
-                  className="px-4 py-1.5 whitespace-nowrap tabular-nums"
-                  style={{ color: 'var(--color-muted)' }}
-                >
+              <tr key={r.id} className="border-b border-border">
+                <td className="px-4 py-1.5 whitespace-nowrap tabular-nums text-muted">
                   {formatTime(r.at)}
                 </td>
                 <td className="py-1.5 whitespace-nowrap">{LOG_KIND_LABELS[r.kind]}</td>
                 <td className="px-4 py-1.5 break-words">
                   {r.who && <span className="font-medium">{r.who}</span>}
                   {r.who && r.details && ' · '}
-                  {r.details && <span style={{ color: 'var(--color-muted)' }}>{r.details}</span>}
+                  {r.details && <span className="text-muted">{r.details}</span>}
                 </td>
               </tr>
             ))}
@@ -351,7 +326,7 @@ export function GameLogPanel({ game }: { game: Game }) {
         </table>
       )}
       {rows.length > LOG_LIMIT && (
-        <p className="text-xs px-4 py-2" style={{ color: 'var(--color-muted)' }}>
+        <p className="text-xs px-4 py-2 text-muted">
           Showing the latest {LOG_LIMIT} of {rows.length}. Download the log to see all of them.
         </p>
       )}

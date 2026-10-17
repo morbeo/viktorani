@@ -32,7 +32,7 @@ export function WidgetPalette({ target, onAdd }: WidgetPaletteProps) {
               }}
               onClick={() => onAdd(type)}
               aria-label={`Add ${WIDGET_REGISTRY[type].label}`}
-              className="w-full cursor-grab rounded border border-(--color-border) bg-(--color-cream) px-3 py-1.5 text-left text-sm text-(--color-ink) hover:bg-(--color-gold-light)"
+              className="w-full cursor-grab rounded border border-(--color-border) bg-(--color-bg) px-3 py-1.5 text-left text-sm text-(--color-text) hover:bg-(--color-accent-subtle)"
             >
               {WIDGET_REGISTRY[type].label}
             </button>

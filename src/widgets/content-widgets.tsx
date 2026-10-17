@@ -24,7 +24,7 @@ export function TextWidget({ config }: WidgetProps<unknown, TextConfig>) {
   if (!config.text.trim()) return null
   return (
     <p
-      className={`whitespace-pre-wrap break-words text-(--color-ink) ${TEXT_SIZE[config.size]} ${TEXT_ALIGN[config.align]}`}
+      className={`whitespace-pre-wrap break-words text-(--color-text) ${TEXT_SIZE[config.size]} ${TEXT_ALIGN[config.align]}`}
     >
       {config.text}
     </p>

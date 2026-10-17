@@ -63,30 +63,19 @@ export function MessagePanel({ players, teams, onSend }: MessagePanelProps) {
   }
 
   return (
-    <div
-      className="rounded-xl border flex flex-col"
-      style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-    >
-      <div
-        className="px-4 py-3 border-b text-xs font-semibold uppercase tracking-wider"
-        style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted)' }}
-      >
+    <div className="rounded-xl border flex flex-col border-border bg-surface">
+      <div className="px-4 py-3 border-b text-xs font-semibold uppercase tracking-wider border-border text-muted">
         Message
       </div>
       <div className="px-4 py-3 flex flex-col gap-2">
-        <label htmlFor={`${id}-to`} className="text-xs" style={{ color: 'var(--color-muted)' }}>
+        <label htmlFor={`${id}-to`} className="text-xs text-muted">
           To
         </label>
         <select
           id={`${id}-to`}
           value={selected.value}
           onChange={e => setTo(e.target.value)}
-          className="px-3 py-2 rounded border text-sm outline-none"
-          style={{
-            borderColor: 'var(--color-border)',
-            background: 'var(--color-cream)',
-            color: 'var(--color-ink)',
-          }}
+          className="px-3 py-2 rounded border text-sm outline-none border-border bg-bg text-text"
         >
           {BROADCASTS.map(o => (
             <option key={o.value} value={o.value}>
@@ -112,7 +101,7 @@ export function MessagePanel({ players, teams, onSend }: MessagePanelProps) {
             </optgroup>
           )}
         </select>
-        <label htmlFor={`${id}-text`} className="text-xs" style={{ color: 'var(--color-muted)' }}>
+        <label htmlFor={`${id}-text`} className="text-xs text-muted">
           Message
         </label>
         <textarea
@@ -121,15 +110,10 @@ export function MessagePanel({ players, teams, onSend }: MessagePanelProps) {
           maxLength={MAX_MESSAGE_LENGTH}
           rows={2}
           onChange={e => setText(e.target.value)}
-          className="px-3 py-2 rounded border text-sm outline-none resize-y"
-          style={{
-            borderColor: 'var(--color-border)',
-            background: 'var(--color-cream)',
-            color: 'var(--color-ink)',
-          }}
+          className="px-3 py-2 rounded border text-sm outline-none resize-y border-border bg-bg text-text"
         />
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs mono" style={{ color: 'var(--color-muted)' }}>
+          <span className="text-xs mono text-muted">
             {text.length}/{MAX_MESSAGE_LENGTH}
           </span>
           <div className="flex gap-2">
@@ -142,7 +126,7 @@ export function MessagePanel({ players, teams, onSend }: MessagePanelProps) {
           </div>
         </div>
         {result && (
-          <p role="status" className="text-xs" style={{ color: 'var(--color-muted)' }}>
+          <p role="status" className="text-xs text-muted">
             {result}
           </p>
         )}

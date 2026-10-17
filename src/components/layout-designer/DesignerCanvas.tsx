@@ -153,7 +153,7 @@ export function DesignerCanvas({
       ref={canvasRef}
       role="application"
       aria-label="Layout canvas"
-      className="relative grid grid-cols-12 auto-rows-[48px] gap-0 rounded border border-dashed border-(--color-border) bg-(--color-cream) min-h-96 select-none"
+      className="relative grid grid-cols-12 auto-rows-[48px] gap-0 rounded border border-dashed border-(--color-border) bg-(--color-bg) min-h-96 select-none"
       onPointerDown={() => onSelect(null)}
       onPointerMove={track}
       onPointerUp={end}
@@ -191,7 +191,7 @@ export function DesignerCanvas({
               onKeyDown={e => handleKey(e, widget)}
               className={`relative z-10 m-0.5 flex items-center justify-center rounded border-2 text-sm font-medium cursor-move touch-none ${
                 selected
-                  ? 'border-(--color-gold) bg-(--color-gold-light)'
+                  ? 'border-(--color-accent) bg-(--color-accent-subtle)'
                   : 'border-(--color-border) bg-(--color-surface)'
               }`}
               style={{
@@ -199,7 +199,7 @@ export function DesignerCanvas({
                 gridRow: `${rect.y + 1} / span ${rect.h}`,
               }}
             >
-              <span className="truncate px-2 text-(--color-ink)">
+              <span className="truncate px-2 text-(--color-text)">
                 {label}
                 {overridden && <span className="text-(--color-muted)"> · own placement</span>}
               </span>

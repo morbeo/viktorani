@@ -9,14 +9,12 @@ export default function SoundSettings() {
   return (
     <section className="flex flex-col gap-4">
       <div>
-        <h2 className="font-semibold text-base" style={{ color: 'var(--color-ink)' }}>
-          Sound
-        </h2>
-        <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
+        <h2 className="font-semibold text-base text-text">Sound</h2>
+        <p className="text-xs mt-0.5 text-muted">
           Applies to every sound on this device, such as the timer beep.
         </p>
       </div>
-      <label className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-ink)' }}>
+      <label className="flex items-center gap-2 text-sm text-text">
         <input
           type="checkbox"
           checked={settings.soundMuted}
@@ -24,7 +22,7 @@ export default function SoundSettings() {
         />
         Mute all sounds
       </label>
-      <label className="flex flex-col gap-1 text-sm" style={{ color: 'var(--color-ink)' }}>
+      <label className="flex flex-col gap-1 text-sm text-text">
         <span>
           Volume <span className="mono">{settings.soundVolume}%</span>
         </span>

@@ -41,21 +41,18 @@ export default function AdminLayout({ children, title }: Props) {
   const live = useLiveGames()
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: 'var(--color-cream)' }}>
+    <div className="flex h-screen overflow-hidden bg-bg">
       {/* Sidebar */}
       <aside
-        className="flex flex-col border-r shrink-0 transition-all duration-200"
+        className="flex flex-col border-r shrink-0 transition-all duration-200 border-border bg-surface"
         style={{
           width: collapsed ? 52 : 224,
-          borderColor: 'var(--color-border)',
-          background: 'var(--color-surface)',
         }}
       >
         {/* Logo + collapse toggle */}
         <div
-          className="border-b flex items-center justify-between shrink-0 overflow-hidden"
+          className="border-b flex items-center justify-between shrink-0 overflow-hidden border-border"
           style={{
-            borderColor: 'var(--color-border)',
             minHeight: 64,
             padding: collapsed ? '0 10px' : '0 20px',
           }}
@@ -63,22 +60,19 @@ export default function AdminLayout({ children, title }: Props) {
           {!collapsed && (
             <div>
               <h1
-                className="text-xl font-black tracking-tight"
-                style={{ fontFamily: 'Playfair Display, serif', color: 'var(--color-ink)' }}
+                className="text-xl font-black tracking-tight text-text"
+                style={{ fontFamily: 'Playfair Display, serif' }}
               >
                 Viktorani
               </h1>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
-                Bar Trivia
-              </p>
+              <p className="text-xs mt-0.5 text-muted">Bar Trivia</p>
             </div>
           )}
           <button
             onClick={() => setCollapsed(c => !c)}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="flex items-center justify-center rounded transition-all hover:bg-black/5"
+            className="flex items-center justify-center rounded transition-all hover:bg-black/5 text-muted"
             style={{
-              color: 'var(--color-muted)',
               width: 28,
               height: 28,
               flexShrink: 0,
@@ -109,8 +103,8 @@ export default function AdminLayout({ children, title }: Props) {
                     } ${isActive ? 'font-semibold' : 'hover:bg-black/5'}`
                   }
                   style={({ isActive }) => ({
-                    color: isActive ? 'var(--color-gold)' : 'var(--color-ink)',
-                    background: isActive ? 'var(--color-gold-light)' : undefined,
+                    color: isActive ? 'var(--color-accent)' : 'var(--color-text)',
+                    background: isActive ? 'var(--color-accent-subtle)' : undefined,
                   })}
                 >
                   <Icon icon={icon} size={collapsed ? 'md' : 'sm'} className="shrink-0" />
@@ -138,10 +132,7 @@ export default function AdminLayout({ children, title }: Props) {
         </div>
 
         {/* Version — opens the debug info */}
-        <div
-          className="border-t"
-          style={{ borderColor: 'var(--color-border)', padding: collapsed ? '8px 6px' : '8px' }}
-        >
+        <div className="border-t border-border" style={{ padding: collapsed ? '8px 6px' : '8px' }}>
           <NavLink
             to="/admin/debug"
             aria-label={`Debug info, ${versionLabel}`}
@@ -152,8 +143,8 @@ export default function AdminLayout({ children, title }: Props) {
               } ${isActive ? 'font-semibold' : 'hover:bg-black/5'}`
             }
             style={({ isActive }) => ({
-              color: isActive ? 'var(--color-gold)' : 'var(--color-muted)',
-              background: isActive ? 'var(--color-gold-light)' : undefined,
+              color: isActive ? 'var(--color-accent)' : 'var(--color-muted)',
+              background: isActive ? 'var(--color-accent-subtle)' : undefined,
             })}
           >
             <Icon icon={Bug} size="sm" className="shrink-0" />
@@ -165,10 +156,7 @@ export default function AdminLayout({ children, title }: Props) {
       {/* Main */}
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
         {title && (
-          <header
-            className="px-8 py-5 border-b shrink-0"
-            style={{ borderColor: 'var(--color-border)' }}
-          >
+          <header className="px-8 py-5 border-b shrink-0 border-border">
             <h2 className="text-2xl font-bold" style={{ fontFamily: 'Playfair Display, serif' }}>
               {title}
             </h2>

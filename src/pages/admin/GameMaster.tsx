@@ -897,7 +897,7 @@ export default function GameMaster() {
     return (
       <AdminLayout title="Game not found">
         <div className="flex flex-col items-center justify-center gap-4 py-20">
-          <p style={{ color: 'var(--color-muted)' }}>No game with that ID exists.</p>
+          <p className="text-muted">No game with that ID exists.</p>
           <Button variant="secondary" onClick={() => navigate('/admin/games')}>
             ← Back to games
           </Button>
@@ -910,7 +910,7 @@ export default function GameMaster() {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center py-20">
-          <p style={{ color: 'var(--color-muted)' }}>Loading…</p>
+          <p className="text-muted">Loading…</p>
         </div>
       </AdminLayout>
     )

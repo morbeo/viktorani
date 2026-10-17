@@ -59,7 +59,7 @@ function inField(e: KeyboardEvent) {
 }
 
 const tab = (on: boolean) =>
-  `px-3 py-1 text-sm ${on ? 'bg-(--color-ink) text-(--color-cream)' : 'text-(--color-muted)'}`
+  `px-3 py-1 text-sm ${on ? 'bg-(--color-text) text-(--color-bg)' : 'text-(--color-muted)'}`
 
 /**
  * The layout designer (#412): global templates at `/admin/layouts`, a game's own layouts at
@@ -207,7 +207,7 @@ export default function Layouts() {
           <label className="flex flex-col gap-1 text-xs text-(--color-muted)">
             Layouts for
             <select
-              className="rounded border border-(--color-border) bg-(--color-cream) px-2 py-1 text-sm text-(--color-ink)"
+              className="rounded border border-(--color-border) bg-(--color-bg) px-2 py-1 text-sm text-(--color-text)"
               value={gameId ?? ''}
               onChange={e => {
                 setChosenId(null)
@@ -254,8 +254,8 @@ export default function Layouts() {
                       onClick={() => chooseLayout(l.id)}
                       className={`w-full rounded px-3 py-1.5 text-left text-sm ${
                         l.id === layoutId
-                          ? 'bg-(--color-gold-light) font-semibold text-(--color-ink)'
-                          : 'text-(--color-ink) hover:bg-black/5'
+                          ? 'bg-(--color-accent-subtle) font-semibold text-(--color-text)'
+                          : 'text-(--color-text) hover:bg-black/5'
                       }`}
                     >
                       {l.name}
@@ -422,7 +422,7 @@ export default function Layouts() {
         onClose={() => setConfirmingDelete(false)}
       >
         <div className="flex flex-col gap-4">
-          <p className="text-sm text-(--color-ink)">
+          <p className="text-sm text-(--color-text)">
             Delete <strong>{layout?.name}</strong> and its widgets? Surfaces that used it go back to
             the next best layout or their built-in default.
           </p>

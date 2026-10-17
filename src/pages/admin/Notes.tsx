@@ -52,15 +52,12 @@ function NoteForm({ note, onSave, onClose }: NoteFormProps) {
 
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium" style={{ color: 'var(--color-muted)' }}>
-              Content (markdown)
-            </span>
+            <span className="text-xs font-medium text-muted">Content (markdown)</span>
             <button
-              className="text-xs px-2 py-0.5 rounded border transition-all"
+              className="text-xs px-2 py-0.5 rounded border transition-all border-border"
               style={{
-                borderColor: 'var(--color-border)',
-                color: preview ? 'var(--color-gold)' : 'var(--color-muted)',
-                background: preview ? 'var(--color-gold-light)' : 'transparent',
+                color: preview ? 'var(--color-accent)' : 'var(--color-muted)',
+                background: preview ? 'var(--color-accent-subtle)' : 'transparent',
               }}
               onClick={() => setPreview(p => !p)}
             >
@@ -70,10 +67,8 @@ function NoteForm({ note, onSave, onClose }: NoteFormProps) {
 
           {preview ? (
             <div
-              className="rounded border px-4 py-3 overflow-y-auto"
+              className="rounded border px-4 py-3 overflow-y-auto border-border bg-bg"
               style={{
-                borderColor: 'var(--color-border)',
-                background: 'var(--color-cream)',
                 minHeight: 200,
                 maxHeight: 320,
               }}
@@ -88,7 +83,7 @@ function NoteForm({ note, onSave, onClose }: NoteFormProps) {
                     {content}
                   </ReactMarkdown>
                 ) : (
-                  <p style={{ color: 'var(--color-muted)' }}>Nothing to preview.</p>
+                  <p className="text-muted">Nothing to preview.</p>
                 )}
               </div>
             </div>
@@ -107,10 +102,7 @@ function NoteForm({ note, onSave, onClose }: NoteFormProps) {
           )}
         </div>
 
-        <div
-          className="flex justify-end gap-2 pt-2 border-t"
-          style={{ borderColor: 'var(--color-border)' }}
-        >
+        <div className="flex justify-end gap-2 pt-2 border-t border-border">
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
@@ -137,7 +129,7 @@ function DeleteModal({
   return (
     <Modal open title="Delete note" onClose={onClose} maxWidth="400px">
       <div className="flex flex-col gap-4">
-        <p className="text-sm" style={{ color: 'var(--color-ink)' }}>
+        <p className="text-sm text-text">
           Delete <strong>{note.name}</strong>? This cannot be undone.
         </p>
         <div className="flex justify-end gap-2">
@@ -168,20 +160,15 @@ function NoteViewer({
 }) {
   return (
     <div className="flex flex-col h-full">
-      <div
-        className="px-8 py-5 border-b flex items-center justify-between shrink-0"
-        style={{ borderColor: 'var(--color-border)' }}
-      >
+      <div className="px-8 py-5 border-b flex items-center justify-between shrink-0 border-border">
         <div>
           <h2
-            className="text-2xl font-bold"
-            style={{ fontFamily: 'Playfair Display, serif', color: 'var(--color-ink)' }}
+            className="text-2xl font-bold text-text"
+            style={{ fontFamily: 'Playfair Display, serif' }}
           >
             {note.name}
           </h2>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
-            Updated {formatDate(note.updatedAt)}
-          </p>
+          <p className="text-xs mt-0.5 text-muted">Updated {formatDate(note.updatedAt)}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="ghost" size="sm" onClick={onExport}>
@@ -190,12 +177,7 @@ function NoteViewer({
           <Button variant="secondary" size="sm" onClick={onEdit}>
             Edit
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onDelete}
-            style={{ color: 'var(--color-red)' }}
-          >
+          <Button variant="ghost" size="sm" onClick={onDelete} className="text-negative">
             Delete
           </Button>
         </div>
@@ -213,7 +195,9 @@ function NoteViewer({
             </ReactMarkdown>
           </div>
         ) : (
-          <p style={{ color: 'var(--color-muted)', fontStyle: 'italic' }}>This note is empty.</p>
+          <p className="text-muted" style={{ fontStyle: 'italic' }}>
+            This note is empty.
+          </p>
         )}
       </div>
     </div>
@@ -290,18 +274,9 @@ export default function Notes() {
     <AdminLayout>
       <div className="flex h-full -mx-8 -my-6" style={{ height: 'calc(100vh - 64px)' }}>
         {/* Sidebar */}
-        <aside
-          className="w-64 shrink-0 border-r flex flex-col"
-          style={{ borderColor: 'var(--color-border)' }}
-        >
-          <div
-            className="px-4 py-3 border-b flex items-center justify-between"
-            style={{ borderColor: 'var(--color-border)' }}
-          >
-            <span
-              className="text-xs font-semibold uppercase tracking-wider"
-              style={{ color: 'var(--color-muted)' }}
-            >
+        <aside className="w-64 shrink-0 border-r flex flex-col border-border">
+          <div className="px-4 py-3 border-b flex items-center justify-between border-border">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted">
               Notes {notes.length > 0 && `· ${notes.length}`}
             </span>
             <button
@@ -313,14 +288,9 @@ export default function Notes() {
             </button>
           </div>
 
-          <div className="px-3 py-2 border-b" style={{ borderColor: 'var(--color-border)' }}>
+          <div className="px-3 py-2 border-b border-border">
             <input
-              className="w-full px-2.5 py-1.5 rounded border text-sm outline-none"
-              style={{
-                borderColor: 'var(--color-border)',
-                background: 'var(--color-cream)',
-                color: 'var(--color-ink)',
-              }}
+              className="w-full px-2.5 py-1.5 rounded border text-sm outline-none border-border bg-bg text-text"
               placeholder="Search notes…"
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -330,18 +300,15 @@ export default function Notes() {
           <div className="flex-1 overflow-y-auto">
             {filtered.length === 0 ? (
               <div className="px-4 py-8 text-center">
-                <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
-                  {search ? 'No notes match.' : 'No notes yet.'}
-                </p>
+                <p className="text-xs text-muted">{search ? 'No notes match.' : 'No notes yet.'}</p>
               </div>
             ) : (
               filtered.map(note => (
                 <div
                   key={note.id}
-                  className="relative border-b group"
+                  className="relative border-b group border-border"
                   style={{
-                    borderColor: 'var(--color-border)',
-                    background: selected === note.id ? 'var(--color-gold-light)' : 'transparent',
+                    background: selected === note.id ? 'var(--color-accent-subtle)' : 'transparent',
                   }}
                 >
                   <button
@@ -354,7 +321,7 @@ export default function Notes() {
                     >
                       {note.name}
                     </p>
-                    <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--color-muted)' }}>
+                    <p className="text-xs mt-0.5 truncate text-muted">
                       {formatDate(note.updatedAt)}
                       {note.content.trim()
                         ? ' · ' +
@@ -368,8 +335,7 @@ export default function Notes() {
                   <Link
                     to={`/admin/notes/${note.id}`}
                     title="Open note page"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity text-xs leading-none"
-                    style={{ color: 'var(--color-muted)' }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity text-xs leading-none text-muted"
                   >
                     ↗
                   </Link>
@@ -378,10 +344,7 @@ export default function Notes() {
             )}
           </div>
 
-          <div
-            className="px-4 py-3 border-t flex gap-2"
-            style={{ borderColor: 'var(--color-border)' }}
-          >
+          <div className="px-4 py-3 border-t flex gap-2 border-border">
             <Button variant="primary" size="sm" onClick={() => setEditing({})}>
               + New note
             </Button>

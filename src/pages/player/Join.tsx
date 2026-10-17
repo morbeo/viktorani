@@ -127,10 +127,7 @@ export default function Join() {
     !!lobby && isAvailable(choice, lobby) && (choice !== 'new' || newTeamName.trim().length > 0)
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center p-4"
-      style={{ background: 'var(--color-cream)' }}
-    >
+    <div className="min-h-screen flex items-center justify-center p-4 bg-bg">
       <Card className="w-full max-w-sm flex flex-col gap-4">
         <h1 className="text-xl font-semibold">Join a game</h1>
 
@@ -176,9 +173,7 @@ export default function Join() {
             }}
           >
             <fieldset className="flex flex-col gap-2" disabled={stage.kind === 'joining'}>
-              <legend className="text-xs font-medium mb-2" style={{ color: 'var(--color-muted)' }}>
-                Pick how you play
-              </legend>
+              <legend className="text-xs font-medium mb-2 text-muted">Pick how you play</legend>
               {lobby.teams.map(t => (
                 <ChoiceOption
                   key={t.id}
@@ -211,7 +206,7 @@ export default function Join() {
                 />
               )}
               {lobby.teams.length === 0 && !lobby.allowPlayerTeams && !lobby.allowIndividual && (
-                <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
+                <p className="text-sm text-muted">
                   No teams are open yet. Wait for the host to add one.
                 </p>
               )}
@@ -229,7 +224,7 @@ export default function Join() {
 
         {stage.kind === 'rejected' && (
           <>
-            <p role="alert" className="text-sm" style={{ color: 'var(--color-red)' }}>
+            <p role="alert" className="text-sm text-negative">
               You could not join: {stage.reason}
             </p>
             <Button variant="primary" onClick={() => setStage({ kind: 'choose' })}>
@@ -240,7 +235,7 @@ export default function Join() {
 
         {stage.kind === 'error' && (
           <>
-            <p role="alert" className="text-sm" style={{ color: 'var(--color-red)' }}>
+            <p role="alert" className="text-sm text-negative">
               {stage.message}
             </p>
             <Button variant="primary" onClick={handleBack}>
@@ -255,7 +250,7 @@ export default function Join() {
 
 function Status({ text }: { text: string }) {
   return (
-    <p role="status" className="text-sm" style={{ color: 'var(--color-muted)' }}>
+    <p role="status" className="text-sm text-muted">
       {text}
     </p>
   )
@@ -274,8 +269,8 @@ function ChoiceOption({
     <label
       className="flex items-center gap-3 rounded border px-3 py-2 cursor-pointer text-sm"
       style={{
-        borderColor: checked ? 'var(--color-ink)' : 'var(--color-border)',
-        background: checked ? 'var(--color-cream)' : 'transparent',
+        borderColor: checked ? 'var(--color-text)' : 'var(--color-border)',
+        background: checked ? 'var(--color-bg)' : 'transparent',
       }}
     >
       <input type="radio" name="join-choice" checked={checked} onChange={onSelect} />

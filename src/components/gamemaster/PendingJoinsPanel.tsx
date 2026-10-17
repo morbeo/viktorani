@@ -12,14 +12,8 @@ export function PendingJoinsPanel({ pending, onApprove, onReject }: PendingJoins
   if (pending.length === 0) return null
 
   return (
-    <div
-      className="rounded-xl border flex flex-col"
-      style={{ borderColor: 'var(--color-gold)', background: 'var(--color-surface)' }}
-    >
-      <div
-        className="px-4 py-3 border-b text-xs font-semibold uppercase tracking-wider"
-        style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted)' }}
-      >
+    <div className="rounded-xl border flex flex-col border-accent bg-surface">
+      <div className="px-4 py-3 border-b text-xs font-semibold uppercase tracking-wider border-border text-muted">
         Waiting for approval ({pending.length})
       </div>
       <ul className="flex flex-col">
@@ -28,9 +22,7 @@ export function PendingJoinsPanel({ pending, onApprove, onReject }: PendingJoins
             <span className="flex-1 min-w-0 truncate text-sm">
               {join.playerName}
               {join.newTeamName && (
-                <span className="ml-2 text-xs" style={{ color: 'var(--color-muted)' }}>
-                  new team: {join.newTeamName}
-                </span>
+                <span className="ml-2 text-xs text-muted">new team: {join.newTeamName}</span>
               )}
             </span>
             <Button

@@ -14,7 +14,7 @@ interface EndGameModalProps {
 export function EndGameModal({ open, onClose, onConfirm, ending }: EndGameModalProps) {
   return (
     <Modal open={open} onClose={onClose} title="End game?">
-      <p className="text-sm mb-6" style={{ color: 'var(--color-muted)' }}>
+      <p className="text-sm mb-6 text-muted">
         This will end the session for all players. The game will become read-only — scores and
         buzzer actions will be disabled. This cannot be undone.
       </p>

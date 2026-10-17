@@ -30,10 +30,7 @@ export function BuzzerPanel({
   const pendingCount = displayBuzzes.filter(b => !b.gmDecision).length
 
   return (
-    <div
-      className="rounded-xl border flex flex-col gap-4 p-4"
-      style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-    >
+    <div className="rounded-xl border flex flex-col gap-4 p-4 border-border bg-surface">
       {/* Header row */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <BuzzerLockButton
@@ -49,7 +46,7 @@ export function BuzzerPanel({
               variant="ghost"
               onClick={onClear}
               title="Clear all buzzes for this question"
-              style={{ color: 'var(--color-muted)' }}
+              className="text-muted"
             >
               <Icon icon={Eraser} size="sm" />
               Clear buzzes
@@ -57,8 +54,8 @@ export function BuzzerPanel({
           )}
           {pendingCount > 0 && (
             <span
-              className="text-xs font-semibold px-2 py-1 rounded-full"
-              style={{ background: 'var(--color-gold)22', color: 'var(--color-gold)' }}
+              className="text-xs font-semibold px-2 py-1 rounded-full text-accent"
+              style={{ background: 'var(--color-accent)22' }}
             >
               {pendingCount} pending
             </span>
@@ -67,10 +64,7 @@ export function BuzzerPanel({
       </div>
 
       {/* Active settings strip */}
-      <div
-        className="flex flex-wrap gap-x-4 gap-y-1 text-xs"
-        style={{ color: 'var(--color-muted)' }}
-      >
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
         {game.autoLockOnFirstCorrect && <span>Auto-lock on correct: on</span>}
         {game.allowFalseStarts && <span>False starts: recorded</span>}
         {game.buzzDeduplication === 'all' && <span>Show all buzz attempts</span>}

@@ -116,22 +116,22 @@ function PlayerTimerCard({ timer, remaining }: { timer: PlayerTimer; remaining: 
   const circ = 2 * Math.PI * r
   const offset = circ * (1 - Math.max(0, Math.min(1, pct)))
   const color =
-    pct > 0.5 ? 'var(--color-green)' : pct > 0.2 ? 'var(--color-gold)' : 'var(--color-red)'
+    pct > 0.5
+      ? 'var(--color-positive)'
+      : pct > 0.2
+        ? 'var(--color-accent)'
+        : 'var(--color-negative)'
 
   return (
     <div
       className="rounded-2xl border flex flex-col items-center gap-3 p-6"
       style={{
-        borderColor: isDone ? 'var(--color-red)' : 'var(--color-border)',
-        background: isDone ? 'var(--color-red)0d' : 'var(--color-surface)',
+        borderColor: isDone ? 'var(--color-negative)' : 'var(--color-border)',
+        background: isDone ? 'var(--color-negative)0d' : 'var(--color-surface)',
         transition: 'border-color 0.3s, background 0.3s',
       }}
     >
-      {timer.label && (
-        <p className="text-sm font-semibold" style={{ color: 'var(--color-muted)' }}>
-          {timer.label}
-        </p>
-      )}
+      {timer.label && <p className="text-sm font-semibold text-muted">{timer.label}</p>}
       <div className="relative flex items-center justify-center">
         <svg width="120" height="120" viewBox="0 0 120 120">
           <circle
@@ -157,12 +157,12 @@ function PlayerTimerCard({ timer, remaining }: { timer: PlayerTimer; remaining: 
         </svg>
         <span
           className="mono absolute text-2xl font-bold tabular-nums"
-          style={{ color: isDone ? 'var(--color-red)' : 'var(--color-ink)' }}
+          style={{ color: isDone ? 'var(--color-negative)' : 'var(--color-text)' }}
         >
           {formatTime(remaining)}
         </span>
       </div>
-      <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
+      <p className="text-xs text-muted">
         {isDone ? '⏰ Time up!' : isRunning ? 'Running' : 'Paused'}
       </p>
     </div>

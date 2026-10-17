@@ -51,12 +51,10 @@ export default function PresetSettings() {
     <section className="flex flex-col gap-3">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="font-semibold text-base" style={{ color: 'var(--color-ink)' }}>
-            Presets
-          </h2>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
-            Offered in the game settings of the new-game wizard and the game master. During a
-            game a preset only changes joining and the buzzer.
+          <h2 className="font-semibold text-base text-text">Presets</h2>
+          <p className="text-xs mt-0.5 text-muted">
+            Offered in the game settings of the new-game wizard and the game master. During a game a
+            preset only changes joining and the buzzer.
           </p>
         </div>
         <div className="flex gap-2 shrink-0">
@@ -84,28 +82,14 @@ export default function PresetSettings() {
       </div>
 
       {presets.length === 0 ? (
-        <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
-          No presets. Add one, or reset the built-ins.
-        </p>
+        <p className="text-sm text-muted">No presets. Add one, or reset the built-ins.</p>
       ) : (
-        <ul
-          className="flex flex-col rounded-lg border divide-y"
-          style={{ borderColor: 'var(--color-border)' }}
-          aria-label="Presets"
-        >
+        <ul className="flex flex-col rounded-lg border divide-y border-border" aria-label="Presets">
           {presets.map((p, i) => (
-            <li
-              key={p.id}
-              className="flex items-center gap-3 px-3 py-2"
-              style={{ borderColor: 'var(--color-border)' }}
-            >
+            <li key={p.id} className="flex items-center gap-3 px-3 py-2 border-border">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{p.label}</p>
-                {p.description && (
-                  <p className="text-xs truncate" style={{ color: 'var(--color-muted)' }}>
-                    {p.description}
-                  </p>
-                )}
+                {p.description && <p className="text-xs truncate text-muted">{p.description}</p>}
               </div>
               <Button
                 variant="ghost"

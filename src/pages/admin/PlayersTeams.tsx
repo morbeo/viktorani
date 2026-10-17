@@ -85,8 +85,7 @@ export default function PlayersTeams() {
 
       {/* ── Mobile tab switcher (hidden on md+) ─────────────────────────────── */}
       <div
-        className="flex border-b mb-4 md:hidden"
-        style={{ borderColor: 'var(--color-border)' }}
+        className="flex border-b mb-4 md:hidden border-border"
         role="tablist"
         aria-label="View switcher"
       >
@@ -98,9 +97,9 @@ export default function PlayersTeams() {
             onClick={() => setActiveTab(tab)}
             className="flex-1 py-2 text-sm font-medium capitalize transition-colors"
             style={{
-              color: activeTab === tab ? 'var(--color-gold)' : 'var(--color-muted)',
+              color: activeTab === tab ? 'var(--color-accent)' : 'var(--color-muted)',
               borderBottom:
-                activeTab === tab ? '2px solid var(--color-gold)' : '2px solid transparent',
+                activeTab === tab ? '2px solid var(--color-accent)' : '2px solid transparent',
             }}
           >
             {tab}
@@ -215,21 +214,12 @@ function PaneHeader({
   newLabel,
 }: PaneHeaderProps) {
   return (
-    <div
-      className="flex flex-col gap-2 px-4 py-3 border-b shrink-0"
-      style={{
-        borderColor: 'var(--color-border)',
-        background: 'var(--color-surface)',
-      }}
-    >
+    <div className="flex flex-col gap-2 px-4 py-3 border-b shrink-0 border-border bg-surface">
       <div className="flex items-center gap-2">
-        <span className="text-xs font-semibold flex-1" style={{ color: 'var(--color-muted)' }}>
-          {title}
-        </span>
+        <span className="text-xs font-semibold flex-1 text-muted">{title}</span>
         <button
           onClick={onNew}
-          className="text-xs px-2 py-1 rounded border transition-colors hover:bg-black/5"
-          style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted)' }}
+          className="text-xs px-2 py-1 rounded border transition-colors hover:bg-black/5 border-border text-muted"
           aria-label={newLabel}
         >
           + {newLabel}
@@ -240,12 +230,7 @@ function PaneHeader({
         value={search}
         onChange={e => onSearch(e.target.value)}
         placeholder={searchPlaceholder}
-        className="w-full px-2.5 py-1.5 rounded border text-xs outline-none"
-        style={{
-          borderColor: 'var(--color-border)',
-          background: 'var(--color-cream)',
-          color: 'var(--color-ink)',
-        }}
+        className="w-full px-2.5 py-1.5 rounded border text-xs outline-none border-border bg-bg text-text"
       />
       <LabelFilterChips filter={labelFilter} onChange={onLabelFilter} />
     </div>

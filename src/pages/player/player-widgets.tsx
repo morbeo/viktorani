@@ -21,7 +21,7 @@ export function BuzzButton({ enabled, label, onBuzz }: NonNullable<PlayerData['b
       onClick={onBuzz}
       className="w-64 h-64 rounded-full text-4xl font-black shadow-lg transition-colors"
       style={{
-        background: enabled ? 'var(--color-red)' : 'var(--color-border)',
+        background: enabled ? 'var(--color-negative)' : 'var(--color-border)',
         color: enabled ? '#fff' : 'var(--color-muted)',
       }}
     >

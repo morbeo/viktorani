@@ -10,6 +10,7 @@ the code is organised and how data moves through it. The reasons behind each cho
 - [The big picture](#the-big-picture)
 - [Layers](#layers)
 - [Source tree](#source-tree)
+- [Colours](#colours)
 - [Why there is no class hierarchy](#why-there-is-no-class-hierarchy)
 - [Data model](#data-model)
 - [Transport](#transport)
@@ -126,6 +127,17 @@ src/
 ├── types/                   players-teams.ts (managed roster types)
 └── test/                    Vitest suites (mirrors the tree loosely)
 ```
+
+## Colours
+
+Components use only the semantic colour tokens in `src/index.css`: `bg`, `surface`, `text`,
+`muted`, `border`, `accent`, `accent-subtle`, `on-accent`, `positive` and `negative`
+([ADR 0022](adr/0022-theming.md)). They are declared in Tailwind's `@theme`, so static colours
+are classes (`bg-surface`, `text-muted`, `border-border`), and values that change with state
+use `var(--color-…)` in a `style` prop. The dark palette redefines the same variables, so
+nothing checks the mode. Raw hex is only for data, such as team colours. The old palette names
+(`--color-cream`, `--color-ink`, `--color-gold`, …) remain as aliases for now and are not used
+in `src`; `src/test/theme-tokens.test.ts` keeps it that way.
 
 ## Why there is no class hierarchy
 

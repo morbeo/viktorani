@@ -64,9 +64,7 @@ export function Steps({ steps, current }: StepsProps) {
       </div>
 
       {/* Active step label */}
-      <p className="text-xs transition-all duration-200" style={{ color: 'var(--color-muted)' }}>
-        {steps[current]?.label}
-      </p>
+      <p className="text-xs transition-all duration-200 text-muted">{steps[current]?.label}</p>
     </div>
   )
 }

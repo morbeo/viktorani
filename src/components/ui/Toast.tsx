@@ -63,9 +63,9 @@ function ToastStack({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: stri
 // ── Item ──────────────────────────────────────────────────────────────────────
 
 const VARIANT_STYLES: Record<ToastVariant, { border: string; iconColor: string }> = {
-  info: { border: 'var(--color-gold)', iconColor: 'var(--color-gold)' },
+  info: { border: 'var(--color-accent)', iconColor: 'var(--color-accent)' },
   warning: { border: 'var(--color-amber, #f59e0b)', iconColor: 'var(--color-amber, #f59e0b)' },
-  error: { border: 'var(--color-red)', iconColor: 'var(--color-red)' },
+  error: { border: 'var(--color-negative)', iconColor: 'var(--color-negative)' },
 }
 
 const VARIANT_ICONS: Record<ToastVariant, LucideIcon> = {
@@ -109,9 +109,8 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
     <div
       role={toast.variant === 'error' ? 'alert' : 'status'}
       aria-live={toast.variant === 'error' ? 'assertive' : 'polite'}
-      className="pointer-events-auto flex items-start gap-3 rounded-lg px-3 py-3 shadow-lg border"
+      className="pointer-events-auto flex items-start gap-3 rounded-lg px-3 py-3 shadow-lg border bg-surface"
       style={{
-        background: 'var(--color-surface)',
         borderColor: styles.border,
         borderLeftWidth: '3px',
         opacity,
@@ -123,14 +122,11 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
       <span className="mt-0.5 shrink-0" style={{ color: styles.iconColor }}>
         {toast.icon ?? <Icon icon={DefaultIcon} size="sm" />}
       </span>
-      <span className="flex-1 text-sm leading-snug" style={{ color: 'var(--color-ink)' }}>
-        {toast.message}
-      </span>
+      <span className="flex-1 text-sm leading-snug text-text">{toast.message}</span>
       <button
         onClick={dismiss}
         aria-label="Dismiss notification"
-        className="shrink-0 rounded transition-colors hover:bg-black/10 p-0.5 -mt-0.5 -mr-0.5"
-        style={{ color: 'var(--color-muted)' }}
+        className="shrink-0 rounded transition-colors hover:bg-black/10 p-0.5 -mt-0.5 -mr-0.5 text-muted"
       >
         <Icon icon={X} size="sm" />
       </button>

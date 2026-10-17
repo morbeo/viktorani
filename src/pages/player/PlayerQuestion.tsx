@@ -16,14 +16,9 @@ export function PlayerQuestion({ question }: { question: QuestionContent }) {
   return (
     <section
       aria-label="Question"
-      className="w-full max-w-sm flex flex-col gap-4 rounded-2xl border p-5"
-      style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
+      className="w-full max-w-sm flex flex-col gap-4 rounded-2xl border p-5 border-border bg-surface"
     >
-      {title && (
-        <h2 className="text-xl font-bold" style={{ color: 'var(--color-ink)' }}>
-          {title}
-        </h2>
-      )}
+      {title && <h2 className="text-xl font-bold text-text">{title}</h2>}
 
       {description && (
         <div className="note-prose">
@@ -54,14 +49,8 @@ export function PlayerQuestion({ question }: { question: QuestionContent }) {
       {options && (
         <ol className="flex flex-col gap-2">
           {options.map((option, i) => (
-            <li
-              key={i}
-              className="rounded-lg border px-3 py-2 text-sm"
-              style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink)' }}
-            >
-              <span className="mono mr-2" style={{ color: 'var(--color-muted)' }}>
-                {String.fromCharCode(65 + i)}
-              </span>
+            <li key={i} className="rounded-lg border px-3 py-2 text-sm border-border text-text">
+              <span className="mono mr-2 text-muted">{String.fromCharCode(65 + i)}</span>
               {option}
             </li>
           ))}
