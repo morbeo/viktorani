@@ -10,7 +10,7 @@ the code is organised and how data moves through it. The reasons behind each cho
 - [The big picture](#the-big-picture)
 - [Layers](#layers)
 - [Source tree](#source-tree)
-- [Colours](#colours)
+- [Colours and fonts](#colours-and-fonts)
 - [Why there is no class hierarchy](#why-there-is-no-class-hierarchy)
 - [Data model](#data-model)
 - [Transport](#transport)
@@ -128,7 +128,7 @@ src/
 └── test/                    Vitest suites (mirrors the tree loosely)
 ```
 
-## Colours
+## Colours and fonts
 
 Components use only the semantic colour tokens in `src/index.css`: `bg`, `surface`, `text`,
 `muted`, `border`, `accent`, `accent-subtle`, `on-accent`, `positive` and `negative`
@@ -138,6 +138,10 @@ use `var(--color-…)` in a `style` prop. The dark palette redefines the same va
 nothing checks the mode. Raw hex is only for data, such as team colours. The old palette names
 (`--color-cream`, `--color-ink`, `--color-gold`, …) remain as aliases for now and are not used
 in `src`; `src/test/theme-tokens.test.ts` keeps it that way.
+
+Fonts work the same way, through three roles: `--font-display` (headings), `--font-body` and
+`--font-mono`, used as `font-display`, `font-body` and `font-mono`. The families are bundled
+from `@fontsource` in `src/fonts.ts` and precached, so they also render offline.
 
 ## Why there is no class hierarchy
 

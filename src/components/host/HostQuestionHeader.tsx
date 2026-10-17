@@ -53,12 +53,7 @@ export function HostQuestionHeader({ question, gameQuestion }: HostQuestionHeade
           {STATUS_LABEL[gameQuestion.status]}
         </Badge>
       </div>
-      <h2
-        className="text-xl font-bold leading-snug text-text"
-        style={{ fontFamily: 'Playfair Display, serif' }}
-      >
-        {question.title}
-      </h2>
+      <h2 className="text-xl font-bold leading-snug text-text font-display">{question.title}</h2>
     </div>
   )
 }

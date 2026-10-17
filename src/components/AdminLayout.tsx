@@ -59,10 +59,7 @@ export default function AdminLayout({ children, title }: Props) {
         >
           {!collapsed && (
             <div>
-              <h1
-                className="text-xl font-black tracking-tight text-text"
-                style={{ fontFamily: 'Playfair Display, serif' }}
-              >
+              <h1 className="text-xl font-black tracking-tight text-text font-display">
                 Viktorani
               </h1>
               <p className="text-xs mt-0.5 text-muted">Bar Trivia</p>
@@ -157,9 +154,7 @@ export default function AdminLayout({ children, title }: Props) {
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
         {title && (
           <header className="px-8 py-5 border-b shrink-0 border-border">
-            <h2 className="text-2xl font-bold" style={{ fontFamily: 'Playfair Display, serif' }}>
-              {title}
-            </h2>
+            <h2 className="text-2xl font-bold font-display">{title}</h2>
           </header>
         )}
         <div className="flex-1 overflow-y-auto px-8 py-6">{children}</div>

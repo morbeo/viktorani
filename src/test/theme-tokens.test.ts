@@ -18,7 +18,7 @@ const TOKENS = [
   'negative',
 ]
 
-describe('semantic colour tokens (ADR 0022)', () => {
+describe('theme tokens (ADR 0022)', () => {
   it('no source uses the deprecated palette names', () => {
     const offenders = Object.entries(sources)
       .filter(([, text]) => /--color-(cream|ink|gold|gold-light|red|green)\b/.test(text))
@@ -34,5 +34,12 @@ describe('semantic colour tokens (ADR 0022)', () => {
     // amber is a Toast fallback that resolves to its hex default
     const unknown = [...used].filter(name => !TOKENS.includes(name) && name !== 'amber')
     expect(unknown).toEqual([])
+  })
+
+  it('no source hard-codes a font family', () => {
+    const offenders = Object.entries(sources)
+      .filter(([, text]) => /fontFamily\s*:/.test(text))
+      .map(([path]) => path)
+    expect(offenders).toEqual([])
   })
 })

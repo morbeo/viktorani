@@ -95,9 +95,7 @@ export function Lobby({
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black" style={{ fontFamily: 'Playfair Display, serif' }}>
-            {game.name}
-          </h1>
+          <h1 className="text-3xl font-black font-display">{game.name}</h1>
           <p className="text-sm mt-1 text-muted">Lobby · waiting for players</p>
         </div>
         <div className="flex items-center gap-2">

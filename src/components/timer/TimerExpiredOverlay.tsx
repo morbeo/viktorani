@@ -89,10 +89,7 @@ export function TimerExpiredOverlay({
 
       {/* Message */}
       <div className="text-center px-6">
-        <p
-          className="text-4xl font-black mb-2"
-          style={{ fontFamily: 'Playfair Display, serif', color: '#fff' }}
-        >
+        <p className="text-4xl font-black mb-2 font-display" style={{ color: '#fff' }}>
           Time's up!
         </p>
         {label && label !== 'Timer' && (

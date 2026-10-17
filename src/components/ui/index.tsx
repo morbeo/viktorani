@@ -257,9 +257,7 @@ export function Modal({ open, onClose, title, children, maxWidth = '480px' }: Mo
       >
         {title && (
           <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-            <h3 className="text-lg font-bold" style={{ fontFamily: 'Playfair Display, serif' }}>
-              {title}
-            </h3>
+            <h3 className="text-lg font-bold font-display">{title}</h3>
             <button
               onClick={onClose}
               aria-label="Close"

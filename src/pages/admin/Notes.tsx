@@ -92,10 +92,10 @@ function NoteForm({ note, onSave, onClose }: NoteFormProps) {
               value={content}
               onChange={e => setContent(e.target.value)}
               placeholder="Write in markdown…"
+              className="font-mono"
               style={{
                 minHeight: 200,
                 maxHeight: 320,
-                fontFamily: 'DM Mono, monospace',
                 fontSize: 13,
               }}
             />
@@ -162,12 +162,7 @@ function NoteViewer({
     <div className="flex flex-col h-full">
       <div className="px-8 py-5 border-b flex items-center justify-between shrink-0 border-border">
         <div>
-          <h2
-            className="text-2xl font-bold text-text"
-            style={{ fontFamily: 'Playfair Display, serif' }}
-          >
-            {note.name}
-          </h2>
+          <h2 className="text-2xl font-bold text-text font-display">{note.name}</h2>
           <p className="text-xs mt-0.5 text-muted">Updated {formatDate(note.updatedAt)}</p>
         </div>
         <div className="flex gap-2">

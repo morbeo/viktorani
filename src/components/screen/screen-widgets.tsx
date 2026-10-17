@@ -39,11 +39,7 @@ export function ScreenAnnouncement({ message }: { message?: string | null }) {
 export function ScreenQuestion({ content }: { content: QuestionContent | null }) {
   return (
     <>
-      {content?.title && (
-        <h1 className="text-6xl font-bold" style={{ fontFamily: 'Playfair Display, serif' }}>
-          {content.title}
-        </h1>
-      )}
+      {content?.title && <h1 className="text-6xl font-bold font-display">{content.title}</h1>}
 
       {content?.description && (
         <div className="note-prose text-3xl max-w-4xl">
@@ -124,11 +120,7 @@ export function ScreenLeaderboard({
 
   return (
     <section aria-label={title || 'Leaderboard'} className="w-full max-w-4xl flex flex-col gap-4">
-      {title && (
-        <h2 className="text-4xl font-bold" style={{ fontFamily: 'Playfair Display, serif' }}>
-          {title}
-        </h2>
-      )}
+      {title && <h2 className="text-4xl font-bold font-display">{title}</h2>}
       <ol className="flex flex-col gap-3">
         {top.map(r => (
           <li key={r.id} className="flex items-baseline gap-6 text-5xl">

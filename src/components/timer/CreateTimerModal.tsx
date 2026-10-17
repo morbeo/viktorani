@@ -56,12 +56,7 @@ export function CreateTimerModal({ onConfirm, onCancel }: CreateTimerModalProps)
       style={{ background: 'rgba(0,0,0,0.45)' }}
     >
       <div className="rounded-2xl border shadow-xl w-full max-w-sm mx-4 flex flex-col gap-5 p-6 border-border bg-bg">
-        <h2
-          className="text-lg font-bold text-text"
-          style={{ fontFamily: 'Playfair Display, serif' }}
-        >
-          New Timer
-        </h2>
+        <h2 className="text-lg font-bold text-text font-display">New Timer</h2>
 
         {/* Label */}
         <div className="flex flex-col gap-1.5">
