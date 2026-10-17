@@ -148,7 +148,10 @@ The app theme is chosen and edited in Settings → Appearance. `AppTheme` resolv
 as inline styles on `<html>`; the CSP blocks injected `<style>` elements. Light or dark stays
 a per-device choice. A game can pick its own theme (`Game.themeId`); the game master and
 screen pages show it through `useGameTheme`, and `LayoutRenderer` sets a layout's colour
-overrides on its own root (`layoutVars`), so they apply over the game theme.
+overrides on its own root (`layoutVars`), so they apply over the game theme. Players and
+remote screens get the game's theme, resolved on the host with both palettes, in a `THEME`
+event, and show it through `useRemoteTheme`; each player picks light or dark with the
+switch on the join and play pages.
 
 ## Why there is no class hierarchy
 
@@ -323,7 +326,7 @@ flowchart LR
     g4[VISIBILITY / QUESTION_CONTENT]
     g5[SLIDE_CHANGE / SCORE_UPDATE]
     g6[TIMER_START / PAUSE / RESUME<br/>RESET / EXPIRED]
-    g7[LAYOUT / PHASE]
+    g7[LAYOUT / PHASE / THEME]
   end
   subgraph PlayerEvent["Players → host (PlayerEvent)"]
     direction TB

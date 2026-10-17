@@ -22,7 +22,7 @@ import {
   assignPlayerTeam,
 } from '@/pages/admin/gamemaster-utils'
 import { useAppSettings } from '@/hooks/useAppSettings'
-import { useGameTheme } from '@/hooks/useAppTheme'
+import { useGameTheme, useResolvedGameTheme } from '@/hooks/useAppTheme'
 import { hostNow } from '@/hooks/useBuzzer'
 import { runningTimerEvents } from '@/hooks/useTimer'
 import { useGameLifecycle } from '@/hooks/useGameLifecycle'
@@ -31,6 +31,8 @@ import { adjustScore, buildScoreEntries, readScores } from '@/hooks/useScoreboar
 import { buildLogRows, toPublicLogEntries } from '@/lib/game-log-rows'
 import { PlayerConnections, messageRecipients, resolveJoin } from '@/pages/admin/player-connections'
 import { buildLayoutEvent, type LayoutEvent } from '@/pages/admin/remote-layouts'
+import { buildThemeEvent } from '@/pages/admin/remote-theme'
+import type { ThemeEvent } from '@/pages/admin/remote-theme'
 import type { JoinResult, MessageTarget, PendingJoin } from '@/pages/admin/player-connections'
 import type { Game, GamePhase, Player, Team } from '@/db'
 import { MAX_LOG_ENTRIES, MAX_SCOREBOARD_ROWS } from '@/transport/messages'
@@ -146,6 +148,8 @@ export default function GameMaster() {
   const screenLayoutRef = useRef<LayoutEvent | null>(null)
   // The phase remote surfaces pick layouts for; `null` until it is known
   const phaseRef = useRef<GamePhase | null>(null)
+  // The THEME players and screens get; `null` until the host's themes have loaded
+  const themeRef = useRef<ThemeEvent | null>(null)
 
   useEffect(() => {
     gameRef.current = game
@@ -329,6 +333,7 @@ export default function GameMaster() {
       if (playerLayoutRef.current) transportManager.sendTo(connId, playerLayoutRef.current)
       if (phaseRef.current)
         transportManager.sendTo(connId, { type: 'PHASE', phase: phaseRef.current })
+      if (themeRef.current) transportManager.sendTo(connId, themeRef.current)
       if (g) await sendRunningTimers(connId, g.id)
       addToast(`${player.name} joined the game`, { variant: 'info', durationMs: 4000 })
     },
@@ -432,6 +437,18 @@ export default function GameMaster() {
     if (!screenLayout) return
     for (const connId of screensRef.current) transportManager.sendTo(connId, screenLayout)
   }, [screenLayout])
+
+  // The game's theme, resolved here and sent to admitted players and approved screens
+  // whenever it changes: a new game theme, or an edit to the theme or the app theme
+  const resolvedTheme = useResolvedGameTheme(game?.themeId)
+  useEffect(() => {
+    if (!resolvedTheme) return
+    const event = buildThemeEvent(resolvedTheme)
+    themeRef.current = event
+    for (const connId of connectionsRef.current.connections())
+      transportManager.sendTo(connId, event)
+    for (const connId of screensRef.current) transportManager.sendTo(connId, event)
+  }, [resolvedTheme])
 
   // The layout phase, sent to admitted players and approved screens when it changes. The
   // running game reports it (it knows the buzzes); before the start it is the lobby.
@@ -678,6 +695,7 @@ export default function GameMaster() {
       if (screenLayoutRef.current) transportManager.sendTo(connId, screenLayoutRef.current)
       if (phaseRef.current)
         transportManager.sendTo(connId, { type: 'PHASE', phase: phaseRef.current })
+      if (themeRef.current) transportManager.sendTo(connId, themeRef.current)
       const g = gameRef.current
       if (g) void sendRunningTimers(connId, g.id)
       if (g?.status === 'paused') {

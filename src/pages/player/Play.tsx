@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { ModeSwitch } from '@/components/ModeSwitch'
 import { Button } from '@/components/ui'
+import { useRemoteTheme } from '@/hooks/useAppTheme'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { useTransportEvents } from '@/hooks/useTransport'
 import { isAbortError, retry, transportManager } from '@/transport'
@@ -50,6 +52,7 @@ export default function Play() {
   const [storedName] = useLocalStorage('viktorani-player-name', '')
   const name = storedName.trim().slice(0, MAX_NAME_LENGTH)
   const session = usePlayerSession()
+  useRemoteTheme(session.theme)
   const [problem, setProblem] = useState<Problem | null>(null)
   const [buzzed, setBuzzed] = useState(false)
   const startedRef = useRef(false)
@@ -179,9 +182,12 @@ export default function Play() {
                 )}
               </p>
             </div>
-            <Button variant="ghost" onClick={handleLeave}>
-              Leave
-            </Button>
+            <div className="flex items-center gap-2">
+              <ModeSwitch />
+              <Button variant="ghost" onClick={handleLeave}>
+                Leave
+              </Button>
+            </div>
           </header>
 
           {ended && <Status text="The game has ended. Thanks for playing!" />}

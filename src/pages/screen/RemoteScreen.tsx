@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Button } from '@/components/ui'
 import { ScreenView } from '@/components/screen/ScreenView'
+import { useRemoteTheme } from '@/hooks/useAppTheme'
 import { useTransportEvents } from '@/hooks/useTransport'
 import { isAbortError, retry, transportManager } from '@/transport'
 import { PlayerTimers } from '@/components/timer/PlayerTimers'
@@ -25,6 +26,7 @@ async function joinAsScreen(roomId: string) {
 export default function RemoteScreen() {
   const { roomId = '' } = useParams<{ roomId: string }>()
   const [session, setSession] = useState(INITIAL_SCREEN)
+  useRemoteTheme(session.theme)
   // Mirrors `session` for the connection-close handler, which runs outside React
   const sessionRef = useRef(INITIAL_SCREEN)
   const [lost, setLost] = useState(false)

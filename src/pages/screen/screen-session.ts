@@ -1,4 +1,5 @@
 import type { GamePhase } from '@/db'
+import type { ResolvedTheme } from '@/lib/theme'
 import type { LogEntry, ScoreboardRow, TransportEvent } from '@/transport/types'
 import { knownStatus } from '@/pages/player/player-session'
 import type { GameStatus, QuestionContent, RemoteLayouts } from '@/pages/player/player-session'
@@ -22,6 +23,8 @@ export interface ScreenSession {
   layouts: RemoteLayouts | null
   /** The phase the host picks layouts for (see `PHASE`); `null` until it says. */
   phase: GamePhase | null
+  /** The host's theme (see `THEME`); `null` keeps this device's own until it arrives. */
+  theme: ResolvedTheme | null
 }
 
 export const INITIAL_SCREEN: ScreenSession = {
@@ -34,6 +37,7 @@ export const INITIAL_SCREEN: ScreenSession = {
   logEntries: [],
   layouts: null,
   phase: null,
+  theme: null,
 }
 
 /** Drop media the screen must not load (see {@link isSafeMedia}). */
@@ -79,6 +83,8 @@ export function reduceScreen(s: ScreenSession, event: TransportEvent): ScreenSes
         : s
     case 'PHASE':
       return { ...s, phase: event.phase }
+    case 'THEME':
+      return { ...s, theme: event.theme }
     default:
       return s
   }

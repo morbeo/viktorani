@@ -1,4 +1,5 @@
 import type { GamePhase, GameVisibility, Layout, LayoutSlot, Widget } from '@/db'
+import type { ResolvedTheme } from '@/lib/theme'
 
 // ── Shared event types ────────────────────────────────────────────────────────
 
@@ -114,6 +115,12 @@ export type GameEvent =
    * GM. Sent to players and screens whenever it changes, on admit and on screen approval.
    */
   | { type: 'PHASE'; phase: GamePhase }
+  /**
+   * The game's theme, resolved on the host (ADR 0022): both palettes, so each device picks
+   * light or dark itself, and no mode. Sent to players on admit, to screens on approval,
+   * and to both whenever the game or app theme changes. Layout overrides stay in `LAYOUT`.
+   */
+  | { type: 'THEME'; theme: ResolvedTheme }
 
 /** Surfaces on other devices that get their layout over the transport. */
 export type RemoteLayoutTarget = 'player' | 'screen'

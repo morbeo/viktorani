@@ -1,6 +1,13 @@
 import { z } from 'zod'
-import { GAME_PHASES, LAYOUT_TARGETS, WIDGET_TYPES } from '@/db'
-import { GridRectSchema, LayoutThemeSchema } from '@/db/snapshot-schema'
+import { GAME_PHASES, ICON_STROKES, LAYOUT_TARGETS, WIDGET_TYPES } from '@/db'
+import {
+  FontKeySchema,
+  GridRectSchema,
+  HexColourSchema,
+  LayoutThemeSchema,
+  LogoSchema,
+  ThemePaletteSchema,
+} from '@/db/snapshot-schema'
 import { PUBLIC_LOG_KINDS } from './types'
 import type { TransportEvent } from './types'
 
@@ -55,6 +62,10 @@ export const MAX_WIDGET_CONFIG_KEYS = 32
  * limit (`MAX_LOGO_LENGTH`) with room to spare, so several logos can't add up to megabytes.
  */
 export const MAX_LAYOUT_EVENT_LENGTH = 3_000_000
+/** Max length of a theme's name in a `THEME`. */
+export const MAX_THEME_NAME_LENGTH = 60
+/** Max size of a whole `THEME`, in characters of JSON; like `LAYOUT`, it fits one large logo. */
+export const MAX_THEME_EVENT_LENGTH = 3_000_000
 
 const id = z.string().max(MAX_ID_LENGTH)
 const name = z.string().max(MAX_NAME_LENGTH)
@@ -78,6 +89,19 @@ const logEntry = z.strictObject({
   kind: z.enum(PUBLIC_LOG_KINDS),
   who: logText,
   details: logText,
+})
+
+// Every token set, `onAccent` included: the host resolves the theme before sending it
+const resolvedPalette = z.strictObject({ ...ThemePaletteSchema.shape, onAccent: HexColourSchema })
+
+const themePayload = z.strictObject({
+  name: z.string().max(MAX_THEME_NAME_LENGTH),
+  light: resolvedPalette,
+  dark: resolvedPalette,
+  fonts: z.strictObject({ display: FontKeySchema, body: FontKeySchema, mono: FontKeySchema }),
+  iconStroke: z.literal(ICON_STROKES),
+  // A data:image/ or https:// URL, as for stored themes
+  logo: z.strictObject({ wordmark: LogoSchema.nullable(), mark: LogoSchema.nullable() }),
 })
 
 const layoutPayload = z.strictObject({
@@ -218,6 +242,9 @@ export const GameEventSchemas = {
     type: z.literal('PHASE'),
     phase: z.enum(GAME_PHASES),
   }),
+  THEME: z
+    .strictObject({ type: z.literal('THEME'), theme: themePayload })
+    .refine(e => JSON.stringify(e).length <= MAX_THEME_EVENT_LENGTH, 'Theme too large'),
 }
 
 /** Schemas for events sent by players to the GameMaster. */
@@ -266,6 +293,7 @@ export const TransportEventSchema = z.discriminatedUnion('type', [
   GameEventSchemas.LOG,
   GameEventSchemas.LAYOUT,
   GameEventSchemas.PHASE,
+  GameEventSchemas.THEME,
   PlayerEventSchemas.BUZZ,
   PlayerEventSchemas.JOIN,
   PlayerEventSchemas.LEAVE,

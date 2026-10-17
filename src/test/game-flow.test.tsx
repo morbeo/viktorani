@@ -572,3 +572,21 @@ describe('layout phase over the transport', () => {
     expect(localStorage.getItem('viktorani:layout-phase:g1')).toBeNull()
   }, 20_000)
 })
+
+describe('theme over the transport', () => {
+  it("sends a joining player the game's theme, resolved", async () => {
+    await seedGame()
+    const { db } = await import('@/db')
+    await db.games.update('g1', { themeId: 'pub' })
+    const host = await mountSide('host', '/admin/game/g1')
+    await host.waitFor(() => expect(hub.state.host).not.toBeNull())
+
+    const { client, received } = await connectClient()
+    client.send({ ...JOIN, playerName: 'Jo', deviceId: 'device-jo' } as TransportEvent)
+    const themeOf = () => received.find(e => e.type === 'THEME')
+    await host.waitFor(() => expect(themeOf()).toBeDefined(), SLOW)
+    const event = themeOf() as Extract<TransportEvent, { type: 'THEME' }>
+    expect(event.theme.name).toBe('Pub')
+    expect(event.theme.dark.onAccent).toMatch(/^#[0-9a-f]{6}$/i)
+  }, 20_000)
+})
