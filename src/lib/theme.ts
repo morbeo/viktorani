@@ -27,9 +27,27 @@ export const FONT_STACKS: Readonly<Record<FontKey, string>> = Object.freeze({
   'playfair-display': "'Playfair Display', Georgia, serif",
   lora: "'Lora', Georgia, serif",
   'dm-mono': "'DM Mono', ui-monospace, monospace",
+  oswald: "'Oswald', 'Arial Narrow', sans-serif",
+  inter: "'Inter', system-ui, sans-serif",
+  merriweather: "'Merriweather', Georgia, serif",
+  'jetbrains-mono': "'JetBrains Mono', ui-monospace, monospace",
   'system-sans': "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
   'system-serif': "Georgia, 'Times New Roman', serif",
   'system-mono': "ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace",
+})
+
+/** How each {@link FontKey} is named in the theme editor. */
+export const FONT_LABELS: Readonly<Record<FontKey, string>> = Object.freeze({
+  'playfair-display': 'Playfair Display',
+  lora: 'Lora',
+  'dm-mono': 'DM Mono',
+  oswald: 'Oswald',
+  inter: 'Inter',
+  merriweather: 'Merriweather',
+  'jetbrains-mono': 'JetBrains Mono',
+  'system-sans': 'System sans-serif',
+  'system-serif': 'System serif',
+  'system-mono': 'System monospace',
 })
 
 /** The CSS custom property for each token, as declared in `index.css`. */
@@ -255,4 +273,18 @@ export function paletteVars(palette: ResolvedPalette): Record<string, string> {
     vars[name] = palette[token]
   }
   return vars
+}
+
+/**
+ * Every CSS custom property a resolved theme sets for one mode: the colour tokens, the
+ * font roles and the icon stroke.
+ */
+export function themeVars(theme: ResolvedTheme, dark: boolean): Record<string, string> {
+  return {
+    ...paletteVars(dark ? theme.dark : theme.light),
+    '--font-display': FONT_STACKS[theme.fonts.display],
+    '--font-body': FONT_STACKS[theme.fonts.body],
+    '--font-mono': FONT_STACKS[theme.fonts.mono],
+    '--icon-stroke': String(theme.iconStroke),
+  }
 }

@@ -53,6 +53,15 @@ html[data-theme='dark'] {
   }
 }
 
+/* Lucide icons take their stroke width from the theme (ADR 0022). */
+:root {
+  --icon-stroke: 1.75;
+}
+
+svg.lucide {
+  stroke-width: var(--icon-stroke);
+}
+
 /* Deprecated palette names, kept for anything not yet migrated. Use the tokens above. */
 :root {
   --color-cream: var(--color-bg);

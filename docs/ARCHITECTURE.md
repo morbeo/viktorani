@@ -143,6 +143,11 @@ Fonts work the same way, through three roles: `--font-display` (headings), `--fo
 `--font-mono`, used as `font-display`, `font-body` and `font-mono`. The families are bundled
 from `@fontsource` in `src/fonts.ts` and precached, so they also render offline.
 
+The app theme is chosen and edited in Settings → Appearance. `AppTheme` resolves it
+(`resolveTheme` in `src/lib/theme.ts`) and sets the token, font and `--icon-stroke` variables
+as inline styles on `<html>`; the CSP blocks injected `<style>` elements. Light or dark stays
+a per-device choice.
+
 ## Why there is no class hierarchy
 
 This is a React function-component codebase, so structure comes from **composition**, not

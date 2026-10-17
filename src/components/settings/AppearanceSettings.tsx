@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import type { AppSettings } from '@/lib/app-settings'
+import ThemeSettings from './theme/ThemeSettings'
 
 interface Option<T> {
   value: T
@@ -67,14 +68,15 @@ function Choice<T extends string>({
   )
 }
 
-/** Theme, action buttons and game master control size. */
+/** Theme, light or dark mode, action buttons and game master control size. */
 export default function AppearanceSettings() {
   const [settings, update] = useAppSettings()
   return (
     <div className="flex flex-col gap-10">
+      <ThemeSettings />
       <Choice
-        title="Theme"
-        hint="Light or dark colours for the whole app"
+        title="Light or dark"
+        hint="Each device chooses for itself"
         options={THEME_OPTIONS}
         value={settings.theme}
         onChange={theme => update({ theme })}

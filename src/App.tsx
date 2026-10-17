@@ -3,6 +3,7 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { db, seedDefaults } from '@/db'
 import { ToastProvider } from '@/components/ui'
 import { CommandPaletteHost } from '@/components/command-palette/CommandPaletteHost'
+import { AppTheme } from '@/components/AppTheme'
 
 // Pages — Admin (lazy-loaded per route)
 const Dashboard = lazy(() => import('@/pages/admin/Dashboard'))
@@ -62,6 +63,7 @@ export default function App() {
 
   return (
     <ToastProvider>
+      <AppTheme />
       <HashRouter>
         <Suspense fallback={<Loading />}>
           <Routes>
