@@ -197,6 +197,18 @@ export function findTheme(id: string | null | undefined, userThemes: readonly Th
   return BUILT_IN_THEMES.find(t => t.id === id) ?? userThemes.find(t => t.id === id) ?? CLASSIC
 }
 
+/**
+ * A game's own theme, or `null` when it has none or its theme was deleted, so the game
+ * falls back to the app theme.
+ */
+export function findGameTheme(
+  id: string | null | undefined,
+  userThemes: readonly Theme[]
+): Theme | null {
+  if (!id) return null
+  return BUILT_IN_THEMES.find(t => t.id === id) ?? userThemes.find(t => t.id === id) ?? null
+}
+
 /** Black or white, whichever contrasts more with `background`. */
 export function readableOn(background: string): string {
   const white = contrastRatio('#ffffff', background) ?? 0
@@ -287,4 +299,24 @@ export function themeVars(theme: ResolvedTheme, dark: boolean): Record<string, s
     '--font-mono': FONT_STACKS[theme.fonts.mono],
     '--icon-stroke': String(theme.iconStroke),
   }
+}
+
+/**
+ * The CSS custom properties for a layout's colour overrides, set on the layout's root so
+ * everything else inherits from the game or app theme. Like {@link resolveTheme}, the
+ * `player` surface skips them in dark mode.
+ */
+export function layoutVars(
+  layout: LayoutTheme,
+  surface: ThemeSurface,
+  dark: boolean
+): Record<string, string> {
+  if (surface === 'player' && dark) return {}
+  const vars: Record<string, string> = {}
+  if (layout.background) vars[TOKEN_VARS.bg] = layout.background
+  if (layout.accent) {
+    vars[TOKEN_VARS.accent] = layout.accent
+    vars[TOKEN_VARS.onAccent] = readableOn(layout.accent)
+  }
+  return vars
 }

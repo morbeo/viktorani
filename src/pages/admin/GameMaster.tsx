@@ -22,6 +22,7 @@ import {
   assignPlayerTeam,
 } from '@/pages/admin/gamemaster-utils'
 import { useAppSettings } from '@/hooks/useAppSettings'
+import { useGameTheme } from '@/hooks/useAppTheme'
 import { hostNow } from '@/hooks/useBuzzer'
 import { runningTimerEvents } from '@/hooks/useTimer'
 import { useGameLifecycle } from '@/hooks/useGameLifecycle'
@@ -84,6 +85,7 @@ export default function GameMaster() {
   const { addToast } = useToast()
 
   const [game, setGame] = useState<Game | null>(null)
+  useGameTheme(game?.themeId)
   const [players, setPlayers] = useState<Player[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [status, setStatus] = useState<TransportStatus>(transportManager.status)

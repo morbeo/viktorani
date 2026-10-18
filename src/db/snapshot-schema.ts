@@ -118,6 +118,7 @@ export const GameSchema = z
     defaultTimerDuration: z.number().int().min(1).max(MAX_TIMER_SECONDS).default(60),
     soundEffectsMuted: z.boolean().default(false),
     layoutAssignments: z.partialRecord(z.enum(LAYOUT_TARGETS), LayoutAssignmentsSchema).optional(),
+    themeId: z.string().min(1).max(64).nullable().optional(),
     createdAt: z.number(),
     updatedAt: z.number(),
   })

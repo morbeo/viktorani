@@ -121,10 +121,26 @@ describe('LayoutRenderer', () => {
       />
     )
     const root = container.firstElementChild as HTMLElement
-    expect(root.style.background).toBe('rgb(16, 32, 48)')
+    const style = root.getAttribute('style')
+    expect(style).toContain('--color-bg: #102030')
+    expect(style).toContain('background: var(--color-bg)')
     expect(root.style.color).toBe('black')
     expect(root.style.getPropertyValue('--color-accent')).toBe('#c8933a')
+    expect(root.style.getPropertyValue('--color-on-accent')).toBe('#000000')
     expect(root.style.zoom).toBe('1.5')
+  })
+
+  it('keeps the dark palette on a dark player phone, but not on the screen', () => {
+    const theme = { background: '#ffffff', accent: '#c8933a', fontScale: 1, logo: null }
+    const player = render(
+      <LayoutRenderer bundle={bundle([], { theme })} target="player" data={DATA as never} dark />
+    )
+    expect((player.container.firstElementChild as HTMLElement).getAttribute('style')).toBeNull()
+    const screen = render(
+      <LayoutRenderer bundle={bundle([], { theme })} target="screen" data={DATA} dark />
+    )
+    const root = screen.container.firstElementChild as HTMLElement
+    expect(root.style.getPropertyValue('--color-bg')).toBe('#ffffff')
   })
 
   it('leaves the base style alone with the default theme', () => {

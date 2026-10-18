@@ -31,9 +31,12 @@ export async function saveTheme(theme: Theme): Promise<void> {
 
 /**
  * Delete a theme. If it was the app theme, the app goes back to Classic; games that used it
- * fall back to the app theme when they are resolved.
+ * go back to the app theme.
  */
 export async function deleteTheme(id: string): Promise<void> {
-  await db.themes.delete(id)
+  await db.transaction('rw', db.themes, db.games, async () => {
+    await db.themes.delete(id)
+    await db.games.filter(g => g.themeId === id).modify({ themeId: null })
+  })
   if (getSettings().themeId === id) setSettings({ themeId: DEFAULT_THEME_ID })
 }

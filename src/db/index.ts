@@ -225,6 +225,8 @@ export interface Game {
    * choice for the phase uses its choice for all phases, then picks automatically.
    */
   layoutAssignments?: Partial<Record<LayoutTarget, LayoutAssignments>>
+  /** The game's {@link Theme} (ADR 0022); `null` or absent uses the app theme. */
+  themeId?: string | null
   // Timestamps
   createdAt: number
   updatedAt: number

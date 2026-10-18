@@ -1,6 +1,9 @@
 import type { ComponentType, CSSProperties } from 'react'
 import type { LayoutBreakpoint, LayoutTarget, LayoutTheme } from '@/db'
+import { useAppSettings } from '@/hooks/useAppSettings'
+import { useIsDark } from '@/hooks/useAppTheme'
 import { resolveRect } from '@/lib/layout-grid'
+import { layoutVars } from '@/lib/theme'
 import type { LayoutBundle } from './layouts'
 import { WIDGET_REGISTRY } from './registry'
 import type { SurfaceData, WidgetProps } from './types'
@@ -17,15 +20,19 @@ interface LayoutRendererProps<T extends LayoutTarget> {
   className?: string
   /** Base colours etc.; the layout's theme overrides them. */
   style?: CSSProperties
+  /** Whether the surface shows its dark palette; defaults to this device's light or dark mode. */
+  dark?: boolean
   /** Classes for each widget's grid cell. */
   cellClassName?: string
 }
 
-/** Inline overrides for a theme; only what the theme sets, so the rest inherits. */
-function themeStyle(theme: LayoutTheme): CSSProperties {
-  const style: Record<string, string | number> = {}
-  if (theme.background) style.background = theme.background
-  if (theme.accent) style['--color-accent'] = theme.accent
+/**
+ * Inline overrides for a layout's theme; only what it sets, so the rest inherits from the
+ * game or app theme (ADR 0022).
+ */
+function themeStyle(theme: LayoutTheme, target: LayoutTarget, dark: boolean): CSSProperties {
+  const style: Record<string, string | number> = layoutVars(theme, target, dark)
+  if (style['--color-bg']) style.background = 'var(--color-bg)'
   if (theme.fontScale !== 1) style.zoom = theme.fontScale
   return style as CSSProperties
 }
@@ -51,14 +58,17 @@ export function LayoutRenderer<T extends LayoutTarget>({
   className = '',
   style,
   cellClassName = '',
+  dark,
 }: LayoutRendererProps<T>) {
+  const [{ theme: mode }] = useAppSettings()
+  const deviceDark = useIsDark(mode)
   const { layout, widgets } = bundle
   const sorted = [...widgets].sort((a, b) => a.order - b.order)
 
   return (
     <Root
       className={`relative grid grid-cols-12 content-start ${className}`}
-      style={{ ...style, ...themeStyle(layout.theme) }}
+      style={{ ...style, ...themeStyle(layout.theme, target, dark ?? deviceDark) }}
       data-layout-id={layout.id}
     >
       {layout.theme.logo && (
