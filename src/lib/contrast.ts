@@ -1,7 +1,8 @@
 /**
  * WCAG 2.1 contrast ratio utilities.
  * Used by TeamForm to warn when white text on the chosen team colour
- * falls below the AA threshold (4.5:1 for normal text).
+ * falls below the AA threshold (4.5:1 for normal text), and by themes to pick
+ * text for the accent colour and to flag weak palettes.
  */
 
 /** Parse a CSS hex colour string to [r, g, b] in 0-255 range. */

@@ -9,6 +9,7 @@ import type {
   GameQuestion,
   Note,
   Layout,
+  Theme,
   Widget,
 } from '@/db'
 import { SnapshotSchema, QuestionImportRowSchema } from '@/db/snapshot-schema'
@@ -25,10 +26,12 @@ import type { AppSettings } from '@/lib/app-settings'
  *   added later; older v2 files without it restore games with no questions. `settings`
  *   (the app preferences) was added later still; files without it leave them unchanged.
  *   `layouts` and `widgets` (layout model v2, #409) came next; files without them restore
- *   no layouts.
+ *   no layouts. `themes` (the host's own themes, ADR 0022) came after that; files without
+ *   them restore none.
  *
  * `gameQuestions` is included because it defines which questions each game plays, and
- * `layouts` / `widgets` because they are designed by the host, not produced by play.
+ * `layouts` / `widgets` / `themes` because they are designed by the host, not produced by
+ * play. Built-in themes live in code and are never exported.
  * Runtime-only collections (`players`, `teams`, `buzzEvents`, `scoreEvents`, `gameLog`,
  * `timers`) are intentionally excluded — they represent transient session state that is
  * not meaningful to restore. A game's log is downloaded from the game
@@ -46,6 +49,7 @@ export interface DatabaseSnapshot {
   notes: Note[]
   layouts: Layout[]
   widgets: Widget[]
+  themes: Theme[]
   settings?: AppSettings
 }
 
@@ -69,6 +73,7 @@ export async function exportDatabase(): Promise<void> {
     notes: await db.notes.toArray(),
     layouts: await db.layouts.toArray(),
     widgets: await db.widgets.toArray(),
+    themes: await db.themes.toArray(),
     settings: getSettings(),
   }
 
@@ -146,6 +151,7 @@ export async function importDatabase(file: File): Promise<void> {
       db.notes,
       db.layouts,
       db.widgets,
+      db.themes,
     ],
     async () => {
       if (snapshot.difficulties.length) await db.difficulties.bulkPut(snapshot.difficulties)
@@ -157,6 +163,7 @@ export async function importDatabase(file: File): Promise<void> {
       if (snapshot.notes.length) await db.notes.bulkPut(snapshot.notes)
       if (snapshot.layouts.length) await db.layouts.bulkPut(snapshot.layouts)
       if (snapshot.widgets.length) await db.widgets.bulkPut(snapshot.widgets)
+      if (snapshot.themes.length) await db.themes.bulkPut(snapshot.themes)
     }
   )
   if (snapshot.settings) setSettings(snapshot.settings)

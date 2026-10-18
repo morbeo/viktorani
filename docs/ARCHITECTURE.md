@@ -251,6 +251,11 @@ erDiagram
   and phase (`Game.layoutAssignments`), which wins over the automatic pick
   ([ADR 0020](adr/0020-layout-assignments.md)). Layouts are made in the designer at
   `/admin/layouts`.
+- **Themes:** a `themes` row is one of the host's own themes: light and optional dark
+  palettes, fonts, icon stroke and logos. Built-in themes (Classic, the default, and a few
+  more) live in `lib/theme.ts` and are never stored. `AppSettings.themeId` picks the app's
+  theme, and `resolveTheme` combines the app theme, the game's theme and a layout's
+  overrides into what a surface shows ([ADR 0022](adr/0022-theming.md)).
 
 ### Schema versions
 
@@ -393,7 +398,8 @@ flowchart LR
 ```
 
 A backup holds the question bank (questions, rounds, difficulties, tags), game definitions with
-the questions each game plays (`gameQuestions`) and notes; live per-game rows such as players and
+the questions each game plays (`gameQuestions`), notes, layouts, the host's themes and the app
+settings; live per-game rows such as players and
 buzzes are not included. Import upserts rows by id,
 so existing data with other ids is kept, and a failed write rolls back the whole import.
 `db/snapshot-schema.ts` accepts older backup versions and fills in defaults for fields added

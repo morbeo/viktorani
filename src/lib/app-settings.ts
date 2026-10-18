@@ -6,6 +6,7 @@ import {
 } from '@/components/game-settings/game-settings'
 import type { GamePreset, GameSettings } from '@/components/game-settings/game-settings'
 import type { TiebreakerMode } from '@/db'
+import { DEFAULT_THEME_ID } from '@/lib/theme'
 
 /** 99:59, the most the timer inputs can hold. */
 export const MAX_TIMER_SECONDS = 99 * 60 + 59
@@ -23,6 +24,8 @@ export const MAX_TIMER_SECONDS = 99 * 60 + 59
  * - **3**: defaults for new games, including the tiebreaker mode, whether deletes ask
  *   first, and the base URL for join links. Older entries get the defaults.
  * - **4**: game setting presets. Older entries get the built-in presets.
+ * - **5**: `themeId`, the app's theme (ADR 0022). Older entries get Classic. `theme` stays
+ *   the light/dark/system mode.
  */
 const TimerNotifySchema = z.enum(['none', 'host', 'players', 'both'])
 
@@ -68,7 +71,12 @@ const GameSettingsSchema = z.object({
   buzzDeduplication: z.enum(['firstOnly', 'all']).catch(BUILT_IN_GAME.buzzDeduplication),
   confirmUnruledNavigation: z.boolean().catch(BUILT_IN_GAME.confirmUnruledNavigation),
   autoStartTimerOnQuestionShow: z.boolean().catch(BUILT_IN_GAME.autoStartTimerOnQuestionShow),
-  defaultTimerDuration: z.number().int().min(1).max(MAX_TIMER_SECONDS).catch(BUILT_IN_GAME.defaultTimerDuration),
+  defaultTimerDuration: z
+    .number()
+    .int()
+    .min(1)
+    .max(MAX_TIMER_SECONDS)
+    .catch(BUILT_IN_GAME.defaultTimerDuration),
   soundEffectsMuted: z.boolean().catch(BUILT_IN_GAME.soundEffectsMuted),
 }) satisfies z.ZodType<GameSettings>
 
@@ -100,8 +108,11 @@ const PresetsSchema = z.array(z.unknown()).transform(items => {
 })
 
 export const AppSettingsSchema = z.object({
-  version: z.literal(4).catch(4),
+  version: z.literal(5).catch(5),
+  /** Light, dark, or the device setting. Each device picks its own (ADR 0022). */
   theme: z.enum(['system', 'light', 'dark']).catch('system'),
+  /** The app's theme: a built-in id or one from the `themes` table. */
+  themeId: z.string().min(1).max(64).catch(DEFAULT_THEME_ID),
   actionMode: z.enum(['icons', 'text', 'both']).catch('icons'),
   controlSize: z.enum(['sm', 'md', 'lg']).catch('sm'),
   soundMuted: z.boolean().catch(false),
@@ -126,7 +137,8 @@ export const AppSettingsSchema = z.object({
 })
 
 export type AppSettings = z.infer<typeof AppSettingsSchema>
-export type Theme = AppSettings['theme']
+/** The light/dark/system mode setting. */
+export type ThemeMode = AppSettings['theme']
 
 export const SETTINGS_KEY = 'viktorani-settings'
 
@@ -231,6 +243,6 @@ export function subscribeSettings(listener: () => void): () => void {
   }
 }
 
-export function applyTheme(theme: Theme) {
+export function applyTheme(theme: ThemeMode) {
   document.documentElement.setAttribute('data-theme', theme)
 }

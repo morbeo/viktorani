@@ -453,6 +453,69 @@ export interface Widget {
   order: number
 }
 
+/** The semantic colour tokens a {@link ThemePalette} sets (ADR 0022). */
+export const THEME_TOKENS = [
+  'bg',
+  'surface',
+  'text',
+  'muted',
+  'border',
+  'accent',
+  'accentSubtle',
+  'onAccent',
+  'positive',
+  'negative',
+] as const
+
+/** A semantic colour token, camel-cased as in {@link ThemePalette}. */
+export type ThemeToken = (typeof THEME_TOKENS)[number]
+
+/**
+ * One palette of a {@link Theme}: a `#rrggbb` colour per token. `onAccent` may be `null`,
+ * meaning black or white, whichever contrasts more with `accent`.
+ */
+export type ThemePalette = Record<Exclude<ThemeToken, 'onAccent'>, string> & {
+  onAccent: string | null
+}
+
+/** Fonts a theme can pick: a bundled family or a system stack. */
+export const FONT_KEYS = [
+  'playfair-display',
+  'lora',
+  'dm-mono',
+  'system-sans',
+  'system-serif',
+  'system-mono',
+] as const
+
+/** A font a theme can use for a role; see `FONT_STACKS` in `lib/theme.ts`. */
+export type FontKey = (typeof FONT_KEYS)[number]
+
+/** Lucide stroke widths a theme can choose. */
+export const ICON_STROKES = [1.5, 1.75, 2, 2.5] as const
+
+/** A stroke width from {@link ICON_STROKES}. */
+export type IconStroke = (typeof ICON_STROKES)[number]
+
+/**
+ * A look for the app or a game: colours, fonts, icon stroke and logos (ADR 0022).
+ *
+ * @remarks
+ * Built-in themes live in code (`BUILT_IN_THEMES` in `lib/theme.ts`); this table holds the
+ * host's own. `dark: null` is a light-only theme: in dark mode it uses the built-in dark
+ * palette with its own accent. Logos are `data:image/` or `https://` URLs, as for
+ * {@link LayoutTheme}.
+ */
+export interface Theme {
+  id: string
+  name: string
+  light: ThemePalette
+  dark: ThemePalette | null
+  fonts: { display: FontKey; body: FontKey; mono: FontKey }
+  iconStroke: IconStroke
+  logo: { wordmark: string | null; mark: string | null }
+}
+
 /** A freeform markdown note for the GameMaster's use (e.g. round intros, hints). */
 export interface Note {
   id: string
@@ -536,6 +599,7 @@ export interface GameQuestion {
  *   `'gamemaster'` and gain `phase` (`null`, all phases) and the default `theme`; each
  *   widget's `width: 'full' | 'half'` becomes a 12-column `grid` rect, packed into rows in
  *   `order`, with no `breakpoints` overrides.
+ * - 17: adds `themes`, the host's own themes (ADR 0022).
  *
  * To change the schema, add a new `this.version(N + 1)` block below; keep existing blocks.
  */
@@ -558,6 +622,7 @@ export class ViktoraniDB extends Dexie {
   managedPlayers!: EntityTable<ManagedPlayer, 'id'>
   managedTeams!: EntityTable<ManagedTeam, 'id'>
   managedLabels!: EntityTable<ManagedLabel, 'id'>
+  themes!: EntityTable<Theme, 'id'>
 
   constructor() {
     super('viktorani')
@@ -711,6 +776,8 @@ export class ViktoraniDB extends Dexie {
         const widgets: LegacyWidget[] = await tx.table('widgets').toArray()
         await tx.table('widgets').bulkPut(migrateWidgetsToGrid(widgets))
       })
+
+    this.version(17).stores({ themes: 'id, name' })
   }
 }
 
