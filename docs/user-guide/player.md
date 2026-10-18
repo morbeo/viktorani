@@ -45,11 +45,11 @@ navigates through questions.
 
 The GM controls what's visible to you:
 
-| GM toggles on | You see |
-|---|---|
-| Show Question | The question text |
-| Show Answers | Answer options (multiple choice / true-false) |
-| Show Media | An image, audio clip, or video |
+| GM toggles on | You see                                       |
+| ------------- | --------------------------------------------- |
+| Show Question | The question text                             |
+| Show Answers  | Answer options (multiple choice / true-false) |
+| Show Media    | An image, audio clip, or video                |
 
 ### Buzzing in
 
@@ -75,6 +75,11 @@ You cannot pause or reset timers — only the GM can control them.
 
 The host can send you a short message. It appears in a banner at the top marked
 **From the host**; tap **×** to dismiss it.
+
+### Light or dark
+
+The game uses the host's colours and fonts. Pick **Light**, **Dark** or **Follow device**
+with the switch at the top of the join and play pages; it only changes your phone.
 
 ---
 
@@ -131,4 +136,3 @@ where some guests prefer not to install anything.
 - Check that your device volume is not muted.
 - Some browsers block autoplay of audio until the user has interacted with the page.
   Tap anywhere on the screen once and the audio should start.
-

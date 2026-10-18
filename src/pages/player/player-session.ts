@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { transportManager } from '@/transport'
 import type { GamePhase, LayoutAssignments } from '@/db'
+import type { ResolvedTheme } from '@/lib/theme'
 import type { GameEvent, LayoutPayload, TransportEvent } from '@/transport/types'
 
 export type QuestionContent = Extract<GameEvent, { type: 'QUESTION_CONTENT' }>
@@ -34,6 +35,8 @@ export interface PlayerSession {
   layouts: RemoteLayouts | null
   /** The phase the host picks layouts for (see `PHASE`); `null` until it says. */
   phase: GamePhase | null
+  /** The host's theme (see `THEME`); `null` keeps this device's own until it arrives. */
+  theme: ResolvedTheme | null
 }
 
 /**
@@ -63,6 +66,7 @@ const INITIAL: PlayerSession = {
   message: null,
   layouts: null,
   phase: null,
+  theme: null,
 }
 
 let session = INITIAL
@@ -114,6 +118,8 @@ export function reduceSession(s: PlayerSession, event: TransportEvent): PlayerSe
         : s
     case 'PHASE':
       return { ...s, phase: event.phase }
+    case 'THEME':
+      return { ...s, theme: event.theme }
     default:
       return s
   }

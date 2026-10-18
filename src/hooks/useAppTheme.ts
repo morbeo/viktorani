@@ -33,9 +33,11 @@ export function useUserThemes(): Theme[] {
   return useLiveQuery(() => db.themes.orderBy('name').toArray(), []) ?? NO_THEMES
 }
 
-// The theme id of the game whose page is open, if it has one. A module store rather than
-// context, so the page that knows the game can set it for `AppTheme` higher up.
-let gameThemeId: string | null = null
+// The open game's theme: its id on the host, or the resolved theme the host sent to a
+// player or screen. A module store rather than context, so the page that knows the game
+// can set it for `AppTheme` higher up.
+type PageTheme = string | ResolvedTheme | null
+let pageTheme: PageTheme = null
 const gameThemeListeners = new Set<() => void>()
 
 function subscribeGameTheme(listener: () => void): () => void {
@@ -43,13 +45,13 @@ function subscribeGameTheme(listener: () => void): () => void {
   return () => gameThemeListeners.delete(listener)
 }
 
-function getGameThemeId(): string | null {
-  return gameThemeId
+function getPageTheme(): PageTheme {
+  return pageTheme
 }
 
-function setGameThemeId(id: string | null): void {
-  if (id === gameThemeId) return
-  gameThemeId = id
+function setPageTheme(next: PageTheme): void {
+  if (next === pageTheme) return
+  pageTheme = next
   for (const listener of gameThemeListeners) listener()
 }
 
@@ -59,26 +61,59 @@ function setGameThemeId(id: string | null): void {
  */
 export function useGameTheme(themeId: string | null | undefined): void {
   useEffect(() => {
-    setGameThemeId(themeId ?? null)
-    return () => setGameThemeId(null)
+    setPageTheme(themeId ?? null)
+    return () => setPageTheme(null)
   }, [themeId])
 }
 
 /**
+ * Show the theme a host sent (see `THEME`) on the whole page while the calling component
+ * is mounted, as player phones and remote screens do. `null` keeps this device's app theme.
+ */
+export function useRemoteTheme(theme: ResolvedTheme | null): void {
+  useEffect(() => {
+    setPageTheme(theme)
+    return () => setPageTheme(null)
+  }, [theme])
+}
+
+/**
+ * A game's theme as the host sends it: the game's own theme, or the app theme when it has
+ * none. `null` while the host's themes load, so nothing is sent before it is known.
+ */
+export function useResolvedGameTheme(themeId: string | null | undefined): ResolvedTheme | null {
+  const [{ themeId: appThemeId }] = useAppSettings()
+  const userThemes = useLiveQuery(() => db.themes.toArray(), [])
+  const resolved = userThemes
+    ? resolveTheme({
+        app: findTheme(appThemeId, userThemes),
+        game: findGameTheme(themeId, userThemes),
+        surface: 'admin',
+      })
+    : null
+  // The same object until what it resolves to changes, so callers can resend on change
+  const key = resolved ? JSON.stringify(resolved) : null
+  return useMemo(() => (key ? (JSON.parse(key) as ResolvedTheme) : null), [key])
+}
+
+/**
  * The theme the page shows: the app theme from settings, or the open game's theme (see
- * {@link useGameTheme}). A game whose theme was deleted shows the app theme.
+ * {@link useGameTheme} and {@link useRemoteTheme}). A game whose theme was deleted shows the
+ * app theme.
  */
 export function useAppTheme(): ResolvedTheme {
   const [{ themeId }] = useAppSettings()
   const userThemes = useUserThemes()
-  const gameTheme = useSyncExternalStore(subscribeGameTheme, getGameThemeId)
+  const page = useSyncExternalStore(subscribeGameTheme, getPageTheme)
   return useMemo(
     () =>
-      resolveTheme({
-        app: findTheme(themeId, userThemes),
-        game: findGameTheme(gameTheme, userThemes),
-        surface: 'admin',
-      }),
-    [themeId, gameTheme, userThemes]
+      page !== null && typeof page === 'object'
+        ? page
+        : resolveTheme({
+            app: findTheme(themeId, userThemes),
+            game: findGameTheme(page, userThemes),
+            surface: 'admin',
+          }),
+    [themeId, page, userThemes]
   )
 }

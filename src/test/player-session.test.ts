@@ -20,6 +20,7 @@ import {
   startPlayerSession,
   usePlayerSession,
 } from '@/pages/player/player-session'
+import { BUILT_IN_THEMES, resolveTheme } from '@/lib/theme'
 import type { PlayerSession, QuestionContent } from '@/pages/player/player-session'
 
 const EMPTY: PlayerSession = {
@@ -33,6 +34,7 @@ const EMPTY: PlayerSession = {
   message: null,
   layouts: null,
   phase: null,
+  theme: null,
 }
 
 function content(target: 'players' | 'screen'): QuestionContent {
@@ -141,6 +143,11 @@ describe('reduceSession', () => {
 
   it('keeps the latest PHASE', () => {
     expect(reduceSession(EMPTY, { type: 'PHASE', phase: 'buzzed' }).phase).toBe('buzzed')
+  })
+
+  it('keeps the latest THEME', () => {
+    const theme = resolveTheme({ app: BUILT_IN_THEMES[1], surface: 'player' })
+    expect(reduceSession(EMPTY, { type: 'THEME', theme }).theme).toBe(theme)
   })
 
   it('picks layouts for ended once the game has ended, whatever the last PHASE was', () => {

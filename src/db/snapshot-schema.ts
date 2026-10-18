@@ -174,7 +174,9 @@ export const GridRectSchema = z
     error: 'widget overflows the grid rows',
   }) satisfies z.ZodType<GridRect>
 
-const HexColourSchema = z.string().regex(/^#[0-9a-f]{6}$/i, { error: 'expected a #rrggbb colour' })
+export const HexColourSchema = z
+  .string()
+  .regex(/^#[0-9a-f]{6}$/i, { error: 'expected a #rrggbb colour' })
 
 /**
  * Whether `src` may be used as an image source in a layout: an inlined `data:image/` URL or
@@ -184,7 +186,7 @@ export function isSafeImageSrc(src: string): boolean {
   return src.startsWith('data:image/') || src.startsWith('https://')
 }
 
-const LogoSchema = z.string().max(MAX_LOGO_LENGTH).refine(isSafeImageSrc, {
+export const LogoSchema = z.string().max(MAX_LOGO_LENGTH).refine(isSafeImageSrc, {
   error: 'logo must be a data:image/ or https:// URL',
 })
 
@@ -195,7 +197,7 @@ export const LayoutThemeSchema = z.object({
   logo: LogoSchema.nullable(),
 }) satisfies z.ZodType<LayoutTheme>
 
-const ThemePaletteSchema = z.object({
+export const ThemePaletteSchema = z.object({
   bg: HexColourSchema,
   surface: HexColourSchema,
   text: HexColourSchema,
@@ -208,7 +210,7 @@ const ThemePaletteSchema = z.object({
   negative: HexColourSchema,
 }) satisfies z.ZodType<ThemePalette>
 
-const FontKeySchema = z.enum(FONT_KEYS)
+export const FontKeySchema = z.enum(FONT_KEYS)
 
 /** A host theme (ADR 0022). Built-in theme ids are reserved, so a file can't shadow one. */
 export const ThemeSchema = z.object({

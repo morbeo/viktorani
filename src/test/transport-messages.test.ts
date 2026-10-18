@@ -24,7 +24,9 @@ import {
   MAX_SCOREBOARD_ROWS,
   MAX_STATUS_LENGTH,
   MAX_TEXT_LENGTH,
+  MAX_THEME_EVENT_LENGTH,
 } from '@/transport/messages'
+import { BUILT_IN_THEMES, resolveTheme } from '@/lib/theme'
 import type { SerializedGameState, TransportEvent } from '@/transport/types'
 import { serialiseGameState } from '@/pages/admin/gamemaster-utils'
 import type { Game } from '@/db'
@@ -143,6 +145,13 @@ const FIXTURES: { [K in TransportEvent['type']]: Extract<TransportEvent, { type:
     ],
   },
   PHASE: { type: 'PHASE', phase: 'reveal' },
+  THEME: {
+    type: 'THEME',
+    theme: {
+      ...resolveTheme({ app: BUILT_IN_THEMES[1], surface: 'player' }),
+      logo: { wordmark: LOGO, mark: null },
+    },
+  },
 }
 
 const CASES = Object.values(FIXTURES).map(f => [f.type, f] as const)
@@ -626,5 +635,55 @@ describe('PHASE', () => {
     expect(accepts({ type: 'PHASE', phase: 'intermission' })).toBe(false)
     expect(accepts({ type: 'PHASE', phase: null })).toBe(false)
     expect(accepts({ type: 'PHASE' })).toBe(false)
+  })
+})
+
+describe('THEME', () => {
+  const event = FIXTURES.THEME
+  const theme = event.theme
+
+  it('accepts every built-in theme, resolved', () => {
+    for (const app of BUILT_IN_THEMES) {
+      expect(accepts({ type: 'THEME', theme: resolveTheme({ app, surface: 'player' }) })).toBe(true)
+    }
+  })
+
+  it('rejects a colour that is not #rrggbb, or a missing on-accent', () => {
+    for (const bg of ['red', '#fff', 'url(x)', '#12345g', 'var(--x)']) {
+      expect(accepts({ ...event, theme: { ...theme, light: { ...theme.light, bg } } })).toBe(false)
+    }
+    expect(
+      accepts({ ...event, theme: { ...theme, dark: { ...theme.dark, onAccent: null } } })
+    ).toBe(false)
+    expect(accepts({ ...event, theme: { ...theme, dark: null } })).toBe(false)
+  })
+
+  it('rejects an unknown font, stroke or extra field', () => {
+    const fonts = { ...theme.fonts, body: 'Comic Sans' }
+    expect(accepts({ ...event, theme: { ...theme, fonts } })).toBe(false)
+    expect(accepts({ ...event, theme: { ...theme, iconStroke: 3 } })).toBe(false)
+    expect(accepts({ ...event, theme: { ...theme, css: 'body{}' } })).toBe(false)
+    expect(
+      accepts({ ...event, theme: { ...theme, light: { ...theme.light, extra: '#000000' } } })
+    ).toBe(false)
+    expect(accepts({ ...event, mode: 'dark' })).toBe(false)
+  })
+
+  it('accepts only data:image/ or https:// logos', () => {
+    for (const wordmark of ['javascript:alert(1)', 'http://x.test/a.png', 'data:text/html,x']) {
+      expect(accepts({ ...event, theme: { ...theme, logo: { wordmark, mark: null } } })).toBe(false)
+    }
+    const https = { wordmark: 'https://x.test/a.png', mark: LOGO }
+    expect(accepts({ ...event, theme: { ...theme, logo: https } })).toBe(true)
+  })
+
+  it('caps the whole event, so two large logos cannot add up', () => {
+    const big = `data:image/png;base64,${'A'.repeat(MAX_THEME_EVENT_LENGTH / 2)}`
+    expect(accepts({ ...event, theme: { ...theme, logo: { wordmark: big, mark: null } } })).toBe(
+      true
+    )
+    expect(accepts({ ...event, theme: { ...theme, logo: { wordmark: big, mark: big } } })).toBe(
+      false
+    )
   })
 })

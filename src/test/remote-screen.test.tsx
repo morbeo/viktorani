@@ -37,6 +37,7 @@ import { transportManager } from '@/transport'
 import RemoteScreen from '@/pages/screen/RemoteScreen'
 import { INITIAL_SCREEN, reduceScreen } from '@/pages/screen/screen-session'
 import { ScreensPanel } from '@/components/gamemaster/ScreensPanel'
+import { BUILT_IN_THEMES, resolveTheme } from '@/lib/theme'
 
 type QuestionContent = Extract<TransportEvent, { type: 'QUESTION_CONTENT' }>
 
@@ -115,6 +116,11 @@ describe('reduceScreen', () => {
 
   it('keeps the latest PHASE', () => {
     expect(reduceScreen(INITIAL_SCREEN, { type: 'PHASE', phase: 'reveal' }).phase).toBe('reveal')
+  })
+
+  it('keeps the latest THEME', () => {
+    const theme = resolveTheme({ app: BUILT_IN_THEMES[2], surface: 'screen' })
+    expect(reduceScreen(INITIAL_SCREEN, { type: 'THEME', theme }).theme).toBe(theme)
   })
 
   it('keeps the latest LOG feed', () => {
