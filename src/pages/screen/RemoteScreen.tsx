@@ -101,10 +101,7 @@ export default function RemoteScreen() {
 
   if (lost || session.status !== 'accepted') {
     return (
-      <div
-        className="min-h-screen flex flex-col items-center justify-center gap-4 text-2xl"
-        style={{ background: 'var(--color-cream)', color: 'var(--color-ink)' }}
-      >
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 text-2xl bg-bg text-text">
         {lost ? (
           <>
             <p role="alert">{`Lost the connection to the host. ${error ?? ''}`.trim()}</p>

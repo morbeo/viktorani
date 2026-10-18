@@ -59,8 +59,7 @@ export function GameSettingsDrawer({ game, onGameChange }: GameSettingsDrawerPro
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
-            className="h-full w-full max-w-sm overflow-y-auto border-l shadow-2xl flex flex-col gap-4 p-5"
-            style={{ background: 'var(--color-cream)', borderColor: 'var(--color-border)' }}
+            className="h-full w-full max-w-sm overflow-y-auto border-l shadow-2xl flex flex-col gap-4 p-5 bg-bg border-border"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
@@ -71,13 +70,12 @@ export function GameSettingsDrawer({ game, onGameChange }: GameSettingsDrawerPro
                 type="button"
                 aria-label="Close game settings"
                 onClick={() => setOpen(false)}
-                className="text-xl leading-none hover:opacity-60 transition-opacity"
-                style={{ color: 'var(--color-muted)' }}
+                className="text-xl leading-none hover:opacity-60 transition-opacity text-muted"
               >
                 ×
               </button>
             </div>
-            <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
+            <p className="text-xs text-muted">
               Changes apply at once. Visibility is set on the question panel.
             </p>
             <GameSettingsForm
@@ -88,7 +86,7 @@ export function GameSettingsDrawer({ game, onGameChange }: GameSettingsDrawerPro
             />
             <GameLayoutsPanel game={game} onGameChange={onGameChange} disabled={saving} />
             {error && (
-              <p role="alert" className="text-xs" style={{ color: 'var(--color-red)' }}>
+              <p role="alert" className="text-xs text-negative">
                 {error}
               </p>
             )}

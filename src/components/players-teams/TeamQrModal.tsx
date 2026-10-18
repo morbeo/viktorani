@@ -68,8 +68,8 @@ export default function TeamQrModal({ team, open, onClose }: Props) {
     <Modal open={open} onClose={onClose} title={`QR — ${team.name}`} maxWidth="320px">
       <div className="flex flex-col items-center gap-4">
         <div
-          className="p-3 rounded-lg border"
-          style={{ borderColor: 'var(--color-border)', background: '#ffffff' }}
+          className="p-3 rounded-lg border border-border"
+          style={{ background: '#ffffff' }}
           aria-label="Team QR code"
         >
           <QRCodeSVG value={value} size={180} level="M" ref={svgRef as React.Ref<SVGSVGElement>} />
@@ -84,12 +84,10 @@ export default function TeamQrModal({ team, open, onClose }: Props) {
             >
               {team.icon}
             </span>
-            <p className="text-sm font-medium" style={{ color: 'var(--color-ink)' }}>
-              {team.name}
-            </p>
+            <p className="text-sm font-medium text-text">{team.name}</p>
           </div>
 
-          <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
+          <p className="text-xs text-muted">
             {activePlayerCount} player{activePlayerCount !== 1 ? 's' : ''} in roster snapshot
           </p>
 
@@ -111,7 +109,7 @@ export default function TeamQrModal({ team, open, onClose }: Props) {
             </div>
           )}
 
-          <p className="text-xs mt-1" style={{ color: 'var(--color-muted)' }}>
+          <p className="text-xs mt-1 text-muted">
             Generated fresh — roster reflects current active members.
           </p>
         </div>

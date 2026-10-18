@@ -21,12 +21,8 @@ function Toggle({ label, name, hint, checked, disabled, onChange }: ToggleProps)
       style={{ opacity: disabled ? 0.6 : 1 }}
     >
       <div className="flex flex-col gap-0.5">
-        <span className="text-sm font-medium" style={{ color: 'var(--color-ink)' }}>
-          {label}
-        </span>
-        <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
-          {hint}
-        </span>
+        <span className="text-sm font-medium text-text">{label}</span>
+        <span className="text-xs text-muted">{hint}</span>
       </div>
       <button
         role="switch"
@@ -36,8 +32,8 @@ function Toggle({ label, name, hint, checked, disabled, onChange }: ToggleProps)
         onClick={onChange}
         className="relative shrink-0 w-11 h-6 rounded-full border-2 transition-colors"
         style={{
-          background: checked ? '#16a34a' : 'var(--color-border)',
-          borderColor: checked ? '#16a34a' : 'var(--color-border)',
+          background: checked ? 'var(--color-positive)' : 'var(--color-border)',
+          borderColor: checked ? 'var(--color-positive)' : 'var(--color-border)',
         }}
       >
         <span
@@ -70,10 +66,7 @@ export function HostVisibilityToggles({ game, onGameChange }: HostVisibilityTogg
   const { visibility, toggle, saving, error } = useGameVisibility(game, onGameChange)
   return (
     <div className="flex flex-col gap-2">
-      <p
-        className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide"
-        style={{ color: 'var(--color-muted)' }}
-      >
+      <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
         Visibility
         <HelpTip
           label="About Visibility"
@@ -84,12 +77,9 @@ export function HostVisibilityToggles({ game, onGameChange }: HostVisibilityTogg
         {TARGETS.map(({ target, title }) => (
           <div
             key={target}
-            className="flex flex-col gap-4 rounded-lg border p-4"
-            style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
+            className="flex flex-col gap-4 rounded-lg border p-4 border-border bg-surface"
           >
-            <p className="text-sm font-semibold" style={{ color: 'var(--color-ink)' }}>
-              {title}
-            </p>
+            <p className="text-sm font-semibold text-text">{title}</p>
             {TOGGLES.map(({ key, label, hint }) => (
               <Toggle
                 key={key}
@@ -104,11 +94,7 @@ export function HostVisibilityToggles({ game, onGameChange }: HostVisibilityTogg
           </div>
         ))}
       </div>
-      {error && (
-        <p className="text-xs" style={{ color: 'var(--color-red)' }}>
-          {error}
-        </p>
-      )}
+      {error && <p className="text-xs text-negative">{error}</p>}
     </div>
   )
 }

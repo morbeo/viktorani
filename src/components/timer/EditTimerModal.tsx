@@ -29,10 +29,7 @@ function Picker<T extends string>({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <p
-        className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider"
-        style={{ color: 'var(--color-muted)' }}
-      >
+      <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted">
         {label}
         <HelpTip label={`About ${label}`} text={help} />
       </p>
@@ -43,20 +40,18 @@ function Picker<T extends string>({
             onClick={() => onChange(opt.value)}
             className="flex flex-col items-start px-3 py-2 rounded-lg border text-left transition-all"
             style={{
-              borderColor: value === opt.value ? 'var(--color-gold)' : 'var(--color-border)',
-              background: value === opt.value ? 'var(--color-gold)18' : 'transparent',
+              borderColor: value === opt.value ? 'var(--color-accent)' : 'var(--color-border)',
+              background: value === opt.value ? 'var(--color-accent)18' : 'transparent',
               cursor: 'pointer',
             }}
           >
             <span
               className="text-xs font-semibold"
-              style={{ color: value === opt.value ? 'var(--color-gold)' : 'var(--color-ink)' }}
+              style={{ color: value === opt.value ? 'var(--color-accent)' : 'var(--color-text)' }}
             >
               {opt.label}
             </span>
-            <span className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
-              {opt.description}
-            </span>
+            <span className="text-xs mt-0.5 text-muted">{opt.description}</span>
           </button>
         ))}
       </div>
@@ -94,36 +89,26 @@ export function EditTimerModal({ timer, onSave, onCancel }: EditTimerModalProps)
       style={{ background: 'rgba(0,0,0,0.45)' }}
     >
       <div
-        className="rounded-2xl border shadow-xl w-full max-w-md mx-4 flex flex-col gap-5 p-6 overflow-y-auto"
+        className="rounded-2xl border shadow-xl w-full max-w-md mx-4 flex flex-col gap-5 p-6 overflow-y-auto border-border bg-bg"
         style={{
-          borderColor: 'var(--color-border)',
-          background: 'var(--color-cream)',
           maxHeight: '90vh',
         }}
       >
         <h2
-          className="text-lg font-bold"
-          style={{ fontFamily: 'Playfair Display, serif', color: 'var(--color-ink)' }}
+          className="text-lg font-bold text-text"
+          style={{ fontFamily: 'Playfair Display, serif' }}
         >
           Timer settings
         </h2>
 
         {/* Label */}
         <div className="flex flex-col gap-1.5">
-          <label
-            className="text-xs font-semibold uppercase tracking-wider"
-            style={{ color: 'var(--color-muted)' }}
-          >
-            Label
-          </label>
+          <label className="text-xs font-semibold uppercase tracking-wider text-muted">Label</label>
           <input
             value={label}
             onChange={e => setLabel(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg border text-sm"
+            className="w-full px-3 py-2 rounded-lg border text-sm border-border bg-surface text-text"
             style={{
-              borderColor: 'var(--color-border)',
-              background: 'var(--color-surface)',
-              color: 'var(--color-ink)',
               outline: 'none',
             }}
           />

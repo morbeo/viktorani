@@ -118,17 +118,14 @@ function HostTabs({ label, tabs, selected, waiting, onSelect, className }: HostT
             onClick={() => onSelect(id)}
             className="flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium"
             style={{
-              color: active ? 'var(--color-gold)' : 'var(--color-muted)',
-              borderBottom: active ? '2px solid var(--color-gold)' : '2px solid transparent',
+              color: active ? 'var(--color-accent)' : 'var(--color-muted)',
+              borderBottom: active ? '2px solid var(--color-accent)' : '2px solid transparent',
             }}
           >
             <Icon icon={TABS[id].icon} size="sm" />
             {TABS[id].label}
             {id === 'people' && waiting > 0 && (
-              <span
-                className="text-xs font-semibold px-1.5 rounded-full"
-                style={{ background: 'var(--color-gold)', color: '#fff' }}
-              >
+              <span className="text-xs font-semibold px-1.5 rounded-full bg-accent text-on-accent">
                 {waiting}
               </span>
             )}
@@ -387,7 +384,7 @@ export function ActiveGame({
   if (isEmpty) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p style={{ color: 'var(--color-muted)' }}>
+        <p className="text-muted">
           This game has no questions. Add questions to its rounds, then create a new game.
         </p>
       </div>
@@ -397,7 +394,7 @@ export function ActiveGame({
   if (!isReady) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p style={{ color: 'var(--color-muted)' }}>Loading questions…</p>
+        <p className="text-muted">Loading questions…</p>
       </div>
     )
   }
@@ -490,11 +487,9 @@ export function ActiveGame({
             {/* Read-only banner for ended games */}
             {isEnded && (
               <div
-                className="mt-6 px-4 py-3 rounded-lg border text-sm"
+                className="mt-6 px-4 py-3 rounded-lg border text-sm border-border text-muted"
                 style={{
-                  borderColor: 'var(--color-border)',
                   background: 'var(--color-border)44',
-                  color: 'var(--color-muted)',
                 }}
               >
                 This game has ended. The scoreboard is read-only.

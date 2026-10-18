@@ -8,13 +8,13 @@ export const PRESENCE: Record<
 > = {
   connected: {
     icon: CircleDot,
-    color: 'var(--color-green)',
+    color: 'var(--color-positive)',
     label: 'Connected',
     meaning: 'Playing.',
   },
   hidden: {
     icon: EyeOff,
-    color: 'var(--color-gold)',
+    color: 'var(--color-accent)',
     label: 'Tab hidden',
     meaning: 'Connected, but looking at something else.',
   },
@@ -30,5 +30,10 @@ export const PRESENCE: Record<
     label: 'Left',
     meaning: 'They left the game.',
   },
-  kicked: { icon: UserX, color: 'var(--color-red)', label: 'Kicked', meaning: 'You removed them.' },
+  kicked: {
+    icon: UserX,
+    color: 'var(--color-negative)',
+    label: 'Kicked',
+    meaning: 'You removed them.',
+  },
 }

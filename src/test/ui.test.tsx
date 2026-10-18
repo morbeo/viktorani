@@ -48,13 +48,13 @@ describe('Button', () => {
   it('applies primary variant styles', () => {
     render(<Button variant="primary">Save</Button>)
     const btn = screen.getByText('Save')
-    expect(btn).toHaveStyle({ background: 'var(--color-ink)' })
+    expect(btn).toHaveStyle({ background: 'var(--color-text)' })
   })
 
   it('applies danger variant styles', () => {
     render(<Button variant="danger">Delete</Button>)
     const btn = screen.getByText('Delete')
-    expect(btn).toHaveStyle({ background: 'var(--color-red)' })
+    expect(btn).toHaveStyle({ background: 'var(--color-negative)' })
   })
 
   it('applies sm size class', () => {
@@ -83,7 +83,7 @@ describe('Badge', () => {
 
   it('uses gold-light as default background', () => {
     render(<Badge>Default</Badge>)
-    expect(screen.getByText('Default')).toHaveStyle({ background: 'var(--color-gold-light)' })
+    expect(screen.getByText('Default')).toHaveStyle({ background: 'var(--color-accent-subtle)' })
   })
 })
 

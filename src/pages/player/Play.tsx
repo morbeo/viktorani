@@ -135,10 +135,7 @@ export default function Play() {
   const teamScore = session.teamId ? session.scores[session.teamId] : undefined
 
   return (
-    <div
-      className="min-h-screen px-4 py-8 flex flex-col items-center gap-6"
-      style={{ background: 'var(--color-cream)' }}
-    >
+    <div className="min-h-screen px-4 py-8 flex flex-col items-center gap-6 bg-bg">
       {problem?.kind === 'pending' && <Status text="Waiting for the host to let you back in…" />}
 
       {problem?.kind === 'rejected' && (
@@ -172,10 +169,8 @@ export default function Play() {
         <>
           <header className="w-full max-w-sm flex items-center justify-between gap-4">
             <div>
-              <p className="font-semibold" style={{ color: 'var(--color-ink)' }}>
-                {name}
-              </p>
-              <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
+              <p className="font-semibold text-text">{name}</p>
+              <p className="text-sm text-muted">
                 Score <span className="mono tabular-nums">{score}</span>
                 {teamScore !== undefined && (
                   <>
@@ -225,7 +220,7 @@ export default function Play() {
 
 function Status({ text }: { text: string }) {
   return (
-    <p role="status" className="text-sm" style={{ color: 'var(--color-muted)' }}>
+    <p role="status" className="text-sm text-muted">
       {text}
     </p>
   )
@@ -233,7 +228,7 @@ function Status({ text }: { text: string }) {
 
 function Alert({ text }: { text: string }) {
   return (
-    <p role="alert" className="text-sm" style={{ color: 'var(--color-red)' }}>
+    <p role="alert" className="text-sm text-negative">
       {text}
     </p>
   )

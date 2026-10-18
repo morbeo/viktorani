@@ -93,15 +93,9 @@ export default function PlayerList({ filterTeamId, search = '', labelFilter = {}
 
   return (
     <div className="flex flex-col">
-      <div
-        className="rounded-lg overflow-hidden border"
-        style={{ borderColor: 'var(--color-border)' }}
-      >
+      <div className="rounded-lg overflow-hidden border border-border">
         {active.length > 0 && (
-          <div
-            className="flex items-center gap-3 px-3 py-2 border-b"
-            style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-          >
+          <div className="flex items-center gap-3 px-3 py-2 border-b border-border bg-surface">
             <input
               type="checkbox"
               checked={allSelected}
@@ -109,7 +103,7 @@ export default function PlayerList({ filterTeamId, search = '', labelFilter = {}
               aria-label="Select all players"
               className="w-3.5 h-3.5 cursor-pointer"
             />
-            <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
+            <span className="text-xs text-muted">
               {someSelected ? `${selected.size} selected` : 'Select all'}
             </span>
           </div>
@@ -195,8 +189,8 @@ function PlayerRow({
 
   return (
     <div
-      className="flex items-center gap-3 px-3 py-2.5 border-b last:border-b-0"
-      style={{ borderColor: 'var(--color-border)', opacity: archived ? 0.45 : 1 }}
+      className="flex items-center gap-3 px-3 py-2.5 border-b last:border-b-0 border-border"
+      style={{ opacity: archived ? 0.45 : 1 }}
     >
       {!archived && (
         <input
@@ -223,8 +217,7 @@ function PlayerRow({
           ))
         ) : (
           <span
-            className="w-5 h-5 rounded flex items-center justify-center text-xs"
-            style={{ background: 'var(--color-border)', color: 'var(--color-muted)' }}
+            className="w-5 h-5 rounded flex items-center justify-center text-xs bg-border text-muted"
             aria-label="No team"
           >
             —
@@ -232,9 +225,7 @@ function PlayerRow({
         )}
       </div>
 
-      <span className="flex-1 text-sm min-w-0 truncate" style={{ color: 'var(--color-ink)' }}>
-        {player.name}
-      </span>
+      <span className="flex-1 text-sm min-w-0 truncate text-text">{player.name}</span>
 
       <div className="flex gap-1 flex-wrap overflow-hidden max-w-[140px]">
         {playerLabels.map(label => (
@@ -252,22 +243,14 @@ function PlayerRow({
         ))}
       </div>
 
-      <span className="text-xs tabular-nums shrink-0" style={{ color: 'var(--color-muted)' }}>
-        {player.totalScore} pts
-      </span>
+      <span className="text-xs tabular-nums shrink-0 text-muted">{player.totalScore} pts</span>
 
       {archived ? (
         <>
-          <span
-            className="text-xs px-1.5 py-0.5 rounded"
-            style={{ background: 'var(--color-border)', color: 'var(--color-muted)' }}
-          >
-            Archived
-          </span>
+          <span className="text-xs px-1.5 py-0.5 rounded bg-border text-muted">Archived</span>
           <button
             onClick={onRestore}
-            className="text-xs px-2 py-1 rounded transition-colors hover:bg-black/5"
-            style={{ color: 'var(--color-gold)' }}
+            className="text-xs px-2 py-1 rounded transition-colors hover:bg-black/5 text-accent"
             aria-label={`Restore ${player.name}`}
           >
             Restore
@@ -277,8 +260,7 @@ function PlayerRow({
         <>
           <button
             onClick={onQr}
-            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors hover:bg-black/5"
-            style={{ color: 'var(--color-muted)' }}
+            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors hover:bg-black/5 text-muted"
             aria-label={`Show QR for ${player.name}`}
           >
             {showIcon && <Icon icon={QrCode} size="sm" aria-hidden />}
@@ -286,8 +268,7 @@ function PlayerRow({
           </button>
           <button
             onClick={onEdit}
-            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors hover:bg-black/5"
-            style={{ color: 'var(--color-muted)' }}
+            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors hover:bg-black/5 text-muted"
             aria-label={`Edit ${player.name}`}
           >
             {showIcon && <Icon icon={Pencil} size="sm" aria-hidden />}
@@ -295,8 +276,7 @@ function PlayerRow({
           </button>
           <button
             onClick={onArchive}
-            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors hover:bg-black/5"
-            style={{ color: 'var(--color-red)' }}
+            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors hover:bg-black/5 text-negative"
             aria-label={`Archive ${player.name}`}
           >
             {showIcon && <Icon icon={Archive} size="sm" aria-hidden />}

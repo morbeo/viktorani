@@ -54,8 +54,8 @@ export function HostQuestionHeader({ question, gameQuestion }: HostQuestionHeade
         </Badge>
       </div>
       <h2
-        className="text-xl font-bold leading-snug"
-        style={{ fontFamily: 'Playfair Display, serif', color: 'var(--color-ink)' }}
+        className="text-xl font-bold leading-snug text-text"
+        style={{ fontFamily: 'Playfair Display, serif' }}
       >
         {question.title}
       </h2>

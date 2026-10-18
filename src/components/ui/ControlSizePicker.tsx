@@ -16,8 +16,7 @@ export function ControlSizePicker() {
     <div
       role="radiogroup"
       aria-label="Control size"
-      className="inline-flex rounded border overflow-hidden shrink-0"
-      style={{ borderColor: 'var(--color-border)' }}
+      className="inline-flex rounded border overflow-hidden shrink-0 border-border"
     >
       {OPTIONS.map(({ size, label, name }) => {
         const active = ctx.size === size
@@ -31,8 +30,8 @@ export function ControlSizePicker() {
             onClick={() => ctx.setSize(size)}
             className="px-2 py-0.5 text-xs font-medium transition-colors"
             style={{
-              background: active ? 'var(--color-ink)' : 'transparent',
-              color: active ? 'var(--color-cream)' : 'var(--color-muted)',
+              background: active ? 'var(--color-text)' : 'transparent',
+              color: active ? 'var(--color-bg)' : 'var(--color-muted)',
             }}
           >
             {label}

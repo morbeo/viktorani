@@ -12,7 +12,7 @@ interface LayoutSettingsProps {
 }
 
 const field =
-  'rounded border border-(--color-border) bg-(--color-cream) px-2 py-1 text-sm text-(--color-ink)'
+  'rounded border border-(--color-border) bg-(--color-bg) px-2 py-1 text-sm text-(--color-text)'
 const labelClass = 'flex flex-col gap-1 text-xs text-(--color-muted)'
 
 function ColourField({
@@ -76,7 +76,7 @@ export function LayoutSettings({ layout, onChange, onDelete }: LayoutSettingsPro
 
   return (
     <section aria-labelledby="layout-settings-heading" className="flex flex-col gap-4">
-      <h2 id="layout-settings-heading" className="text-sm font-semibold text-(--color-ink)">
+      <h2 id="layout-settings-heading" className="text-sm font-semibold text-(--color-text)">
         Layout settings
       </h2>
 
@@ -110,7 +110,7 @@ export function LayoutSettings({ layout, onChange, onDelete }: LayoutSettingsPro
         </select>
       </label>
 
-      <label className="flex items-center gap-2 text-sm text-(--color-ink)">
+      <label className="flex items-center gap-2 text-sm text-(--color-text)">
         <input
           type="checkbox"
           checked={layout.isActive}
@@ -165,7 +165,7 @@ export function LayoutSettings({ layout, onChange, onDelete }: LayoutSettingsPro
           />
         </label>
         {logoError && (
-          <p id="logo-error" role="alert" className="text-xs text-(--color-red)">
+          <p id="logo-error" role="alert" className="text-xs text-(--color-negative)">
             {logoError}
           </p>
         )}

@@ -20,7 +20,11 @@ function ProgressRing({ pct }: { pct: number }) {
   const circ = 2 * Math.PI * r
   const offset = circ * (1 - Math.max(0, Math.min(1, pct)))
   const color =
-    pct > 0.5 ? 'var(--color-green)' : pct > 0.2 ? 'var(--color-gold)' : 'var(--color-red)'
+    pct > 0.5
+      ? 'var(--color-positive)'
+      : pct > 0.2
+        ? 'var(--color-accent)'
+        : 'var(--color-negative)'
   return (
     <svg width="72" height="72" viewBox="0 0 72 72" className="shrink-0">
       <circle
@@ -86,8 +90,8 @@ export function TimerCard({
     <div
       className="rounded-xl border flex items-center gap-4 px-4 py-3"
       style={{
-        borderColor: isDone ? 'var(--color-red)' : 'var(--color-border)',
-        background: isDone ? 'var(--color-red)0d' : 'var(--color-surface)',
+        borderColor: isDone ? 'var(--color-negative)' : 'var(--color-border)',
+        background: isDone ? 'var(--color-negative)0d' : 'var(--color-surface)',
         transition: 'border-color 0.3s, background 0.3s',
       }}
     >
@@ -96,7 +100,7 @@ export function TimerCard({
         <ProgressRing pct={pct} />
         <span
           className="mono absolute text-sm font-bold tabular-nums"
-          style={{ color: isDone ? 'var(--color-red)' : 'var(--color-ink)' }}
+          style={{ color: isDone ? 'var(--color-negative)' : 'var(--color-text)' }}
         >
           {formatTime(remaining)}
         </span>
@@ -104,17 +108,15 @@ export function TimerCard({
 
       {/* Label + status + badges */}
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm truncate" style={{ color: 'var(--color-ink)' }}>
-          {timer.label || 'Timer'}
-        </p>
+        <p className="font-semibold text-sm truncate text-text">{timer.label || 'Timer'}</p>
         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-          <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
+          <p className="text-xs text-muted">
             {isDone ? 'Time up!' : isRunning ? 'Running' : isNeverStarted ? 'Ready' : 'Paused'}
           </p>
           {hasAudio && (
             <span
-              className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full"
-              style={{ background: 'var(--color-gold)22', color: 'var(--color-gold)' }}
+              className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full text-accent"
+              style={{ background: 'var(--color-accent)22' }}
               title={`Audio: ${timer.audioNotify}`}
             >
               <Icon icon={Bell} size="sm" />
@@ -123,8 +125,8 @@ export function TimerCard({
           )}
           {hasVisual && (
             <span
-              className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full"
-              style={{ background: 'var(--color-gold)22', color: 'var(--color-gold)' }}
+              className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full text-accent"
+              style={{ background: 'var(--color-accent)22' }}
               title={`Visual: ${timer.visualNotify}`}
             >
               <Icon icon={Eye} size="sm" />
@@ -133,8 +135,7 @@ export function TimerCard({
           )}
           {hasAutoReset && (
             <span
-              className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full"
-              style={{ background: 'var(--color-border)', color: 'var(--color-muted)' }}
+              className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-border text-muted"
               title={`Auto-reset: ${timer.autoReset}`}
             >
               <Icon icon={RotateCcw} size="sm" />
@@ -161,7 +162,7 @@ export function TimerCard({
           onClick={onRestart}
           title="Restart"
           aria-label="Restart timer"
-          style={{ color: 'var(--color-muted)' }}
+          className="text-muted"
         >
           <Icon icon={RotateCcw} size="sm" />
         </Button>
@@ -171,7 +172,7 @@ export function TimerCard({
           onClick={onEdit}
           title="Timer settings"
           aria-label="Timer settings"
-          style={{ color: 'var(--color-muted)' }}
+          className="text-muted"
         >
           <Icon icon={SlidersHorizontal} size="sm" />
         </Button>
@@ -181,7 +182,7 @@ export function TimerCard({
           onClick={onDelete}
           title="Delete timer"
           aria-label="Delete timer"
-          style={{ color: 'var(--color-muted)' }}
+          className="text-muted"
         >
           <Icon icon={Trash2} size="sm" />
         </Button>

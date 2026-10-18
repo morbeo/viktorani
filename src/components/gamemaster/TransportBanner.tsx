@@ -23,8 +23,8 @@ export function TransportBanner({ status, error, retrying, onRetry }: TransportB
       role={failed ? 'alert' : 'status'}
       className="mb-4 px-4 py-3 rounded-lg border text-sm flex items-center justify-between gap-4"
       style={{
-        borderColor: failed ? 'var(--color-red)' : 'var(--color-gold)',
-        color: failed ? 'var(--color-red)' : 'var(--color-ink)',
+        borderColor: failed ? 'var(--color-negative)' : 'var(--color-accent)',
+        color: failed ? 'var(--color-negative)' : 'var(--color-text)',
       }}
     >
       <span>

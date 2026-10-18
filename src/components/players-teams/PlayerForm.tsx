@@ -99,8 +99,8 @@ export default function PlayerForm({ player, defaultTeamId, open, onClose }: Pro
       <div className="flex flex-col gap-4">
         {error && (
           <p
-            className="text-xs px-3 py-2 rounded"
-            style={{ color: 'var(--color-red)', background: 'var(--color-red)1a' }}
+            className="text-xs px-3 py-2 rounded text-negative"
+            style={{ background: 'var(--color-negative)1a' }}
           >
             {error}
           </p>
@@ -120,9 +120,7 @@ export default function PlayerForm({ player, defaultTeamId, open, onClose }: Pro
         {/* Team assignment */}
         {teams && teams.length > 0 && (
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium" style={{ color: 'var(--color-muted)' }}>
-              Teams
-            </span>
+            <span className="text-xs font-medium text-muted">Teams</span>
             <div className="flex flex-wrap gap-2">
               {teams.map(team => {
                 const selected = teamIds.includes(team.id)
@@ -152,9 +150,7 @@ export default function PlayerForm({ player, defaultTeamId, open, onClose }: Pro
         {/* Label assignment */}
         {labels && labels.length > 0 && (
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium" style={{ color: 'var(--color-muted)' }}>
-              Labels
-            </span>
+            <span className="text-xs font-medium text-muted">Labels</span>
             <div className="flex flex-wrap gap-2">
               {labels.map(label => {
                 const selected = form.labelIds.includes(label.id)

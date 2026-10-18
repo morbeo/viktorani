@@ -244,15 +244,11 @@ export default function CommandPalette({ pageCommands, onClose }: CommandPalette
         role="dialog"
         aria-modal="true"
         aria-label="Command palette"
-        className="w-full max-w-lg rounded-xl border shadow-2xl overflow-hidden"
-        style={{ background: 'var(--color-cream)', borderColor: 'var(--color-border)' }}
+        className="w-full max-w-lg rounded-xl border shadow-2xl overflow-hidden bg-bg border-border"
         onClick={e => e.stopPropagation()}
         onKeyDown={onKeyDown}
       >
-        <div
-          className="flex items-center gap-2 px-4 py-3 border-b"
-          style={{ borderColor: 'var(--color-border)' }}
-        >
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
           <Icon icon={Search} size="sm" />
           <input
             ref={inputRef}
@@ -268,12 +264,9 @@ export default function CommandPalette({ pageCommands, onClose }: CommandPalette
               setQuery(e.target.value)
               setActive(0)
             }}
-            className="flex-1 bg-transparent outline-none text-sm"
-            style={{ color: 'var(--color-ink)' }}
+            className="flex-1 bg-transparent outline-none text-sm text-text"
           />
-          <kbd className="mono text-[10px]" style={{ color: 'var(--color-muted)' }}>
-            Esc
-          </kbd>
+          <kbd className="mono text-[10px] text-muted">Esc</kbd>
         </div>
         <ul
           id={listId}
@@ -293,17 +286,10 @@ export default function CommandPalette({ pageCommands, onClose }: CommandPalette
               style={{ background: i === current ? 'var(--color-surface)' : 'transparent' }}
             >
               {cmd.icon && <Icon icon={cmd.icon} size="sm" />}
-              <span className="flex-1 truncate" style={{ color: 'var(--color-ink)' }}>
-                {cmd.label}
-              </span>
-              <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
-                {cmd.group}
-              </span>
+              <span className="flex-1 truncate text-text">{cmd.label}</span>
+              <span className="text-xs text-muted">{cmd.group}</span>
               {cmd.shortcut && (
-                <kbd
-                  className="mono text-[10px] px-1.5 py-0.5 rounded border"
-                  style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted)' }}
-                >
+                <kbd className="mono text-[10px] px-1.5 py-0.5 rounded border border-border text-muted">
                   {cmd.shortcut}
                 </kbd>
               )}
@@ -311,9 +297,7 @@ export default function CommandPalette({ pageCommands, onClose }: CommandPalette
           ))}
         </ul>
         {results.length === 0 && (
-          <p className="px-4 py-6 text-sm text-center" style={{ color: 'var(--color-muted)' }}>
-            No matches
-          </p>
+          <p className="px-4 py-6 text-sm text-center text-muted">No matches</p>
         )}
       </div>
     </div>

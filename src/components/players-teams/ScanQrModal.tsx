@@ -121,15 +121,13 @@ export default function ScanQrModal({ open, onClose, onImported }: Props) {
 
         {phase.kind === 'processing' && (
           <div className="flex items-center justify-center py-10">
-            <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
-              Processing...
-            </p>
+            <p className="text-sm text-muted">Processing...</p>
           </div>
         )}
 
         {phase.kind === 'assign-nudge' && (
           <div className="flex flex-col gap-4">
-            <p className="text-sm" style={{ color: 'var(--color-ink)' }}>
+            <p className="text-sm text-text">
               Player imported successfully. Would you like to assign them to a team?
             </p>
             <div className="flex justify-end gap-2">
@@ -145,9 +143,7 @@ export default function ScanQrModal({ open, onClose, onImported }: Props) {
 
         {phase.kind === 'done' && (
           <div className="flex flex-col gap-4">
-            <p className="text-sm" style={{ color: 'var(--color-ink)' }}>
-              {phase.summary}
-            </p>
+            <p className="text-sm text-text">{phase.summary}</p>
             <div className="flex justify-between gap-2">
               <Button variant="secondary" onClick={reset}>
                 Scan another
@@ -162,8 +158,8 @@ export default function ScanQrModal({ open, onClose, onImported }: Props) {
         {phase.kind === 'error' && (
           <div className="flex flex-col gap-4">
             <p
-              className="text-sm px-3 py-2 rounded"
-              style={{ color: 'var(--color-red)', background: 'var(--color-red)1a' }}
+              className="text-sm px-3 py-2 rounded text-negative"
+              style={{ background: 'var(--color-negative)1a' }}
             >
               {phase.message}
             </p>

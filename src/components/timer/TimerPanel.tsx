@@ -84,21 +84,15 @@ export function TimerPanel({ gameId, hook, soundMuted = false }: TimerPanelProps
         />
       )}
 
-      <div
-        className="rounded-xl border flex flex-col gap-3 p-4"
-        style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-      >
+      <div className="rounded-xl border flex flex-col gap-3 p-4 border-border bg-surface">
         {/* Header */}
         <div className="flex items-center justify-between gap-2 flex-wrap">
-          <span
-            className="text-xs font-semibold uppercase tracking-wider"
-            style={{ color: 'var(--color-muted)' }}
-          >
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted">
             Timers
             {timers.length > 0 && (
               <span
-                className="ml-2 px-1.5 py-0.5 rounded-full font-bold"
-                style={{ background: 'var(--color-gold)22', color: 'var(--color-gold)' }}
+                className="ml-2 px-1.5 py-0.5 rounded-full font-bold text-accent"
+                style={{ background: 'var(--color-accent)22' }}
               >
                 {timers.length}
               </span>
@@ -112,7 +106,7 @@ export function TimerPanel({ gameId, hook, soundMuted = false }: TimerPanelProps
                   variant="ghost"
                   onClick={handlePauseResumeAll}
                   aria-label={allPaused ? 'Resume all timers' : 'Pause all timers'}
-                  style={{ color: 'var(--color-muted)' }}
+                  className="text-muted"
                 >
                   <Icon icon={allPaused ? PlayCircle : PauseCircle} size="sm" />
                   {allPaused ? 'Resume all' : 'Pause all'}
@@ -122,7 +116,7 @@ export function TimerPanel({ gameId, hook, soundMuted = false }: TimerPanelProps
                   variant="ghost"
                   onClick={restartAll}
                   aria-label="Restart all timers"
-                  style={{ color: 'var(--color-muted)' }}
+                  className="text-muted"
                 >
                   <Icon icon={RotateCcw} size="sm" />
                   Restart all
@@ -132,7 +126,7 @@ export function TimerPanel({ gameId, hook, soundMuted = false }: TimerPanelProps
                   variant="ghost"
                   onClick={deleteAll}
                   aria-label="Clear all timers"
-                  style={{ color: 'var(--color-muted)' }}
+                  className="text-muted"
                 >
                   <Icon icon={Trash2} size="sm" />
                   Clear all
@@ -153,7 +147,7 @@ export function TimerPanel({ gameId, hook, soundMuted = false }: TimerPanelProps
 
         {/* Timer list */}
         {timers.length === 0 ? (
-          <p className="text-xs py-2 text-center" style={{ color: 'var(--color-muted)' }}>
+          <p className="text-xs py-2 text-center text-muted">
             No active timers — press <strong>+ Timer</strong> to add one.
           </p>
         ) : (

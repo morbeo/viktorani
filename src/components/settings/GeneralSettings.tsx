@@ -19,7 +19,7 @@ export default function GeneralSettings() {
   return (
     <section className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <label className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-ink)' }}>
+        <label className="flex items-center gap-2 text-sm text-text">
           <input
             type="checkbox"
             checked={settings.confirmDestructive}
@@ -27,9 +27,9 @@ export default function GeneralSettings() {
           />
           Confirm destructive actions
         </label>
-        <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
-          Ask before deleting questions, rounds, games and presets, and before archiving players
-          or teams in bulk. Purging all data always asks.
+        <p className="text-xs text-muted">
+          Ask before deleting questions, rounds, games and presets, and before archiving players or
+          teams in bulk. Purging all data always asks.
         </p>
       </div>
       <div className="flex flex-col gap-1">
@@ -45,7 +45,7 @@ export default function GeneralSettings() {
           aria-describedby={valid ? undefined : 'join-url-base-error'}
         />
         {!valid && (
-          <p id="join-url-base-error" className="text-xs" style={{ color: 'var(--color-red)' }}>
+          <p id="join-url-base-error" className="text-xs text-negative">
             Enter an http:// or https:// address, or leave it empty.
           </p>
         )}

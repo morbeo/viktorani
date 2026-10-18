@@ -46,7 +46,7 @@ export function LayoutCopies({ gameId, games, onDuplicate, onCopyTo }: LayoutCop
             <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-(--color-muted)">
               Copy to game
               <select
-                className="rounded border border-(--color-border) bg-(--color-cream) px-2 py-1 text-sm text-(--color-ink)"
+                className="rounded border border-(--color-border) bg-(--color-bg) px-2 py-1 text-sm text-(--color-text)"
                 value={chosenGame.id}
                 onChange={e => {
                   setTargetGame(e.target.value)

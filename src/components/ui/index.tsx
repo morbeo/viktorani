@@ -59,13 +59,13 @@ const btnLadder = [
 const btnLadderIdx: Record<BtnSize, number> = { sm: 1, md: 2, lg: 3 }
 
 const btnStyles: Record<BtnVariant, React.CSSProperties> = {
-  primary: { background: 'var(--color-ink)', color: 'var(--color-cream)' },
+  primary: { background: 'var(--color-text)', color: 'var(--color-bg)' },
   secondary: {
     borderColor: 'var(--color-border)',
-    color: 'var(--color-ink)',
+    color: 'var(--color-text)',
     background: 'transparent',
   },
-  danger: { background: 'var(--color-red)', color: '#fff' },
+  danger: { background: 'var(--color-negative)', color: '#fff' },
   ghost: { color: 'var(--color-muted)', background: 'transparent' },
 }
 
@@ -100,10 +100,9 @@ interface BadgeProps {
 export function Badge({ children, color, style }: BadgeProps) {
   return (
     <span
-      className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+      className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-text"
       style={{
-        background: color ?? 'var(--color-gold-light)',
-        color: 'var(--color-ink)',
+        background: color ?? 'var(--color-accent-subtle)',
         ...style,
       }}
     >
@@ -143,7 +142,7 @@ export function Input({ label, help, id, className = '', style, ...props }: Inpu
   return (
     <div className="flex flex-col gap-1">
       {label && (
-        <span className="flex items-center gap-1.5" style={{ color: 'var(--color-muted)' }}>
+        <span className="flex items-center gap-1.5 text-muted">
           <label htmlFor={id} className="text-xs font-medium">
             {label}
           </label>
@@ -155,8 +154,8 @@ export function Input({ label, help, id, className = '', style, ...props }: Inpu
         className={`px-3 py-2 rounded border text-sm outline-none transition-all ${className}`}
         style={{
           borderColor: 'var(--color-border)',
-          background: 'var(--color-cream)',
-          color: 'var(--color-ink)',
+          background: 'var(--color-bg)',
+          color: 'var(--color-text)',
           ...style,
         }}
         {...props}
@@ -175,7 +174,7 @@ export function Textarea({ label, id, className = '', style, ...props }: Textare
   return (
     <div className="flex flex-col gap-1">
       {label && (
-        <label htmlFor={id} className="text-xs font-medium" style={{ color: 'var(--color-muted)' }}>
+        <label htmlFor={id} className="text-xs font-medium text-muted">
           {label}
         </label>
       )}
@@ -184,8 +183,8 @@ export function Textarea({ label, id, className = '', style, ...props }: Textare
         className={`px-3 py-2 rounded border text-sm outline-none resize-y transition-all ${className}`}
         style={{
           borderColor: 'var(--color-border)',
-          background: 'var(--color-cream)',
-          color: 'var(--color-ink)',
+          background: 'var(--color-bg)',
+          color: 'var(--color-text)',
           minHeight: 120,
           ...style,
         }}
@@ -206,7 +205,7 @@ export function Select({ label, id, options, className = '', style, ...props }: 
   return (
     <div className="flex flex-col gap-1">
       {label && (
-        <label htmlFor={id} className="text-xs font-medium" style={{ color: 'var(--color-muted)' }}>
+        <label htmlFor={id} className="text-xs font-medium text-muted">
           {label}
         </label>
       )}
@@ -215,8 +214,8 @@ export function Select({ label, id, options, className = '', style, ...props }: 
         className={`px-3 py-2 rounded border text-sm outline-none ${className}`}
         style={{
           borderColor: 'var(--color-border)',
-          background: 'var(--color-cream)',
-          color: 'var(--color-ink)',
+          background: 'var(--color-bg)',
+          color: 'var(--color-text)',
           ...style,
         }}
         {...props}
@@ -250,27 +249,21 @@ export function Modal({ open, onClose, title, children, maxWidth = '480px' }: Mo
       onClick={onClose}
     >
       <div
-        className="w-full rounded-xl border shadow-2xl"
+        className="w-full rounded-xl border shadow-2xl bg-bg border-border"
         style={{
           maxWidth,
-          background: 'var(--color-cream)',
-          borderColor: 'var(--color-border)',
         }}
         onClick={e => e.stopPropagation()}
       >
         {title && (
-          <div
-            className="flex items-center justify-between px-6 py-4 border-b"
-            style={{ borderColor: 'var(--color-border)' }}
-          >
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
             <h3 className="text-lg font-bold" style={{ fontFamily: 'Playfair Display, serif' }}>
               {title}
             </h3>
             <button
               onClick={onClose}
               aria-label="Close"
-              className="flex items-center justify-center w-7 h-7 rounded hover:bg-black/5 transition-opacity"
-              style={{ color: 'var(--color-muted)' }}
+              className="flex items-center justify-center w-7 h-7 rounded hover:bg-black/5 transition-opacity text-muted"
             >
               <Icon icon={X} size="sm" />
             </button>
@@ -288,9 +281,7 @@ export function Empty({ icon = '○', message }: { icon?: string; message: strin
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
       <span className="text-4xl opacity-30">{icon}</span>
-      <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
-        {message}
-      </p>
+      <p className="text-sm text-muted">{message}</p>
     </div>
   )
 }
@@ -313,9 +304,9 @@ function transportTypeIcon(type: TransportType): typeof Network {
 export function TransportPill({ status, type }: { status: TransportStatus; type: TransportType }) {
   const color =
     status === 'connected'
-      ? 'var(--color-green)'
+      ? 'var(--color-positive)'
       : status === 'connecting'
-        ? 'var(--color-gold)'
+        ? 'var(--color-accent)'
         : 'var(--color-muted)'
 
   const help =
@@ -326,11 +317,7 @@ export function TransportPill({ status, type }: { status: TransportStatus; type:
         : "The room is not open, so players can't join or get updates."
 
   const label =
-    status === 'connected'
-      ? 'PeerJS'
-      : status === 'connecting'
-        ? 'Connecting…'
-        : 'Offline'
+    status === 'connected' ? 'PeerJS' : status === 'connecting' ? 'Connecting…' : 'Offline'
 
   // Show transport type icon when connected, generic status icon otherwise
   const IconComponent = status === 'connected' ? transportTypeIcon(type) : TRANSPORT_ICON[status]

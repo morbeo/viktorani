@@ -1,60 +1,62 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Mono:wght@400;500&family=Lora:ital,wght@0,400;0,600;1,400&display=swap');
 @import 'tailwindcss';
 
-/* Light theme (default) */
-:root,
-html[data-theme='light'] {
-  --color-cream: #f5f0e8;
-  --color-ink: #1a1610;
-  --color-gold: #c9a84c;
-  --color-gold-light: #e8d5a3;
-  --color-red: #c0392b;
-  --color-green: #27ae60;
+/*
+ * Semantic colour tokens (ADR 0022). Components use only these, through Tailwind classes
+ * (`bg-surface`, `text-muted`, `border-border`) or `var(--color-*)` for dynamic values.
+ * `@theme` holds the light palette and generates the utilities; the dark palette
+ * redefines the same variables, so every utility follows the mode.
+ */
+@theme static {
+  --color-bg: #f5f0e8;
+  --color-surface: #ede8dc;
+  --color-text: #1a1610;
   --color-muted: #7a6f5e;
   --color-border: #d4c9b5;
-  --color-surface: #ede8dc;
-  /* semantic aliases -- new components use these; existing components
-     will be migrated in a follow-up refactor */
-  --color-accent: var(--color-gold);
-  --color-accent-subtle: var(--color-gold-light);
-  --color-positive: var(--color-green);
-  --color-negative: var(--color-red);
+  --color-accent: #c9a84c;
+  --color-accent-subtle: #e8d5a3;
+  --color-on-accent: #1a1610;
+  --color-positive: #27ae60;
+  --color-negative: #c0392b;
 }
 
-/* Dark theme */
+/* Dark palette: an explicit choice, or the device setting under "system". */
 html[data-theme='dark'] {
-  --color-cream: #1a1714;
-  --color-ink: #f0ebe0;
-  --color-gold: #d4a843;
-  --color-gold-light: #3a2e18;
-  --color-red: #e05252;
-  --color-green: #4caf74;
+  --color-bg: #1a1714;
+  --color-surface: #211e1a;
+  --color-text: #f0ebe0;
   --color-muted: #8a8070;
   --color-border: #2e2a24;
-  --color-surface: #211e1a;
-  --color-accent: var(--color-gold);
-  --color-accent-subtle: var(--color-gold-light);
-  --color-positive: var(--color-green);
-  --color-negative: var(--color-red);
+  --color-accent: #d4a843;
+  --color-accent-subtle: #3a2e18;
+  --color-on-accent: #1a1714;
+  --color-positive: #4caf74;
+  --color-negative: #e05252;
 }
 
-/* System preference fallback (when data-theme="system" or unset) */
 @media (prefers-color-scheme: dark) {
   html[data-theme='system'] {
-    --color-cream: #1a1714;
-    --color-ink: #f0ebe0;
-    --color-gold: #d4a843;
-    --color-gold-light: #3a2e18;
-    --color-red: #e05252;
-    --color-green: #4caf74;
+    --color-bg: #1a1714;
+    --color-surface: #211e1a;
+    --color-text: #f0ebe0;
     --color-muted: #8a8070;
     --color-border: #2e2a24;
-    --color-surface: #211e1a;
-    --color-accent: var(--color-gold);
-    --color-accent-subtle: var(--color-gold-light);
-    --color-positive: var(--color-green);
-    --color-negative: var(--color-red);
+    --color-accent: #d4a843;
+    --color-accent-subtle: #3a2e18;
+    --color-on-accent: #1a1714;
+    --color-positive: #4caf74;
+    --color-negative: #e05252;
   }
+}
+
+/* Deprecated palette names, kept for anything not yet migrated. Use the tokens above. */
+:root {
+  --color-cream: var(--color-bg);
+  --color-ink: var(--color-text);
+  --color-gold: var(--color-accent);
+  --color-gold-light: var(--color-accent-subtle);
+  --color-red: var(--color-negative);
+  --color-green: var(--color-positive);
 }
 
 * {
@@ -70,8 +72,8 @@ body,
 }
 
 body {
-  background-color: var(--color-cream);
-  color: var(--color-ink);
+  background-color: var(--color-bg);
+  color: var(--color-text);
   font-family: 'Lora', Georgia, serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -95,7 +97,7 @@ pre {
   font-family: 'Lora', Georgia, serif;
   font-size: 15px;
   line-height: 1.75;
-  color: var(--color-ink);
+  color: var(--color-text);
 }
 
 .note-prose h1,
@@ -104,7 +106,7 @@ pre {
 .note-prose h4 {
   font-family: 'Playfair Display', Georgia, serif;
   font-weight: 700;
-  color: var(--color-ink);
+  color: var(--color-text);
   margin-top: 1.5em;
   margin-bottom: 0.5em;
   line-height: 1.25;
@@ -157,7 +159,7 @@ pre {
 
 .note-prose strong {
   font-weight: 600;
-  color: var(--color-ink);
+  color: var(--color-text);
 }
 
 .note-prose em {
@@ -200,16 +202,16 @@ pre {
 }
 
 .note-prose ul li::marker {
-  color: var(--color-gold);
+  color: var(--color-accent);
 }
 
 .note-prose ol li::marker {
-  color: var(--color-gold);
+  color: var(--color-accent);
   font-weight: 600;
 }
 
 .note-prose blockquote {
-  border-left: 3px solid var(--color-gold);
+  border-left: 3px solid var(--color-accent);
   margin: 1.25em 0;
   padding: 0.5em 1em;
   background: var(--color-surface);
@@ -225,12 +227,12 @@ pre {
   border: 1px solid var(--color-border);
   border-radius: 3px;
   padding: 0.15em 0.4em;
-  color: var(--color-ink);
+  color: var(--color-text);
 }
 
 .note-prose pre {
-  background: var(--color-ink);
-  color: var(--color-cream);
+  background: var(--color-text);
+  color: var(--color-bg);
   border-radius: 6px;
   padding: 1em 1.25em;
   overflow-x: auto;
@@ -255,13 +257,13 @@ pre {
 }
 
 .note-prose a {
-  color: var(--color-gold);
+  color: var(--color-accent);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
 .note-prose a:hover {
-  color: var(--color-ink);
+  color: var(--color-text);
 }
 
 .note-prose table {
@@ -296,7 +298,7 @@ pre {
 
 .note-prose dt {
   font-weight: 600;
-  color: var(--color-ink);
+  color: var(--color-text);
   margin-top: 0.75em;
 }
 

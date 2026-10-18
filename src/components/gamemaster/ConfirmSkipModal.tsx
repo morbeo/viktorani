@@ -13,7 +13,7 @@ interface ConfirmSkipModalProps {
 export function ConfirmSkipModal({ open, onClose, onConfirm }: ConfirmSkipModalProps) {
   return (
     <Modal open={open} onClose={onClose} title="Move on without ruling?">
-      <p className="text-sm mb-6" style={{ color: 'var(--color-muted)' }}>
+      <p className="text-sm mb-6 text-muted">
         This question has no ruling yet. Moving on will mark it skipped.
       </p>
       <div className="flex justify-end gap-3">

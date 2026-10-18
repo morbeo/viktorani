@@ -29,24 +29,15 @@ export default function NoteDetail() {
 
   if (note === null) {
     return (
-      <div
-        className="flex flex-col items-center justify-center h-screen gap-4"
-        style={{ background: 'var(--color-cream)', color: 'var(--color-ink)' }}
-      >
+      <div className="flex flex-col items-center justify-center h-screen gap-4 bg-bg text-text">
         <p
-          className="text-6xl font-black"
-          style={{ fontFamily: 'Playfair Display, serif', color: 'var(--color-muted)' }}
+          className="text-6xl font-black text-muted"
+          style={{ fontFamily: 'Playfair Display, serif' }}
         >
           404
         </p>
-        <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
-          Note not found.
-        </p>
-        <Link
-          to="/admin/notes"
-          className="text-sm underline"
-          style={{ color: 'var(--color-gold)' }}
-        >
+        <p className="text-sm text-muted">Note not found.</p>
+        <Link to="/admin/notes" className="text-sm underline text-accent">
           Back to notes
         </Link>
       </div>
@@ -54,25 +45,16 @@ export default function NoteDetail() {
   }
 
   return (
-    <div
-      className="min-h-screen"
-      style={{ background: 'var(--color-cream)', color: 'var(--color-ink)' }}
-    >
+    <div className="min-h-screen bg-bg text-text">
       <div className="max-w-2xl mx-auto px-6 py-12">
         <div className="mb-8">
-          <Link
-            to="/admin/notes"
-            className="text-xs mb-6 inline-block"
-            style={{ color: 'var(--color-muted)' }}
-          >
+          <Link to="/admin/notes" className="text-xs mb-6 inline-block text-muted">
             ← Notes
           </Link>
           <h1 className="text-3xl font-bold mt-2" style={{ fontFamily: 'Playfair Display, serif' }}>
             {note.name}
           </h1>
-          <p className="text-xs mt-1" style={{ color: 'var(--color-muted)' }}>
-            Updated {formatDate(note.updatedAt)}
-          </p>
+          <p className="text-xs mt-1 text-muted">Updated {formatDate(note.updatedAt)}</p>
         </div>
 
         {note.content.trim() ? (
@@ -86,7 +68,9 @@ export default function NoteDetail() {
             </ReactMarkdown>
           </div>
         ) : (
-          <p style={{ color: 'var(--color-muted)', fontStyle: 'italic' }}>This note is empty.</p>
+          <p className="text-muted" style={{ fontStyle: 'italic' }}>
+            This note is empty.
+          </p>
         )}
       </div>
     </div>

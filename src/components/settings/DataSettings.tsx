@@ -106,17 +106,15 @@ export default function DataSettings() {
     <div className="flex flex-col gap-10">
       <section>
         <div className="mb-3">
-          <h2 className="font-semibold text-base" style={{ color: 'var(--color-ink)' }}>
-            Storage
-          </h2>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
+          <h2 className="font-semibold text-base text-text">Storage</h2>
+          <p className="text-xs mt-0.5 text-muted">
             Everything is stored in this browser on this device
           </p>
         </div>
         <dl className="grid grid-cols-[8rem_1fr] gap-y-1 text-sm">
-          <dt style={{ color: 'var(--color-muted)' }}>Used</dt>
+          <dt className="text-muted">Used</dt>
           <dd>{storage?.usage ?? '…'}</dd>
-          <dt style={{ color: 'var(--color-muted)' }}>Kept</dt>
+          <dt className="text-muted">Kept</dt>
           <dd>{storage?.persisted ?? '…'}</dd>
         </dl>
       </section>
@@ -124,10 +122,8 @@ export default function DataSettings() {
       {/* ── Data ─────────────────────────────────────────────── */}
       <section>
         <div className="mb-3">
-          <h2 className="font-semibold text-base" style={{ color: 'var(--color-ink)' }}>
-            Data
-          </h2>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
+          <h2 className="font-semibold text-base text-text">Data</h2>
+          <p className="text-xs mt-0.5 text-muted">
             Export and import your questions, games and settings as JSON
           </p>
         </div>
@@ -136,14 +132,12 @@ export default function DataSettings() {
           <p
             className="text-xs mb-3 px-3 py-2 rounded"
             style={{
-              color:
-                /^(Import|Purge|Demo data) failed/.test(msg)
-                  ? 'var(--color-red)'
-                  : 'var(--color-green)',
-              background:
-                /^(Import|Purge|Demo data) failed/.test(msg)
-                  ? 'var(--color-red)1a'
-                  : 'var(--color-green)1a',
+              color: /^(Import|Purge|Demo data) failed/.test(msg)
+                ? 'var(--color-negative)'
+                : 'var(--color-positive)',
+              background: /^(Import|Purge|Demo data) failed/.test(msg)
+                ? 'var(--color-negative)1a'
+                : 'var(--color-positive)1a',
             }}
           >
             {msg}
@@ -158,10 +152,8 @@ export default function DataSettings() {
 
           <label>
             <span
-              className="inline-flex items-center justify-center gap-2 font-medium rounded transition-all cursor-pointer px-4 py-2 text-sm border"
+              className="inline-flex items-center justify-center gap-2 font-medium rounded transition-all cursor-pointer px-4 py-2 text-sm border border-border text-text"
               style={{
-                borderColor: 'var(--color-border)',
-                color: 'var(--color-ink)',
                 background: 'transparent',
               }}
             >
@@ -182,10 +174,8 @@ export default function DataSettings() {
       <section>
         <div className="mb-3 flex items-start justify-between gap-4">
           <div>
-            <h2 className="font-semibold text-base" style={{ color: 'var(--color-ink)' }}>
-              Demo data
-            </h2>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
+            <h2 className="font-semibold text-base text-text">Demo data</h2>
+            <p className="text-xs mt-0.5 text-muted">
               Adds sample questions, rounds, teams and a ready-to-run game to try things out.
               Loading it twice adds nothing.
             </p>
@@ -200,23 +190,19 @@ export default function DataSettings() {
       {/* ── Danger zone ──────────────────────────────────────── */}
       <section>
         <div className="mb-3">
-          <h2 className="font-semibold text-base" style={{ color: 'var(--color-red)' }}>
-            Danger zone
-          </h2>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
+          <h2 className="font-semibold text-base text-negative">Danger zone</h2>
+          <p className="text-xs mt-0.5 text-muted">
             Irreversible actions — export first if you want to keep your data
           </p>
         </div>
 
         <div
           className="rounded-lg border p-4 flex items-center justify-between gap-4"
-          style={{ borderColor: 'var(--color-red)55' }}
+          style={{ borderColor: 'var(--color-negative)55' }}
         >
           <div>
-            <p className="text-sm font-medium" style={{ color: 'var(--color-ink)' }}>
-              Purge all data
-            </p>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
+            <p className="text-sm font-medium text-text">Purge all data</p>
+            <p className="text-xs mt-0.5 text-muted">
               Deletes every question, round, game, note, tag and difficulty. Default tags and
               difficulties will be re-seeded.
             </p>
@@ -231,8 +217,8 @@ export default function DataSettings() {
       <Modal open={purgeOpen} title="Purge all data" onClose={closePurgeModal}>
         <div className="flex flex-col gap-4">
           <div
-            className="rounded-lg px-4 py-3 text-sm"
-            style={{ background: 'var(--color-red)11', color: 'var(--color-ink)' }}
+            className="rounded-lg px-4 py-3 text-sm text-text"
+            style={{ background: 'var(--color-negative)11' }}
           >
             This will permanently delete <strong>all</strong> questions, rounds, games, notes, tags,
             and difficulty levels. This cannot be undone. Default tags and difficulties will be

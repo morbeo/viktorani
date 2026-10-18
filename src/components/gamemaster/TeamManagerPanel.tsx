@@ -82,24 +82,13 @@ export function TeamManagerPanel({
   }
 
   return (
-    <div
-      className="rounded-xl border flex flex-col"
-      style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-    >
+    <div className="rounded-xl border flex flex-col border-border bg-surface">
       {/* Header */}
-      <div
-        className="px-4 py-3 border-b flex items-center justify-between"
-        style={{ borderColor: 'var(--color-border)' }}
-      >
-        <span
-          className="text-xs font-semibold uppercase tracking-wider"
-          style={{ color: 'var(--color-muted)' }}
-        >
-          Teams
-        </span>
+      <div className="px-4 py-3 border-b flex items-center justify-between border-border">
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted">Teams</span>
         <div className="flex items-center gap-2">
           {game.maxTeams > 0 && (
-            <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
+            <span className="text-xs text-muted">
               {teams.length} / {game.maxTeams}
             </span>
           )}
@@ -137,14 +126,10 @@ export function TeamManagerPanel({
       {/* Create new team */}
       <div className="px-4 py-3 flex flex-col gap-3">
         {teamAtCap ? (
-          <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
-            Team limit reached ({game.maxTeams})
-          </p>
+          <p className="text-xs text-muted">Team limit reached ({game.maxTeams})</p>
         ) : (
           <>
-            <span className="text-xs font-semibold" style={{ color: 'var(--color-muted)' }}>
-              New team
-            </span>
+            <span className="text-xs font-semibold text-muted">New team</span>
 
             {/* Colour swatches + icon picker trigger */}
             <div className="flex items-center gap-3">
@@ -156,7 +141,7 @@ export function TeamManagerPanel({
                     className="w-5 h-5 rounded-full transition-transform"
                     style={{
                       background: c,
-                      outline: newColor === c ? `2px solid var(--color-ink)` : 'none',
+                      outline: newColor === c ? `2px solid var(--color-text)` : 'none',
                       outlineOffset: 2,
                       transform: newColor === c ? 'scale(1.2)' : 'scale(1)',
                     }}
@@ -168,8 +153,8 @@ export function TeamManagerPanel({
                   type="color"
                   value={newColor}
                   onChange={e => setNewColor(e.target.value)}
-                  className="w-5 h-5 rounded cursor-pointer border"
-                  style={{ borderColor: 'var(--color-border)', padding: 0 }}
+                  className="w-5 h-5 rounded cursor-pointer border border-border"
+                  style={{ padding: 0 }}
                   title="Custom colour"
                   aria-label="Custom team colour"
                 />
@@ -214,11 +199,7 @@ export function TeamManagerPanel({
               </Button>
             </div>
 
-            {error && (
-              <p className="text-xs" style={{ color: 'var(--color-red)' }}>
-                {error}
-              </p>
-            )}
+            {error && <p className="text-xs text-negative">{error}</p>}
           </>
         )}
       </div>
@@ -236,7 +217,7 @@ export function TeamManagerPanel({
               className="w-9 h-9 rounded flex items-center justify-center transition-colors"
               style={{
                 background: newIcon === key ? newColor : 'var(--color-border)',
-                color: newIcon === key ? '#fff' : 'var(--color-ink)',
+                color: newIcon === key ? '#fff' : 'var(--color-text)',
               }}
               aria-label={key}
               aria-pressed={newIcon === key}
@@ -295,7 +276,7 @@ function TeamRow({
   }
 
   return (
-    <div className="flex flex-col border-b" style={{ borderColor: 'var(--color-border)' }}>
+    <div className="flex flex-col border-b border-border">
       <div
         role="button"
         tabIndex={0}
@@ -329,15 +310,14 @@ function TeamRow({
               if (e.key === 'Escape') setRenaming(false)
             }}
             maxLength={40}
-            className="flex-1 text-sm px-1.5 py-0.5 rounded border min-w-0"
-            style={{ borderColor: 'var(--color-border)', background: 'var(--color-cream)' }}
+            className="flex-1 text-sm px-1.5 py-0.5 rounded border min-w-0 border-border bg-bg"
             aria-label={`Rename ${team.name}`}
           />
         ) : (
           <span className="flex-1 text-sm font-medium truncate">{team.name}</span>
         )}
 
-        <span className="text-xs shrink-0" style={{ color: 'var(--color-muted)' }}>
+        <span className="text-xs shrink-0 text-muted">
           {memberCount}
           {game.maxPerTeam > 0 ? ` / ${game.maxPerTeam}` : ''} player
           {memberCount !== 1 ? 's' : ''}
@@ -394,7 +374,7 @@ function TeamRow({
               }}
               aria-label={`${team.name} notes`}
               title="Notes"
-              style={{ padding: '0.25rem', color: team.notes ? 'var(--color-gold)' : undefined }}
+              style={{ padding: '0.25rem', color: team.notes ? 'var(--color-accent)' : undefined }}
             >
               <Icon icon={team.notes ? NotebookText : StickyNote} size="sm" aria-hidden />
             </Button>
@@ -407,7 +387,8 @@ function TeamRow({
               }}
               aria-label={`Delete ${team.name}`}
               title="Delete team"
-              style={{ padding: '0.25rem', color: 'var(--color-red)' }}
+              className="text-negative"
+              style={{ padding: '0.25rem' }}
             >
               <Icon icon={Trash2} size="sm" aria-hidden />
             </Button>
@@ -426,10 +407,8 @@ function TeamRow({
             placeholder="Notes for this team…"
             maxLength={2000}
             aria-label={`Notes for ${team.name}`}
-            className="w-full text-sm px-2 py-1.5 rounded border resize-y"
+            className="w-full text-sm px-2 py-1.5 rounded border resize-y border-border bg-bg"
             style={{
-              borderColor: 'var(--color-border)',
-              background: 'var(--color-cream)',
               minHeight: 60,
             }}
           />
@@ -443,7 +422,7 @@ function TeamRow({
         maxWidth="320px"
       >
         <div className="flex flex-col gap-3">
-          <p className="text-sm" style={{ color: 'var(--color-ink)' }}>
+          <p className="text-sm text-text">
             Deleting {team.name}. Its {memberCount} member{memberCount !== 1 ? 's' : ''} will become
             unassigned, not removed from the game.
           </p>

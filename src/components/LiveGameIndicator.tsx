@@ -36,17 +36,11 @@ export function LiveGameIndicator({ live, collapsed }: LiveGameIndicatorProps) {
     >
       {anyActive ? (
         <span className="relative flex w-2.5 h-2.5">
-          <span
-            className="absolute inline-flex w-full h-full rounded-full opacity-75 animate-ping"
-            style={{ background: 'var(--color-green)' }}
-          />
-          <span
-            className="relative inline-flex w-2.5 h-2.5 rounded-full"
-            style={{ background: 'var(--color-green)' }}
-          />
+          <span className="absolute inline-flex w-full h-full rounded-full opacity-75 animate-ping bg-positive" />
+          <span className="relative inline-flex w-2.5 h-2.5 rounded-full bg-positive" />
         </span>
       ) : (
-        <span style={{ color: 'var(--color-gold)' }}>
+        <span className="text-accent">
           <Icon icon={Pause} size="sm" />
         </span>
       )}

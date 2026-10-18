@@ -30,7 +30,7 @@ const PLACEMENT: { key: keyof GridRect; label: string; offset: number }[] = [
 ]
 
 const INPUT =
-  'rounded border border-(--color-border) bg-(--color-cream) px-2 py-1 text-sm text-(--color-ink)'
+  'rounded border border-(--color-border) bg-(--color-bg) px-2 py-1 text-sm text-(--color-text)'
 
 /**
  * A text setting, saved when the field loses focus, as the layout's logo is. A value the
@@ -82,7 +82,7 @@ function TextConfigInput({
         {field.multiline ? <textarea rows={4} {...props} /> : <input type="text" {...props} />}
       </label>
       {rejected && (
-        <p id={errorId} role="alert" className="text-xs text-(--color-red)">
+        <p id={errorId} role="alert" className="text-xs text-(--color-negative)">
           Not saved: this value isn&apos;t allowed.
         </p>
       )}
@@ -104,7 +104,7 @@ function ConfigInput({
     return <TextConfigInput field={field} value={value} onChange={onChange} />
   if (field.kind === 'boolean') {
     return (
-      <label className="flex items-center gap-2 text-sm text-(--color-ink)">
+      <label className="flex items-center gap-2 text-sm text-(--color-text)">
         <input
           type="checkbox"
           checked={value === true}
@@ -175,7 +175,7 @@ export function WidgetInspector({
 
   return (
     <section aria-labelledby="inspector-heading" className="flex flex-col gap-4">
-      <h2 id="inspector-heading" className="text-sm font-semibold text-(--color-ink)">
+      <h2 id="inspector-heading" className="text-sm font-semibold text-(--color-text)">
         {def.label}
       </h2>
 
@@ -203,7 +203,7 @@ export function WidgetInspector({
                   if (!Number.isFinite(n) || e.target.value === '') return
                   onPlace(clampRect({ ...rect, [key]: n - offset }))
                 }}
-                className="rounded border border-(--color-border) bg-(--color-cream) px-2 py-1 text-sm text-(--color-ink)"
+                className="rounded border border-(--color-border) bg-(--color-bg) px-2 py-1 text-sm text-(--color-text)"
               />
             </label>
           ))}

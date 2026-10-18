@@ -104,8 +104,7 @@ export function HelpTip({ text, label }: HelpTipProps) {
           id={id}
           role="tooltip"
           hidden={!open}
-          className="fixed z-[70] w-64 rounded-md px-3 py-2 text-xs font-normal normal-case tracking-normal text-left shadow-lg"
-          style={{ background: 'var(--color-ink)', color: 'var(--color-cream)' }}
+          className="fixed z-[70] w-64 rounded-md px-3 py-2 text-xs font-normal normal-case tracking-normal text-left shadow-lg bg-text text-bg"
         >
           {text}
         </span>,

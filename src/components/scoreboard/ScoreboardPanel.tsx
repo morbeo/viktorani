@@ -87,39 +87,23 @@ export function ScoreboardPanel({ game, questionId = null }: ScoreboardPanelProp
   if (!game.scoringEnabled) return null
 
   return (
-    <div
-      className="rounded-xl border flex flex-col"
-      style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-    >
+    <div className="rounded-xl border flex flex-col border-border bg-surface">
       {/* Header */}
-      <div
-        className="px-4 py-3 border-b flex items-center justify-between"
-        style={{ borderColor: 'var(--color-border)' }}
-      >
-        <span
-          className="text-xs font-semibold uppercase tracking-wider"
-          style={{ color: 'var(--color-muted)' }}
-        >
+      <div className="px-4 py-3 border-b flex items-center justify-between border-border">
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted">
           Scoreboard
         </span>
-        <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
-          ±{defaultIncrement} per click
-        </span>
+        <span className="text-xs text-muted">±{defaultIncrement} per click</span>
       </div>
 
       {entries.length === 0 ? (
         <div className="flex items-center justify-center py-8">
-          <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
-            No players yet
-          </p>
+          <p className="text-sm text-muted">No players yet</p>
         </div>
       ) : (
         <table className="w-full text-sm border-collapse">
           <thead>
-            <tr
-              className="text-xs text-left border-b"
-              style={{ color: 'var(--color-muted)', borderColor: 'var(--color-border)' }}
-            >
+            <tr className="text-xs text-left border-b text-muted border-border">
               <th scope="col" className="w-10 px-4 py-2 font-medium text-center">
                 #
               </th>
@@ -154,7 +138,7 @@ export function ScoreboardPanel({ game, questionId = null }: ScoreboardPanelProp
                   onSet={to => void handleSet(entry.id, entry.kind, entry.score, to)}
                   rank={
                     rank === 0 ? (
-                      <Icon icon={Medal} size="sm" className="text-[var(--color-gold)] mx-auto" />
+                      <Icon icon={Medal} size="sm" className="text-[var(--color-accent)] mx-auto" />
                     ) : (
                       rank + 1
                     )
@@ -184,9 +168,7 @@ export function ScoreboardPanel({ game, questionId = null }: ScoreboardPanelProp
                       )}
                       <span className="truncate">{entry.name}</span>
                       {entry.kind === 'team' && (
-                        <span className="text-xs shrink-0" style={{ color: 'var(--color-muted)' }}>
-                          · team
-                        </span>
+                        <span className="text-xs shrink-0 text-muted">· team</span>
                       )}
                     </button>
                   }
@@ -214,10 +196,9 @@ export function ScoreboardPanel({ game, questionId = null }: ScoreboardPanelProp
       )}
 
       {/* Score history */}
-      <div className="border-t" style={{ borderColor: 'var(--color-border)' }}>
+      <div className="border-t border-border">
         <button
-          className="w-full px-4 py-2 flex items-center gap-1.5 text-xs font-medium"
-          style={{ color: 'var(--color-muted)' }}
+          className="w-full px-4 py-2 flex items-center gap-1.5 text-xs font-medium text-muted"
           onClick={() => setShowHistory(v => !v)}
           aria-expanded={showHistory}
         >
@@ -226,23 +207,17 @@ export function ScoreboardPanel({ game, questionId = null }: ScoreboardPanelProp
         </button>
         {showHistory &&
           (history.length === 0 ? (
-            <p className="px-4 pb-3 text-xs" style={{ color: 'var(--color-muted)' }}>
-              No score changes yet
-            </p>
+            <p className="px-4 pb-3 text-xs text-muted">No score changes yet</p>
           ) : (
             <ol className="px-4 pb-3 flex flex-col gap-1 text-xs max-h-64 overflow-y-auto">
               {history.slice(0, HISTORY_LIMIT).map(event => (
                 <li key={event.id} className="flex gap-2">
-                  <span className="mono shrink-0" style={{ color: 'var(--color-muted)' }}>
-                    {formatTime(event.timestamp)}
-                  </span>
+                  <span className="mono shrink-0 text-muted">{formatTime(event.timestamp)}</span>
                   <span className="truncate">{event.name}</span>
                   <span className="mono shrink-0">
                     {event.from} → {event.to}
                   </span>
-                  <span className="shrink-0" style={{ color: 'var(--color-muted)' }}>
-                    {REASON_LABELS[event.reason]}
-                  </span>
+                  <span className="shrink-0 text-muted">{REASON_LABELS[event.reason]}</span>
                 </li>
               ))}
             </ol>
@@ -285,23 +260,17 @@ function ScoreRow({
 
   return (
     <tr
-      className="border-t"
+      className="border-t border-border"
       style={{
-        borderColor: 'var(--color-border)',
         background: flashing
           ? `var(--color-${up ? 'green' : 'red'})${tint}`
           : member
-            ? 'var(--color-cream)'
+            ? 'var(--color-bg)'
             : undefined,
         transition: 'background 0.15s ease',
       }}
     >
-      <td
-        className="px-4 py-2 text-center text-xs font-bold"
-        style={{ color: 'var(--color-muted)' }}
-      >
-        {rank}
-      </td>
+      <td className="px-4 py-2 text-center text-xs font-bold text-muted">{rank}</td>
       <td
         className={`py-2 max-w-0 ${member ? 'text-xs' : ''}`}
         style={member ? { color: 'var(--color-muted)' } : undefined}
@@ -322,7 +291,7 @@ function ScoreRow({
         <div className="flex items-center justify-end gap-1">
           <button
             className={`${buttonSize} rounded flex items-center justify-center transition-colors`}
-            style={{ background: 'var(--color-red)18', color: 'var(--color-red)' }}
+            style={{ background: 'var(--color-negative)18', color: 'var(--color-negative)' }}
             onClick={() => onAdjust(-increment)}
             aria-label={`Subtract ${increment} from ${name}`}
           >
@@ -330,7 +299,7 @@ function ScoreRow({
           </button>
           <button
             className={`${buttonSize} rounded flex items-center justify-center transition-colors`}
-            style={{ background: 'var(--color-green)18', color: 'var(--color-green)' }}
+            style={{ background: 'var(--color-positive)18', color: 'var(--color-positive)' }}
             onClick={() => onAdjust(+increment)}
             aria-label={`Add ${increment} to ${name}`}
           >
@@ -377,7 +346,7 @@ function ScoreCell({
     return (
       <button
         className={`${textClass} px-1.5 py-0.5 rounded hover:underline`}
-        style={{ color: member ? 'var(--color-muted)' : 'var(--color-ink)' }}
+        style={{ color: member ? 'var(--color-muted)' : 'var(--color-text)' }}
         onClick={start}
         title="Click to type a new score"
         aria-label={`Set score for ${name}, now ${score}`}
@@ -404,8 +373,8 @@ function ScoreCell({
       className={`${textClass} w-16 px-1.5 py-0.5 rounded border text-right outline-none`}
       style={{
         borderColor: 'var(--color-border)',
-        background: 'var(--color-cream)',
-        color: 'var(--color-ink)',
+        background: 'var(--color-bg)',
+        color: 'var(--color-text)',
       }}
     />
   )

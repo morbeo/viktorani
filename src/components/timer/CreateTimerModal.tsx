@@ -55,23 +55,17 @@ export function CreateTimerModal({ onConfirm, onCancel }: CreateTimerModalProps)
       className="fixed inset-0 z-50 flex items-center justify-center"
       style={{ background: 'rgba(0,0,0,0.45)' }}
     >
-      <div
-        className="rounded-2xl border shadow-xl w-full max-w-sm mx-4 flex flex-col gap-5 p-6"
-        style={{ borderColor: 'var(--color-border)', background: 'var(--color-cream)' }}
-      >
+      <div className="rounded-2xl border shadow-xl w-full max-w-sm mx-4 flex flex-col gap-5 p-6 border-border bg-bg">
         <h2
-          className="text-lg font-bold"
-          style={{ fontFamily: 'Playfair Display, serif', color: 'var(--color-ink)' }}
+          className="text-lg font-bold text-text"
+          style={{ fontFamily: 'Playfair Display, serif' }}
         >
           New Timer
         </h2>
 
         {/* Label */}
         <div className="flex flex-col gap-1.5">
-          <label
-            className="text-xs font-semibold uppercase tracking-wider"
-            style={{ color: 'var(--color-muted)' }}
-          >
+          <label className="text-xs font-semibold uppercase tracking-wider text-muted">
             Label (optional)
           </label>
           <input
@@ -79,11 +73,8 @@ export function CreateTimerModal({ onConfirm, onCancel }: CreateTimerModalProps)
             value={label}
             onChange={e => setLabel(e.target.value)}
             placeholder="e.g. Round 1 · Team A"
-            className="w-full px-3 py-2 rounded-lg border text-sm"
+            className="w-full px-3 py-2 rounded-lg border text-sm border-border bg-surface text-text"
             style={{
-              borderColor: 'var(--color-border)',
-              background: 'var(--color-surface)',
-              color: 'var(--color-ink)',
               outline: 'none',
             }}
           />
@@ -91,12 +82,7 @@ export function CreateTimerModal({ onConfirm, onCancel }: CreateTimerModalProps)
 
         {/* Presets */}
         <div className="flex flex-col gap-1.5">
-          <p
-            className="text-xs font-semibold uppercase tracking-wider"
-            style={{ color: 'var(--color-muted)' }}
-          >
-            Duration
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted">Duration</p>
           <div className="flex gap-2 flex-wrap">
             {PRESETS.map(p => (
               <button
@@ -105,9 +91,9 @@ export function CreateTimerModal({ onConfirm, onCancel }: CreateTimerModalProps)
                 className="px-3 py-1.5 rounded-lg border text-xs font-medium transition-all"
                 style={{
                   borderColor:
-                    totalSeconds === p.seconds ? 'var(--color-gold)' : 'var(--color-border)',
-                  background: totalSeconds === p.seconds ? 'var(--color-gold)22' : 'transparent',
-                  color: totalSeconds === p.seconds ? 'var(--color-gold)' : 'var(--color-muted)',
+                    totalSeconds === p.seconds ? 'var(--color-accent)' : 'var(--color-border)',
+                  background: totalSeconds === p.seconds ? 'var(--color-accent)22' : 'transparent',
+                  color: totalSeconds === p.seconds ? 'var(--color-accent)' : 'var(--color-muted)',
                   cursor: 'pointer',
                 }}
               >
@@ -119,42 +105,30 @@ export function CreateTimerModal({ onConfirm, onCancel }: CreateTimerModalProps)
           {/* Custom min/sec spinners */}
           <div className="flex items-center gap-2 mt-1">
             <div className="flex flex-col gap-0.5 flex-1">
-              <label className="text-xs" style={{ color: 'var(--color-muted)' }}>
-                Min
-              </label>
+              <label className="text-xs text-muted">Min</label>
               <input
                 type="number"
                 min={0}
                 max={99}
                 value={minutes}
                 onChange={e => setMinutes(Math.max(0, parseInt(e.target.value) || 0))}
-                className="w-full px-3 py-2 rounded-lg border text-sm mono text-center"
+                className="w-full px-3 py-2 rounded-lg border text-sm mono text-center border-border bg-surface text-text"
                 style={{
-                  borderColor: 'var(--color-border)',
-                  background: 'var(--color-surface)',
-                  color: 'var(--color-ink)',
                   outline: 'none',
                 }}
               />
             </div>
-            <span className="mt-4 font-bold text-lg" style={{ color: 'var(--color-muted)' }}>
-              :
-            </span>
+            <span className="mt-4 font-bold text-lg text-muted">:</span>
             <div className="flex flex-col gap-0.5 flex-1">
-              <label className="text-xs" style={{ color: 'var(--color-muted)' }}>
-                Sec
-              </label>
+              <label className="text-xs text-muted">Sec</label>
               <input
                 type="number"
                 min={0}
                 max={59}
                 value={seconds}
                 onChange={e => setSeconds(Math.max(0, Math.min(59, parseInt(e.target.value) || 0)))}
-                className="w-full px-3 py-2 rounded-lg border text-sm mono text-center"
+                className="w-full px-3 py-2 rounded-lg border text-sm mono text-center border-border bg-surface text-text"
                 style={{
-                  borderColor: 'var(--color-border)',
-                  background: 'var(--color-surface)',
-                  color: 'var(--color-ink)',
                   outline: 'none',
                 }}
               />
