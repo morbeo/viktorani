@@ -45,9 +45,7 @@ function StatTile({ icon, label, value, sub, badge, onClick, primary, secondary 
             </span>
           )}
         </div>
-        <div className="text-3xl font-black" style={{ fontFamily: 'Playfair Display, serif' }}>
-          {value}
-        </div>
+        <div className="text-3xl font-black font-display">{value}</div>
         <div className="text-sm font-medium mt-0.5">{label}</div>
         <div className="text-xs mt-0.5 text-muted">{sub}</div>
       </div>
@@ -131,9 +129,7 @@ export default function Dashboard() {
     <AdminLayout>
       {/* Hero */}
       <div className="mb-10">
-        <h1 className="text-4xl font-black mb-1" style={{ fontFamily: 'Playfair Display, serif' }}>
-          Viktorani
-        </h1>
+        <h1 className="text-4xl font-black mb-1 font-display">Viktorani</h1>
         <p className="text-muted">Your bar trivia command centre.</p>
       </div>
 

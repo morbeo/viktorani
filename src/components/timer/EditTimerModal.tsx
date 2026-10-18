@@ -94,12 +94,7 @@ export function EditTimerModal({ timer, onSave, onCancel }: EditTimerModalProps)
           maxHeight: '90vh',
         }}
       >
-        <h2
-          className="text-lg font-bold text-text"
-          style={{ fontFamily: 'Playfair Display, serif' }}
-        >
-          Timer settings
-        </h2>
+        <h2 className="text-lg font-bold text-text font-display">Timer settings</h2>
 
         {/* Label */}
         <div className="flex flex-col gap-1.5">

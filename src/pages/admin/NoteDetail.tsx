@@ -30,12 +30,7 @@ export default function NoteDetail() {
   if (note === null) {
     return (
       <div className="flex flex-col items-center justify-center h-screen gap-4 bg-bg text-text">
-        <p
-          className="text-6xl font-black text-muted"
-          style={{ fontFamily: 'Playfair Display, serif' }}
-        >
-          404
-        </p>
+        <p className="text-6xl font-black text-muted font-display">404</p>
         <p className="text-sm text-muted">Note not found.</p>
         <Link to="/admin/notes" className="text-sm underline text-accent">
           Back to notes
@@ -51,9 +46,7 @@ export default function NoteDetail() {
           <Link to="/admin/notes" className="text-xs mb-6 inline-block text-muted">
             ← Notes
           </Link>
-          <h1 className="text-3xl font-bold mt-2" style={{ fontFamily: 'Playfair Display, serif' }}>
-            {note.name}
-          </h1>
+          <h1 className="text-3xl font-bold mt-2 font-display">{note.name}</h1>
           <p className="text-xs mt-1 text-muted">Updated {formatDate(note.updatedAt)}</p>
         </div>
 

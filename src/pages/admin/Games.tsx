@@ -424,9 +424,7 @@ function GameWizard({
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-4 pb-3 shrink-0 border-b border-border">
-          <h3 className="text-lg font-bold" style={{ fontFamily: 'Playfair Display, serif' }}>
-            New game
-          </h3>
+          <h3 className="text-lg font-bold font-display">New game</h3>
           <button
             onClick={onClose}
             className="text-xl leading-none hover:opacity-60 transition-opacity text-muted"

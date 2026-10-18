@@ -37,14 +37,7 @@ export function RoundBoundary({ roundName, roundIdx, onDone }: RoundBoundaryProp
       <p className="text-xs font-semibold uppercase tracking-widest text-accent">
         Round {roundIdx + 1}
       </p>
-      <h2
-        className="text-4xl font-black text-center px-8 text-bg"
-        style={{
-          fontFamily: 'Playfair Display, serif',
-        }}
-      >
-        {roundName}
-      </h2>
+      <h2 className="text-4xl font-black text-center px-8 text-bg font-display">{roundName}</h2>
     </div>
   )
 }

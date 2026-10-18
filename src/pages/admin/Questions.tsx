@@ -990,21 +990,13 @@ export default function Questions() {
           <div className="flex flex-col gap-4">
             <div className="flex gap-4">
               <div className="flex-1 rounded-lg border p-3 text-center border-border bg-surface">
-                <p
-                  className="text-2xl font-bold text-positive"
-                  style={{ fontFamily: 'Playfair Display, serif' }}
-                >
+                <p className="text-2xl font-bold text-positive font-display">
                   {importResult.imported}
                 </p>
                 <p className="text-xs mt-1 text-muted">imported</p>
               </div>
               <div className="flex-1 rounded-lg border p-3 text-center border-border bg-surface">
-                <p
-                  className="text-2xl font-bold text-muted"
-                  style={{ fontFamily: 'Playfair Display, serif' }}
-                >
-                  {importResult.skipped}
-                </p>
+                <p className="text-2xl font-bold text-muted font-display">{importResult.skipped}</p>
                 <p className="text-xs mt-1 text-muted">skipped</p>
               </div>
             </div>
