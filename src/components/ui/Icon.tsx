@@ -1,11 +1,13 @@
 import type { LucideIcon } from 'lucide-react'
 
 /**
- * Thin wrapper around Lucide icons that enforces project-wide size and
- * stroke-width conventions:
+ * Thin wrapper around Lucide icons that enforces project-wide size conventions:
  *
  *   sm (16px) — inline with text, badges, compact rows
  *   md (20px) — standalone buttons, collapsed-sidebar nav
+ *
+ * The stroke width comes from the theme through `--icon-stroke` (see `index.css`); the
+ * attribute below is only the fallback.
  */
 
 interface IconProps {
