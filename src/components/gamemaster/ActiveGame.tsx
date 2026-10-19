@@ -312,12 +312,12 @@ export function ActiveGame({
   // yet reached has no answers, and closing the round's answers must leave it open
   const [markingRoundId, setMarkingRoundId] = useState<string | null>(null)
   const markingRound = markingRoundId ? seq.find(e => e.roundId === markingRoundId) : undefined
-  const shownUpTo = gameQuestion?.order ?? Infinity
-  const markingRows = useLiveQuery(
-    async () =>
-      (await roundRows(markingRoundId ?? undefined)).filter(r => r.gameQuestion.order <= shownUpTo),
-    [roundRows, markingRoundId, shownUpTo]
-  )
+  // From the navigation position, so it is known before the question's row has loaded
+  const shownIds = (pos ? seq.slice(0, pos.flatIndex + 1) : []).map(e => e.gameQuestionId).join()
+  const markingRows = useLiveQuery(async () => {
+    const shown = new Set(shownIds.split(','))
+    return (await roundRows(markingRoundId ?? undefined)).filter(r => shown.has(r.gameQuestion.id))
+  }, [roundRows, markingRoundId, shownIds])
 
   // Send the review's revealed answers while it is open, and close it on players and screens
   const reviewOpenRef = useRef(false)
