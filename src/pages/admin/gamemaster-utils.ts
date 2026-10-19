@@ -21,6 +21,7 @@ import {
   MAX_LOBBY_TEAMS,
   MAX_MEDIA_LENGTH,
   MAX_NAME_LENGTH,
+  MAX_OPEN_QUESTIONS,
   MAX_OPTIONS,
   MAX_ROUND_ANSWERS,
   MAX_TEXT_LENGTH,
@@ -144,6 +145,45 @@ export function buildRoundAnswers(
       view,
       items: items.slice(0, MAX_ROUND_ANSWERS),
     },
+  }
+}
+
+/**
+ * Builds the OPEN_QUESTIONS for players from the round's earlier questions still open to
+ * answers, each with its place in the round. Like `QUESTION_CONTENT`, the title needs
+ * `showQuestion` and the options `showAnswers`; the correct answer and media are never sent.
+ * `accepts` says whether players pick an option or type. Text is clipped to the transport
+ * limits. Pure function.
+ */
+export function buildOpenQuestions(
+  rows: ReadonlyArray<{ number: number; question: Question }>,
+  flags: TargetVisibility,
+  accepts: 'choice' | 'text'
+): Extract<GameEvent, { type: 'OPEN_QUESTIONS' }> {
+  const clip = (s: string) => s.slice(0, MAX_TEXT_LENGTH)
+  return {
+    type: 'OPEN_QUESTIONS',
+    questions: rows
+      .map(({ number, question }) => {
+        const options = choiceOptions(question)
+        return {
+          questionId: question.id,
+          number,
+          title: flags.showQuestion ? clip(question.title) : null,
+          options:
+            flags.showAnswers && options.length > 0
+              ? options.slice(0, MAX_OPTIONS).map(clip)
+              : null,
+          choices:
+            accepts === 'choice' && options.length > 0
+              ? Math.min(options.length, MAX_OPTIONS)
+              : null,
+          acceptsText: accepts === 'text',
+        }
+      })
+      // A question players can't answer, like an open-ended one in a choice game, is left out
+      .filter(q => q.choices !== null || q.acceptsText)
+      .slice(0, MAX_OPEN_QUESTIONS),
   }
 }
 

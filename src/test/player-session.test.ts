@@ -36,6 +36,7 @@ const EMPTY: PlayerSession = {
   phase: null,
   theme: null,
   roundAnswers: null,
+  openQuestions: [],
 }
 
 function content(target: 'players' | 'screen'): QuestionContent {
@@ -66,6 +67,22 @@ describe('reduceSession', () => {
     expect(reduceSession(EMPTY, { type: 'ROUND_ANSWERS', target: 'screen', review })).toBe(EMPTY)
     const closed = reduceSession(open, { type: 'ROUND_ANSWERS', target: 'players', review: null })
     expect(closed.roundAnswers).toBeNull()
+  })
+
+  it("keeps the round's open questions and clears them", () => {
+    const questions = [
+      {
+        questionId: 'q1',
+        number: 1,
+        title: null,
+        options: null,
+        choices: null,
+        acceptsText: true,
+      },
+    ]
+    const open = reduceSession(EMPTY, { type: 'OPEN_QUESTIONS', questions })
+    expect(open.openQuestions).toEqual(questions)
+    expect(reduceSession(open, { type: 'OPEN_QUESTIONS', questions: [] }).openQuestions).toEqual([])
   })
 
   it('keeps the latest host message, as a new object each time, and clears it', () => {

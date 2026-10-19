@@ -151,6 +151,7 @@ function makeGame(overrides: Partial<Game> = {}): Game {
     autoAdvanceOnTimerExpiry: false,
     autoAdvanceDelaySeconds: 5,
     revealTiming: 'manual',
+    answersClose: 'perQuestion',
     holdScores: false,
     scoresAnnouncedAt: null,
     autoStartTimerOnQuestionShow: false,
@@ -738,5 +739,102 @@ describe('ActiveGame: choice answers', () => {
     await waitFor(() => expect(onQuestionContent).toHaveBeenCalledWith(expect.anything()))
     expect(onQuestionContent.mock.calls.at(-1)?.[0]?.choices).toBeNull()
     expect(answerHandlerRef.current).toBeNull()
+  })
+})
+
+// ── Answers open until the end of the round ───────────────────────────────────
+
+describe('ActiveGame: answers open until the end of the round', () => {
+  async function seedRound(roundIds = ['r1']) {
+    await db.games.put(makeGame({ inputType: 'choice', answersClose: 'endOfRound', roundIds }))
+    await Promise.all([db.players.clear(), db.answers.clear(), db.scoreEvents.clear()])
+    await db.questions.add({
+      id: 'q1',
+      title: 'Capital of France?',
+      type: 'multiple_choice',
+      options: ['Lyon', 'Paris', 'Nice', 'Lille'],
+      answer: 'Paris',
+      description: '',
+      difficulty: null,
+      tags: [],
+      media: null,
+      mediaType: null,
+      createdAt: 0,
+      updatedAt: 0,
+    })
+    await db.players.add({
+      id: 'p1',
+      gameId: 'g1',
+      name: 'Alice',
+      teamId: null,
+      score: 0,
+      presence: 'connected',
+      disconnectedAt: null,
+      deviceId: 'd',
+      joinedAt: 1,
+      notes: '',
+    })
+  }
+
+  it("keeps the round's earlier questions open to answers after moving on", async () => {
+    const user = userEvent.setup()
+    await seed()
+    await seedRound()
+    const answerHandlerRef: { current: AnswerHandler | null } = { current: null }
+    const onOpenQuestions = vi.fn()
+    const game = makeGame({
+      inputType: 'choice',
+      answersClose: 'endOfRound',
+      confirmUnruledNavigation: true,
+    })
+    renderActiveGame(game, { answerHandlerRef, onOpenQuestions })
+
+    await waitFor(() => expect(answerHandlerRef.current).not.toBeNull())
+    await act(() => answerHandlerRef.current!('p1', 'q1', { choice: 0 }, 1))
+    await user.click(await screen.findByRole('button', { name: 'Next question' }))
+
+    // No confirmation, and the question stays open with its choice unmarked
+    await waitFor(() =>
+      expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({ type: 'SLIDE_CHANGE' }))
+    )
+    expect((await db.gameQuestions.get('gq1'))?.status).toBe('pending')
+    await waitFor(() =>
+      expect(onOpenQuestions.mock.calls.at(-1)?.[0].questions).toEqual([
+        expect.objectContaining({ questionId: 'q1', number: 1, choices: 4 }),
+      ])
+    )
+
+    // Players can still change their answer to it
+    await waitFor(async () => {
+      await act(() => answerHandlerRef.current!('p1', 'q1', { choice: 1 }, 2))
+      expect((await db.answers.toArray())[0]).toMatchObject({ choice: 1, ruling: 'pending' })
+    })
+  })
+
+  it("closes and marks the round's answers when the host leaves the round", async () => {
+    const user = userEvent.setup()
+    await db.rounds.bulkAdd([
+      { ...ROUND, questionIds: ['q1'] },
+      { ...ROUND, id: 'r2', name: 'Round 2', questionIds: ['q2'] },
+    ])
+    await db.gameQuestions.bulkAdd([
+      makeGameQuestion(),
+      makeGameQuestion({ id: 'gq2', questionId: 'q2', roundId: 'r2', order: 1 }),
+    ])
+    await seedRound(['r1', 'r2'])
+    const answerHandlerRef: { current: AnswerHandler | null } = { current: null }
+    const game = makeGame({
+      inputType: 'choice',
+      answersClose: 'endOfRound',
+      roundIds: ['r1', 'r2'],
+    })
+    renderActiveGame(game, { answerHandlerRef })
+
+    await waitFor(() => expect(answerHandlerRef.current).not.toBeNull())
+    await act(() => answerHandlerRef.current!('p1', 'q1', { choice: 1 }, 1))
+    await user.click(await screen.findByRole('button', { name: 'Next question' }))
+
+    await waitFor(async () => expect((await db.gameQuestions.get('gq1'))?.status).toBe('correct'))
+    expect((await db.players.get('p1'))?.score).toBe(1)
   })
 })

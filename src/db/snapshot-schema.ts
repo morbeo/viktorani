@@ -6,6 +6,7 @@ import {
   INPUT_TYPES,
   LAYOUT_TARGETS,
   REVEAL_TIMINGS,
+  ANSWERS_CLOSE,
   WIDGET_TYPES,
 } from '@/db'
 import type {
@@ -138,6 +139,7 @@ export const GameSchema = z
       .max(MAX_AUTO_ADVANCE_DELAY)
       .default(AUTO_ADVANCE_DEFAULT_DELAY),
     revealTiming: z.enum(REVEAL_TIMINGS).default('manual'),
+    answersClose: z.enum(ANSWERS_CLOSE).default('perQuestion'),
     holdScores: z.boolean().default(false),
     scoresAnnouncedAt: z.number().int().min(0).nullable().default(null),
     autoStartTimerOnQuestionShow: z.boolean().default(false),

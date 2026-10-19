@@ -12,6 +12,8 @@ import { MAX_NAME_LENGTH } from '@/transport/messages'
 import { LayoutRenderer } from '@/widgets/LayoutRenderer'
 import { resolveLayout } from '@/widgets/layouts'
 import { getDeviceId } from './device-id'
+import { OpenQuestions } from './OpenQuestions'
+import type { SentAnswer } from './OpenQuestions'
 import {
   getPlayerSession,
   remotePhase,
@@ -57,8 +59,8 @@ export default function Play() {
   useRemoteTheme(session.theme)
   const [problem, setProblem] = useState<Problem | null>(null)
   const [buzzed, setBuzzed] = useState(false)
-  const [pick, setPick] = useState<{ questionId: string; choice: number } | null>(null)
-  const [typed, setTyped] = useState<{ questionId: string; text: string } | null>(null)
+  // What this phone sent for each question, so earlier questions of the round keep theirs
+  const [sent, setSent] = useState<Record<string, SentAnswer>>({})
   const startedRef = useRef(false)
   const leftRef = useRef(false)
   const unmountedRef = useRef(false)
@@ -116,18 +118,24 @@ export default function Play() {
     return () => document.removeEventListener('visibilitychange', onVisibility)
   }, [joined])
 
+  function choose(questionId: string, choice: number) {
+    transportManager.send({ type: 'ANSWER', questionId, choice, text: null })
+    setSent(prev => ({ ...prev, [questionId]: { choice } }))
+  }
+
+  function sendText(questionId: string, text: string) {
+    transportManager.send({ type: 'ANSWER', questionId, choice: null, text })
+    setSent(prev => ({ ...prev, [questionId]: { text } }))
+  }
+
   function handleChoose(choice: number) {
     const questionId = session.question?.questionId
-    if (!questionId) return
-    transportManager.send({ type: 'ANSWER', questionId, choice, text: null })
-    setPick({ questionId, choice })
+    if (questionId) choose(questionId, choice)
   }
 
   function handleSendText(text: string) {
     const questionId = session.question?.questionId
-    if (!questionId) return
-    transportManager.send({ type: 'ANSWER', questionId, choice: null, text })
-    setTyped({ questionId, text })
+    if (questionId) sendText(questionId, text)
   }
 
   function handleBuzz() {
@@ -152,8 +160,9 @@ export default function Play() {
       : session.buzzerLocked
         ? 'Locked'
         : 'BUZZ'
-  // The option this player picked for the question shown, if any
-  const picked = pick && pick.questionId === session.question?.questionId ? pick.choice : null
+  // What this player sent for the question shown, if anything
+  const mine = session.question ? sent[session.question.questionId] : undefined
+  const picked = mine && 'choice' in mine ? mine.choice : null
   const choice =
     session.inputType === 'choice' && session.question
       ? {
@@ -164,7 +173,7 @@ export default function Play() {
           onChoose: handleChoose,
         }
       : null
-  const sentText = typed && typed.questionId === session.question?.questionId ? typed.text : null
+  const sentText = mine && 'text' in mine ? mine.text : null
   const typedInput =
     session.inputType === 'text' && session.question
       ? {
@@ -264,6 +273,16 @@ export default function Play() {
             className="w-full -mt-6"
             cellClassName="mt-6 flex flex-col items-center"
           />
+
+          {!ended && (
+            <OpenQuestions
+              questions={session.openQuestions}
+              sent={sent}
+              enabled={!paused}
+              onChoose={choose}
+              onSendText={sendText}
+            />
+          )}
         </>
       )}
     </div>

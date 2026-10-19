@@ -26,6 +26,7 @@ import {
   MAX_TEXT_LENGTH,
   MAX_THEME_EVENT_LENGTH,
   MAX_ROUND_ANSWERS,
+  MAX_OPEN_QUESTIONS,
 } from '@/transport/messages'
 import { BUILT_IN_THEMES, resolveTheme } from '@/lib/theme'
 import type { SerializedGameState, TransportEvent } from '@/transport/types'
@@ -173,6 +174,19 @@ const FIXTURES: { [K in TransportEvent['type']]: Extract<TransportEvent, { type:
         },
       ],
     },
+  },
+  OPEN_QUESTIONS: {
+    type: 'OPEN_QUESTIONS',
+    questions: [
+      {
+        questionId: 'q1',
+        number: 1,
+        title: 'Capital of France?',
+        options: ['Paris', 'Rome'],
+        choices: 2,
+        acceptsText: false,
+      },
+    ],
   },
 }
 
@@ -738,6 +752,25 @@ describe('ROUND_ANSWERS', () => {
     expect(
       GameEventSchemas.ROUND_ANSWERS.safeParse({ ...FIXTURES.ROUND_ANSWERS, review }).success
     ).toBe(true)
+  })
+})
+
+describe('OPEN_QUESTIONS', () => {
+  const parse = (questions: unknown[]) =>
+    GameEventSchemas.OPEN_QUESTIONS.safeParse({ type: 'OPEN_QUESTIONS', questions }).success
+  const item = FIXTURES.OPEN_QUESTIONS.questions[0]
+
+  it('accepts an empty list', () => {
+    expect(parse([])).toBe(true)
+  })
+
+  it('rejects too many questions', () => {
+    expect(parse(Array.from({ length: MAX_OPEN_QUESTIONS + 1 }, () => item))).toBe(false)
+  })
+
+  it('rejects a question with no number or extra fields', () => {
+    expect(parse([{ ...item, number: 0 }])).toBe(false)
+    expect(parse([{ ...item, answer: 'Paris' }])).toBe(false)
   })
 })
 

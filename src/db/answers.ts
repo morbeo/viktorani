@@ -14,6 +14,16 @@ export function choiceOptions(question: Pick<Question, 'type' | 'options'>): str
   return []
 }
 
+/**
+ * Whether the game keeps players' answers open until the end of the round
+ * ({@link Game.answersClose}): only in a game that takes answers on phones.
+ */
+export function keepsAnswersOpen(game: Pick<Game, 'inputType' | 'answersClose'>): boolean {
+  return (
+    game.answersClose === 'endOfRound' && (game.inputType === 'choice' || game.inputType === 'text')
+  )
+}
+
 /** What a player sends: an option's index in a `choice` game, typed text in a `text` game. */
 export type AnswerInput = { choice: number } | { text: string }
 

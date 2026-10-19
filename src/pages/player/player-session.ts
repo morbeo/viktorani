@@ -2,7 +2,13 @@ import { useSyncExternalStore } from 'react'
 import { transportManager } from '@/transport'
 import type { GamePhase, InputType, LayoutAssignments } from '@/db'
 import type { ResolvedTheme } from '@/lib/theme'
-import type { GameEvent, LayoutPayload, RoundAnswers, TransportEvent } from '@/transport/types'
+import type {
+  GameEvent,
+  LayoutPayload,
+  OpenQuestion,
+  RoundAnswers,
+  TransportEvent,
+} from '@/transport/types'
 
 export type QuestionContent = Extract<GameEvent, { type: 'QUESTION_CONTENT' }>
 
@@ -39,6 +45,8 @@ export interface PlayerSession {
   theme: ResolvedTheme | null
   /** The answers revealed in the host's end-of-round review; `null` when none is open. */
   roundAnswers: RoundAnswers | null
+  /** The round's earlier questions this player can still answer (see `OPEN_QUESTIONS`). */
+  openQuestions: OpenQuestion[]
 }
 
 /**
@@ -70,6 +78,7 @@ const INITIAL: PlayerSession = {
   phase: null,
   theme: null,
   roundAnswers: null,
+  openQuestions: [],
 }
 
 let session = INITIAL
@@ -125,6 +134,8 @@ export function reduceSession(s: PlayerSession, event: TransportEvent): PlayerSe
       return { ...s, theme: event.theme }
     case 'ROUND_ANSWERS':
       return event.target === 'players' ? { ...s, roundAnswers: event.review } : s
+    case 'OPEN_QUESTIONS':
+      return { ...s, openQuestions: event.questions }
     default:
       return s
   }

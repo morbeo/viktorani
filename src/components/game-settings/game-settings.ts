@@ -24,6 +24,7 @@ export type GameSettings = Pick<
   | 'autoAdvanceOnTimerExpiry'
   | 'autoAdvanceDelaySeconds'
   | 'revealTiming'
+  | 'answersClose'
   | 'holdScores'
   | 'autoStartTimerOnQuestionShow'
   | 'defaultTimerDuration'
@@ -61,6 +62,7 @@ export const GAME_SETTINGS_KEYS = [
   'autoAdvanceOnTimerExpiry',
   'autoAdvanceDelaySeconds',
   'revealTiming',
+  'answersClose',
   'holdScores',
   'autoStartTimerOnQuestionShow',
   'defaultTimerDuration',
@@ -134,6 +136,7 @@ export function defaultSettings(): GameSettings {
     autoAdvanceOnTimerExpiry: false,
     autoAdvanceDelaySeconds: AUTO_ADVANCE_DEFAULT_DELAY,
     revealTiming: 'manual',
+    answersClose: 'perQuestion',
     holdScores: false,
     autoStartTimerOnQuestionShow: false,
     defaultTimerDuration: 60,

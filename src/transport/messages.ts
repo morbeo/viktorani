@@ -75,6 +75,8 @@ export const MAX_THEME_NAME_LENGTH = 60
 export const MAX_THEME_EVENT_LENGTH = 3_000_000
 /** Most questions a round review sends. */
 export const MAX_ROUND_ANSWERS = 200
+/** Most earlier questions an `OPEN_QUESTIONS` lists. */
+export const MAX_OPEN_QUESTIONS = 50
 
 const id = z.string().max(MAX_ID_LENGTH)
 const name = z.string().max(MAX_NAME_LENGTH)
@@ -278,6 +280,21 @@ export const GameEventSchemas = {
       })
       .nullable(),
   }),
+  OPEN_QUESTIONS: z.strictObject({
+    type: z.literal('OPEN_QUESTIONS'),
+    questions: z
+      .array(
+        z.strictObject({
+          questionId: id,
+          number: z.number().int().min(1),
+          title: text.nullable(),
+          options: z.array(text).max(MAX_OPTIONS).nullable(),
+          choices: z.number().int().min(1).max(MAX_OPTIONS).nullable(),
+          acceptsText: z.boolean(),
+        })
+      )
+      .max(MAX_OPEN_QUESTIONS),
+  }),
 }
 
 /** Schemas for events sent by players to the GameMaster. */
@@ -348,6 +365,7 @@ export const TransportEventSchema = z.discriminatedUnion('type', [
   GameEventSchemas.PHASE,
   GameEventSchemas.THEME,
   GameEventSchemas.ROUND_ANSWERS,
+  GameEventSchemas.OPEN_QUESTIONS,
   PlayerEventSchemas.BUZZ,
   PlayerEventSchemas.JOIN,
   PlayerEventSchemas.ANSWER,

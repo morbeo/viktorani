@@ -270,6 +270,12 @@ correct answers at the end. Mark typed answers there with ✓ and ✗, or **Mark
 correct** for the whole round. **Close answers** closes every open question of the round
 shown so far, which marks the choices.
 
+To run the round like a paper answer sheet, set **Close answers** to **At the end of the
+round** in the game's settings. Moving on then leaves each question open: phones list the
+round's earlier questions under the current one, and players can answer or change them until
+you click **Close answers** on the round sheet or leave the round. Leaving the round, or
+opening its answer review, closes them all and marks the choices.
+
 ### Holding scores until you announce them
 
 To keep the scores a surprise while you mark, turn on **Hold scores until announced** in the

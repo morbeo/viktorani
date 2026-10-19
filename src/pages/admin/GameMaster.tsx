@@ -57,6 +57,7 @@ import type {
   AnswerHandler,
   BuzzHandler,
   QuestionContent,
+  OpenQuestionsEvent,
   RoundAnswersEvent,
 } from '@/components/gamemaster/ActiveGame'
 
@@ -165,6 +166,7 @@ export default function GameMaster() {
   // The end-of-round review's answers while it is open, for devices that join meanwhile
   const playerRoundAnswersRef = useRef<RoundAnswersEvent | null>(null)
   const screenRoundAnswersRef = useRef<RoundAnswersEvent | null>(null)
+  const openQuestionsRef = useRef<OpenQuestionsEvent | null>(null)
   const scoreboardRef = useRef<ScoreboardRow[]>([])
   const logRef = useRef<LogEntry[]>([])
   // The LAYOUT each kind of remote surface gets; `null` until the stored layouts have loaded
@@ -402,6 +404,7 @@ export default function GameMaster() {
       if (questionContentRef.current) transportManager.sendTo(connId, questionContentRef.current)
       if (playerRoundAnswersRef.current)
         transportManager.sendTo(connId, playerRoundAnswersRef.current)
+      if (openQuestionsRef.current) transportManager.sendTo(connId, openQuestionsRef.current)
       if (playerLayoutRef.current) transportManager.sendTo(connId, playerLayoutRef.current)
       if (phaseRef.current)
         transportManager.sendTo(connId, { type: 'PHASE', phase: phaseRef.current })
@@ -425,6 +428,14 @@ export default function GameMaster() {
     screenContentRef.current = content
     if (!content) return
     for (const connId of screensRef.current) transportManager.sendTo(connId, content)
+  }, [])
+
+  // The round's earlier questions still open to answers go to admitted players only
+  const handleOpenQuestions = useCallback((event: OpenQuestionsEvent) => {
+    openQuestionsRef.current = event.questions.length > 0 ? event : null
+    for (const connId of connectionsRef.current.connections()) {
+      transportManager.sendTo(connId, event)
+    }
   }, [])
 
   // Send the end-of-round review's answers to players and screens
@@ -1116,6 +1127,7 @@ export default function GameMaster() {
           onQuestionContent={handleQuestionContent}
           onScreenContent={handleScreenContent}
           onRoundAnswers={handleRoundAnswers}
+          onOpenQuestions={handleOpenQuestions}
           screens={screens}
           messages={messages}
           layouts={storedLayouts}
