@@ -26,7 +26,7 @@ import type { PlayerSession, QuestionContent } from '@/pages/player/player-sessi
 const EMPTY: PlayerSession = {
   playerId: null,
   teamId: null,
-  buzzerEnabled: true,
+  inputType: 'buzzer',
   buzzerLocked: true,
   scores: {},
   question: null,
@@ -47,6 +47,7 @@ function content(target: 'players' | 'screen'): QuestionContent {
     description: null,
     options: null,
     answer: null,
+    choices: null,
     media: null,
     mediaType: null,
   }
@@ -82,7 +83,7 @@ describe('reduceSession', () => {
         status,
         currentRoundIdx: 0,
         currentQuestionIdx: 0,
-        buzzerEnabled: true,
+        inputType: 'buzzer',
         buzzerLocked: true,
         visibility: {
           players: { showQuestion: true, showAnswers: false, showMedia: true },
@@ -112,7 +113,7 @@ describe('reduceSession', () => {
         status: 'active',
         currentRoundIdx: 0,
         currentQuestionIdx: 0,
-        buzzerEnabled: true,
+        inputType: 'buzzer',
         buzzerLocked: false,
         visibility: {
           players: { showQuestion: true, showAnswers: false, showMedia: true },
@@ -128,6 +129,26 @@ describe('reduceSession', () => {
     expect(s.buzzerLocked).toBe(false)
     s = reduceSession(s, { type: 'SCORE_UPDATE', scores: { p1: 5, t1: 9 } })
     expect(s.scores).toEqual({ p1: 5, t1: 9 })
+  })
+
+  it('takes how players answer from GAME_STATE', () => {
+    const s = reduceSession(EMPTY, {
+      type: 'GAME_STATE',
+      state: {
+        gameId: 'g1',
+        status: 'active',
+        currentRoundIdx: 0,
+        currentQuestionIdx: 0,
+        inputType: 'choice',
+        buzzerLocked: true,
+        visibility: {
+          players: { showQuestion: true, showAnswers: false, showMedia: true },
+          screen: { showQuestion: true, showAnswers: false, showMedia: true },
+        },
+        scores: {},
+      },
+    })
+    expect(s.inputType).toBe('choice')
   })
 
   it('keeps the players question until the slide changes', () => {

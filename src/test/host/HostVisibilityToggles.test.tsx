@@ -28,7 +28,7 @@ const GAME: Game = {
   status: 'active',
   roomId: null,
   scoringEnabled: true,
-  buzzerEnabled: true,
+  inputType: 'buzzer',
   visibility: {
     players: { showQuestion: true, showAnswers: false, showMedia: true },
     screen: { showQuestion: true, showAnswers: false, showMedia: true },

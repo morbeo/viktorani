@@ -6,7 +6,7 @@ import {
   defaultSettings,
 } from '@/components/game-settings/game-settings'
 import type { GamePreset, GameSettings } from '@/components/game-settings/game-settings'
-import { REVEAL_TIMINGS } from '@/db'
+import { INPUT_TYPES, REVEAL_TIMINGS } from '@/db'
 import type { TiebreakerMode } from '@/db'
 import { DEFAULT_THEME_ID } from '@/lib/theme'
 
@@ -68,7 +68,7 @@ const GameSettingsSchema = z.object({
   rejoinWindowSeconds: LimitSchema.catch(BUILT_IN_GAME.rejoinWindowSeconds),
   autoRemoveAfterMinutes: LimitSchema.catch(BUILT_IN_GAME.autoRemoveAfterMinutes),
   requireApproval: z.boolean().catch(BUILT_IN_GAME.requireApproval),
-  buzzerEnabled: z.boolean().catch(BUILT_IN_GAME.buzzerEnabled),
+  inputType: z.enum(INPUT_TYPES).catch(BUILT_IN_GAME.inputType),
   autoLockOnFirstCorrect: z.boolean().catch(BUILT_IN_GAME.autoLockOnFirstCorrect),
   allowFalseStarts: z.boolean().catch(BUILT_IN_GAME.allowFalseStarts),
   buzzDeduplication: z.enum(['firstOnly', 'all']).catch(BUILT_IN_GAME.buzzDeduplication),
@@ -92,6 +92,13 @@ const GameSettingsSchema = z.object({
   soundEffectsMuted: z.boolean().catch(BUILT_IN_GAME.soundEffectsMuted),
 }) satisfies z.ZodType<GameSettings>
 
+/** Settings saved before `inputType` (ADR 0023) had `buzzerEnabled`: off becomes `none`. */
+function migrateBuzzerEnabled(value: unknown): unknown {
+  if (typeof value !== 'object' || value === null || 'inputType' in value) return value
+  const { buzzerEnabled, ...rest } = value as { buzzerEnabled?: unknown }
+  return buzzerEnabled === false ? { ...rest, inputType: 'none' } : rest
+}
+
 const GameDefaultsSchema = GameSettingsSchema.extend({
   tiebreakerMode: z.literal('serverOrder').catch(BUILT_IN_GAME.tiebreakerMode),
 }) satisfies z.ZodType<GameDefaults>
@@ -103,7 +110,9 @@ const GamePresetSchema = z.object({
   id: z.string().min(1).max(64),
   label: z.string().trim().min(1).max(60),
   description: z.string().trim().max(300).catch(''),
-  settings: GameSettingsSchema.catch(() => GameSettingsSchema.parse({})),
+  settings: z
+    .preprocess(migrateBuzzerEnabled, GameSettingsSchema)
+    .catch(() => GameSettingsSchema.parse({})),
 }) satisfies z.ZodType<GamePreset>
 
 /** Keeps every valid preset, once per id, and drops the rest. */
@@ -135,7 +144,9 @@ export const AppSettingsSchema = z.object({
   timerAudioNotify: TimerNotifySchema.catch('none'),
   timerVisualNotify: TimerNotifySchema.catch('none'),
   timerAutoReset: z.enum(['none', 'question', 'round', 'any']).catch('none'),
-  gameDefaults: GameDefaultsSchema.catch(() => GameDefaultsSchema.parse({})),
+  gameDefaults: z
+    .preprocess(migrateBuzzerEnabled, GameDefaultsSchema)
+    .catch(() => GameDefaultsSchema.parse({})),
   /** Presets offered in the game settings form, in order. */
   gamePresets: PresetsSchema.catch(() => JSON.parse(JSON.stringify(BUILT_IN_PRESETS))),
   /** Ask before deleting questions, rounds, games and presets, and before archiving in bulk. */

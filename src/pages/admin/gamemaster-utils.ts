@@ -15,6 +15,7 @@ import type {
   SerializedGameState,
   VisibilityTarget,
 } from '@/transport/types'
+import { choiceOptions } from '@/db/answers'
 import {
   MAX_LABEL_LENGTH,
   MAX_LOBBY_TEAMS,
@@ -39,7 +40,7 @@ export function serialiseGameState(
     status: game.status,
     currentRoundIdx: game.currentRoundIdx,
     currentQuestionIdx: game.currentQuestionIdx,
-    buzzerEnabled: game.buzzerEnabled,
+    inputType: game.inputType,
     buzzerLocked: game.buzzerLocked,
     visibility: game.visibility,
     scores,
@@ -70,14 +71,13 @@ export function buildLobbyInfo(
   }
 }
 
-/** True/false questions store no options of their own. */
-const TRUE_FALSE_OPTIONS = ['True', 'False']
-
 /**
  * Builds the QUESTION_CONTENT for one target, leaving out everything the GM has hidden
  * there: the title and description need `showQuestion`, the options `showAnswers` and the
  * media `showMedia`. The correct answer is sent only once the question is `revealed`
  * (ADR 0023), whatever the flags say, because showing the options must not reveal it.
+ * `choices` is set only while `acceptChoices` (the host takes choice answers to it) and the
+ * question has options.
  * Text is clipped to the transport limits and oversized media is dropped,
  * so the message always passes validation. Pure function.
  */
@@ -85,15 +85,11 @@ export function buildQuestionContent(
   question: Question,
   target: VisibilityTarget,
   flags: TargetVisibility,
-  revealed = false
+  revealed = false,
+  acceptChoices = false
 ): Extract<GameEvent, { type: 'QUESTION_CONTENT' }> {
   const clip = (s: string) => s.slice(0, MAX_TEXT_LENGTH)
-  const options =
-    question.type === 'true_false'
-      ? TRUE_FALSE_OPTIONS
-      : question.type === 'multiple_choice'
-        ? question.options
-        : []
+  const options = choiceOptions(question)
   const fits = question.media && question.media.length <= MAX_MEDIA_LENGTH
   const media = flags.showMedia && question.mediaType && fits ? question.media : null
   return {
@@ -105,6 +101,7 @@ export function buildQuestionContent(
     options:
       flags.showAnswers && options.length > 0 ? options.slice(0, MAX_OPTIONS).map(clip) : null,
     answer: revealed && question.answer ? clip(question.answer) : null,
+    choices: acceptChoices && options.length > 0 ? Math.min(options.length, MAX_OPTIONS) : null,
     media,
     mediaType: media ? question.mediaType : null,
   }

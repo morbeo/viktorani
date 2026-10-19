@@ -1,5 +1,6 @@
 // @vitest-pool vmForks
 import { describe, it, expect, vi, afterEach } from 'vitest'
+import { within } from '@testing-library/react/pure'
 import userEvent from '@testing-library/user-event'
 import type { Game, GamePhase, Question, WidgetType } from '@/db'
 import type { ITransport, TransportConfig, TransportEvent } from '@/transport/types'
@@ -133,7 +134,7 @@ const GAME: Game = {
   currentQuestionIdx: 0,
   buzzerLocked: false,
   scoringEnabled: true,
-  buzzerEnabled: true,
+  inputType: 'buzzer',
   autoLockOnFirstCorrect: false,
   allowFalseStarts: false,
   buzzDeduplication: 'firstOnly',
@@ -429,6 +430,35 @@ describe('game flow', () => {
     // The host never registered the room, so a player cannot reach it
     expect(hub.state.host).toBeNull()
     await expect(connectClient()).rejects.toThrow('peer-unavailable')
+  }, 20_000)
+
+  it('a player picks an option on their phone and the host records it', async () => {
+    const user = userEvent.setup()
+    await seedGame()
+    const { db } = await import('@/db')
+    await db.answers.clear()
+    await db.games.update('g1', { inputType: 'choice' })
+
+    const host = await mountSide('host', '/admin/game/g1')
+    await host.waitFor(() => expect(hub.state.host).not.toBeNull())
+
+    const player = await mountSide('player', '/join/ABC234')
+    await user.clear(player.view.getByLabelText('Your name'))
+    await user.type(player.view.getByLabelText('Your name'), 'Carol')
+    await user.click(player.view.getByRole('button', { name: 'Continue' }))
+    await user.click(await player.view.findByRole('radio', { name: 'Play on my own' }))
+    await user.click(player.view.getByRole('button', { name: 'Join as Carol' }))
+
+    // The host sends the options in place of the buzz button
+    const pad = await player.view.findByRole('region', { name: 'Your answer' }, SLOW)
+    expect(player.view.queryByRole('button', { name: 'Buzz' })).toBeNull()
+    await user.click(within(pad).getByRole('button', { name: 'B Lyon' }))
+
+    await host.waitFor(async () => expect(await db.answers.count()).toBe(1), SLOW)
+    const [answer] = await db.answers.toArray()
+    const carol = await db.players.get(answer.playerId)
+    expect(carol?.name).toBe('Carol')
+    expect(answer).toMatchObject({ gameQuestionId: 'gq1', choice: 1, ruling: 'pending' })
   }, 20_000)
 
   it("records the buzzer's team with the buzz", async () => {

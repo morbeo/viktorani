@@ -57,6 +57,7 @@ export default function Play() {
   useRemoteTheme(session.theme)
   const [problem, setProblem] = useState<Problem | null>(null)
   const [buzzed, setBuzzed] = useState(false)
+  const [pick, setPick] = useState<{ questionId: string; choice: number } | null>(null)
   const startedRef = useRef(false)
   const leftRef = useRef(false)
   const unmountedRef = useRef(false)
@@ -114,6 +115,13 @@ export default function Play() {
     return () => document.removeEventListener('visibilitychange', onVisibility)
   }, [joined])
 
+  function handleChoose(choice: number) {
+    const questionId = session.question?.questionId
+    if (!questionId) return
+    transportManager.send({ type: 'ANSWER', questionId, choice })
+    setPick({ questionId, choice })
+  }
+
   function handleBuzz() {
     transportManager.send({ type: 'BUZZ', timestamp: Date.now() })
     setBuzzed(true)
@@ -136,6 +144,18 @@ export default function Play() {
       : session.buzzerLocked
         ? 'Locked'
         : 'BUZZ'
+  // The option this player picked for the question shown, if any
+  const picked = pick && pick.questionId === session.question?.questionId ? pick.choice : null
+  const choice =
+    session.inputType === 'choice' && session.question
+      ? {
+          count: session.question.choices,
+          options: session.question.options,
+          selected: picked,
+          enabled: joined && !paused,
+          onChoose: handleChoose,
+        }
+      : null
   const score = session.playerId ? (session.scores[session.playerId] ?? 0) : 0
   const teamScore = session.teamId ? session.scores[session.teamId] : undefined
 
@@ -211,13 +231,15 @@ export default function Play() {
               message: session.message,
               question: session.question,
               ended,
-              buzzer: session.buzzerEnabled
-                ? {
-                    enabled: canBuzz,
-                    label: buzzLabel,
-                    onBuzz: handleBuzz,
-                  }
-                : null,
+              buzzer:
+                session.inputType === 'buzzer'
+                  ? {
+                      enabled: canBuzz,
+                      label: buzzLabel,
+                      onBuzz: handleBuzz,
+                    }
+                  : null,
+              choice,
             }}
             breakpoint="phone"
             className="w-full -mt-6"

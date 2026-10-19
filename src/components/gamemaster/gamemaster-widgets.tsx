@@ -39,7 +39,7 @@ export function GamemasterProgressWidget({ data }: GamemasterWidgetProps) {
 
 export function GamemasterQuestionWidget({ data }: GamemasterWidgetProps) {
   const { question, gameQuestion, game, onGameChange, players, teams } = data
-  const { onRule, onReveal, onReviewRound } = data
+  const { onRule, onReveal, onReviewRound, onMarkAnswers } = data
   if (!question || !gameQuestion) return null
   return (
     <HostQuestionPanel
@@ -47,14 +47,14 @@ export function GamemasterQuestionWidget({ data }: GamemasterWidgetProps) {
       gameQuestion={gameQuestion}
       game={game}
       onGameChange={onGameChange}
-      ruling={{ players, teams, onRule, onReveal, onReviewRound }}
+      ruling={{ players, teams, onRule, onReveal, onReviewRound, onMarkAnswers }}
     />
   )
 }
 
 export function GamemasterBuzzerWidget({ data }: GamemasterWidgetProps) {
   const { game, questionId, buzzer } = data
-  if (isEnded(data) || !game.buzzerEnabled) return null
+  if (isEnded(data) || game.inputType !== 'buzzer') return null
   return (
     <BuzzerPanel
       game={game}
@@ -74,7 +74,7 @@ export function GamemasterBuzzerWidget({ data }: GamemasterWidgetProps) {
  */
 export function GamemasterBuzzOrderWidget({ data }: GamemasterWidgetProps) {
   const { game, buzzer } = data
-  if (isEnded(data) || !game.buzzerEnabled) return null
+  if (isEnded(data) || game.inputType !== 'buzzer') return null
   return (
     <section aria-label="Buzz order">
       <BuzzList
@@ -192,7 +192,7 @@ export function GamemasterGameControlsWidget({ data }: GamemasterWidgetProps) {
         <Icon icon={ChevronLeft} size="md" aria-hidden />
         Previous
       </Button>
-      {game.buzzerEnabled && (
+      {game.inputType === 'buzzer' && (
         <Button size="lg" onClick={buzzer.onToggleLock}>
           <Icon icon={game.buzzerLocked ? LockOpen : Lock} size="md" aria-hidden />
           {game.buzzerLocked ? 'Unlock buzzer' : 'Lock buzzer'}

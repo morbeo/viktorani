@@ -122,6 +122,16 @@ describe('purgeDatabase', () => {
     await db.difficulties.add({ id: 'd1', name: 'Easy', score: 5, color: '#0f0', order: 0 })
     await db.notes.add({ id: 'n1', name: 'N', content: '', createdAt: 0, updatedAt: 0 })
     await db.gameLog.add({ id: 'l1', gameId: 'g1', at: 0 } as never)
+    await db.answers.add({
+      id: 'a1',
+      gameId: 'g1',
+      gameQuestionId: 'gq1',
+      playerId: 'p1',
+      teamId: null,
+      choice: 0,
+      receivedAt: 0,
+      ruling: 'pending',
+    })
 
     await purgeDatabase()
 
@@ -131,6 +141,7 @@ describe('purgeDatabase', () => {
     expect(await db.difficulties.count()).toBe(0)
     expect(await db.notes.count()).toBe(0)
     expect(await db.gameLog.count()).toBe(0)
+    expect(await db.answers.count()).toBe(0)
   })
 
   it('is safe to call on an already-empty database', async () => {
@@ -200,7 +211,7 @@ describe('DB schema', () => {
       status: 'waiting',
       roomId: 'XYZ123',
       scoringEnabled: true,
-      buzzerEnabled: true,
+      inputType: 'buzzer' as const,
       visibility: {
         players: { showQuestion: true, showAnswers: false, showMedia: true },
         screen: { showQuestion: true, showAnswers: false, showMedia: true },
@@ -254,7 +265,7 @@ describe('DB schema', () => {
     const base = {
       roomId: 'X',
       scoringEnabled: true,
-      buzzerEnabled: true,
+      inputType: 'buzzer' as const,
       visibility: {
         players: { showQuestion: true, showAnswers: false, showMedia: true },
         screen: { showQuestion: true, showAnswers: false, showMedia: true },
@@ -594,7 +605,7 @@ describe('importDatabase', () => {
       status: 'waiting',
       roomId: 'X',
       scoringEnabled: true,
-      buzzerEnabled: true,
+      inputType: 'buzzer' as const,
       visibility: {
         players: { showQuestion: true, showAnswers: false, showMedia: true },
         screen: { showQuestion: true, showAnswers: false, showMedia: true },

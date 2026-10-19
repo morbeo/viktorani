@@ -15,7 +15,7 @@ export type GameSettings = Pick<
   | 'rejoinWindowSeconds'
   | 'autoRemoveAfterMinutes'
   | 'requireApproval'
-  | 'buzzerEnabled'
+  | 'inputType'
   | 'autoLockOnFirstCorrect'
   | 'allowFalseStarts'
   | 'buzzDeduplication'
@@ -51,7 +51,7 @@ export const GAME_SETTINGS_KEYS = [
   'rejoinWindowSeconds',
   'autoRemoveAfterMinutes',
   'requireApproval',
-  'buzzerEnabled',
+  'inputType',
   'autoLockOnFirstCorrect',
   'allowFalseStarts',
   'buzzDeduplication',
@@ -123,7 +123,7 @@ export function defaultSettings(): GameSettings {
     maxTeams: 0,
     maxPerTeam: 0,
     maxPlayers: 0,
-    buzzerEnabled: true,
+    inputType: 'buzzer',
     autoLockOnFirstCorrect: false,
     allowFalseStarts: false,
     buzzDeduplication: 'firstOnly',

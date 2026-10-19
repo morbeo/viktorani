@@ -4,6 +4,7 @@ import { HostQuestionAnswers } from './HostQuestionAnswers'
 import { HostQuestionMedia } from './HostQuestionMedia'
 import { HostVisibilityToggles } from './HostVisibilityToggles'
 import { HostRulingPanel } from './HostRulingPanel'
+import { HostAnswersPanel } from './HostAnswersPanel'
 import type { Player, Team } from '@/db'
 import type { QuestionRuling, RulingAward } from '@/db/rulings'
 
@@ -20,6 +21,8 @@ interface HostQuestionPanelProps {
     onRule: (ruling: QuestionRuling, award: RulingAward | null) => void
     onReveal: () => void
     onReviewRound: () => void
+    /** Marks players' choices, in a game where they pick an option. */
+    onMarkAnswers?: () => void
   }
 }
 
@@ -34,6 +37,16 @@ export function HostQuestionPanel({
     <div className="flex flex-col gap-6">
       <HostQuestionHeader question={question} gameQuestion={gameQuestion} />
       <HostQuestionAnswers question={question} />
+      {ruling?.onMarkAnswers && game.inputType === 'choice' && (
+        <HostAnswersPanel
+          question={question}
+          gameQuestion={gameQuestion}
+          players={ruling.players}
+          teams={ruling.teams}
+          disabled={game.status === 'ended'}
+          onMark={ruling.onMarkAnswers}
+        />
+      )}
       {ruling && (
         <HostRulingPanel
           // A fresh choice of who gets the points for each question

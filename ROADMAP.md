@@ -101,6 +101,8 @@ No tracking epic; standalone issues/PRs in the gamemaster area.
 - [x] Rule on a question (Correct / Wrong / Skip, with optional points to a player or team) without a buzz, so games can run with the buzzer off
 - [x] Reveal the correct answer to players and the screen, by hand or after each ruling (ADR 0023, step 2)
 - [x] End-of-round answer review, one by one or as a table (ADR 0023, step 3)
+- [x] Players pick an option on their phones, marked and scored automatically (ADR 0023, step 4)
+- [ ] Typed answers, marked by the host (ADR 0023, step 5)
 - [ ] Expand game settings further: tiebreaker modes, local-network-only join, auto-reveal the correct answer, spectator join (#424, remaining scope — the player cap shipped in #432, confirm-navigation in #434, and "floor scores at zero" already holds)
 - [x] Per-question/round/game timers: shortcut presets in the new-timer dialog, and the auto-started question timer is reused instead of stacked (#421)
 
@@ -125,6 +127,7 @@ Epic: #364. Scope and dependency order are in the epic body: widget registry →
 - **Host rulings (#424 follow-up):** the buzzer is optional, one input type among others. The question panel's Correct / Wrong / Skip sets the question's status, scores the chosen player (and their team) or team, and logs `question_ruled`, with no buzz needed. Revealing answers stays separate (ADR 0023).
 - **Answer reveal (ADR 0023):** `Game.revealTiming` is `manual` (Reveal answer on the question panel) or `perQuestion` (any panel ruling, or a correct buzz). `GameQuestion.revealed` (Dexie v20) makes `buildQuestionContent` fill `QUESTION_CONTENT.answer`, so rejoining players and screens get the answer only once it's revealed; the phase becomes `reveal`. Past questions are revealed through the end-of-round review instead.
 - **End-of-round review (ADR 0023, step 3):** with `revealTiming: 'endOfRound'`, Next on a round's last question opens a review (one by one, or a table) instead of moving on. Each reveal sets `GameQuestion.revealed`; the host sends `ROUND_ANSWERS` (the round's revealed answers, built by `buildRoundAnswers` under the visibility flags, `review: null` to close) to players and remote screens, and on rejoin. Which round is under review is kept per game in local storage, so the projector window follows it.
+- **Choice answers (ADR 0023, step 4):** `Game.inputType` (`none`, `buzzer`, `choice`) replaces `buzzerEnabled` (Dexie v21; snapshots and saved settings map `buzzerEnabled: false` to `none`). In a `choice` game `QUESTION_CONTENT.choices` says how many options players may pick from while the question is open, and players send `ANSWER { questionId, choice }`. The host takes the player from the connection, rate-limits answers per player, and stores one row per player (or team) in the `answers` table. Mark answers, a ruling or moving on judges them against `Question.answer`, scores each correct one through `writeScore`, logs `answers_marked` and closes the question. Answers are play data, left out of snapshots like buzzes.
 - **Next up:** #424's remaining settings, one PR each.
 
 ## Decisions (2026-10-16)

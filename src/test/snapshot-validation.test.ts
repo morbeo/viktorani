@@ -33,7 +33,7 @@ const GAME = {
   currentQuestionIdx: 0,
   buzzerLocked: true,
   scoringEnabled: true,
-  buzzerEnabled: true,
+  inputType: 'buzzer',
   autoLockOnFirstCorrect: false,
   allowFalseStarts: false,
   buzzDeduplication: 'firstOnly',
@@ -131,9 +131,19 @@ describe('importDatabase — validation', () => {
     spy.mockRestore()
   })
 
+  it('turns a backup game with the buzzer off into one answered out loud', async () => {
+    const { inputType: _i, ...rest } = GAME
+    void _i
+    const legacy = { ...rest, buzzerEnabled: false }
+    await importDatabase(jsonFile(snapshot({ games: [legacy] })))
+    const game = await db.games.get('g1')
+    expect(game).toMatchObject({ inputType: 'none' })
+    expect(game).not.toHaveProperty('buzzerEnabled')
+  })
+
   it('defaults buzzer fields missing from v1 games', async () => {
     const {
-      buzzerEnabled: _e,
+      inputType: _e,
       autoLockOnFirstCorrect: _a,
       allowFalseStarts: _b,
       buzzDeduplication: _c,
@@ -143,7 +153,7 @@ describe('importDatabase — validation', () => {
     void [_e, _a, _b, _c, _d]
     await importDatabase(jsonFile(snapshot({ version: 1, categories: [], games: [legacy] })))
     expect(await db.games.get('g1')).toMatchObject({
-      buzzerEnabled: true,
+      inputType: 'buzzer',
       autoLockOnFirstCorrect: false,
       allowFalseStarts: false,
       buzzDeduplication: 'firstOnly',

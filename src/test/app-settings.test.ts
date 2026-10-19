@@ -66,6 +66,21 @@ describe('app settings', () => {
     })
   })
 
+  it('keeps a saved buzzer-off choice as answering out loud', () => {
+    const preset = { id: 'p', label: 'Pub', description: '', settings: { buzzerEnabled: false } }
+    localStorage.setItem(
+      SETTINGS_KEY,
+      JSON.stringify({
+        version: 5,
+        gameDefaults: { buzzerEnabled: false },
+        gamePresets: [preset],
+      })
+    )
+    expect(getSettings().gameDefaults.inputType).toBe('none')
+    expect(getSettings().gameDefaults).not.toHaveProperty('buzzerEnabled')
+    expect(getSettings().gamePresets[0].settings.inputType).toBe('none')
+  })
+
   it('gives a version 3 entry the built-in presets', () => {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({ version: 3, theme: 'dark' }))
     expect(getSettings()).toEqual(

@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { transportManager } from '@/transport'
-import type { GamePhase, LayoutAssignments } from '@/db'
+import type { GamePhase, InputType, LayoutAssignments } from '@/db'
 import type { ResolvedTheme } from '@/lib/theme'
 import type { GameEvent, LayoutPayload, RoundAnswers, TransportEvent } from '@/transport/types'
 
@@ -20,8 +20,8 @@ export interface PlayerSession {
   /** Host-assigned id; `null` until JOIN_ACCEPTED. */
   playerId: string | null
   teamId: string | null
-  /** Whether this game has a buzzer at all; `false` hides the buzz button entirely. */
-  buzzerEnabled: boolean
+  /** How players answer: the buzz button shows only for `buzzer`, options for `choice`. */
+  inputType: InputType
   buzzerLocked: boolean
   /** Scores keyed by player and team id, from GAME_STATE and SCORE_UPDATE. */
   scores: Record<string, number>
@@ -60,7 +60,7 @@ export interface RemoteLayouts {
 const INITIAL: PlayerSession = {
   playerId: null,
   teamId: null,
-  buzzerEnabled: true,
+  inputType: 'buzzer',
   buzzerLocked: true,
   scores: {},
   question: null,
@@ -89,7 +89,7 @@ export function reduceSession(s: PlayerSession, event: TransportEvent): PlayerSe
     case 'GAME_STATE':
       return {
         ...s,
-        buzzerEnabled: event.state.buzzerEnabled,
+        inputType: event.state.inputType,
         buzzerLocked: event.state.buzzerLocked,
         scores: event.state.scores,
         gameStatus: knownStatus(event.state.status, s.gameStatus),

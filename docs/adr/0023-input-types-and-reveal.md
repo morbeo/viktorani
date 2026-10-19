@@ -41,8 +41,8 @@ A game picks how players answer with `Game.inputType`:
 | `choice`    | `ANSWER { questionId, choice: index }`               | Multiple choice and true/false  |
 | `text`      | `ANSWER { questionId, text }`, trimmed, 1 to 200 ch. | Open-ended, written pub quizzes |
 
-`buzzerEnabled` becomes a derived read (`inputType === 'buzzer'`) during a migration that sets
-`inputType` from it, and is then removed. Nothing in the flow may depend on the buzzer: rulings,
+`inputType` replaces `buzzerEnabled`: a migration sets it from the old flag (`buzzer`, or
+`none` with the buzzer off) and removes the flag. Nothing in the flow may depend on the buzzer: rulings,
 scoring, auto-advance and the log work the same for every input type.
 
 A question of the wrong shape for the input type (an open-ended question in a `choice` game)
@@ -111,16 +111,16 @@ Player answers are untrusted input, and the correct answer is a secret until rev
   `QUESTION_CONTENT`, fills `answer` only for a revealed question, and tests pin that. A
   rejoining player gets an answer (in `QUESTION_CONTENT` or `ROUND_ANSWERS`) only for questions
   already revealed.
-- **Imported answers are checked.** Snapshot import validates the `answers` rows with zod,
-  limits their number and size, and remaps their ids to the imported game, as for the other
-  tables.
+- **Answers are not imported.** Snapshots leave out play data (players, buzzes, answers), so
+  an imported file can't plant answers. If that changes, import validates them with zod, limits
+  their number and size, and remaps their ids to the imported game, as for the other tables.
 
 ### 5. Delivery order
 
 1. Host rulings with no buzz (done).
 2. `revealTiming` with `manual` and `perQuestion`, the answer in `QUESTION_CONTENT` (done).
 3. `endOfRound` with the one-by-one and table views, and the `ROUND_ANSWERS` event (done).
-4. `inputType` with `choice`, the `answers` table and automatic judging.
+4. `inputType` with `choice`, the `answers` table and automatic judging (done).
 5. `text` answers and host marking.
 
 Each step ships on its own and leaves the game playable.
@@ -137,7 +137,8 @@ Each step ships on its own and leaves the game playable.
 - `ANSWER` is new untrusted input from players: it is validated by zod, limited in size and
   accepted only for the current, unlocked question from a connected player of that game.
 - The `answers` table grows with players × questions and is cleared with the game, like buzzes.
-- Game snapshots (`snapshot-schema.ts`) need `inputType`, `revealTiming` and the answers table.
+- Game snapshots (`snapshot-schema.ts`) carry `inputType` and `revealTiming`. Answers are play
+  data, like buzzes and players, so snapshots leave them out.
 
 ## Alternatives considered
 

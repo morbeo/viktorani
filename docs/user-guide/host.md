@@ -120,7 +120,7 @@ The first step of the **New game** wizard holds the game settings. They start fr
 
 - **Scoring**: keep a score for each player and team. It can't be changed once the game exists.
 - **Visibility**: what player phones and the screen show (question text, answers, media).
-- **Advanced** (collapsed): the individual joining and buzzer settings.
+- **Advanced** (collapsed): the individual joining and answering settings.
 
 | Option                           | What it does                                                                        |
 | -------------------------------- | ----------------------------------------------------------------------------------- |
@@ -130,6 +130,7 @@ The first step of the **New game** wizard holds the game settings. They start fr
 | Require approval                 | New players wait in Join requests until you approve them                            |
 | Remove after disconnect          | Mark a player as left after this many minutes disconnected, freeing their place     |
 | Max teams / Max per team         | Team limits; **No limit** (∞) by default                                            |
+| How players answer               | **Out loud**, **Buzzer** or **Pick an option** on their phones                      |
 | Auto-lock after a correct answer | Lock the buzzer after the first correct ruling                                      |
 | Record false starts              | Keep buzzes that arrive while the buzzer is locked                                  |
 | Buzz display                     | `First per player` or `All attempts`                                                |
@@ -242,6 +243,17 @@ You don't need the buzzer to rule. Under the current question, click **Correct**
 **Points to** (a player, a team, or **Nobody**) before clicking **Correct**. A correct ruling
 also starts the auto-advance countdown when that's turned on. Ruling doesn't show the answer
 to players.
+
+### Marking players' answers
+
+With **How players answer** set to **Pick an option**, players tap an option of a
+multiple-choice or true/false question on their phones instead of buzzing. In a team game the
+team has one answer, which any member can change. Under the current question, **Answers**
+lists who picked what. Players can change their pick until you click **Mark answers**, which
+marks each answer right or wrong, gives the question's points to everyone who got it right
+(the team, in a team game), and closes the question. Moving on, or ruling on the question,
+marks the answers too. An open-ended question has no options to pick from, so you rule on it
+as usual.
 
 ### Revealing the answer
 

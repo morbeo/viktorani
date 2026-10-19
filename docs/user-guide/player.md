@@ -60,6 +60,13 @@ When the GM unlocks the buzzer, a **Buzz** button appears.
 3. The GM sees buzzes in arrival order and rules each one: Correct / Incorrect / Skip.
 4. If your buzz is ruled Incorrect, the buzzer may reopen for others depending on the game settings.
 
+### Picking an answer
+
+In some games you pick an answer instead of buzzing. The options appear as buttons, by
+letter, with their text when the host shows it. Tap one to send it; you can change it until
+the host marks the answers. In a team game your pick is your team's answer, and a teammate can
+change it.
+
 ### Score
 
 Your score, and your team's score if you are on a team, is shown on your screen and

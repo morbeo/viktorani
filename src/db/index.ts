@@ -208,8 +208,11 @@ export interface Game {
   buzzerLocked: boolean
   // Buzzer configuration
   scoringEnabled: boolean
-  /** Whether this game has a buzzer at all. Off for host-paced formats with no buzzing. */
-  buzzerEnabled: boolean
+  /**
+   * How players answer (ADR 0023): `none` (the host rules out loud), `buzzer`, or `choice`
+   * (players pick an option on their phones).
+   */
+  inputType: InputType
   /** Lock the buzzer automatically after the first correct adjudication. */
   autoLockOnFirstCorrect: boolean
   /** Whether false-start buzzes (arriving while locked) are recorded. */
@@ -349,6 +352,7 @@ export type GameLogKind =
   | 'buzzes_cleared'
   | 'question_ruled'
   | 'answer_revealed'
+  | 'answers_marked'
   | 'timer_started'
   | 'timer_paused'
   | 'timer_resumed'
@@ -399,6 +403,12 @@ export const REVEAL_TIMINGS = ['manual', 'perQuestion', 'endOfRound'] as const
 
 /** See {@link REVEAL_TIMINGS}. */
 export type RevealTiming = (typeof REVEAL_TIMINGS)[number]
+
+/** How players answer a question in a game; see {@link Game.inputType}. */
+export const INPUT_TYPES = ['none', 'buzzer', 'choice'] as const
+
+/** See {@link INPUT_TYPES}. */
+export type InputType = (typeof INPUT_TYPES)[number]
 
 /** A phase a layout can be chosen for, or `all` for every phase with no choice of its own. */
 export type LayoutSlot = GamePhase | 'all'
@@ -601,6 +611,26 @@ export interface GameQuestion {
   revealed: boolean
 }
 
+/**
+ * A player's answer to a question in a `choice` game (ADR 0023). In a team game it is the
+ * team's answer: one row per team per question, which any member may replace.
+ */
+export interface Answer {
+  id: string
+  gameId: string
+  gameQuestionId: string
+  /** The player who sent it; in a team game, the member who sent the team's latest. */
+  playerId: string
+  /** The team it counts for, or `null` for a player not on a team. */
+  teamId: string | null
+  /** Index into the question's options. */
+  choice: number
+  /** Host clock (epoch ms) when it arrived. */
+  receivedAt: number
+  /** `pending` until the question's answers are marked. */
+  ruling: 'pending' | 'correct' | 'incorrect'
+}
+
 // ── Database ─────────────────────────────────────────────────────────────────
 
 /**
@@ -638,6 +668,8 @@ export interface GameQuestion {
  * - 19: same stores; back-fills `Game.autoRemoveAfterMinutes` (`0`, never) on existing games.
  * - 20: same stores; back-fills `Game.revealTiming` (`'manual'`) on existing games and
  *   `GameQuestion.revealed` (`false`) on existing game questions.
+ * - 21: adds `answers`, players' answers in `choice` games; replaces `Game.buzzerEnabled`
+ *   with `Game.inputType` (`buzzer`, or `none` for a game with the buzzer off).
  *
  * To change the schema, add a new `this.version(N + 1)` block below; keep existing blocks.
  */
@@ -661,6 +693,7 @@ export class ViktoraniDB extends Dexie {
   managedTeams!: EntityTable<ManagedTeam, 'id'>
   managedLabels!: EntityTable<ManagedLabel, 'id'>
   themes!: EntityTable<Theme, 'id'>
+  answers!: EntityTable<Answer, 'id'>
 
   constructor() {
     super('viktorani')
@@ -741,7 +774,7 @@ export class ViktoraniDB extends Dexie {
         tx
           .table('games')
           .toCollection()
-          .modify((g: Partial<Game>) => {
+          .modify((g: { buzzerEnabled?: boolean }) => {
             g.buzzerEnabled ??= true
           })
       )
@@ -856,6 +889,18 @@ export class ViktoraniDB extends Dexie {
             gq.revealed ??= false
           })
       })
+
+    this.version(21)
+      .stores({ answers: 'id, gameId, gameQuestionId' })
+      .upgrade(tx =>
+        tx
+          .table('games')
+          .toCollection()
+          .modify((g: Partial<Game> & { buzzerEnabled?: boolean }) => {
+            g.inputType ??= g.buzzerEnabled === false ? 'none' : 'buzzer'
+            delete g.buzzerEnabled
+          })
+      )
   }
 }
 
@@ -933,6 +978,7 @@ export async function purgeDatabase(): Promise<void> {
       db.teams,
       db.players,
       db.buzzEvents,
+      db.answers,
       db.scoreEvents,
       db.gameLog,
       db.layouts,
@@ -954,6 +1000,7 @@ export async function purgeDatabase(): Promise<void> {
         db.teams.clear(),
         db.players.clear(),
         db.buzzEvents.clear(),
+        db.answers.clear(),
         db.scoreEvents.clear(),
         db.gameLog.clear(),
         db.layouts.clear(),

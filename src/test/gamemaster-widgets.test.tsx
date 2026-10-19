@@ -33,7 +33,7 @@ function gmData(game: Partial<Game> = {}, rest: Partial<GamemasterData> = {}): G
     game: {
       id: 'g1',
       status: 'active',
-      buzzerEnabled: true,
+      inputType: 'buzzer',
       buzzDeduplication: 'first',
       ...game,
     } as Game,
@@ -66,7 +66,7 @@ describe('GamemasterBuzzOrderWidget', () => {
 
   it('renders nothing when the game has no buzzer or has ended', () => {
     const { container, rerender } = render(
-      <GamemasterBuzzOrderWidget data={gmData({ buzzerEnabled: false })} config={{}} />
+      <GamemasterBuzzOrderWidget data={gmData({ inputType: 'none' })} config={{}} />
     )
     expect(container).toBeEmptyDOMElement()
     rerender(<GamemasterBuzzOrderWidget data={gmData({ status: 'ended' })} config={{}} />)
@@ -143,7 +143,7 @@ describe('GamemasterGameControlsWidget', () => {
   })
 
   it('leaves the lock out when the game has no buzzer', () => {
-    controls({ buzzerEnabled: false })
+    controls({ inputType: 'none' })
     expect(screen.queryByRole('button', { name: /buzzer/ })).toBeNull()
   })
 

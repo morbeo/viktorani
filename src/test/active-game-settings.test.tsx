@@ -110,6 +110,7 @@ vi.mock('@/components/timer/TimerPanel', () => ({ TimerPanel: () => null }))
 import { db } from '@/db'
 import { transportManager } from '@/transport'
 import { ActiveGame } from '@/components/gamemaster/ActiveGame'
+import type { AnswerHandler } from '@/components/gamemaster/ActiveGame'
 
 const mockSend = vi.mocked(transportManager.send)
 
@@ -140,7 +141,7 @@ function makeGame(overrides: Partial<Game> = {}): Game {
     currentQuestionIdx: 0,
     buzzerLocked: false,
     scoringEnabled: true,
-    buzzerEnabled: false,
+    inputType: 'none',
     autoLockOnFirstCorrect: false,
     allowFalseStarts: false,
     buzzDeduplication: 'firstOnly',
@@ -610,5 +611,84 @@ describe('ActiveGame: end-of-round review', () => {
       expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({ type: 'SLIDE_CHANGE' }))
     )
     expect(screen.queryByText('Round answers · Round 1')).toBeNull()
+  })
+})
+
+// ── Choice answers ────────────────────────────────────────────────────────────
+
+describe('ActiveGame: choice answers', () => {
+  async function seedChoice() {
+    await seed()
+    await Promise.all([db.players.clear(), db.answers.clear(), db.scoreEvents.clear()])
+    await db.questions.add({
+      id: 'q1',
+      title: 'Capital of France?',
+      type: 'multiple_choice',
+      options: ['Lyon', 'Paris', 'Nice', 'Lille'],
+      answer: 'Paris',
+      description: '',
+      difficulty: null,
+      tags: [],
+      media: null,
+      mediaType: null,
+      createdAt: 0,
+      updatedAt: 0,
+    })
+    await db.players.add({
+      id: 'p1',
+      gameId: 'g1',
+      name: 'Alice',
+      teamId: null,
+      score: 0,
+      presence: 'connected',
+      disconnectedAt: null,
+      deviceId: 'd',
+      joinedAt: 1,
+      notes: '',
+    })
+  }
+
+  it('takes choices for the question shown, then marks and scores them', async () => {
+    await seedChoice()
+    const answerHandlerRef: { current: AnswerHandler | null } = { current: null }
+    const onQuestionContent = vi.fn()
+    renderActiveGame(makeGame({ inputType: 'choice' }), { answerHandlerRef, onQuestionContent })
+
+    await waitFor(() => expect(onQuestionContent.mock.calls.at(-1)?.[0]?.choices).toBe(4))
+    await waitFor(() => expect(answerHandlerRef.current).not.toBeNull())
+    await act(() => answerHandlerRef.current!('p1', 'q2', 0, 1))
+    await act(() => answerHandlerRef.current!('p1', 'q1', 1, 2))
+    expect(await db.answers.toArray()).toEqual([expect.objectContaining({ choice: 1 })])
+
+    const ruling = questionPanel.props?.ruling as unknown as { onMarkAnswers: () => void }
+    act(() => ruling.onMarkAnswers())
+    await waitFor(async () => expect((await db.players.get('p1'))?.score).toBe(1))
+    expect((await db.gameQuestions.get('gq1'))?.status).toBe('correct')
+    await waitFor(() => expect(onQuestionContent.mock.calls.at(-1)?.[0]?.choices).toBeNull())
+  })
+
+  it('marks the choices when the host moves on', async () => {
+    const user = userEvent.setup()
+    await seedChoice()
+    const answerHandlerRef: { current: AnswerHandler | null } = { current: null }
+    renderActiveGame(makeGame({ inputType: 'choice' }), { answerHandlerRef })
+
+    await waitFor(() => expect(answerHandlerRef.current).not.toBeNull())
+    await act(() => answerHandlerRef.current!('p1', 'q1', 0, 1))
+    await user.click(await screen.findByRole('button', { name: 'Next question' }))
+
+    await waitFor(async () => expect((await db.answers.toArray())[0]?.ruling).toBe('incorrect'))
+    expect((await db.gameQuestions.get('gq1'))?.status).toBe('incorrect')
+  })
+
+  it('takes no choices in a game with another input type', async () => {
+    await seedChoice()
+    const answerHandlerRef: { current: AnswerHandler | null } = { current: null }
+    const onQuestionContent = vi.fn()
+    renderActiveGame(makeGame({ inputType: 'buzzer' }), { answerHandlerRef, onQuestionContent })
+
+    await waitFor(() => expect(onQuestionContent).toHaveBeenCalledWith(expect.anything()))
+    expect(onQuestionContent.mock.calls.at(-1)?.[0]?.choices).toBeNull()
+    expect(answerHandlerRef.current).toBeNull()
   })
 })

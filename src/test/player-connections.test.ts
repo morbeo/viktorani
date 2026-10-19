@@ -119,7 +119,7 @@ function game(overrides: Partial<Game> = {}): Game {
     status: 'waiting',
     roomId: 'ROOM01',
     scoringEnabled: true,
-    buzzerEnabled: true,
+    inputType: 'buzzer',
     visibility: {
       players: { showQuestion: true, showAnswers: false, showMedia: true },
       screen: { showQuestion: true, showAnswers: false, showMedia: true },

@@ -87,8 +87,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(20)
-    expect(db.backendDB().version).toBe(200)
+    expect(db.verno).toBe(21)
+    expect(db.backendDB().version).toBe(210)
     expect(db.backendDB().objectStoreNames.contains('managedPlayers')).toBe(true)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
     expect(await db.managedLabels.count()).toBe(0)
@@ -102,8 +102,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(20)
-    expect(db.backendDB().version).toBe(200)
+    expect(db.verno).toBe(21)
+    expect(db.backendDB().version).toBe(210)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
   })
 
@@ -155,12 +155,12 @@ describe('Dexie schema version', () => {
     expect(away).not.toHaveProperty('isAway')
   })
 
-  it('back-fills buzzerEnabled true on existing games (v11)', async () => {
+  it('gives existing games the buzzer (v11, v21)', async () => {
     await seedRawDb(90, V1_STORES)
 
     await db.open()
 
-    expect(await db.games.get('g-old')).toMatchObject({ buzzerEnabled: true })
+    expect(await db.games.get('g-old')).toMatchObject({ inputType: 'buzzer' })
   })
 
   it('back-fills an empty notes on existing teams (v12)', async () => {
@@ -275,5 +275,16 @@ describe('Dexie schema version', () => {
 
     expect(await db.games.get('g-old')).toMatchObject({ revealTiming: 'manual' })
     expect(await db.gameQuestions.get('gq-old')).toMatchObject({ revealed: false })
+  })
+
+  it('replaces buzzerEnabled with inputType and adds answers (v21)', async () => {
+    await seedRawDb(200, V1_STORES, { buzzerEnabled: false })
+
+    await db.open()
+
+    const game = await db.games.get('g-old')
+    expect(game).toMatchObject({ inputType: 'none' })
+    expect(game).not.toHaveProperty('buzzerEnabled')
+    expect(await db.answers.count()).toBe(0)
   })
 })

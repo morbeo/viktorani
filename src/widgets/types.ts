@@ -92,6 +92,8 @@ export interface GamemasterData {
   onRule: (ruling: QuestionRuling, award: RulingAward | null) => void
   /** Shows the correct answer of the question shown to players and screens. */
   onReveal: () => void
+  /** Marks players' choices to the question shown, in a game that takes them. */
+  onMarkAnswers: () => void
   /** Opens the review of the current round's answers (ADR 0023). */
   onReviewRound: () => void
 }
@@ -105,6 +107,17 @@ export interface PlayerData {
   ended: boolean
   /** The buzz button, or `null` when this game has no buzzer. */
   buzzer: { enabled: boolean; label: string; onBuzz: () => void } | null
+  /**
+   * The options to pick from, in a game where players pick one (ADR 0023), or `null`.
+   * `count` is `null` once the host no longer takes answers to the question.
+   */
+  choice: {
+    count: number | null
+    options: string[] | null
+    selected: number | null
+    enabled: boolean
+    onChoose: (choice: number) => void
+  } | null
 }
 
 /** Live data per surface. The scoreboard surface isn't rendered from a layout yet. */

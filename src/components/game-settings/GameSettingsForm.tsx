@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { Lock } from 'lucide-react'
 import { Button, HelpTip, Icon, Input } from '@/components/ui'
 import { JOIN_POLICY_HELP } from '@/components/gamemaster/join-policy-help'
-import type { BuzzDeduplication, RevealTiming, TargetVisibility } from '@/db'
+import type { BuzzDeduplication, InputType, RevealTiming, TargetVisibility } from '@/db'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { MAX_PRESETS, MAX_TIMER_SECONDS } from '@/lib/app-settings'
 import {
@@ -47,13 +47,19 @@ const DEDUP_OPTIONS: Array<{ value: BuzzDeduplication; label: string }> = [
   { value: 'all', label: 'All attempts' },
 ]
 
+const INPUT_OPTIONS: Array<{ value: InputType; label: string }> = [
+  { value: 'none', label: 'Out loud' },
+  { value: 'buzzer', label: 'Buzzer' },
+  { value: 'choice', label: 'Pick an option' },
+]
+
 const REVEAL_OPTIONS: Array<{ value: RevealTiming; label: string }> = [
   { value: 'manual', label: 'When I reveal it' },
   { value: 'perQuestion', label: 'After each ruling' },
   { value: 'endOfRound', label: 'At the end of the round' },
 ]
 
-/** Game settings grouped into Basics, Joining, Buzzer and Visibility, with presets. */
+/** Game settings grouped into Basics, Joining, Answering and Visibility, with presets. */
 export function GameSettingsForm({
   value,
   onChange,
@@ -155,15 +161,20 @@ export function GameSettingsForm({
   )
 
   const buzzer = (
-    <Section title="Buzzer">
-      <Toggle
-        label="Buzzer"
-        help="Off for host-paced formats with no buzzing — players don't see a buzz button, and scoring is entirely manual from the scoreboard."
-        checked={value.buzzerEnabled}
-        disabled={disabled}
-        onChange={v => onChange({ buzzerEnabled: v })}
-      />
-      {value.buzzerEnabled && (
+    <Section title="Answering">
+      <Row
+        label="How players answer"
+        help="Out loud: players answer aloud or on paper and you rule on each question. Buzzer: players buzz in and you rule on each buzz. Pick an option: players tap an option of a multiple-choice or true/false question on their phones, and their answers are marked for them."
+      >
+        <Segmented
+          label="How players answer"
+          options={INPUT_OPTIONS}
+          value={value.inputType}
+          disabled={disabled}
+          onChange={v => onChange({ inputType: v })}
+        />
+      </Row>
+      {value.inputType === 'buzzer' && (
         <>
           <Toggle
             label="Auto-lock after a correct answer"

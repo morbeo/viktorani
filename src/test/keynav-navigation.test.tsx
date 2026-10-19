@@ -108,6 +108,7 @@ vi.mock('@/db', async importOriginal => ({
 }))
 vi.mock('@/transport', () => ({ transportManager: mockTransportManager }))
 vi.mock('@/db/games', () => ({ updateQuestionStatus: vi.fn() }))
+vi.mock('@/db/answers', () => ({ markAnswers: vi.fn() }))
 
 describe('useNavigation', () => {
   const game: Game = {
@@ -133,7 +134,7 @@ describe('useNavigation', () => {
     requireApproval: false,
     allowPlayerTeams: false,
     scoringEnabled: true,
-    buzzerEnabled: true,
+    inputType: 'buzzer',
     buzzerLocked: false,
     autoLockOnFirstCorrect: false,
     allowFalseStarts: false,

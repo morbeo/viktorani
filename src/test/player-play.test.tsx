@@ -45,7 +45,7 @@ const STATE: TransportEvent = {
     status: 'active',
     currentRoundIdx: 0,
     currentQuestionIdx: 0,
-    buzzerEnabled: true,
+    inputType: 'buzzer',
     buzzerLocked: false,
     visibility: {
       players: { showQuestion: true, showAnswers: false, showMedia: true },
@@ -120,7 +120,7 @@ describe('Play', () => {
     renderPlay()
     await waitFor(() => expect(transportManager.send).toHaveBeenCalled())
     emit({ type: 'JOIN_ACCEPTED', playerId: 'p1', teamId: 't1' })
-    emit({ ...STATE, state: { ...STATE.state, buzzerEnabled: false } })
+    emit({ ...STATE, state: { ...STATE.state, inputType: 'none' } })
     expect(screen.queryByRole('button', { name: 'Buzz' })).toBeNull()
   })
 
@@ -134,6 +134,7 @@ describe('Play', () => {
       description: null,
       options: ['Paris', 'Lyon'],
       answer: null,
+      choices: null,
       media: null,
       mediaType: null,
     })

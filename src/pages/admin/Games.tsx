@@ -392,7 +392,7 @@ function GameWizard({
         currentQuestionIdx: 0,
         buzzerLocked: true,
         scoringEnabled: state.scoringEnabled,
-        buzzerEnabled: state.buzzerEnabled,
+        inputType: state.inputType,
         autoLockOnFirstCorrect: state.autoLockOnFirstCorrect,
         allowFalseStarts: state.allowFalseStarts,
         buzzDeduplication: state.buzzDeduplication,

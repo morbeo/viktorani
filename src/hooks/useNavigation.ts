@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
 import { updateQuestionStatus } from '@/db/games'
+import { markAnswers } from '@/db/answers'
 import { logEvent } from '@/db/game-log'
 import { transportManager } from '@/transport'
 import { buildNavSequence, getNavPosition, orderRounds, step } from '@/pages/admin/gamemaster-utils'
@@ -97,7 +98,13 @@ export function useNavigation(
       const now = Date.now()
 
       // Persist to DB
-      if (dir === 1) await updateQuestionStatus(seq[pos.flatIndex].gameQuestionId, 'left')
+      // Moving on closes the question: players' choices are marked, and one nobody
+      // answered is skipped
+      if (dir === 1) {
+        const id = seq[pos.flatIndex].gameQuestionId
+        await markAnswers(game, id, 'skipped')
+        await updateQuestionStatus(id, 'left')
+      }
       await db.games.update(game.id, {
         currentRoundIdx: nextPos.roundIdx,
         currentQuestionIdx: nextFlat,
