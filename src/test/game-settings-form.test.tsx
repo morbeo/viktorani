@@ -128,6 +128,21 @@ describe('GameSettingsForm', () => {
     expect(screen.getAllByText('No limit')).toHaveLength(4)
   })
 
+  it('shows the auto-advance countdown once either auto-advance is on, from 1 to 60 s', async () => {
+    const onChange = vi.fn()
+    render(<Harness mode="live" onChange={onChange} />)
+    const label = 'Countdown before moving on (seconds)'
+    expect(screen.queryByRole('button', { name: `Increase ${label}` })).toBeNull()
+
+    await userEvent.click(
+      screen.getByRole('switch', { name: 'Next question when the question timer runs out' })
+    )
+    expect(onChange).toHaveBeenLastCalledWith({ autoAdvanceOnTimerExpiry: true })
+    await userEvent.click(screen.getByRole('button', { name: `Increase ${label}` }))
+    expect(onChange).toHaveBeenLastCalledWith({ autoAdvanceDelaySeconds: 6 })
+    expect(screen.queryByRole('button', { name: `No limit for ${label}` })).toBeNull()
+  })
+
   it('changes the buzz display with the segmented control', async () => {
     const onChange = vi.fn()
     render(<Harness mode="live" onChange={onChange} />)

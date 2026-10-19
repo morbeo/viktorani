@@ -19,6 +19,9 @@ export type GameSettings = Pick<
   | 'allowFalseStarts'
   | 'buzzDeduplication'
   | 'confirmUnruledNavigation'
+  | 'autoAdvanceOnCorrect'
+  | 'autoAdvanceOnTimerExpiry'
+  | 'autoAdvanceDelaySeconds'
   | 'autoStartTimerOnQuestionShow'
   | 'defaultTimerDuration'
   | 'soundEffectsMuted'
@@ -50,6 +53,9 @@ export const GAME_SETTINGS_KEYS = [
   'allowFalseStarts',
   'buzzDeduplication',
   'confirmUnruledNavigation',
+  'autoAdvanceOnCorrect',
+  'autoAdvanceOnTimerExpiry',
+  'autoAdvanceDelaySeconds',
   'autoStartTimerOnQuestionShow',
   'defaultTimerDuration',
   'soundEffectsMuted',
@@ -87,6 +93,11 @@ export function matchPreset(
   return presets.find(p => keys.every(k => sameValue(settings[k], p.settings[k]))) ?? null
 }
 
+/** Seconds a new game gives the host to cancel an automatic move to the next question. */
+export const AUTO_ADVANCE_DEFAULT_DELAY = 5
+/** Longest delay before an automatic move to the next question. */
+export const MAX_AUTO_ADVANCE_DELAY = 60
+
 /** Highest value the team limit steppers go up to. */
 export const MAX_LIMIT = 99
 
@@ -112,6 +123,9 @@ export function defaultSettings(): GameSettings {
     allowFalseStarts: false,
     buzzDeduplication: 'firstOnly',
     confirmUnruledNavigation: false,
+    autoAdvanceOnCorrect: false,
+    autoAdvanceOnTimerExpiry: false,
+    autoAdvanceDelaySeconds: AUTO_ADVANCE_DEFAULT_DELAY,
     autoStartTimerOnQuestionShow: false,
     defaultTimerDuration: 60,
     soundEffectsMuted: false,

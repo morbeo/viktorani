@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import {
   BUILT_IN_PRESETS,
+  MAX_AUTO_ADVANCE_DELAY,
   MAX_LIMIT,
   defaultSettings,
 } from '@/components/game-settings/game-settings'
@@ -70,6 +71,14 @@ const GameSettingsSchema = z.object({
   allowFalseStarts: z.boolean().catch(BUILT_IN_GAME.allowFalseStarts),
   buzzDeduplication: z.enum(['firstOnly', 'all']).catch(BUILT_IN_GAME.buzzDeduplication),
   confirmUnruledNavigation: z.boolean().catch(BUILT_IN_GAME.confirmUnruledNavigation),
+  autoAdvanceOnCorrect: z.boolean().catch(BUILT_IN_GAME.autoAdvanceOnCorrect),
+  autoAdvanceOnTimerExpiry: z.boolean().catch(BUILT_IN_GAME.autoAdvanceOnTimerExpiry),
+  autoAdvanceDelaySeconds: z
+    .number()
+    .int()
+    .min(1)
+    .max(MAX_AUTO_ADVANCE_DELAY)
+    .catch(BUILT_IN_GAME.autoAdvanceDelaySeconds),
   autoStartTimerOnQuestionShow: z.boolean().catch(BUILT_IN_GAME.autoStartTimerOnQuestionShow),
   defaultTimerDuration: z
     .number()

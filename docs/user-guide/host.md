@@ -227,6 +227,13 @@ Use the **Previous** / **Next** buttons or keyboard arrows to move between quest
 The current position (round · question) is shown in the navigation bar.
 Reaching the end of a round shows a round-boundary overlay before advancing.
 
+The game can also move on by itself. In the game's settings, under **Round flow**, turn on
+**Next question after a correct answer** or **Next question when the question timer runs
+out** (a question timer is one that resets every question, such as **This question** or the
+auto-started one). A countdown appears under the navigation bar, set by **Countdown before
+moving on** (5 s by default). Press **Stay** to keep the question. Moving on by hand, pausing
+the game or reaching the last question cancels it.
+
 ### Managing the buzzer
 
 1. Click **Unlock** to open the buzzer — players can now buzz in.

@@ -38,6 +38,9 @@ const GAME = {
   buzzDeduplication: 'firstOnly',
   tiebreakerMode: 'serverOrder',
   confirmUnruledNavigation: false,
+  autoAdvanceOnCorrect: false,
+  autoAdvanceOnTimerExpiry: false,
+  autoAdvanceDelaySeconds: 5,
   autoStartTimerOnQuestionShow: false,
   defaultTimerDuration: 60,
   soundEffectsMuted: false,
@@ -157,6 +160,25 @@ describe('importDatabase — validation', () => {
     void [_a, _b, _c, _d]
     await importDatabase(jsonFile(snapshot({ games: [legacy] })))
     expect(await db.games.get('g1')).toEqual(GAME)
+  })
+
+  it('defaults the auto-advance fields missing from older games', async () => {
+    const {
+      autoAdvanceOnCorrect: _a,
+      autoAdvanceOnTimerExpiry: _b,
+      autoAdvanceDelaySeconds: _c,
+      ...legacy
+    } = GAME
+    void [_a, _b, _c]
+    await importDatabase(jsonFile(snapshot({ games: [legacy] })))
+    expect(await db.games.get('g1')).toEqual(GAME)
+  })
+
+  it('rejects an auto-advance delay out of range', async () => {
+    const games = [{ ...GAME, autoAdvanceDelaySeconds: 3600 }]
+    await expect(importDatabase(jsonFile(snapshot({ games })))).rejects.toThrow(
+      /games\.0\.autoAdvanceDelaySeconds/
+    )
   })
 
   it('moves flat visibility flags from older games into both targets', async () => {

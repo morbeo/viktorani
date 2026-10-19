@@ -18,7 +18,11 @@ import type {
 import { AppSettingsSchema, MAX_TIMER_SECONDS } from '@/lib/app-settings'
 import { DEFAULT_LAYOUT_THEME, GRID_COLUMNS } from '@/lib/layout-grid'
 import { BUILT_IN_THEME_IDS } from '@/lib/theme'
-import { MAX_LIMIT } from '@/components/game-settings/game-settings'
+import {
+  AUTO_ADVANCE_DEFAULT_DELAY,
+  MAX_AUTO_ADVANCE_DELAY,
+  MAX_LIMIT,
+} from '@/components/game-settings/game-settings'
 
 /**
  * Zod schemas for validating user-supplied JSON imports (backups and question files).
@@ -114,6 +118,14 @@ export const GameSchema = z
     buzzDeduplication: z.enum(['firstOnly', 'all']).default('firstOnly'),
     tiebreakerMode: z.literal('serverOrder').default('serverOrder'),
     confirmUnruledNavigation: z.boolean().default(false),
+    autoAdvanceOnCorrect: z.boolean().default(false),
+    autoAdvanceOnTimerExpiry: z.boolean().default(false),
+    autoAdvanceDelaySeconds: z
+      .number()
+      .int()
+      .min(1)
+      .max(MAX_AUTO_ADVANCE_DELAY)
+      .default(AUTO_ADVANCE_DEFAULT_DELAY),
     autoStartTimerOnQuestionShow: z.boolean().default(false),
     defaultTimerDuration: z.number().int().min(1).max(MAX_TIMER_SECONDS).default(60),
     soundEffectsMuted: z.boolean().default(false),
