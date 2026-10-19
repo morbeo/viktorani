@@ -353,6 +353,7 @@ export type GameLogKind =
   | 'question_ruled'
   | 'answer_revealed'
   | 'answers_marked'
+  | 'answer_marked'
   | 'timer_started'
   | 'timer_paused'
   | 'timer_resumed'
@@ -405,10 +406,13 @@ export const REVEAL_TIMINGS = ['manual', 'perQuestion', 'endOfRound'] as const
 export type RevealTiming = (typeof REVEAL_TIMINGS)[number]
 
 /** How players answer a question in a game; see {@link Game.inputType}. */
-export const INPUT_TYPES = ['none', 'buzzer', 'choice'] as const
+export const INPUT_TYPES = ['none', 'buzzer', 'choice', 'text'] as const
 
 /** See {@link INPUT_TYPES}. */
 export type InputType = (typeof INPUT_TYPES)[number]
+
+/** Longest typed answer a player may send, after trimming (ADR 0023). */
+export const MAX_ANSWER_TEXT_LENGTH = 200
 
 /** A phase a layout can be chosen for, or `all` for every phase with no choice of its own. */
 export type LayoutSlot = GamePhase | 'all'
@@ -612,8 +616,9 @@ export interface GameQuestion {
 }
 
 /**
- * A player's answer to a question in a `choice` game (ADR 0023). In a team game it is the
- * team's answer: one row per team per question, which any member may replace.
+ * A player's answer to a question in a `choice` or `text` game (ADR 0023). In a team game
+ * it is the team's answer: one row per team per question, which any member may replace.
+ * Exactly one of `choice` and `text` is set.
  */
 export interface Answer {
   id: string
@@ -623,11 +628,13 @@ export interface Answer {
   playerId: string
   /** The team it counts for, or `null` for a player not on a team. */
   teamId: string | null
-  /** Index into the question's options. */
-  choice: number
+  /** Index into the question's options, in a `choice` game. */
+  choice: number | null
+  /** The typed answer, trimmed, in a `text` game. */
+  text: string | null
   /** Host clock (epoch ms) when it arrived. */
   receivedAt: number
-  /** `pending` until the question's answers are marked. */
+  /** `pending` until marked: automatically for a choice, by the host for typed text. */
   ruling: 'pending' | 'correct' | 'incorrect'
 }
 
@@ -670,6 +677,7 @@ export interface Answer {
  *   `GameQuestion.revealed` (`false`) on existing game questions.
  * - 21: adds `answers`, players' answers in `choice` games; replaces `Game.buzzerEnabled`
  *   with `Game.inputType` (`buzzer`, or `none` for a game with the buzzer off).
+ * - 22: same stores; back-fills `Answer.text` (`null`) for typed answers in `text` games.
  *
  * To change the schema, add a new `this.version(N + 1)` block below; keep existing blocks.
  */
@@ -899,6 +907,17 @@ export class ViktoraniDB extends Dexie {
           .modify((g: Partial<Game> & { buzzerEnabled?: boolean }) => {
             g.inputType ??= g.buzzerEnabled === false ? 'none' : 'buzzer'
             delete g.buzzerEnabled
+          })
+      )
+
+    this.version(22)
+      .stores({})
+      .upgrade(tx =>
+        tx
+          .table('answers')
+          .toCollection()
+          .modify((a: Partial<Answer>) => {
+            a.text ??= null
           })
       )
   }

@@ -130,7 +130,7 @@ The first step of the **New game** wizard holds the game settings. They start fr
 | Require approval                 | New players wait in Join requests until you approve them                            |
 | Remove after disconnect          | Mark a player as left after this many minutes disconnected, freeing their place     |
 | Max teams / Max per team         | Team limits; **No limit** (∞) by default                                            |
-| How players answer               | **Out loud**, **Buzzer** or **Pick an option** on their phones                      |
+| How players answer               | **Out loud**, **Buzzer**, **Pick an option** or **Type an answer** on their phones  |
 | Auto-lock after a correct answer | Lock the buzzer after the first correct ruling                                      |
 | Record false starts              | Keep buzzes that arrive while the buzzer is locked                                  |
 | Buzz display                     | `First per player` or `All attempts`                                                |
@@ -254,6 +254,14 @@ marks each answer right or wrong, gives the question's points to everyone who go
 (the team, in a team game), and closes the question. Moving on, or ruling on the question,
 marks the answers too. An open-ended question has no options to pick from, so you rule on it
 as usual.
+
+With **Type an answer**, players type their answer to any question instead. **Answers** lists
+each one with ✓ and ✗ buttons: mark them as they come in or after the question closes, and
+change a mark if you got it wrong (the points move with it). **Mark matching correct** marks
+every unmarked answer that matches the correct answer, ignoring case and spacing, so you only
+have to judge the near misses. Players can change their answer until you click **Close
+answers**, rule on the question or move on. You can go back to a closed question to finish
+marking; its status follows your marks.
 
 ### Revealing the answer
 

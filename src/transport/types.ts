@@ -84,6 +84,8 @@ export type GameEvent =
        * this question; `null` otherwise, and always for the screen.
        */
       choices: number | null
+      /** Whether the host takes typed answers to this question now; always `false` for the screen. */
+      acceptsText: boolean
       media: string | null
       mediaType: 'image' | 'audio' | 'video' | null
     }
@@ -253,10 +255,11 @@ export type PlayerEvent =
       newTeamName: string | null
     }
   /**
-   * Player picked option `choice` (from 0) of the question `questionId`, in a game that
-   * takes choice answers. A later one replaces it until the host marks the answers.
+   * Player's answer to the question `questionId`: option `choice` (from 0) in a game that
+   * takes choice answers, or typed `text` in one that takes typed answers; exactly one is
+   * set. A later one replaces it until the host closes the question.
    */
-  | { type: 'ANSWER'; questionId: string; choice: number }
+  | { type: 'ANSWER'; questionId: string; choice: number | null; text: string | null }
   /** Player left the game. */
   | { type: 'LEAVE' }
   /** Player's tab visibility changed — used to flag distracted players. */

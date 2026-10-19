@@ -51,6 +51,7 @@ const INPUT_OPTIONS: Array<{ value: InputType; label: string }> = [
   { value: 'none', label: 'Out loud' },
   { value: 'buzzer', label: 'Buzzer' },
   { value: 'choice', label: 'Pick an option' },
+  { value: 'text', label: 'Type an answer' },
 ]
 
 const REVEAL_OPTIONS: Array<{ value: RevealTiming; label: string }> = [
@@ -164,7 +165,7 @@ export function GameSettingsForm({
     <Section title="Answering">
       <Row
         label="How players answer"
-        help="Out loud: players answer aloud or on paper and you rule on each question. Buzzer: players buzz in and you rule on each buzz. Pick an option: players tap an option of a multiple-choice or true/false question on their phones, and their answers are marked for them."
+        help="Out loud: players answer aloud or on paper and you rule on each question. Buzzer: players buzz in and you rule on each buzz. Pick an option: players tap an option of a multiple-choice or true/false question on their phones, and their answers are marked for them. Type an answer: players type their answer to any question on their phones, and you mark each one."
       >
         <Segmented
           label="How players answer"

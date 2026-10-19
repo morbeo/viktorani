@@ -129,6 +129,7 @@ describe('purgeDatabase', () => {
       playerId: 'p1',
       teamId: null,
       choice: 0,
+      text: null,
       receivedAt: 0,
       ruling: 'pending',
     })

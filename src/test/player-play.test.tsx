@@ -135,6 +135,7 @@ describe('Play', () => {
       options: ['Paris', 'Lyon'],
       answer: null,
       choices: null,
+      acceptsText: false,
       media: null,
       mediaType: null,
     })

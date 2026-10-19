@@ -40,6 +40,7 @@ export const LOG_KIND_LABELS: Record<LogRowKind, string> = {
   question_ruled: 'Question ruled',
   answer_revealed: 'Answer revealed',
   answers_marked: 'Answers marked',
+  answer_marked: 'Answer marked',
   timer_started: 'Timer started',
   timer_paused: 'Timer paused',
   timer_resumed: 'Timer resumed',
@@ -96,6 +97,8 @@ function logDetails(e: GameLogEntry): string {
       return `${d.count} removed`
     case 'answers_marked':
       return `${d.correct} of ${d.total} correct`
+    case 'answer_marked':
+      return `${String(d.name ?? '')}: ${d.ruling === 'correct' ? 'correct' : 'wrong'}`
     case 'question_ruled':
       return QUESTION_RULINGS[String(d.status)] ?? String(d.status)
     case 'visibility_changed': {

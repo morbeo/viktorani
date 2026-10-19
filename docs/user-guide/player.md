@@ -67,6 +67,13 @@ letter, with their text when the host shows it. Tap one to send it; you can chan
 the host marks the answers. In a team game your pick is your team's answer, and a teammate can
 change it.
 
+### Typing an answer
+
+In games where you type your answers, a box appears under the question. Type your answer and
+tap **Send**; you can send a new one until the host closes answers to the question, and the
+last one counts. The host marks typed answers, so spelling that's close enough can still be
+right. In a team game your answer is your team's, and a teammate can replace it.
+
 ### Score
 
 Your score, and your team's score if you are on a team, is shown on your screen and

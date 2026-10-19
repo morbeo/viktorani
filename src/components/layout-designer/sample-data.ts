@@ -35,6 +35,7 @@ function content(q: Pick<Question, 'id' | 'title' | 'description' | 'options' | 
     options: q.options?.length ? q.options : null,
     answer: q.answer || null,
     choices: null,
+    acceptsText: false,
     // Media stays out: a preview shouldn't load remote files
     media: null,
     mediaType: null,
@@ -71,6 +72,7 @@ export function samplePlayerData(sample: PreviewSample): PlayerData {
     ended: false,
     buzzer: { enabled: true, label: 'Buzz', onBuzz: () => {} },
     choice: null,
+    typed: null,
   }
 }
 

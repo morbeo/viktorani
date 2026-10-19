@@ -38,6 +38,7 @@ describe('buildQuestionContent', () => {
       options: null,
       answer: null,
       choices: null,
+      acceptsText: false,
       media: null,
       mediaType: null,
     })
@@ -75,11 +76,18 @@ describe('buildQuestionContent', () => {
 
   it('says how many options players may pick from only while choices are taken', () => {
     expect(buildQuestionContent(QUESTION, 'players', NONE).choices).toBeNull()
-    expect(buildQuestionContent(QUESTION, 'players', NONE, false, true).choices).toBe(3)
+    expect(buildQuestionContent(QUESTION, 'players', NONE, false, 'choice').choices).toBe(3)
     const tf = { ...QUESTION, type: 'true_false' as const, options: [] }
-    expect(buildQuestionContent(tf, 'players', NONE, false, true).choices).toBe(2)
+    expect(buildQuestionContent(tf, 'players', NONE, false, 'choice').choices).toBe(2)
     const open = { ...QUESTION, type: 'open_ended' as const, options: [] }
-    expect(buildQuestionContent(open, 'players', ALL, false, true).choices).toBeNull()
+    expect(buildQuestionContent(open, 'players', ALL, false, 'choice').choices).toBeNull()
+  })
+
+  it('says typed answers are taken only while they are', () => {
+    expect(buildQuestionContent(QUESTION, 'players', NONE).acceptsText).toBe(false)
+    const content = buildQuestionContent(QUESTION, 'players', NONE, false, 'text')
+    expect(content.acceptsText).toBe(true)
+    expect(content.choices).toBeNull()
   })
 
   it('uses True/False options for true/false and none for open-ended questions', () => {

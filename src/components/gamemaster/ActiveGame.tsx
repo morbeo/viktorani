@@ -47,7 +47,8 @@ import { PhaseControl } from '@/components/gamemaster/PhaseControl'
 import { autoPhase, effectivePhase } from '@/lib/layout-phase'
 import { updateQuestionStatus } from '@/db/games'
 import { revealQuestion, ruleQuestion } from '@/db/rulings'
-import { markAnswers, recordAnswer } from '@/db/answers'
+import { markAnswers, markTypedAnswers, recordAnswer } from '@/db/answers'
+import type { AnswerInput } from '@/db/answers'
 import type { QuestionRuling, RulingAward } from '@/db/rulings'
 import { layoutCommands, phaseCommands } from '@/components/gamemaster/layout-commands'
 import type { GameEvent } from '@/transport/types'
@@ -92,11 +93,11 @@ export interface ActiveGameProps {
 }
 
 export type BuzzHandler = ReturnType<typeof useBuzzer>['handleIncomingBuzz']
-/** Records a player's choice for the question `questionId`, if it is the one shown. */
+/** Records a player's answer to the question `questionId`, if it is the one shown. */
 export type AnswerHandler = (
   playerId: string,
   questionId: string,
-  choice: number,
+  input: AnswerInput,
   receivedAt: number
 ) => Promise<void>
 export type QuestionContent = Extract<GameEvent, { type: 'QUESTION_CONTENT' }>
@@ -265,15 +266,19 @@ export function ActiveGame({
   // changes what players may see, or reveals the answer
   const playerVisibility = game.visibility.players
   const revealed = gameQuestion?.revealed ?? false
-  // Players pick an option until the question's answers are marked or it is ruled on
-  const acceptChoices = game.inputType === 'choice' && gameQuestion?.status === 'pending'
+  // Players pick an option or type an answer until the question is closed: its answers
+  // marked, a ruling, or moving on
+  const accepts =
+    (game.inputType === 'choice' || game.inputType === 'text') && gameQuestion?.status === 'pending'
+      ? game.inputType
+      : null
   useEffect(() => {
     onQuestionContent(
       question
-        ? buildQuestionContent(question, 'players', playerVisibility, revealed, acceptChoices)
+        ? buildQuestionContent(question, 'players', playerVisibility, revealed, accepts)
         : null
     )
-  }, [question, playerVisibility, revealed, acceptChoices, onQuestionContent])
+  }, [question, playerVisibility, revealed, accepts, onQuestionContent])
 
   // Same for approved screens, with the screen's visibility
   const screenVisibility = game.visibility.screen
@@ -366,14 +371,21 @@ export function ActiveGame({
     [adjudicate, currentGameQuestionId, game.revealTiming, handleReveal, onCorrect]
   )
 
-  // Mark players' choices to the question shown, which closes it to new ones
+  // Close the question shown to new answers, marking players' choices
   const handleMark = useCallback(async () => {
     if (!currentGameQuestionId) return
     const result = await markAnswers(game, currentGameQuestionId)
     if (!result) return
     if (game.revealTiming === 'perQuestion') await handleReveal()
-    if (result.correct > 0) onCorrect()
+    if (result.status === 'correct') onCorrect()
   }, [game, currentGameQuestionId, handleReveal, onCorrect])
+
+  // Mark typed answers right or wrong
+  const handleMarkTyped = useCallback(
+    (answerIds: string[], ruling: 'correct' | 'incorrect') =>
+      markTypedAnswers(game, answerIds, ruling),
+    [game]
+  )
 
   // Rule on the question without a buzz, e.g. in a game with no buzzer. Players' choices
   // are marked first, so the ruling can't award a correct answer's points twice.
@@ -431,17 +443,19 @@ export function ActiveGame({
     }
   }, [buzzHandlerRef, handleIncomingBuzz])
 
-  // Hand the parent's transport listener a handler for choices to the question shown, in a
-  // game that takes them; cleared on unmount and when the question changes
+  // Hand the parent's transport listener a handler for answers to the question shown, in a
+  // game that takes them; cleared on unmount and when the question changes. `recordAnswer`
+  // checks the answer is the kind the game takes.
   useEffect(() => {
     if (!answerHandlerRef) return
-    if (game.inputType !== 'choice' || !currentGameQuestionId || !currentQuestionId) {
+    const takesAnswers = game.inputType === 'choice' || game.inputType === 'text'
+    if (!takesAnswers || !currentGameQuestionId || !currentQuestionId) {
       answerHandlerRef.current = null
       return
     }
-    answerHandlerRef.current = async (playerId, questionId, choice, receivedAt) => {
+    answerHandlerRef.current = async (playerId, questionId, input, receivedAt) => {
       if (questionId !== currentQuestionId) return
-      await recordAnswer(game.id, currentGameQuestionId, playerId, choice, receivedAt)
+      await recordAnswer(game.id, currentGameQuestionId, playerId, input, receivedAt)
     }
     return () => {
       answerHandlerRef.current = null
@@ -671,6 +685,7 @@ export function ActiveGame({
                 onRule: (ruling, award) => void handleRule(ruling, award),
                 onReveal: () => void handleReveal(),
                 onMarkAnswers: () => void handleMark(),
+                onMarkTyped: (ids, ruling) => void handleMarkTyped(ids, ruling),
                 onReviewRound: () => {
                   const current = pos ? seq[pos.flatIndex] : undefined
                   if (current) setReview({ roundId: current.roundId, view: 'list' })

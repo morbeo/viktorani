@@ -663,7 +663,9 @@ export default function GameMaster() {
         const receivedAt = Date.now()
         const handler = answerHandlerRef.current
         if (handler && answerLimitRef.current.allow(playerId)) {
-          void handler(playerId, event.questionId, event.choice, receivedAt)
+          const input =
+            event.choice !== null ? { choice: event.choice } : { text: event.text ?? '' }
+          void handler(playerId, event.questionId, input, receivedAt)
         }
       }
 

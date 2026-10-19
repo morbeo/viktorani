@@ -121,7 +121,8 @@ Player answers are untrusted input, and the correct answer is a secret until rev
 2. `revealTiming` with `manual` and `perQuestion`, the answer in `QUESTION_CONTENT` (done).
 3. `endOfRound` with the one-by-one and table views, and the `ROUND_ANSWERS` event (done).
 4. `inputType` with `choice`, the `answers` table and automatic judging (done).
-5. `text` answers and host marking.
+5. `text` answers and host marking (done). Typed answers are marked on the question's panel,
+   one by one or all matching at once, before or after the question closes.
 
 Each step ships on its own and leaves the game playable.
 

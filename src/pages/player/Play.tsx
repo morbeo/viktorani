@@ -58,6 +58,7 @@ export default function Play() {
   const [problem, setProblem] = useState<Problem | null>(null)
   const [buzzed, setBuzzed] = useState(false)
   const [pick, setPick] = useState<{ questionId: string; choice: number } | null>(null)
+  const [typed, setTyped] = useState<{ questionId: string; text: string } | null>(null)
   const startedRef = useRef(false)
   const leftRef = useRef(false)
   const unmountedRef = useRef(false)
@@ -118,8 +119,15 @@ export default function Play() {
   function handleChoose(choice: number) {
     const questionId = session.question?.questionId
     if (!questionId) return
-    transportManager.send({ type: 'ANSWER', questionId, choice })
+    transportManager.send({ type: 'ANSWER', questionId, choice, text: null })
     setPick({ questionId, choice })
+  }
+
+  function handleSendText(text: string) {
+    const questionId = session.question?.questionId
+    if (!questionId) return
+    transportManager.send({ type: 'ANSWER', questionId, choice: null, text })
+    setTyped({ questionId, text })
   }
 
   function handleBuzz() {
@@ -154,6 +162,16 @@ export default function Play() {
           selected: picked,
           enabled: joined && !paused,
           onChoose: handleChoose,
+        }
+      : null
+  const sentText = typed && typed.questionId === session.question?.questionId ? typed.text : null
+  const typedInput =
+    session.inputType === 'text' && session.question
+      ? {
+          open: session.question.acceptsText,
+          sent: sentText,
+          enabled: joined && !paused,
+          onSend: handleSendText,
         }
       : null
   const score = session.playerId ? (session.scores[session.playerId] ?? 0) : 0
@@ -240,6 +258,7 @@ export default function Play() {
                     }
                   : null,
               choice,
+              typed: typedInput,
             }}
             breakpoint="phone"
             className="w-full -mt-6"

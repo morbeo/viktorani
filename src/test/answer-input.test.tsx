@@ -4,7 +4,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { db } from '@/db'
 import type { GameQuestion, Player, Question } from '@/db'
-import { ChoicePad, PlayerBuzzerWidget } from '@/pages/player/player-widgets'
+import { ChoicePad, PlayerBuzzerWidget, TextPad } from '@/pages/player/player-widgets'
 import { PlayerQuestion } from '@/pages/player/PlayerQuestion'
 import { HostAnswersPanel } from '@/components/host/HostAnswersPanel'
 import type { PlayerData } from '@/widgets/types'
@@ -88,6 +88,47 @@ describe('ChoicePad', () => {
   })
 })
 
+describe('TextPad', () => {
+  const pad = (props: Partial<NonNullable<PlayerData['typed']>> = {}) => ({
+    open: true,
+    sent: null,
+    enabled: true,
+    onSend: vi.fn(),
+    ...props,
+  })
+
+  it('sends the trimmed answer typed', async () => {
+    const props = pad()
+    render(<TextPad {...props} />)
+    await userEvent.type(screen.getByRole('textbox', { name: 'Answer' }), '  Paris {Enter}')
+    expect(props.onSend).toHaveBeenCalledWith('Paris')
+    expect(screen.getByRole('textbox', { name: 'Answer' })).toHaveValue('')
+  })
+
+  it('sends nothing blank', async () => {
+    const props = pad()
+    render(<TextPad {...props} />)
+    await userEvent.type(screen.getByRole('textbox', { name: 'Answer' }), '   ')
+    expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled()
+  })
+
+  it('says what was sent and that it can still change', () => {
+    render(<TextPad {...pad({ sent: 'Paris' })} />)
+    expect(screen.getByRole('status')).toHaveTextContent('Sent: Paris')
+  })
+
+  it('leaves only the sent answer once answers are closed', () => {
+    render(<TextPad {...pad({ open: false, sent: 'Paris' })} />)
+    expect(screen.queryByRole('textbox')).toBeNull()
+    expect(screen.getByRole('status')).toHaveTextContent('Your answer: Paris')
+  })
+
+  it('disables the box while paused', () => {
+    render(<TextPad {...pad({ enabled: false })} />)
+    expect(screen.getByRole('textbox', { name: 'Answer' })).toBeDisabled()
+  })
+})
+
 describe('PlayerBuzzerWidget', () => {
   const data = (overrides: Partial<PlayerData>): PlayerData => ({
     message: null,
@@ -95,6 +136,7 @@ describe('PlayerBuzzerWidget', () => {
     ended: false,
     buzzer: { enabled: true, label: 'BUZZ', onBuzz: vi.fn() },
     choice: null,
+    typed: null,
     ...overrides,
   })
 
@@ -103,6 +145,12 @@ describe('PlayerBuzzerWidget', () => {
     render(<PlayerBuzzerWidget data={data({ buzzer: null, choice })} config={{}} />)
     expect(screen.getByRole('region', { name: 'Your answer' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Buzz' })).toBeNull()
+  })
+
+  it('shows the answer box instead of the buzz button in a typed game', () => {
+    const typed = { open: true, sent: null, enabled: true, onSend: vi.fn() }
+    render(<PlayerBuzzerWidget data={data({ buzzer: null, typed })} config={{}} />)
+    expect(screen.getByRole('textbox', { name: 'Answer' })).toBeInTheDocument()
   })
 
   it('shows the buzz button otherwise', () => {
@@ -121,6 +169,7 @@ describe('PlayerQuestion', () => {
     options: ['Lyon', 'Paris'],
     answer: null,
     choices,
+    acceptsText: false,
     media: null,
     mediaType: null,
   })
@@ -146,12 +195,14 @@ describe('HostAnswersPanel', () => {
       playerId: 'p1',
       teamId: null,
       choice: 1,
+      text: null,
       receivedAt: 1,
       ruling: 'pending',
     })
     const onMark = vi.fn()
     render(
       <HostAnswersPanel
+        inputType="choice"
         question={QUESTION}
         gameQuestion={GQ}
         players={[PLAYER]}
@@ -174,11 +225,13 @@ describe('HostAnswersPanel', () => {
       playerId: 'p1',
       teamId: null,
       choice: 0,
+      text: null,
       receivedAt: 1,
       ruling: 'incorrect',
     })
     render(
       <HostAnswersPanel
+        inputType="choice"
         question={QUESTION}
         gameQuestion={GQ}
         players={[PLAYER]}
@@ -194,6 +247,7 @@ describe('HostAnswersPanel', () => {
     const open = { ...QUESTION, type: 'open_ended' as const, options: [] }
     render(
       <HostAnswersPanel
+        inputType="choice"
         question={open}
         gameQuestion={GQ}
         players={[]}
@@ -202,5 +256,75 @@ describe('HostAnswersPanel', () => {
       />
     )
     expect(screen.getByText(/no options to pick from/)).toBeInTheDocument()
+  })
+
+  it('lets the host mark typed answers one by one or all that match', async () => {
+    const typedAnswer = (id: string, playerId: string, text: string) => ({
+      id,
+      gameId: 'g1',
+      gameQuestionId: 'gq1',
+      playerId,
+      teamId: null,
+      choice: null,
+      text,
+      receivedAt: 1,
+      ruling: 'pending' as const,
+    })
+    await db.answers.bulkAdd([typedAnswer('a1', 'p1', 'paris'), typedAnswer('a2', 'p2', 'Lyon')])
+    const onMarkTyped = vi.fn()
+    const onMark = vi.fn()
+    render(
+      <HostAnswersPanel
+        inputType="text"
+        question={{ ...QUESTION, type: 'open_ended', options: [] }}
+        gameQuestion={GQ}
+        players={[PLAYER, { ...PLAYER, id: 'p2', name: 'Bob' }]}
+        teams={[]}
+        onMark={onMark}
+        onMarkTyped={onMarkTyped}
+      />
+    )
+    expect(await screen.findByText('paris')).toBeInTheDocument()
+    expect(
+      screen.getByText('2 to mark. Players can still change their answers.')
+    ).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Mark Bob wrong' }))
+    expect(onMarkTyped).toHaveBeenLastCalledWith(['a2'], 'incorrect')
+    await userEvent.click(screen.getByRole('button', { name: 'Mark matching correct' }))
+    expect(onMarkTyped).toHaveBeenLastCalledWith(['a1'], 'correct')
+    await userEvent.click(screen.getByRole('button', { name: 'Close answers' }))
+    expect(onMark).toHaveBeenCalled()
+  })
+
+  it('shows marks on typed answers, with nothing to close on a closed question', async () => {
+    await db.answers.add({
+      id: 'a1',
+      gameId: 'g1',
+      gameQuestionId: 'gq1',
+      playerId: 'p1',
+      teamId: null,
+      choice: null,
+      text: 'Paris',
+      receivedAt: 1,
+      ruling: 'correct',
+    })
+    render(
+      <HostAnswersPanel
+        inputType="text"
+        question={QUESTION}
+        gameQuestion={{ ...GQ, status: 'correct' }}
+        players={[PLAYER]}
+        teams={[]}
+        onMark={vi.fn()}
+        onMarkTyped={vi.fn()}
+      />
+    )
+    expect(await screen.findByRole('button', { name: 'Mark Alice correct' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
+    expect(screen.getByRole('button', { name: 'Close answers' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Mark matching correct' })).toBeDisabled()
   })
 })

@@ -67,6 +67,7 @@ function gmData(game: Partial<Game> = {}, rest: Partial<GamemasterData> = {}): G
     onReveal: vi.fn(),
     onReviewRound: vi.fn(),
     onMarkAnswers: vi.fn(),
+    onMarkTyped: vi.fn(),
     ...rest,
   }
 }
@@ -129,6 +130,7 @@ function playerData(rest: Partial<PlayerData> = {}): PlayerData {
     ended: false,
     buzzer: { enabled: true, label: 'BUZZ', onBuzz: vi.fn() },
     choice: null,
+    typed: null,
     ...rest,
   }
 }
