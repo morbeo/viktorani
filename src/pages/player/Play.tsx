@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { ModeSwitch } from '@/components/ModeSwitch'
 import { ThemeLogo } from '@/components/ThemeLogo'
+import { RoundAnswersView } from '@/components/round-answers/RoundAnswersView'
 import { Button } from '@/components/ui'
 import { useRemoteTheme } from '@/hooks/useAppTheme'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
@@ -194,6 +195,8 @@ export default function Play() {
 
           {ended && <Status text="The game has ended. Thanks for playing!" />}
           {paused && <Status text="The host paused the game." />}
+
+          {session.roundAnswers && <RoundAnswersView review={session.roundAnswers} size="phone" />}
 
           {/* Each visible widget brings its own top margin; -mt-6 cancels the page's gap */}
           <LayoutRenderer

@@ -46,7 +46,11 @@ import type {
 } from '@/transport/types'
 import { Lobby } from '@/components/gamemaster/Lobby'
 import { ActiveGame } from '@/components/gamemaster/ActiveGame'
-import type { BuzzHandler, QuestionContent } from '@/components/gamemaster/ActiveGame'
+import type {
+  BuzzHandler,
+  QuestionContent,
+  RoundAnswersEvent,
+} from '@/components/gamemaster/ActiveGame'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -145,6 +149,9 @@ export default function GameMaster() {
   const [pendingScreens, setPendingScreens] = useState<string[]>([])
   const pendingScreensRef = useRef<string[]>([])
   const screenContentRef = useRef<QuestionContent | null>(null)
+  // The end-of-round review's answers while it is open, for devices that join meanwhile
+  const playerRoundAnswersRef = useRef<RoundAnswersEvent | null>(null)
+  const screenRoundAnswersRef = useRef<RoundAnswersEvent | null>(null)
   const scoreboardRef = useRef<ScoreboardRow[]>([])
   const logRef = useRef<LogEntry[]>([])
   // The LAYOUT each kind of remote surface gets; `null` until the stored layouts have loaded
@@ -361,6 +368,8 @@ export default function GameMaster() {
         })
       }
       if (questionContentRef.current) transportManager.sendTo(connId, questionContentRef.current)
+      if (playerRoundAnswersRef.current)
+        transportManager.sendTo(connId, playerRoundAnswersRef.current)
       if (playerLayoutRef.current) transportManager.sendTo(connId, playerLayoutRef.current)
       if (phaseRef.current)
         transportManager.sendTo(connId, { type: 'PHASE', phase: phaseRef.current })
@@ -385,6 +394,19 @@ export default function GameMaster() {
     if (!content) return
     for (const connId of screensRef.current) transportManager.sendTo(connId, content)
   }, [])
+
+  // Send the end-of-round review's answers to players and screens
+  const handleRoundAnswers = useCallback(
+    (players: RoundAnswersEvent, screen: RoundAnswersEvent) => {
+      playerRoundAnswersRef.current = players.review ? players : null
+      screenRoundAnswersRef.current = screen.review ? screen : null
+      for (const connId of connectionsRef.current.connections()) {
+        transportManager.sendTo(connId, players)
+      }
+      for (const connId of screensRef.current) transportManager.sendTo(connId, screen)
+    },
+    []
+  )
 
   // Names and scores for approved screens, sent whenever they change. Empty when scoring
   // is off, so the screen hides its scoreboard.
@@ -721,6 +743,8 @@ export default function GameMaster() {
       if (gameRef.current) logEvent(gameRef.current.id, 'screen_approved')
       transportManager.sendTo(connId, { type: 'SCREEN_ACCEPTED' })
       if (screenContentRef.current) transportManager.sendTo(connId, screenContentRef.current)
+      if (screenRoundAnswersRef.current)
+        transportManager.sendTo(connId, screenRoundAnswersRef.current)
       transportManager.sendTo(connId, { type: 'SCOREBOARD', rows: scoreboardRef.current })
       transportManager.sendTo(connId, { type: 'LOG', entries: logRef.current })
       if (screenLayoutRef.current) transportManager.sendTo(connId, screenLayoutRef.current)
@@ -1037,6 +1061,7 @@ export default function GameMaster() {
           onCreateTeam={handleCreateTeam}
           onQuestionContent={handleQuestionContent}
           onScreenContent={handleScreenContent}
+          onRoundAnswers={handleRoundAnswers}
           screens={screens}
           messages={messages}
           layouts={storedLayouts}

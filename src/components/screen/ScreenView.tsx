@@ -3,6 +3,8 @@ import { useAppTheme } from '@/hooks/useAppTheme'
 import { LayoutRenderer } from '@/widgets/LayoutRenderer'
 import { resolveLayout, type LayoutBundle } from '@/widgets/layouts'
 import type { ScreenData } from '@/widgets/types'
+import type { RoundAnswers } from '@/transport/types'
+import { RoundAnswersView } from '@/components/round-answers/RoundAnswersView'
 
 interface ScreenViewProps {
   data: ScreenData
@@ -12,6 +14,8 @@ interface ScreenViewProps {
   phase?: GamePhase | null
   /** The layouts the host chose for the screen, per phase. */
   assignments?: LayoutAssignments
+  /** The end-of-round review's revealed answers, shown instead of the layout while open. */
+  roundAnswers?: RoundAnswers | null
 }
 
 /**
@@ -28,10 +32,18 @@ export function ScreenView({
   gameId = null,
   phase = null,
   assignments,
+  roundAnswers = null,
 }: ScreenViewProps) {
   const bundle = resolveLayout(layouts, { target: 'screen', gameId, phase, assignments })
   // A layout's own logo replaces the theme's wordmark
   const { logo } = useAppTheme()
+  if (roundAnswers) {
+    return (
+      <main className="min-h-screen px-12 py-10 flex flex-col items-center bg-bg text-text">
+        <RoundAnswersView review={roundAnswers} size="tv" />
+      </main>
+    )
+  }
   return (
     <LayoutRenderer
       as="main"

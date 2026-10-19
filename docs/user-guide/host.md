@@ -251,6 +251,14 @@ correct option, and the layout moves to its reveal phase. To reveal after every 
 instead, set **Show the answer** to **After each ruling** in the game's settings, under
 **Round flow**. A wrong buzz doesn't count as a ruling there, since others can still buzz.
 
+To keep answers back until the round is over, set **Show the answer** to **At the end of the
+round**. When you click **Next** on the round's last question, the **Round answers** review
+opens instead of moving on. Pick **One by one** to reveal each answer in turn with **Reveal
+answer N**, or **Table** to reveal the whole round at once with **Reveal all answers**. Phones
+and the screen follow along: phones show the list above the question, and the screen shows it
+full page. Click **Continue** to go to the next round, or **Close review** to stay. You can
+reopen the review at any time with **Round answers** under the current question.
+
 ### Managing the buzzer
 
 1. Click **Unlock** to open the buzzer — players can now buzz in.

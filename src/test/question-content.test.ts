@@ -1,13 +1,13 @@
 // @vitest-pool vmForks
 import { describe, it, expect } from 'vitest'
-import { buildQuestionContent } from '@/pages/admin/gamemaster-utils'
+import { buildQuestionContent, buildRoundAnswers } from '@/pages/admin/gamemaster-utils'
 import {
   GameEventSchemas,
   MAX_MEDIA_LENGTH,
   MAX_OPTIONS,
   MAX_TEXT_LENGTH,
 } from '@/transport/messages'
-import type { Question, TargetVisibility } from '@/db'
+import type { GameQuestion, Question, TargetVisibility } from '@/db'
 
 const QUESTION: Question = {
   id: 'q1',
@@ -100,5 +100,64 @@ describe('buildQuestionContent', () => {
     expect(content.media).toBeNull()
     expect(content.mediaType).toBeNull()
     expect(GameEventSchemas.QUESTION_CONTENT.safeParse(content).success).toBe(true)
+  })
+})
+
+describe('buildRoundAnswers', () => {
+  function row(n: number, patch: Partial<GameQuestion> = {}, question: Partial<Question> = {}) {
+    return {
+      gameQuestion: {
+        id: `gq${n}`,
+        gameId: 'g1',
+        questionId: `q${n}`,
+        roundId: 'r1',
+        order: n,
+        status: 'correct' as const,
+        revealed: true,
+        ...patch,
+      },
+      question: { ...QUESTION, id: `q${n}`, title: `Question ${n}`, answer: `A${n}`, ...question },
+    }
+  }
+
+  it('sends only the revealed answers, numbered by their place in the round', () => {
+    const event = buildRoundAnswers(
+      'Round 1',
+      'list',
+      [row(1), row(2, { revealed: false }), row(3, { status: 'incorrect' })],
+      'players',
+      ALL
+    )
+    expect(event.review?.items).toEqual([
+      { questionId: 'q1', number: 1, title: 'Question 1', answer: 'A1', status: 'correct' },
+      { questionId: 'q3', number: 3, title: 'Question 3', answer: 'A3', status: 'incorrect' },
+    ])
+    expect(GameEventSchemas.ROUND_ANSWERS.safeParse(event).success).toBe(true)
+  })
+
+  it('leaves out the titles the target may not see, and questions with no answer', () => {
+    const event = buildRoundAnswers(
+      'R',
+      'table',
+      [row(1), row(2, {}, { answer: '' })],
+      'screen',
+      NONE
+    )
+    expect(event.review?.items).toEqual([
+      { questionId: 'q1', number: 1, title: null, answer: 'A1', status: 'correct' },
+    ])
+    expect(event.target).toBe('screen')
+    expect(event.review?.view).toBe('table')
+  })
+
+  it('clips oversized fields so the message always passes validation', () => {
+    const event = buildRoundAnswers(
+      'R'.repeat(1000),
+      'list',
+      [row(1, {}, { answer: 'x'.repeat(MAX_TEXT_LENGTH + 1) })],
+      'players',
+      ALL
+    )
+    expect(GameEventSchemas.ROUND_ANSWERS.safeParse(event).success).toBe(true)
   })
 })

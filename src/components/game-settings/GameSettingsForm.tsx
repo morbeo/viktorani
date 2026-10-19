@@ -50,6 +50,7 @@ const DEDUP_OPTIONS: Array<{ value: BuzzDeduplication; label: string }> = [
 const REVEAL_OPTIONS: Array<{ value: RevealTiming; label: string }> = [
   { value: 'manual', label: 'When I reveal it' },
   { value: 'perQuestion', label: 'After each ruling' },
+  { value: 'endOfRound', label: 'At the end of the round' },
 ]
 
 /** Game settings grouped into Basics, Joining, Buzzer and Visibility, with presets. */
@@ -231,7 +232,7 @@ export function GameSettingsForm({
       )}
       <Row
         label="Show the answer"
-        help="When players and the screen see the correct answer. When I reveal it: only after you click Reveal answer on the question. After each ruling: as soon as you rule the question Correct, Wrong or Skip, or rule a buzz correct."
+        help="When players and the screen see the correct answer. When I reveal it: only after you click Reveal answer on the question. After each ruling: as soon as you rule the question Correct, Wrong or Skip, or rule a buzz correct. At the end of the round: Next on the round's last question opens a review where you reveal the round's answers one by one or all at once in a table."
       >
         <Segmented
           label="Show the answer"

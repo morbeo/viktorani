@@ -12,7 +12,14 @@ import { useScoreboard } from '@/hooks/useScoreboard'
 import { autoPhase, effectivePhase } from '@/lib/layout-phase'
 import { formatTime } from '@/hooks/useTimer'
 import type { ScreenData } from '@/widgets/types'
-import { buildNavSequence, buildQuestionContent, orderRounds } from '@/pages/admin/gamemaster-utils'
+import {
+  buildNavSequence,
+  buildQuestionContent,
+  buildRoundAnswers,
+  orderRounds,
+} from '@/pages/admin/gamemaster-utils'
+import { useRoundReview } from '@/hooks/useRoundReview'
+import type { RoundAnswers } from '@/transport/types'
 
 /** Seconds left on a timer at `now`, as the GM's timer panel computes it. */
 function timerRemaining(t: Timer, now: number): number {
@@ -58,12 +65,14 @@ function LocalScreen({
   content,
   questionId,
   revealed,
+  roundAnswers,
 }: {
   game: Game
   heading: string
   content: ScreenData['content']
   questionId: string | null
   revealed: boolean
+  roundAnswers: RoundAnswers | null
 }) {
   const { entries } = useScoreboard(game)
   const layouts = useLiveQuery(() => loadGameLayouts(game.id), [game.id])
@@ -80,6 +89,7 @@ function LocalScreen({
       phase={phase}
       assignments={game.layoutAssignments?.screen}
       gameId={game.id}
+      roundAnswers={roundAnswers}
       data={{
         heading,
         content,
@@ -123,6 +133,16 @@ export default function Screen() {
   // Ignore the previous question's result while the new one loads
   const question = loaded?.id === questionId ? loaded : undefined
 
+  // The GM's end-of-round review, and the questions of the round under review
+  const [review] = useRoundReview(id)
+  const reviewRows = useLiveQuery(async () => {
+    const gqs = (gameQuestions ?? [])
+      .filter(gq => gq.roundId === review?.roundId)
+      .sort((a, b) => a.order - b.order)
+    const qs = await db.questions.bulkGet(gqs.map(gq => gq.questionId))
+    return gqs.map((gameQuestion, i) => ({ gameQuestion, question: qs[i] }))
+  }, [gameQuestions, review?.roundId])
+
   if (game === undefined) return null
   if (game === null) {
     return (
@@ -141,9 +161,22 @@ export default function Screen() {
     ? `${entry.roundName} · Question ${inRound.indexOf(entry) + 1} of ${inRound.length}`
     : game.name
 
+  const reviewRound = review ? seq.find(e => e.roundId === review.roundId) : undefined
+  const roundAnswers =
+    review && reviewRound && reviewRows
+      ? buildRoundAnswers(
+          reviewRound.roundName,
+          review.view,
+          reviewRows,
+          'screen',
+          game.visibility.screen
+        ).review
+      : null
+
   return (
     <LocalScreen
       game={game}
+      roundAnswers={roundAnswers}
       heading={heading}
       content={content}
       questionId={questionId}

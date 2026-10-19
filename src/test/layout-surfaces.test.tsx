@@ -65,6 +65,7 @@ function gmData(game: Partial<Game> = {}, rest: Partial<GamemasterData> = {}): G
     teams: [],
     onRule: vi.fn(),
     onReveal: vi.fn(),
+    onReviewRound: vi.fn(),
     ...rest,
   }
 }

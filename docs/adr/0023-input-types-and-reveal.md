@@ -85,9 +85,12 @@ in the one message that already describes the question means a rejoining player 
 which is sent the current `QUESTION_CONTENT`, sees the answer exactly when it has been revealed.
 
 The end-of-round review shows questions that are no longer current, so it adds a host event,
-`REVEAL { gameQuestionId, answer, results? }`. `results` is a short list of
-`{ playerId | teamId, correct }` and never includes other players' typed text on player
-phones; the screen may show it in the table view.
+`ROUND_ANSWERS { target, review }`. `review` is `null` when the review is closed, or
+`{ roundName, view, items }` with one item per revealed question of the round:
+`{ questionId, number, title, answer, status }`. Only revealed questions are listed, the title
+follows the target's visibility flags, and the host sends the current one to a rejoining
+player or screen. Per-player results (`{ playerId | teamId, correct }`, never other players'
+typed text on phones) join the items with step 4.
 
 ### 4. Security rules for answers and reveals
 
@@ -103,10 +106,10 @@ Player answers are untrusted input, and the correct answer is a secret until rev
 - **Team answers belong to the team.** In a team game any member may submit the team's
   answer, and the latest one replaces it until the question locks. The host shows who sent it.
 - **Typed answers are plain text.** They render as React text on the host and screens, never
-  as markdown or HTML. `REVEAL.results` has a size limit in the schema.
+  as markdown or HTML. `ROUND_ANSWERS` has size limits on its items and strings in the schema.
 - **The answer can't leak early.** `buildQuestionContent`, the only builder of
   `QUESTION_CONTENT`, fills `answer` only for a revealed question, and tests pin that. A
-  rejoining player gets an answer (in `QUESTION_CONTENT` or `REVEAL`) only for questions
+  rejoining player gets an answer (in `QUESTION_CONTENT` or `ROUND_ANSWERS`) only for questions
   already revealed.
 - **Imported answers are checked.** Snapshot import validates the `answers` rows with zod,
   limits their number and size, and remaps their ids to the imported game, as for the other
@@ -116,7 +119,7 @@ Player answers are untrusted input, and the correct answer is a secret until rev
 
 1. Host rulings with no buzz (done).
 2. `revealTiming` with `manual` and `perQuestion`, the answer in `QUESTION_CONTENT` (done).
-3. `endOfRound` with the one-by-one and table views, and the `REVEAL` event.
+3. `endOfRound` with the one-by-one and table views, and the `ROUND_ANSWERS` event (done).
 4. `inputType` with `choice`, the `answers` table and automatic judging.
 5. `text` answers and host marking.
 
@@ -128,7 +131,7 @@ Each step ships on its own and leaves the game playable.
 
 - A game runs without the buzzer from start to finish, and the buzzer becomes a setting like any
   other.
-- A correct answer travels only in `QUESTION_CONTENT` for a revealed question and in `REVEAL`.
+- A correct answer travels only in `QUESTION_CONTENT` for a revealed question and in `ROUND_ANSWERS`.
   The rule "players are never sent the correct answer" becomes "only after the host, or the
   game's reveal setting, reveals it".
 - `ANSWER` is new untrusted input from players: it is validated by zod, limited in size and

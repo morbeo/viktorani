@@ -226,7 +226,8 @@ export interface Game {
   autoAdvanceDelaySeconds: number
   /**
    * When players and screens see the correct answer: `manual` when the host clicks Reveal
-   * answer, `perQuestion` as soon as the host rules on the question (ADR 0023).
+   * answer, `perQuestion` as soon as the host rules on the question, `endOfRound` in a
+   * review of the round's answers before the next round (ADR 0023).
    */
   revealTiming: RevealTiming
   // Timer defaults
@@ -394,7 +395,7 @@ export const GAME_PHASES = ['lobby', 'question', 'buzzed', 'reveal', 'scoreboard
 export type GamePhase = (typeof GAME_PHASES)[number]
 
 /** Ways a game can reveal the correct answer, see {@link Game.revealTiming}. */
-export const REVEAL_TIMINGS = ['manual', 'perQuestion'] as const
+export const REVEAL_TIMINGS = ['manual', 'perQuestion', 'endOfRound'] as const
 
 /** See {@link REVEAL_TIMINGS}. */
 export type RevealTiming = (typeof REVEAL_TIMINGS)[number]
