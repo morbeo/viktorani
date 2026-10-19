@@ -150,10 +150,10 @@ describe('GameSettingsForm', () => {
     expect(onChange).toHaveBeenCalledWith({ buzzDeduplication: 'all' })
   })
 
-  it('hides the rest of the buzzer section when the buzzer is turned off', async () => {
+  it('hides the buzzer settings when players answer another way', async () => {
     render(<Harness mode="live" />)
     expect(screen.getByRole('switch', { name: 'Record false starts' })).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('switch', { name: 'Buzzer' }))
+    await userEvent.click(screen.getByRole('radio', { name: 'Pick an option' }))
     expect(screen.queryByRole('switch', { name: 'Auto-lock after a correct answer' })).toBeNull()
     expect(screen.queryByRole('switch', { name: 'Record false starts' })).toBeNull()
     expect(screen.queryByRole('radiogroup', { name: 'Buzz display' })).toBeNull()

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { GAME_PHASES, ICON_STROKES, LAYOUT_TARGETS, WIDGET_TYPES } from '@/db'
+import { GAME_PHASES, ICON_STROKES, INPUT_TYPES, LAYOUT_TARGETS, WIDGET_TYPES } from '@/db'
 import {
   FontKeySchema,
   GridRectSchema,
@@ -145,7 +145,7 @@ export const SerializedGameStateSchema = z.strictObject({
   status: z.string().max(MAX_STATUS_LENGTH),
   currentRoundIdx: index,
   currentQuestionIdx: index,
-  buzzerEnabled: z.boolean(),
+  inputType: z.enum(INPUT_TYPES),
   buzzerLocked: z.boolean(),
   visibility: z.strictObject({ players: targetVisibility, screen: targetVisibility }),
   scores,
@@ -215,6 +215,7 @@ export const GameEventSchemas = {
     description: text.nullable(),
     options: z.array(text).max(MAX_OPTIONS).nullable(),
     answer: text.nullable(),
+    choices: z.number().int().min(1).max(MAX_OPTIONS).nullable(),
     media: z.string().max(MAX_MEDIA_LENGTH).nullable(),
     mediaType: z.enum(['image', 'audio', 'video']).nullable(),
   }),
@@ -284,6 +285,15 @@ export const PlayerEventSchemas = {
     teamId: id.nullable(),
     newTeamName: name.nullable(),
   }),
+  ANSWER: z.strictObject({
+    type: z.literal('ANSWER'),
+    questionId: id,
+    choice: z
+      .number()
+      .int()
+      .min(0)
+      .max(MAX_OPTIONS - 1),
+  }),
   LEAVE: z.strictObject({ type: z.literal('LEAVE') }),
   FOCUS_CHANGE: z.strictObject({
     type: z.literal('FOCUS_CHANGE'),
@@ -321,6 +331,7 @@ export const TransportEventSchema = z.discriminatedUnion('type', [
   GameEventSchemas.ROUND_ANSWERS,
   PlayerEventSchemas.BUZZ,
   PlayerEventSchemas.JOIN,
+  PlayerEventSchemas.ANSWER,
   PlayerEventSchemas.LEAVE,
   PlayerEventSchemas.FOCUS_CHANGE,
   PlayerEventSchemas.SCREEN_JOIN,

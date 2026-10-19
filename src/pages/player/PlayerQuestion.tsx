@@ -11,7 +11,9 @@ import { isSafeMedia } from './safe-media'
  * and the answer once the host reveals it.
  */
 export function PlayerQuestion({ question }: { question: QuestionContent }) {
-  const { title, description, options, answer, media, mediaType } = question
+  const { title, description, answer, media, mediaType } = question
+  // While players pick an option, the answer buttons show the options instead
+  const options = question.choices === null ? question.options : null
   const safeMedia = media && mediaType && isSafeMedia(media, mediaType) ? media : null
 
   if (!title && !description && !options && !answer && !safeMedia) return null

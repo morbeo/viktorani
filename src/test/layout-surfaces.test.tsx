@@ -45,7 +45,7 @@ const POS: NavPosition = {
 
 function gmData(game: Partial<Game> = {}, rest: Partial<GamemasterData> = {}): GamemasterData {
   return {
-    game: { id: 'g1', status: 'active', buzzerEnabled: true, ...game } as Game,
+    game: { id: 'g1', status: 'active', inputType: 'buzzer', ...game } as Game,
     onGameChange: vi.fn(),
     pos: POS,
     seq: SEQ,
@@ -66,6 +66,7 @@ function gmData(game: Partial<Game> = {}, rest: Partial<GamemasterData> = {}): G
     onRule: vi.fn(),
     onReveal: vi.fn(),
     onReviewRound: vi.fn(),
+    onMarkAnswers: vi.fn(),
     ...rest,
   }
 }
@@ -101,7 +102,7 @@ describe('game master layout', () => {
   })
 
   it('leaves the buzzer out when the game has none', () => {
-    const { container } = renderGm(gmData({ buzzerEnabled: false }))
+    const { container } = renderGm(gmData({ inputType: 'none' }))
     expect(shown(container)).toEqual(['round_info', 'question', 'timer'])
   })
 
@@ -127,6 +128,7 @@ function playerData(rest: Partial<PlayerData> = {}): PlayerData {
     question: { type: 'QUESTION_CONTENT', title: 'Capital of France?' } as PlayerData['question'],
     ended: false,
     buzzer: { enabled: true, label: 'BUZZ', onBuzz: vi.fn() },
+    choice: null,
     ...rest,
   }
 }

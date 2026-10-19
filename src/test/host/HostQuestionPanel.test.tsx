@@ -4,7 +4,10 @@ import userEvent from '@testing-library/user-event'
 import { HostQuestionPanel } from '@/components/host/HostQuestionPanel'
 import type { Question, GameQuestion, Game } from '@/db'
 
-vi.mock('@/db', () => ({ db: { games: { update: vi.fn() } } }))
+vi.mock('@/db', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/db')>()),
+  db: { games: { update: vi.fn() } },
+}))
 vi.mock('@/transport', () => ({ transportManager: { send: vi.fn() } }))
 
 import { db } from '@/db'
@@ -16,7 +19,7 @@ const BASE_GAME: Game = {
   status: 'active',
   roomId: 'ABC123',
   scoringEnabled: true,
-  buzzerEnabled: true,
+  inputType: 'buzzer',
   visibility: {
     players: { showQuestion: true, showAnswers: false, showMedia: true },
     screen: { showQuestion: true, showAnswers: false, showMedia: true },

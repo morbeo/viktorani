@@ -20,7 +20,7 @@ const GAME: Game = {
   status: 'active',
   roomId: 'ABC',
   scoringEnabled: true,
-  buzzerEnabled: true,
+  inputType: 'buzzer',
   visibility: {
     players: { showQuestion: true, showAnswers: false, showMedia: true },
     screen: { showQuestion: true, showAnswers: false, showMedia: true },

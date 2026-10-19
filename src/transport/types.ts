@@ -1,4 +1,4 @@
-import type { GamePhase, GameVisibility, Layout, LayoutSlot, Widget } from '@/db'
+import type { GamePhase, GameVisibility, InputType, Layout, LayoutSlot, Widget } from '@/db'
 import type { ResolvedTheme } from '@/lib/theme'
 
 // ── Shared event types ────────────────────────────────────────────────────────
@@ -79,6 +79,11 @@ export type GameEvent =
       options: string[] | null
       /** The correct answer, `null` until the host reveals it (ADR 0023). */
       answer: string | null
+      /**
+       * How many options a player may pick from, while the host takes choice answers to
+       * this question; `null` otherwise, and always for the screen.
+       */
+      choices: number | null
       media: string | null
       mediaType: 'image' | 'audio' | 'video' | null
     }
@@ -247,6 +252,11 @@ export type PlayerEvent =
       teamId: string | null
       newTeamName: string | null
     }
+  /**
+   * Player picked option `choice` (from 0) of the question `questionId`, in a game that
+   * takes choice answers. A later one replaces it until the host marks the answers.
+   */
+  | { type: 'ANSWER'; questionId: string; choice: number }
   /** Player left the game. */
   | { type: 'LEAVE' }
   /** Player's tab visibility changed — used to flag distracted players. */
@@ -266,8 +276,8 @@ export interface SerializedGameState {
   status: string
   currentRoundIdx: number
   currentQuestionIdx: number
-  /** Whether this game has a buzzer at all. */
-  buzzerEnabled: boolean
+  /** How players answer: no input, the buzzer, or a choice (ADR 0023). */
+  inputType: InputType
   buzzerLocked: boolean
   /** What each target shows, as last set by the GM (see `VISIBILITY`). */
   visibility: GameVisibility

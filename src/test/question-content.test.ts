@@ -37,6 +37,7 @@ describe('buildQuestionContent', () => {
       description: null,
       options: null,
       answer: null,
+      choices: null,
       media: null,
       mediaType: null,
     })
@@ -70,6 +71,15 @@ describe('buildQuestionContent', () => {
     expect(buildQuestionContent(QUESTION, 'screen', ALL, true).answer).toBe('Paris')
     const hidden = { showQuestion: false, showAnswers: false, showMedia: false }
     expect(buildQuestionContent(QUESTION, 'players', hidden, true).answer).toBe('Paris')
+  })
+
+  it('says how many options players may pick from only while choices are taken', () => {
+    expect(buildQuestionContent(QUESTION, 'players', NONE).choices).toBeNull()
+    expect(buildQuestionContent(QUESTION, 'players', NONE, false, true).choices).toBe(3)
+    const tf = { ...QUESTION, type: 'true_false' as const, options: [] }
+    expect(buildQuestionContent(tf, 'players', NONE, false, true).choices).toBe(2)
+    const open = { ...QUESTION, type: 'open_ended' as const, options: [] }
+    expect(buildQuestionContent(open, 'players', ALL, false, true).choices).toBeNull()
   })
 
   it('uses True/False options for true/false and none for open-ended questions', () => {

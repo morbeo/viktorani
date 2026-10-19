@@ -96,6 +96,7 @@ export async function deleteGame(gameId: string): Promise<void> {
       db.teams,
       db.players,
       db.buzzEvents,
+      db.answers,
       db.scoreEvents,
       db.gameLog,
       db.timers,
@@ -110,6 +111,7 @@ export async function deleteGame(gameId: string): Promise<void> {
       await db.teams.where('gameId').equals(gameId).delete()
       await db.players.where('gameId').equals(gameId).delete()
       await db.buzzEvents.where('gameId').equals(gameId).delete()
+      await db.answers.where('gameId').equals(gameId).delete()
       await db.scoreEvents.where('gameId').equals(gameId).delete()
       await db.gameLog.where('gameId').equals(gameId).delete()
       await db.timers.where('gameId').equals(gameId).delete()

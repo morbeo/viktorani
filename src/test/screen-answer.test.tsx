@@ -14,6 +14,7 @@ function content(patch: Partial<QuestionContent> = {}): QuestionContent {
     description: null,
     options: ['Paris', 'Rome'],
     answer: null,
+    choices: null,
     media: null,
     mediaType: null,
     ...patch,

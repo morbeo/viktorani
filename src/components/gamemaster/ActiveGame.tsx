@@ -47,6 +47,7 @@ import { PhaseControl } from '@/components/gamemaster/PhaseControl'
 import { autoPhase, effectivePhase } from '@/lib/layout-phase'
 import { updateQuestionStatus } from '@/db/games'
 import { revealQuestion, ruleQuestion } from '@/db/rulings'
+import { markAnswers, recordAnswer } from '@/db/answers'
 import type { QuestionRuling, RulingAward } from '@/db/rulings'
 import { layoutCommands, phaseCommands } from '@/components/gamemaster/layout-commands'
 import type { GameEvent } from '@/transport/types'
@@ -57,6 +58,8 @@ export interface ActiveGameProps {
   onGameChange: (patch: Partial<Game>) => void
   lifecycle: import('@/hooks/useGameLifecycle').UseGameLifecycleResult
   buzzHandlerRef: RefObject<BuzzHandler | null>
+  /** Receives the handler for players' choice answers, `null` when none are taken. */
+  answerHandlerRef?: RefObject<AnswerHandler | null>
   pendingJoins: PendingJoin[]
   onApproveJoin: (connId: string) => void
   onRejectJoin: (connId: string) => void
@@ -89,6 +92,13 @@ export interface ActiveGameProps {
 }
 
 export type BuzzHandler = ReturnType<typeof useBuzzer>['handleIncomingBuzz']
+/** Records a player's choice for the question `questionId`, if it is the one shown. */
+export type AnswerHandler = (
+  playerId: string,
+  questionId: string,
+  choice: number,
+  receivedAt: number
+) => Promise<void>
 export type QuestionContent = Extract<GameEvent, { type: 'QUESTION_CONTENT' }>
 export type RoundAnswersEvent = Extract<GameEvent, { type: 'ROUND_ANSWERS' }>
 
@@ -155,6 +165,7 @@ export function ActiveGame({
   onGameChange,
   lifecycle,
   buzzHandlerRef,
+  answerHandlerRef,
   pendingJoins,
   onApproveJoin,
   onRejectJoin,
@@ -254,11 +265,15 @@ export function ActiveGame({
   // changes what players may see, or reveals the answer
   const playerVisibility = game.visibility.players
   const revealed = gameQuestion?.revealed ?? false
+  // Players pick an option until the question's answers are marked or it is ruled on
+  const acceptChoices = game.inputType === 'choice' && gameQuestion?.status === 'pending'
   useEffect(() => {
     onQuestionContent(
-      question ? buildQuestionContent(question, 'players', playerVisibility, revealed) : null
+      question
+        ? buildQuestionContent(question, 'players', playerVisibility, revealed, acceptChoices)
+        : null
     )
-  }, [question, playerVisibility, revealed, onQuestionContent])
+  }, [question, playerVisibility, revealed, acceptChoices, onQuestionContent])
 
   // Same for approved screens, with the screen's visibility
   const screenVisibility = game.visibility.screen
@@ -351,10 +366,21 @@ export function ActiveGame({
     [adjudicate, currentGameQuestionId, game.revealTiming, handleReveal, onCorrect]
   )
 
-  // Rule on the question without a buzz, e.g. in a game with no buzzer
+  // Mark players' choices to the question shown, which closes it to new ones
+  const handleMark = useCallback(async () => {
+    if (!currentGameQuestionId) return
+    const result = await markAnswers(game, currentGameQuestionId)
+    if (!result) return
+    if (game.revealTiming === 'perQuestion') await handleReveal()
+    if (result.correct > 0) onCorrect()
+  }, [game, currentGameQuestionId, handleReveal, onCorrect])
+
+  // Rule on the question without a buzz, e.g. in a game with no buzzer. Players' choices
+  // are marked first, so the ruling can't award a correct answer's points twice.
   const handleRule = useCallback(
     async (ruling: QuestionRuling, award: RulingAward | null) => {
       if (!currentGameQuestionId) return
+      await markAnswers(game, currentGameQuestionId)
       await ruleQuestion(game, currentGameQuestionId, ruling, award)
       if (game.revealTiming === 'perQuestion') await handleReveal()
       if (ruling === 'correct') onCorrect()
@@ -404,6 +430,23 @@ export function ActiveGame({
       buzzHandlerRef.current = null
     }
   }, [buzzHandlerRef, handleIncomingBuzz])
+
+  // Hand the parent's transport listener a handler for choices to the question shown, in a
+  // game that takes them; cleared on unmount and when the question changes
+  useEffect(() => {
+    if (!answerHandlerRef) return
+    if (game.inputType !== 'choice' || !currentGameQuestionId || !currentQuestionId) {
+      answerHandlerRef.current = null
+      return
+    }
+    answerHandlerRef.current = async (playerId, questionId, choice, receivedAt) => {
+      if (questionId !== currentQuestionId) return
+      await recordAnswer(game.id, currentGameQuestionId, playerId, choice, receivedAt)
+    }
+    return () => {
+      answerHandlerRef.current = null
+    }
+  }, [answerHandlerRef, game.id, game.inputType, currentGameQuestionId, currentQuestionId])
 
   // Space = toggle buzzer lock
   useEffect(() => {
@@ -627,6 +670,7 @@ export function ActiveGame({
                 teams,
                 onRule: (ruling, award) => void handleRule(ruling, award),
                 onReveal: () => void handleReveal(),
+                onMarkAnswers: () => void handleMark(),
                 onReviewRound: () => {
                   const current = pos ? seq[pos.flatIndex] : undefined
                   if (current) setReview({ roundId: current.roundId, view: 'list' })

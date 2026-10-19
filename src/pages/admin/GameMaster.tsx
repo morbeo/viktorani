@@ -47,6 +47,7 @@ import type {
 import { Lobby } from '@/components/gamemaster/Lobby'
 import { ActiveGame } from '@/components/gamemaster/ActiveGame'
 import type {
+  AnswerHandler,
   BuzzHandler,
   QuestionContent,
   RoundAnswersEvent,
@@ -83,6 +84,9 @@ const MAX_PENDING_SCREENS = 10
 // At most this many tab switches per player are logged in any minute
 const FOCUS_LOG_LIMIT = 10
 const FOCUS_LOG_WINDOW_MS = 60_000
+// How often each player may send or change an answer
+const ANSWER_LIMIT = 10
+const ANSWER_WINDOW_MS = 10_000
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -124,6 +128,7 @@ export default function GameMaster() {
 
   const gameRef = useRef<Game | null>(null)
   const buzzHandlerRef = useRef<BuzzHandler | null>(null)
+  const answerHandlerRef = useRef<AnswerHandler | null>(null)
   const connectionsRef = useRef(new PlayerConnections())
   const [pendingJoins, setPendingJoins] = useState<PendingJoin[]>([])
   const pendingJoinsRef = useRef<PendingJoin[]>([])
@@ -137,6 +142,7 @@ export default function GameMaster() {
   const closedRef = useRef(new Set<string>())
   // Caps how many tab switches each player can add to the game log
   const focusLogLimitRef = useRef(new RateLimiter(FOCUS_LOG_LIMIT, FOCUS_LOG_WINDOW_MS))
+  const answerLimitRef = useRef(new RateLimiter(ANSWER_LIMIT, ANSWER_WINDOW_MS))
   // JOINs and approvals run one at a time so each sees the teams and players saved by
   // the one before (team limits, same-name team reuse)
   const joinQueueRef = useRef<Promise<void>>(Promise.resolve())
@@ -165,6 +171,25 @@ export default function GameMaster() {
   useEffect(() => {
     gameRef.current = game
   }, [game])
+
+  // Players follow a change of how they answer mid-game: the buzz button or the options
+  const inputType = game?.inputType
+  const sentInputTypeRef = useRef(inputType)
+  useEffect(() => {
+    if (sentInputTypeRef.current === inputType || !inputType) return
+    const first = sentInputTypeRef.current === undefined
+    sentInputTypeRef.current = inputType
+    const g = gameRef.current
+    if (first || !g || (g.status !== 'active' && g.status !== 'paused')) return
+    readScores(g.id)
+      .then(scores =>
+        transportManager.send({
+          type: 'GAME_STATE',
+          state: serialiseGameState({ ...g, inputType }, scores),
+        })
+      )
+      .catch(err => console.error('[GameMaster] GAME_STATE resync failed:', err))
+  }, [inputType])
 
   // Mark players who stayed disconnected too long as left, freeing their place (#424)
   const playersRef = useRef<Player[]>([])
@@ -633,6 +658,15 @@ export default function GameMaster() {
         }
       }
 
+      // Answers count only while the game runs, for the question shown (ADR 0023)
+      if (event.type === 'ANSWER' && gameRef.current?.status === 'active') {
+        const receivedAt = Date.now()
+        const handler = answerHandlerRef.current
+        if (handler && answerLimitRef.current.allow(playerId)) {
+          void handler(playerId, event.questionId, event.choice, receivedAt)
+        }
+      }
+
       // Buzzes count only while the game runs, whatever a player's device shows
       if (event.type === 'BUZZ' && gameRef.current?.status === 'active') {
         // Stamp arrival before any await, so a slow lookup cannot reorder buzzes
@@ -1048,6 +1082,7 @@ export default function GameMaster() {
           onGameChange={applyGamePatch}
           lifecycle={lifecycle}
           buzzHandlerRef={buzzHandlerRef}
+          answerHandlerRef={answerHandlerRef}
           pendingJoins={pendingJoins}
           onApproveJoin={id => void handleApproveJoin(id)}
           onRejectJoin={handleRejectJoin}

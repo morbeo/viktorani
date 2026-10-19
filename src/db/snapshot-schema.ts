@@ -3,6 +3,7 @@ import {
   FONT_KEYS,
   GAME_PHASES,
   ICON_STROKES,
+  INPUT_TYPES,
   LAYOUT_TARGETS,
   REVEAL_TIMINGS,
   WIDGET_TYPES,
@@ -119,8 +120,10 @@ export const GameSchema = z
     currentQuestionIdx: z.number(),
     buzzerLocked: z.boolean(),
     scoringEnabled: z.boolean().default(true),
-    // Buzzer config was added after v1 backups; defaults mirror the game wizard.
-    buzzerEnabled: z.boolean().default(true),
+    // Buzzer config was added after v1 backups; defaults mirror the game wizard. Backups
+    // from before ADR 0023 have `buzzerEnabled` instead of `inputType`.
+    buzzerEnabled: z.boolean().optional(),
+    inputType: z.enum(INPUT_TYPES).optional(),
     autoLockOnFirstCorrect: z.boolean().default(false),
     allowFalseStarts: z.boolean().default(false),
     buzzDeduplication: z.enum(['firstOnly', 'all']).default('firstOnly'),
@@ -143,13 +146,17 @@ export const GameSchema = z
     createdAt: z.number(),
     updatedAt: z.number(),
   })
-  .transform(({ showQuestion, showAnswers, showMedia, visibility, ...game }) => {
+  .transform(({ showQuestion, showAnswers, showMedia, visibility, buzzerEnabled, ...game }) => {
     const flags = {
       showQuestion: showQuestion ?? true,
       showAnswers: showAnswers ?? false,
       showMedia: showMedia ?? true,
     }
-    return { ...game, visibility: visibility ?? { players: { ...flags }, screen: { ...flags } } }
+    return {
+      ...game,
+      inputType: game.inputType ?? (buzzerEnabled === false ? 'none' : 'buzzer'),
+      visibility: visibility ?? { players: { ...flags }, screen: { ...flags } },
+    }
   }) satisfies z.ZodType<Game>
 
 export const GameQuestionSchema = z.object({

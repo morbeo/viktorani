@@ -200,7 +200,7 @@ describe('DB schema', () => {
       status: 'waiting',
       roomId: 'XYZ123',
       scoringEnabled: true,
-      buzzerEnabled: true,
+      inputType: 'buzzer' as const,
       visibility: {
         players: { showQuestion: true, showAnswers: false, showMedia: true },
         screen: { showQuestion: true, showAnswers: false, showMedia: true },
@@ -254,7 +254,7 @@ describe('DB schema', () => {
     const base = {
       roomId: 'X',
       scoringEnabled: true,
-      buzzerEnabled: true,
+      inputType: 'buzzer' as const,
       visibility: {
         players: { showQuestion: true, showAnswers: false, showMedia: true },
         screen: { showQuestion: true, showAnswers: false, showMedia: true },
@@ -594,7 +594,7 @@ describe('importDatabase', () => {
       status: 'waiting',
       roomId: 'X',
       scoringEnabled: true,
-      buzzerEnabled: true,
+      inputType: 'buzzer' as const,
       visibility: {
         players: { showQuestion: true, showAnswers: false, showMedia: true },
         screen: { showQuestion: true, showAnswers: false, showMedia: true },

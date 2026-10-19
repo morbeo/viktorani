@@ -33,7 +33,7 @@ const GAME: Game = {
   currentQuestionIdx: 0,
   buzzerLocked: false,
   scoringEnabled: true,
-  buzzerEnabled: true,
+  inputType: 'buzzer',
   autoLockOnFirstCorrect: false,
   allowFalseStarts: false,
   buzzDeduplication: 'firstOnly',

@@ -55,7 +55,7 @@ const FIXTURES: { [K in TransportEvent['type']]: Extract<TransportEvent, { type:
       status: 'active',
       currentRoundIdx: 0,
       currentQuestionIdx: 2,
-      buzzerEnabled: true,
+      inputType: 'buzzer',
       buzzerLocked: false,
       visibility: {
         players: { showQuestion: true, showAnswers: false, showMedia: true },
@@ -90,6 +90,7 @@ const FIXTURES: { [K in TransportEvent['type']]: Extract<TransportEvent, { type:
     description: 'Pick one',
     options: ['Paris', 'Lyon'],
     answer: 'Paris',
+    choices: null,
     media: 'https://example.com/a.png',
     mediaType: 'image',
   },
@@ -101,6 +102,7 @@ const FIXTURES: { [K in TransportEvent['type']]: Extract<TransportEvent, { type:
     teamId: 'team1',
     newTeamName: 'Owls',
   },
+  ANSWER: { type: 'ANSWER', questionId: 'q1', choice: 2 },
   LEAVE: { type: 'LEAVE' },
   FOCUS_CHANGE: { type: 'FOCUS_CHANGE', away: true },
   SCREEN_JOIN: { type: 'SCREEN_JOIN' },
@@ -496,7 +498,7 @@ describe('production payload builders', () => {
       status: 'active',
       currentRoundIdx: 1,
       currentQuestionIdx: 4,
-      buzzerEnabled: true,
+      inputType: 'buzzer',
       buzzerLocked: true,
       visibility: {
         players: { showQuestion: true, showAnswers: false, showMedia: true },
@@ -734,5 +736,28 @@ describe('ROUND_ANSWERS', () => {
     expect(
       GameEventSchemas.ROUND_ANSWERS.safeParse({ ...FIXTURES.ROUND_ANSWERS, review }).success
     ).toBe(true)
+  })
+})
+
+describe('ANSWER and choices', () => {
+  const ok = (e: unknown) => TransportEventSchema.safeParse(e).success
+
+  it('accepts a choice within the option limit', () => {
+    expect(ok({ type: 'ANSWER', questionId: 'q1', choice: 0 })).toBe(true)
+    expect(ok({ type: 'ANSWER', questionId: 'q1', choice: MAX_OPTIONS - 1 })).toBe(true)
+  })
+
+  it('rejects a negative, fractional or too large choice, and extra fields', () => {
+    for (const choice of [-1, 1.5, MAX_OPTIONS]) {
+      expect(ok({ type: 'ANSWER', questionId: 'q1', choice })).toBe(false)
+    }
+    expect(ok({ type: 'ANSWER', questionId: 'q1', choice: 0, playerId: 'p2' })).toBe(false)
+  })
+
+  it('bounds the number of choices in QUESTION_CONTENT', () => {
+    const content = FIXTURES.QUESTION_CONTENT
+    expect(ok({ ...content, choices: 4 })).toBe(true)
+    expect(ok({ ...content, choices: 0 })).toBe(false)
+    expect(ok({ ...content, choices: MAX_OPTIONS + 1 })).toBe(false)
   })
 })

@@ -49,6 +49,7 @@ const CONTENT: QuestionContent = {
   description: null,
   options: ['Paris', 'Lyon'],
   answer: null,
+  choices: null,
   media: null,
   mediaType: null,
 }

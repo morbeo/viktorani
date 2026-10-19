@@ -32,8 +32,8 @@ import type { AppSettings } from '@/lib/app-settings'
  * `gameQuestions` is included because it defines which questions each game plays, and
  * `layouts` / `widgets` / `themes` because they are designed by the host, not produced by
  * play. Built-in themes live in code and are never exported.
- * Runtime-only collections (`players`, `teams`, `buzzEvents`, `scoreEvents`, `gameLog`,
- * `timers`) are intentionally excluded — they represent transient session state that is
+ * Runtime-only collections (`players`, `teams`, `buzzEvents`, `answers`, `scoreEvents`,
+ * `gameLog`, `timers`) are intentionally excluded — they represent transient session state that is
  * not meaningful to restore. A game's log is downloaded from the game
  * master view instead.
  */

@@ -29,7 +29,7 @@ const mockGame: Game = {
   requireApproval: false,
   allowPlayerTeams: false,
   scoringEnabled: true,
-  buzzerEnabled: true,
+  inputType: 'buzzer',
   buzzerLocked: false,
   autoLockOnFirstCorrect: false,
   allowFalseStarts: false,
