@@ -1,5 +1,12 @@
 import { z } from 'zod'
-import { GAME_PHASES, ICON_STROKES, INPUT_TYPES, LAYOUT_TARGETS, WIDGET_TYPES } from '@/db'
+import {
+  GAME_PHASES,
+  ICON_STROKES,
+  INPUT_TYPES,
+  LAYOUT_TARGETS,
+  MAX_ANSWER_TEXT_LENGTH,
+  WIDGET_TYPES,
+} from '@/db'
 import {
   FontKeySchema,
   GridRectSchema,
@@ -216,6 +223,7 @@ export const GameEventSchemas = {
     options: z.array(text).max(MAX_OPTIONS).nullable(),
     answer: text.nullable(),
     choices: z.number().int().min(1).max(MAX_OPTIONS).nullable(),
+    acceptsText: z.boolean(),
     media: z.string().max(MAX_MEDIA_LENGTH).nullable(),
     mediaType: z.enum(['image', 'audio', 'video']).nullable(),
   }),
@@ -285,15 +293,26 @@ export const PlayerEventSchemas = {
     teamId: id.nullable(),
     newTeamName: name.nullable(),
   }),
-  ANSWER: z.strictObject({
-    type: z.literal('ANSWER'),
-    questionId: id,
-    choice: z
-      .number()
-      .int()
-      .min(0)
-      .max(MAX_OPTIONS - 1),
-  }),
+  ANSWER: z
+    .strictObject({
+      type: z.literal('ANSWER'),
+      questionId: id,
+      choice: z
+        .number()
+        .int()
+        .min(0)
+        .max(MAX_OPTIONS - 1)
+        .nullable(),
+      // Bounded before trimming too, so padding can't carry an oversized string past the cap
+      text: z
+        .string()
+        .max(MAX_ANSWER_TEXT_LENGTH * 2)
+        .trim()
+        .min(1)
+        .max(MAX_ANSWER_TEXT_LENGTH)
+        .nullable(),
+    })
+    .refine(e => (e.choice === null) !== (e.text === null), 'Send a choice or text, not both'),
   LEAVE: z.strictObject({ type: z.literal('LEAVE') }),
   FOCUS_CHANGE: z.strictObject({
     type: z.literal('FOCUS_CHANGE'),

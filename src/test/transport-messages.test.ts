@@ -30,6 +30,7 @@ import {
 import { BUILT_IN_THEMES, resolveTheme } from '@/lib/theme'
 import type { SerializedGameState, TransportEvent } from '@/transport/types'
 import { serialiseGameState } from '@/pages/admin/gamemaster-utils'
+import { MAX_ANSWER_TEXT_LENGTH } from '@/db'
 import type { Game } from '@/db'
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -91,6 +92,7 @@ const FIXTURES: { [K in TransportEvent['type']]: Extract<TransportEvent, { type:
     options: ['Paris', 'Lyon'],
     answer: 'Paris',
     choices: null,
+    acceptsText: false,
     media: 'https://example.com/a.png',
     mediaType: 'image',
   },
@@ -102,7 +104,7 @@ const FIXTURES: { [K in TransportEvent['type']]: Extract<TransportEvent, { type:
     teamId: 'team1',
     newTeamName: 'Owls',
   },
-  ANSWER: { type: 'ANSWER', questionId: 'q1', choice: 2 },
+  ANSWER: { type: 'ANSWER', questionId: 'q1', choice: 2, text: null },
   LEAVE: { type: 'LEAVE' },
   FOCUS_CHANGE: { type: 'FOCUS_CHANGE', away: true },
   SCREEN_JOIN: { type: 'SCREEN_JOIN' },
@@ -741,17 +743,42 @@ describe('ROUND_ANSWERS', () => {
 
 describe('ANSWER and choices', () => {
   const ok = (e: unknown) => TransportEventSchema.safeParse(e).success
+  const answer = (choice: unknown, text: unknown = null) => ({
+    type: 'ANSWER',
+    questionId: 'q1',
+    choice,
+    text,
+  })
 
   it('accepts a choice within the option limit', () => {
-    expect(ok({ type: 'ANSWER', questionId: 'q1', choice: 0 })).toBe(true)
-    expect(ok({ type: 'ANSWER', questionId: 'q1', choice: MAX_OPTIONS - 1 })).toBe(true)
+    expect(ok(answer(0))).toBe(true)
+    expect(ok(answer(MAX_OPTIONS - 1))).toBe(true)
   })
 
   it('rejects a negative, fractional or too large choice, and extra fields', () => {
     for (const choice of [-1, 1.5, MAX_OPTIONS]) {
-      expect(ok({ type: 'ANSWER', questionId: 'q1', choice })).toBe(false)
+      expect(ok(answer(choice))).toBe(false)
     }
-    expect(ok({ type: 'ANSWER', questionId: 'q1', choice: 0, playerId: 'p2' })).toBe(false)
+    expect(ok({ ...answer(0), playerId: 'p2' })).toBe(false)
+  })
+
+  it('accepts typed text of 1 to the limit of characters, trimmed', () => {
+    expect(ok(answer(null, 'Paris'))).toBe(true)
+    expect(ok(answer(null, 'x'.repeat(MAX_ANSWER_TEXT_LENGTH)))).toBe(true)
+    const parsed = TransportEventSchema.parse(answer(null, '  Paris  '))
+    expect(parsed).toMatchObject({ text: 'Paris' })
+  })
+
+  it('rejects empty, blank or too long text, padding included', () => {
+    const padded = `x${' '.repeat(MAX_ANSWER_TEXT_LENGTH * 2)}`
+    for (const text of ['', '   ', 'x'.repeat(MAX_ANSWER_TEXT_LENGTH + 1), padded, 5]) {
+      expect(ok(answer(null, text))).toBe(false)
+    }
+  })
+
+  it('takes exactly one of a choice and text', () => {
+    expect(ok(answer(null, null))).toBe(false)
+    expect(ok(answer(1, 'Paris'))).toBe(false)
   })
 
   it('bounds the number of choices in QUESTION_CONTENT', () => {

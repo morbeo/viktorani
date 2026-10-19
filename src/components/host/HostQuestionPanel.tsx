@@ -6,6 +6,7 @@ import { HostVisibilityToggles } from './HostVisibilityToggles'
 import { HostRulingPanel } from './HostRulingPanel'
 import { HostAnswersPanel } from './HostAnswersPanel'
 import type { Player, Team } from '@/db'
+import type { SeenAnswer } from '@/db/answers'
 import type { QuestionRuling, RulingAward } from '@/db/rulings'
 
 interface HostQuestionPanelProps {
@@ -23,6 +24,8 @@ interface HostQuestionPanelProps {
     onReviewRound: () => void
     /** Marks players' choices, in a game where they pick an option. */
     onMarkAnswers?: () => void
+    /** Marks typed answers right or wrong, in a game where players type them. */
+    onMarkTyped?: (answers: SeenAnswer[], ruling: 'correct' | 'incorrect') => void
   }
 }
 
@@ -37,14 +40,16 @@ export function HostQuestionPanel({
     <div className="flex flex-col gap-6">
       <HostQuestionHeader question={question} gameQuestion={gameQuestion} />
       <HostQuestionAnswers question={question} />
-      {ruling?.onMarkAnswers && game.inputType === 'choice' && (
+      {ruling?.onMarkAnswers && (game.inputType === 'choice' || game.inputType === 'text') && (
         <HostAnswersPanel
+          inputType={game.inputType}
           question={question}
           gameQuestion={gameQuestion}
           players={ruling.players}
           teams={ruling.teams}
           disabled={game.status === 'ended'}
           onMark={ruling.onMarkAnswers}
+          onMarkTyped={ruling.onMarkTyped}
         />
       )}
       {ruling && (

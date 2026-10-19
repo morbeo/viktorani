@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { MAX_ANSWER_TEXT_LENGTH } from '@/db'
 import { PlayerTimers } from '@/components/timer/PlayerTimers'
 import type { PlayerData, WidgetProps } from '@/widgets/types'
 import { AnnouncementBanner } from './AnnouncementBanner'
@@ -79,6 +81,60 @@ export function ChoicePad({
   )
 }
 
+/**
+ * The box a player types their answer in, with the answer last sent from this phone. A new
+ * answer replaces it until the host closes the question; after that only the sent answer is
+ * left. The parent remounts it per question, so a draft never carries over.
+ */
+export function TextPad({ open, sent, enabled, onSend }: NonNullable<PlayerData['typed']>) {
+  const [draft, setDraft] = useState('')
+  if (!open) {
+    if (sent === null) return null
+    return (
+      <p role="status" className="text-sm text-muted">
+        Your answer: {sent}
+      </p>
+    )
+  }
+  const text = draft.trim()
+  return (
+    <form
+      aria-label="Your answer"
+      className="w-full max-w-sm flex flex-col gap-2"
+      onSubmit={e => {
+        e.preventDefault()
+        if (!text) return
+        onSend(text)
+        setDraft('')
+      }}
+    >
+      <div className="flex gap-2">
+        <input
+          aria-label="Answer"
+          value={draft}
+          maxLength={MAX_ANSWER_TEXT_LENGTH}
+          autoComplete="off"
+          disabled={!enabled}
+          onChange={e => setDraft(e.target.value)}
+          className="min-w-0 flex-1 rounded-xl border-2 border-border bg-surface px-3 py-2 text-text"
+        />
+        <button
+          type="submit"
+          disabled={!enabled || !text}
+          className="rounded-xl border-2 border-accent px-4 py-2 font-semibold text-text disabled:opacity-50"
+        >
+          Send
+        </button>
+      </div>
+      <p role="status" className="text-xs text-muted">
+        {sent === null
+          ? 'Type your answer and send it.'
+          : `Sent: ${sent}. You can send a new one until the host closes answers.`}
+      </p>
+    </form>
+  )
+}
+
 export function PlayerAnnouncementWidget({ data }: PlayerWidgetProps) {
   return <AnnouncementBanner message={data.message} />
 }
@@ -88,10 +144,14 @@ export function PlayerQuestionWidget({ data }: PlayerWidgetProps) {
   return <PlayerQuestion question={data.question} />
 }
 
-/** How the player answers: the options to pick from in a choice game, else the buzz button. */
+/**
+ * How the player answers: the options to pick from in a choice game, the answer box in a
+ * typed one, else the buzz button.
+ */
 export function PlayerBuzzerWidget({ data }: PlayerWidgetProps) {
   if (data.ended) return null
   if (data.choice) return <ChoicePad {...data.choice} />
+  if (data.typed) return <TextPad key={data.question?.questionId} {...data.typed} />
   if (!data.buzzer) return null
   return <BuzzButton {...data.buzzer} />
 }

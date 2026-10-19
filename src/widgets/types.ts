@@ -1,4 +1,5 @@
 import type { ComponentType, ReactNode } from 'react'
+import type { SeenAnswer } from '@/db/answers'
 import type { QuestionRuling, RulingAward } from '@/db/rulings'
 import type { z } from 'zod'
 import type {
@@ -92,8 +93,10 @@ export interface GamemasterData {
   onRule: (ruling: QuestionRuling, award: RulingAward | null) => void
   /** Shows the correct answer of the question shown to players and screens. */
   onReveal: () => void
-  /** Marks players' choices to the question shown, in a game that takes them. */
+  /** Closes the question shown to new answers, marking players' choices. */
   onMarkAnswers: () => void
+  /** Marks typed answers right or wrong, in a game that takes them. */
+  onMarkTyped: (answers: SeenAnswer[], ruling: 'correct' | 'incorrect') => void
   /** Opens the review of the current round's answers (ADR 0023). */
   onReviewRound: () => void
 }
@@ -117,6 +120,17 @@ export interface PlayerData {
     selected: number | null
     enabled: boolean
     onChoose: (choice: number) => void
+  } | null
+  /**
+   * The answer box in a game where players type their answers, else `null`. `open` is
+   * `false` once the host no longer takes answers to the question; `sent` is the answer
+   * this player (or their team, from this phone) last sent.
+   */
+  typed: {
+    open: boolean
+    sent: string | null
+    enabled: boolean
+    onSend: (text: string) => void
   } | null
 }
 

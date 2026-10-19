@@ -461,6 +461,34 @@ describe('game flow', () => {
     expect(answer).toMatchObject({ gameQuestionId: 'gq1', choice: 1, ruling: 'pending' })
   }, 20_000)
 
+  it('a player types an answer on their phone and the host records it', async () => {
+    const user = userEvent.setup()
+    await seedGame()
+    const { db } = await import('@/db')
+    await db.answers.clear()
+    await db.games.update('g1', { inputType: 'text' })
+
+    const host = await mountSide('host', '/admin/game/g1')
+    await host.waitFor(() => expect(hub.state.host).not.toBeNull())
+
+    const player = await mountSide('player', '/join/ABC234')
+    await user.clear(player.view.getByLabelText('Your name'))
+    await user.type(player.view.getByLabelText('Your name'), 'Dana')
+    await user.click(player.view.getByRole('button', { name: 'Continue' }))
+    await user.click(await player.view.findByRole('radio', { name: 'Play on my own' }))
+    await user.click(player.view.getByRole('button', { name: 'Join as Dana' }))
+
+    // The host sends the answer box in place of the buzz button
+    const box = await player.view.findByRole('form', { name: 'Your answer' }, SLOW)
+    await user.type(within(box).getByRole('textbox', { name: 'Answer' }), '  Lyon {Enter}')
+
+    await host.waitFor(async () => expect(await db.answers.count()).toBe(1), SLOW)
+    const [answer] = await db.answers.toArray()
+    expect((await db.players.get(answer.playerId))?.name).toBe('Dana')
+    expect(answer).toMatchObject({ gameQuestionId: 'gq1', text: 'Lyon', ruling: 'pending' })
+    expect(within(box).getByRole('status')).toHaveTextContent('Sent: Lyon')
+  }, 20_000)
+
   it("records the buzzer's team with the buzz", async () => {
     await seedGame()
     const { db } = await import('@/db')

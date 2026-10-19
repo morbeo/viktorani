@@ -87,8 +87,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(21)
-    expect(db.backendDB().version).toBe(210)
+    expect(db.verno).toBe(22)
+    expect(db.backendDB().version).toBe(220)
     expect(db.backendDB().objectStoreNames.contains('managedPlayers')).toBe(true)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
     expect(await db.managedLabels.count()).toBe(0)
@@ -102,8 +102,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(21)
-    expect(db.backendDB().version).toBe(210)
+    expect(db.verno).toBe(22)
+    expect(db.backendDB().version).toBe(220)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
   })
 
@@ -286,5 +286,16 @@ describe('Dexie schema version', () => {
     expect(game).toMatchObject({ inputType: 'none' })
     expect(game).not.toHaveProperty('buzzerEnabled')
     expect(await db.answers.count()).toBe(0)
+  })
+
+  it('gives existing answers no typed text (v22)', async () => {
+    const stores = { ...V1_STORES, answers: 'id, gameId, gameQuestionId' }
+    await seedRawDb(210, stores, { inputType: 'choice' }, [], [], {
+      answers: [{ id: 'a-old', gameId: 'g-old', gameQuestionId: 'gq', choice: 1 }],
+    })
+
+    await db.open()
+
+    expect(await db.answers.get('a-old')).toMatchObject({ choice: 1, text: null })
   })
 })

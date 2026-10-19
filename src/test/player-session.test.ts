@@ -48,6 +48,7 @@ function content(target: 'players' | 'screen'): QuestionContent {
     options: null,
     answer: null,
     choices: null,
+    acceptsText: false,
     media: null,
     mediaType: null,
   }

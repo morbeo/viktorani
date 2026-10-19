@@ -7,7 +7,7 @@ import type { ComponentProps } from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { Game, GameQuestion, Round, Timer } from '@/db'
+import type { Answer, Game, GameQuestion, Round, Timer } from '@/db'
 import type { CreateTimerOptions } from '@/hooks/useTimer'
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
@@ -617,8 +617,10 @@ describe('ActiveGame: end-of-round review', () => {
 // ── Choice answers ────────────────────────────────────────────────────────────
 
 describe('ActiveGame: choice answers', () => {
-  async function seedChoice() {
+  async function seedChoice(inputType: Game['inputType'] = 'choice') {
     await seed()
+    // Recording an answer checks the stored game takes that kind
+    await db.games.put(makeGame({ inputType }))
     await Promise.all([db.players.clear(), db.answers.clear(), db.scoreEvents.clear()])
     await db.questions.add({
       id: 'q1',
@@ -656,8 +658,8 @@ describe('ActiveGame: choice answers', () => {
 
     await waitFor(() => expect(onQuestionContent.mock.calls.at(-1)?.[0]?.choices).toBe(4))
     await waitFor(() => expect(answerHandlerRef.current).not.toBeNull())
-    await act(() => answerHandlerRef.current!('p1', 'q2', 0, 1))
-    await act(() => answerHandlerRef.current!('p1', 'q1', 1, 2))
+    await act(() => answerHandlerRef.current!('p1', 'q2', { choice: 0 }, 1))
+    await act(() => answerHandlerRef.current!('p1', 'q1', { choice: 1 }, 2))
     expect(await db.answers.toArray()).toEqual([expect.objectContaining({ choice: 1 })])
 
     const ruling = questionPanel.props?.ruling as unknown as { onMarkAnswers: () => void }
@@ -674,11 +676,36 @@ describe('ActiveGame: choice answers', () => {
     renderActiveGame(makeGame({ inputType: 'choice' }), { answerHandlerRef })
 
     await waitFor(() => expect(answerHandlerRef.current).not.toBeNull())
-    await act(() => answerHandlerRef.current!('p1', 'q1', 0, 1))
+    await act(() => answerHandlerRef.current!('p1', 'q1', { choice: 0 }, 1))
     await user.click(await screen.findByRole('button', { name: 'Next question' }))
 
     await waitFor(async () => expect((await db.answers.toArray())[0]?.ruling).toBe('incorrect'))
     expect((await db.gameQuestions.get('gq1'))?.status).toBe('incorrect')
+  })
+
+  it('takes typed answers and scores the ones the host marks right', async () => {
+    await seedChoice('text')
+    await db.questions.update('q1', { type: 'open_ended', options: [] })
+    const answerHandlerRef: { current: AnswerHandler | null } = { current: null }
+    const onQuestionContent = vi.fn()
+    renderActiveGame(makeGame({ inputType: 'text' }), { answerHandlerRef, onQuestionContent })
+
+    await waitFor(() => expect(onQuestionContent.mock.calls.at(-1)?.[0]?.acceptsText).toBe(true))
+    await waitFor(() => expect(answerHandlerRef.current).not.toBeNull())
+    await act(() => answerHandlerRef.current!('p1', 'q1', { choice: 1 }, 1))
+    await act(() => answerHandlerRef.current!('p1', 'q1', { text: 'paris' }, 2))
+    const [answer] = await db.answers.toArray()
+    expect(answer).toMatchObject({ text: 'paris', choice: null })
+
+    const ruling = questionPanel.props?.ruling as unknown as {
+      onMarkAnswers: () => void
+      onMarkTyped: (answers: Answer[], ruling: 'correct' | 'incorrect') => void
+    }
+    act(() => ruling.onMarkTyped([answer], 'correct'))
+    await waitFor(async () => expect((await db.players.get('p1'))?.score).toBe(1))
+    act(() => ruling.onMarkAnswers())
+    await waitFor(async () => expect((await db.gameQuestions.get('gq1'))?.status).toBe('correct'))
+    await waitFor(() => expect(onQuestionContent.mock.calls.at(-1)?.[0]?.acceptsText).toBe(false))
   })
 
   it('takes no choices in a game with another input type', async () => {
