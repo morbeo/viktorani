@@ -69,7 +69,8 @@ Ruling never reveals anything to players. Revealing the correct answer is its ow
 `Game.revealTiming`:
 
 - `manual`: the host clicks **Reveal answer** on the question. This is the default.
-- `perQuestion`: revealed when the host rules, or when the question locks.
+- `perQuestion`: revealed when the host rules on the question (Correct, Wrong or Skip on the
+  question panel, or a correct buzz).
 - `endOfRound`: nothing is revealed during the round. At the round boundary the host opens a
   round review with two views:
   - **One by one**: step through the round's questions, revealing each answer (and, with
@@ -77,11 +78,16 @@ Ruling never reveals anything to players. Revealing the correct answer is its ow
   - **Table**: every question of the round with its correct answer, and in team or player
     columns each one's answer and mark. Fits the projector at the end of a written round.
 
-A reveal sends a new host event, `REVEAL { gameQuestionId, answer, results? }`, to players
-and screens, and switches the layout phase to `reveal`. `results` is a short list of
+Revealing the question shown sets `GameQuestion.revealed`, and from then on the host's
+`QUESTION_CONTENT` for that question carries the answer in `answer` (it is `null` until then,
+whatever the visibility flags say). The layout phase switches to `reveal`. Keeping the answer
+in the one message that already describes the question means a rejoining player or screen,
+which is sent the current `QUESTION_CONTENT`, sees the answer exactly when it has been revealed.
+
+The end-of-round review shows questions that are no longer current, so it adds a host event,
+`REVEAL { gameQuestionId, answer, results? }`. `results` is a short list of
 `{ playerId | teamId, correct }` and never includes other players' typed text on player
-phones; the screen may show it in the table view. The answer is sent only in `REVEAL`, never in
-`QUESTION_CONTENT`, so a player client can't read it early.
+phones; the screen may show it in the table view.
 
 ### 4. Security rules for answers and reveals
 
@@ -98,9 +104,10 @@ Player answers are untrusted input, and the correct answer is a secret until rev
   answer, and the latest one replaces it until the question locks. The host shows who sent it.
 - **Typed answers are plain text.** They render as React text on the host and screens, never
   as markdown or HTML. `REVEAL.results` has a size limit in the schema.
-- **The answer can't leak early.** `QUESTION_CONTENT.answer` is removed (or pinned to
-  `z.null()`) when `REVEAL` lands, so it can't regress. A rejoining player gets `REVEAL` only
-  for questions already revealed.
+- **The answer can't leak early.** `buildQuestionContent`, the only builder of
+  `QUESTION_CONTENT`, fills `answer` only for a revealed question, and tests pin that. A
+  rejoining player gets an answer (in `QUESTION_CONTENT` or `REVEAL`) only for questions
+  already revealed.
 - **Imported answers are checked.** Snapshot import validates the `answers` rows with zod,
   limits their number and size, and remaps their ids to the imported game, as for the other
   tables.
@@ -108,8 +115,8 @@ Player answers are untrusted input, and the correct answer is a secret until rev
 ### 5. Delivery order
 
 1. Host rulings with no buzz (done).
-2. `revealTiming` with `manual` and `perQuestion`, and the `REVEAL` event.
-3. `endOfRound` with the one-by-one and table views.
+2. `revealTiming` with `manual` and `perQuestion`, the answer in `QUESTION_CONTENT` (done).
+3. `endOfRound` with the one-by-one and table views, and the `REVEAL` event.
 4. `inputType` with `choice`, the `answers` table and automatic judging.
 5. `text` answers and host marking.
 
@@ -121,8 +128,9 @@ Each step ships on its own and leaves the game playable.
 
 - A game runs without the buzzer from start to finish, and the buzzer becomes a setting like any
   other.
-- `REVEAL` is the only message that carries a correct answer. The rule "players are never sent
-  the correct answer" becomes "only after the host, or the game's reveal setting, reveals it".
+- A correct answer travels only in `QUESTION_CONTENT` for a revealed question and in `REVEAL`.
+  The rule "players are never sent the correct answer" becomes "only after the host, or the
+  game's reveal setting, reveals it".
 - `ANSWER` is new untrusted input from players: it is validated by zod, limited in size and
   accepted only for the current, unlocked question from a connected player of that game.
 - The `answers` table grows with players × questions and is cleared with the game, like buzzes.

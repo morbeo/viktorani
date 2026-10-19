@@ -64,6 +64,7 @@ function makeGame(overrides: Partial<Game> = {}): Game {
     autoAdvanceOnCorrect: false,
     autoAdvanceOnTimerExpiry: false,
     autoAdvanceDelaySeconds: 5,
+    revealTiming: 'manual',
     autoStartTimerOnQuestionShow: false,
     defaultTimerDuration: 60,
     soundEffectsMuted: false,
@@ -217,6 +218,7 @@ describe('score increment on correct ruling', () => {
       roundId: 'r1',
       order: 0,
       status: 'pending',
+      revealed: false,
     }
     const player = makePlayer({ score: 0 })
 

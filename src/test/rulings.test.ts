@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { db } from '@/db'
 import type { Player, Team } from '@/db'
-import { ruleQuestion } from '@/db/rulings'
+import { revealQuestion, ruleQuestion } from '@/db/rulings'
 
 vi.mock('@/transport', () => ({ transportManager: { send: vi.fn() } }))
 
@@ -64,6 +64,7 @@ beforeEach(async () => {
     roundId: 'r1',
     order: 0,
     status: 'pending',
+    revealed: false,
   })
 })
 
@@ -187,5 +188,29 @@ describe('ruleQuestion', () => {
       subjectId: 'q1',
       data: { status: 'correct', name: 'Alice' },
     })
+  })
+})
+
+describe('revealQuestion', () => {
+  it('marks the question revealed once, and logs it', async () => {
+    expect(await revealQuestion('g1', 'gq1')).toBe(true)
+    expect(await revealQuestion('g1', 'gq1')).toBe(false)
+
+    expect((await db.gameQuestions.get('gq1'))?.revealed).toBe(true)
+    await vi.waitFor(async () => expect(await db.gameLog.count()).toBe(1))
+    expect((await db.gameLog.toArray())[0]).toMatchObject({
+      kind: 'answer_revealed',
+      subjectId: 'q1',
+    })
+  })
+
+  it("ignores another game's question", async () => {
+    expect(await revealQuestion('g2', 'gq1')).toBe(false)
+    expect((await db.gameQuestions.get('gq1'))?.revealed).toBe(false)
+  })
+
+  it('leaves the ruling alone', async () => {
+    await revealQuestion('g1', 'gq1')
+    expect(await status()).toBe('pending')
   })
 })

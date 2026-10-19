@@ -1,5 +1,12 @@
 import { z } from 'zod'
-import { FONT_KEYS, GAME_PHASES, ICON_STROKES, LAYOUT_TARGETS, WIDGET_TYPES } from '@/db'
+import {
+  FONT_KEYS,
+  GAME_PHASES,
+  ICON_STROKES,
+  LAYOUT_TARGETS,
+  REVEAL_TIMINGS,
+  WIDGET_TYPES,
+} from '@/db'
 import type {
   DifficultyLevel,
   Tag,
@@ -127,6 +134,7 @@ export const GameSchema = z
       .min(1)
       .max(MAX_AUTO_ADVANCE_DELAY)
       .default(AUTO_ADVANCE_DEFAULT_DELAY),
+    revealTiming: z.enum(REVEAL_TIMINGS).default('manual'),
     autoStartTimerOnQuestionShow: z.boolean().default(false),
     defaultTimerDuration: z.number().int().min(1).max(MAX_TIMER_SECONDS).default(60),
     soundEffectsMuted: z.boolean().default(false),
@@ -151,6 +159,7 @@ export const GameQuestionSchema = z.object({
   roundId: z.string(),
   order: z.number(),
   status: z.enum(['pending', 'correct', 'incorrect', 'skipped']),
+  revealed: z.boolean().default(false),
 }) satisfies z.ZodType<GameQuestion>
 
 export const NoteSchema = z.object({

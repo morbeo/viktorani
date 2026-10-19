@@ -6,6 +6,7 @@ import {
   defaultSettings,
 } from '@/components/game-settings/game-settings'
 import type { GamePreset, GameSettings } from '@/components/game-settings/game-settings'
+import { REVEAL_TIMINGS } from '@/db'
 import type { TiebreakerMode } from '@/db'
 import { DEFAULT_THEME_ID } from '@/lib/theme'
 
@@ -80,6 +81,7 @@ const GameSettingsSchema = z.object({
     .min(1)
     .max(MAX_AUTO_ADVANCE_DELAY)
     .catch(BUILT_IN_GAME.autoAdvanceDelaySeconds),
+  revealTiming: z.enum(REVEAL_TIMINGS).catch(BUILT_IN_GAME.revealTiming),
   autoStartTimerOnQuestionShow: z.boolean().catch(BUILT_IN_GAME.autoStartTimerOnQuestionShow),
   defaultTimerDuration: z
     .number()

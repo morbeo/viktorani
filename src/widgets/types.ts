@@ -90,6 +90,8 @@ export interface GamemasterData {
   teams: Team[]
   /** Rules on the question shown without a buzz, awarding its points to `award` if correct. */
   onRule: (ruling: QuestionRuling, award: RulingAward | null) => void
+  /** Shows the correct answer of the question shown to players and screens. */
+  onReveal: () => void
 }
 
 /** What a player's phone knows about the game, as handed to its widgets. */

@@ -77,6 +77,18 @@ describe('PlayerQuestion', () => {
     expect(container.querySelector('audio')).toBeNull()
   })
 
+  it('marks the correct option and shows the answer once revealed', () => {
+    render(<PlayerQuestion question={content({ options: ['Paris', 'Rome'], answer: 'Paris' })} />)
+    expect(screen.getByRole('status')).toHaveTextContent('Answer: Paris')
+    expect(screen.getByText('Paris', { selector: 'li' })).toHaveAttribute('aria-current', 'true')
+    expect(screen.getByText('Rome', { selector: 'li' })).not.toHaveAttribute('aria-current')
+  })
+
+  it('shows a revealed answer even when everything else is hidden', () => {
+    render(<PlayerQuestion question={content({ answer: 'Paris' })} />)
+    expect(screen.getByRole('status')).toHaveTextContent('Answer: Paris')
+  })
+
   it('renders nothing when the host hides every field', () => {
     const { container } = render(<PlayerQuestion question={content()} />)
     expect(container).toBeEmptyDOMElement()

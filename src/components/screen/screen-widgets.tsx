@@ -35,7 +35,10 @@ export function ScreenAnnouncement({ message }: { message?: string | null }) {
   )
 }
 
-/** The current question's title and description. Renders nothing when both are hidden. */
+/**
+ * The current question's title and description, and its answer once revealed. Renders
+ * nothing when all are hidden.
+ */
 export function ScreenQuestion({ content }: { content: QuestionContent | null }) {
   return (
     <>
@@ -51,6 +54,12 @@ export function ScreenQuestion({ content }: { content: QuestionContent | null })
             {content.description}
           </ReactMarkdown>
         </div>
+      )}
+
+      {content?.answer && (
+        <p role="status" className="text-4xl font-semibold text-positive">
+          Answer: {content.answer}
+        </p>
       )}
     </>
   )
@@ -73,13 +82,20 @@ export function ScreenMedia({ content }: { content: QuestionContent | null }) {
   )
 }
 
-/** The current question's answer options. Renders nothing when they're hidden. */
+/**
+ * The current question's answer options, the correct one marked once revealed. Renders
+ * nothing when they're hidden.
+ */
 export function ScreenAnswers({ content }: { content: QuestionContent | null }) {
   if (!content?.options) return null
   return (
     <ol className="grid grid-cols-2 gap-4 w-full max-w-4xl text-3xl text-left">
       {content.options.map((option, i) => (
-        <li key={i} className="rounded-xl border px-6 py-4 border-border bg-surface">
+        <li
+          key={i}
+          aria-current={option === content.answer ? 'true' : undefined}
+          className={`rounded-xl border px-6 py-4 bg-surface ${option === content.answer ? 'border-positive border-4' : 'border-border'}`}
+        >
           <span className="mono mr-4 text-muted">{String.fromCharCode(65 + i)}</span>
           {option}
         </li>

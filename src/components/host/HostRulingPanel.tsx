@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, SkipForward, X } from 'lucide-react'
+import { Check, Eye, SkipForward, X } from 'lucide-react'
 import { Button, Icon } from '@/components/ui'
 import type { GameQuestion, Player, Team } from '@/db'
 import type { QuestionRuling, RulingAward } from '@/db/rulings'
@@ -17,11 +17,15 @@ interface HostRulingPanelProps {
   teams: Team[]
   disabled?: boolean
   onRule: (ruling: QuestionRuling, award: RulingAward | null) => void
+  /** Whether players and screens have been shown the correct answer. */
+  revealed: boolean
+  onReveal: () => void
 }
 
 /**
  * Rule on the question without a buzz (#424): correct, wrong or skipped, and for a
- * correct answer, who gets the points. Works whether or not the game has a buzzer.
+ * correct answer, who gets the points. Works whether or not the game has a buzzer. Ruling
+ * doesn't show the answer; Reveal answer does (ADR 0023).
  */
 export function HostRulingPanel({
   status,
@@ -30,6 +34,8 @@ export function HostRulingPanel({
   teams,
   disabled = false,
   onRule,
+  revealed,
+  onReveal,
 }: HostRulingPanelProps) {
   // `player:<id>` or `team:<id>`, or '' for nobody
   const [awardKey, setAwardKey] = useState('')
@@ -84,6 +90,16 @@ export function HostRulingPanel({
             </select>
           </label>
         )}
+        <Button
+          size="sm"
+          variant="secondary"
+          className="ml-auto"
+          disabled={disabled || revealed}
+          onClick={onReveal}
+        >
+          <Icon icon={Eye} size="sm" />
+          {revealed ? 'Answer revealed' : 'Reveal answer'}
+        </Button>
       </div>
     </section>
   )

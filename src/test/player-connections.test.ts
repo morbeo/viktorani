@@ -146,6 +146,7 @@ function game(overrides: Partial<Game> = {}): Game {
     autoAdvanceOnCorrect: false,
     autoAdvanceOnTimerExpiry: false,
     autoAdvanceDelaySeconds: 5,
+    revealTiming: 'manual',
     autoStartTimerOnQuestionShow: false,
     defaultTimerDuration: 60,
     soundEffectsMuted: false,

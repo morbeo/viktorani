@@ -44,6 +44,7 @@ const BASE_GAME: Game = {
   autoAdvanceOnCorrect: false,
   autoAdvanceOnTimerExpiry: false,
   autoAdvanceDelaySeconds: 5,
+  revealTiming: 'manual',
   autoStartTimerOnQuestionShow: false,
   defaultTimerDuration: 60,
   soundEffectsMuted: false,
@@ -236,9 +237,33 @@ const ROUNDS: Round[] = [
 ]
 
 const GQS: GameQuestion[] = [
-  { id: 'gq1', gameId: 'g1', questionId: 'q1', roundId: 'r1', order: 0, status: 'pending' },
-  { id: 'gq2', gameId: 'g1', questionId: 'q2', roundId: 'r1', order: 1, status: 'correct' },
-  { id: 'gq3', gameId: 'g1', questionId: 'q3', roundId: 'r2', order: 2, status: 'pending' },
+  {
+    id: 'gq1',
+    gameId: 'g1',
+    questionId: 'q1',
+    roundId: 'r1',
+    order: 0,
+    status: 'pending',
+    revealed: false,
+  },
+  {
+    id: 'gq2',
+    gameId: 'g1',
+    questionId: 'q2',
+    roundId: 'r1',
+    order: 1,
+    status: 'correct',
+    revealed: false,
+  },
+  {
+    id: 'gq3',
+    gameId: 'g1',
+    questionId: 'q3',
+    roundId: 'r2',
+    order: 2,
+    status: 'pending',
+    revealed: false,
+  },
 ]
 
 describe('buildNavSequence', () => {
@@ -288,6 +313,7 @@ describe('buildNavSequence', () => {
       roundId: 'unknown',
       order: 0,
       status: 'pending',
+      revealed: false,
     }
     const seq = buildNavSequence([gqOrphan], ROUNDS)
     expect(seq[0].roundName).toBe('Round')

@@ -43,7 +43,7 @@ import type { Game, GamePhase, GmDecision, Player, Team } from '@/db'
 import { PhaseControl } from '@/components/gamemaster/PhaseControl'
 import { autoPhase, effectivePhase } from '@/lib/layout-phase'
 import { updateQuestionStatus } from '@/db/games'
-import { ruleQuestion } from '@/db/rulings'
+import { revealQuestion, ruleQuestion } from '@/db/rulings'
 import type { QuestionRuling, RulingAward } from '@/db/rulings'
 import { layoutCommands, phaseCommands } from '@/components/gamemaster/layout-commands'
 import type { GameEvent } from '@/transport/types'
@@ -210,24 +210,29 @@ export function ActiveGame({
     loadedGameQuestion?.id === currentGameQuestionId ? loadedGameQuestion : undefined
 
   // Send the current question to admitted players on navigation and whenever the GM
-  // changes what players may see
+  // changes what players may see, or reveals the answer
   const playerVisibility = game.visibility.players
+  const revealed = gameQuestion?.revealed ?? false
   useEffect(() => {
-    onQuestionContent(question ? buildQuestionContent(question, 'players', playerVisibility) : null)
-  }, [question, playerVisibility, onQuestionContent])
+    onQuestionContent(
+      question ? buildQuestionContent(question, 'players', playerVisibility, revealed) : null
+    )
+  }, [question, playerVisibility, revealed, onQuestionContent])
 
   // Same for approved screens, with the screen's visibility
   const screenVisibility = game.visibility.screen
   useEffect(() => {
-    onScreenContent(question ? buildQuestionContent(question, 'screen', screenVisibility) : null)
-  }, [question, screenVisibility, onScreenContent])
+    onScreenContent(
+      question ? buildQuestionContent(question, 'screen', screenVisibility, revealed) : null
+    )
+  }, [question, screenVisibility, revealed, onScreenContent])
 
   const { displayBuzzes, buzzes, toggleLock, adjudicate, clearBuzzes, handleIncomingBuzz } =
     useBuzzer(game, currentQuestionId, onGameChange)
 
   // The phase every surface's layout is picked for: from the buzzes on the question shown,
   // unless the GM holds one by hand
-  const auto = autoPhase(game.status, buzzes)
+  const auto = autoPhase(game.status, buzzes, revealed)
   const phase = effectivePhase(auto, phaseOverride)
   useEffect(() => {
     onPhase?.(phase)
@@ -249,14 +254,23 @@ export function ActiveGame({
   })
   const { onCorrect } = autoAdvance
 
-  // Rule on the buzz, then record the result against the question shown
+  // Show the answer of the question shown to players and screens
+  const handleReveal = useCallback(async () => {
+    if (currentGameQuestionId) await revealQuestion(game.id, currentGameQuestionId)
+  }, [game.id, currentGameQuestionId])
+
+  // Rule on the buzz, then record the result against the question shown. A correct buzz
+  // ends the question, so it reveals the answer when the game reveals after each ruling.
   const handleAdjudicate = useCallback(
     async (buzzId: string, decision: GmDecision) => {
       await adjudicate(buzzId, decision)
       if (currentGameQuestionId) await updateQuestionStatus(currentGameQuestionId, decision)
-      if (decision === 'Correct') onCorrect()
+      if (decision === 'Correct') {
+        if (game.revealTiming === 'perQuestion') await handleReveal()
+        onCorrect()
+      }
     },
-    [adjudicate, currentGameQuestionId, onCorrect]
+    [adjudicate, currentGameQuestionId, game.revealTiming, handleReveal, onCorrect]
   )
 
   // Rule on the question without a buzz, e.g. in a game with no buzzer
@@ -264,9 +278,10 @@ export function ActiveGame({
     async (ruling: QuestionRuling, award: RulingAward | null) => {
       if (!currentGameQuestionId) return
       await ruleQuestion(game, currentGameQuestionId, ruling, award)
+      if (game.revealTiming === 'perQuestion') await handleReveal()
       if (ruling === 'correct') onCorrect()
     },
-    [game, currentGameQuestionId, onCorrect]
+    [game, currentGameQuestionId, handleReveal, onCorrect]
   )
 
   // Auto-reset timers on navigation, then auto-start the question timer for the question
@@ -521,6 +536,7 @@ export function ActiveGame({
                 players,
                 teams,
                 onRule: (ruling, award) => void handleRule(ruling, award),
+                onReveal: () => void handleReveal(),
               }}
               cellClassName="mt-6"
             />

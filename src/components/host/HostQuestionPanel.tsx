@@ -18,6 +18,7 @@ interface HostQuestionPanelProps {
     players: Player[]
     teams: Team[]
     onRule: (ruling: QuestionRuling, award: RulingAward | null) => void
+    onReveal: () => void
   }
 }
 
@@ -42,6 +43,8 @@ export function HostQuestionPanel({
           teams={ruling.teams}
           disabled={game.status === 'ended'}
           onRule={ruling.onRule}
+          revealed={gameQuestion.revealed}
+          onReveal={ruling.onReveal}
         />
       )}
       {question.media && question.mediaType && <HostQuestionMedia question={question} />}

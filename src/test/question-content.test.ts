@@ -59,10 +59,17 @@ describe('buildQuestionContent', () => {
     expect(media.mediaType).toBe('image')
   })
 
-  it('never sends the correct answer, even with everything shown', () => {
+  it('never sends the correct answer before the reveal, even with everything shown', () => {
     const content = buildQuestionContent(QUESTION, 'players', ALL)
     expect(content.answer).toBeNull()
     expect(JSON.stringify(content)).not.toContain('"answer":"Paris"')
+  })
+
+  it('sends the correct answer only once the question is revealed', () => {
+    expect(buildQuestionContent(QUESTION, 'players', ALL, false).answer).toBeNull()
+    expect(buildQuestionContent(QUESTION, 'screen', ALL, true).answer).toBe('Paris')
+    const hidden = { showQuestion: false, showAnswers: false, showMedia: false }
+    expect(buildQuestionContent(QUESTION, 'players', hidden, true).answer).toBe('Paris')
   })
 
   it('uses True/False options for true/false and none for open-ended questions', () => {

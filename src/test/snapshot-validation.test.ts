@@ -42,6 +42,7 @@ const GAME = {
   autoAdvanceOnCorrect: false,
   autoAdvanceOnTimerExpiry: false,
   autoAdvanceDelaySeconds: 5,
+  revealTiming: 'manual',
   autoStartTimerOnQuestionShow: false,
   defaultTimerDuration: 60,
   soundEffectsMuted: false,
@@ -159,6 +160,13 @@ describe('importDatabase — validation', () => {
       ...legacy
     } = GAME
     void [_a, _b, _c, _d]
+    await importDatabase(jsonFile(snapshot({ games: [legacy] })))
+    expect(await db.games.get('g1')).toEqual(GAME)
+  })
+
+  it('defaults the reveal setting missing from older games', async () => {
+    const { revealTiming: _a, ...legacy } = GAME
+    void _a
     await importDatabase(jsonFile(snapshot({ games: [legacy] })))
     expect(await db.games.get('g1')).toEqual(GAME)
   })

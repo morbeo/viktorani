@@ -7,20 +7,23 @@ import type { BuzzEvent, GamePhase, GameStatus } from '@/db'
  */
 
 /**
- * The phase the game is in, from its status and the buzzes on the question shown.
+ * The phase the game is in, from its status, the buzzes on the question shown and whether
+ * its answer has been revealed.
  *
  * @remarks
- * Ended and not-yet-started games are `ended` and `lobby`. Otherwise a correct ruling on
- * the question means its answer is out (`reveal`); a buzz the GM hasn't ruled on yet (not
- * a false start) is `buzzed`; anything else is `question`. `scoreboard` only comes from the
+ * Ended and not-yet-started games are `ended` and `lobby`. Otherwise a revealed answer or a
+ * correct ruling on the question means its answer is out (`reveal`); a buzz the GM hasn't
+ * ruled on yet (not a false start) is `buzzed`; anything else is `question`. `scoreboard` only comes from the
  * GM's override.
  */
 export function autoPhase(
   status: GameStatus,
-  buzzes: readonly Pick<BuzzEvent, 'gmDecision' | 'isFalseStart'>[]
+  buzzes: readonly Pick<BuzzEvent, 'gmDecision' | 'isFalseStart'>[],
+  revealed = false
 ): GamePhase {
   if (status === 'ended') return 'ended'
   if (status === 'waiting') return 'lobby'
+  if (revealed) return 'reveal'
   if (buzzes.some(b => b.gmDecision === 'Correct')) return 'reveal'
   if (buzzes.some(b => b.gmDecision === null && !b.isFalseStart)) return 'buzzed'
   return 'question'

@@ -19,6 +19,8 @@ function setup(props: Partial<Parameters<typeof HostRulingPanel>[0]> = {}) {
       players={PLAYERS}
       teams={TEAMS}
       onRule={onRule}
+      revealed={false}
+      onReveal={vi.fn()}
       {...props}
     />
   )
@@ -49,6 +51,27 @@ describe('HostRulingPanel', () => {
     setup({ status: 'incorrect' })
     expect(screen.queryByRole('option', { name: 'Bob' })).toBeNull()
     expect(screen.getByRole('button', { name: 'Wrong' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('reveals the answer, and shows it as revealed', async () => {
+    const onReveal = vi.fn()
+    const { unmount } = render(
+      <HostRulingPanel
+        status="pending"
+        scoringEnabled
+        players={PLAYERS}
+        teams={TEAMS}
+        onRule={vi.fn()}
+        revealed={false}
+        onReveal={onReveal}
+      />
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }))
+    expect(onReveal).toHaveBeenCalledTimes(1)
+    unmount()
+
+    setup({ revealed: true })
+    expect(screen.getByRole('button', { name: 'Answer revealed' })).toBeDisabled()
   })
 
   it('has no recipient picker when scoring is off', () => {

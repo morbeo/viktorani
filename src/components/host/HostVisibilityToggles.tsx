@@ -70,7 +70,7 @@ export function HostVisibilityToggles({ game, onGameChange }: HostVisibilityTogg
         Visibility
         <HelpTip
           label="About Visibility"
-          text="What player phones and the screen show for the current question, set separately for each. Hidden parts are never sent to that device. Show answers means the answer options; the correct answer is never sent."
+          text="What player phones and the screen show for the current question, set separately for each. Hidden parts are never sent to that device. Show answers means the answer options; the correct answer is only sent once you reveal it."
         />
       </p>
       <div className="grid gap-3 sm:grid-cols-2">

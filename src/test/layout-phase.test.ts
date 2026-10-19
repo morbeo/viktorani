@@ -34,6 +34,11 @@ describe('autoPhase', () => {
     expect(autoPhase('paused', [buzz(null)])).toBe('buzzed')
     expect(autoPhase('active', [buzz('Correct'), buzz(null)])).toBe('reveal')
   })
+
+  it('is reveal once the answer is revealed, while the game runs', () => {
+    expect(autoPhase('active', [buzz(null)], true)).toBe('reveal')
+    expect(autoPhase('ended', [], true)).toBe('ended')
+  })
 })
 
 describe('effectivePhase', () => {
