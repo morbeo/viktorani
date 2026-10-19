@@ -137,6 +137,12 @@ describe('recordAnswer', () => {
     expect(await answers()).toEqual([])
   })
 
+  it('refuses answers once the answer is revealed, though the question is open', async () => {
+    await db.gameQuestions.update('gq1', { revealed: true })
+    expect(await recordAnswer('g1', 'gq1', 'p1', { choice: 1 }, 1)).toBe(false)
+    expect(await answers()).toEqual([])
+  })
+
   it('refuses answers once the question is closed', async () => {
     await db.gameQuestions.update('gq1', { status: 'incorrect' })
     expect(await recordAnswer('g1', 'gq1', 'p1', { choice: 1 }, 1)).toBe(false)

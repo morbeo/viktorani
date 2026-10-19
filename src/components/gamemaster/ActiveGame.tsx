@@ -288,10 +288,12 @@ export function ActiveGame({
   // changes what players may see, or reveals the answer
   const playerVisibility = game.visibility.players
   const revealed = gameQuestion?.revealed ?? false
-  // Players pick an option or type an answer until the question is closed: its answers
-  // marked, a ruling, or moving on
+  // Players pick an option or type an answer until the question is closed (its answers
+  // marked, a ruling, or moving on) or its answer revealed
   const accepts =
-    (game.inputType === 'choice' || game.inputType === 'text') && gameQuestion?.status === 'pending'
+    (game.inputType === 'choice' || game.inputType === 'text') &&
+    gameQuestion?.status === 'pending' &&
+    !gameQuestion.revealed
       ? game.inputType
       : null
   useEffect(() => {
@@ -320,18 +322,22 @@ export function ActiveGame({
   const roundStart = current ? seq.findIndex(e => e.roundId === current.roundId) : 0
   const openEarlier = roundSoFar
     .filter(e => e !== current && e.questionStatus === 'pending')
-    .map(e => `${e.questionId}:${e.flatIndex - roundStart + 1}`)
+    .map(e => `${e.gameQuestionId}:${e.questionId}:${e.flatIndex - roundStart + 1}`)
     .join()
   const openRows = useLiveQuery(async () => {
     if (!openEarlier) return []
     const items = openEarlier.split(',').map(item => {
-      const [questionId, number] = item.split(':')
-      return { questionId, number: Number(number) }
+      const [gameQuestionId, questionId, number] = item.split(':')
+      return { gameQuestionId, questionId, number: Number(number) }
     })
-    const qs = await db.questions.bulkGet(items.map(i => i.questionId))
+    const [gqs, qs] = await Promise.all([
+      db.gameQuestions.bulkGet(items.map(i => i.gameQuestionId)),
+      db.questions.bulkGet(items.map(i => i.questionId)),
+    ])
+    // A question whose answer has been revealed takes no more answers
     return items.flatMap((item, i) => {
       const question = qs[i]
-      return question ? [{ number: item.number, question }] : []
+      return question && !gqs[i]?.revealed ? [{ number: item.number, question }] : []
     })
   }, [openEarlier])
   const answerKind =

@@ -811,6 +811,26 @@ describe('ActiveGame: answers open until the end of the round', () => {
     })
   })
 
+  it('stops listing and taking an earlier question once its answer is revealed', async () => {
+    const user = userEvent.setup()
+    await seed()
+    await seedRound()
+    const answerHandlerRef: { current: AnswerHandler | null } = { current: null }
+    const onOpenQuestions = vi.fn()
+    renderActiveGame(makeGame({ inputType: 'choice', answersClose: 'endOfRound' }), {
+      answerHandlerRef,
+      onOpenQuestions,
+    })
+
+    await user.click(await screen.findByRole('button', { name: 'Next question' }))
+    await waitFor(() => expect(onOpenQuestions.mock.calls.at(-1)?.[0].questions).toHaveLength(1))
+
+    await act(() => db.gameQuestions.update('gq1', { revealed: true }))
+    await waitFor(() => expect(onOpenQuestions.mock.calls.at(-1)?.[0].questions).toEqual([]))
+    await act(() => answerHandlerRef.current!('p1', 'q1', { choice: 1 }, 2))
+    expect(await db.answers.toArray()).toEqual([])
+  })
+
   it("closes and marks the round's answers when the host leaves the round", async () => {
     const user = userEvent.setup()
     await db.rounds.bulkAdd([

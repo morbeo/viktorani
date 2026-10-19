@@ -274,7 +274,8 @@ To run the round like a paper answer sheet, set **Close answers** to **At the en
 round** in the game's settings. Moving on then leaves each question open: phones list the
 round's earlier questions under the current one, and players can answer or change them until
 you click **Close answers** on the round sheet or leave the round. Leaving the round, or
-opening its answer review, closes them all and marks the choices.
+clicking **Next** into its answer review, closes them all and marks the choices. Revealing a
+question's answer also stops players answering it.
 
 ### Holding scores until you announce them
 
