@@ -581,7 +581,7 @@ describe('ActiveGame: end-of-round review', () => {
     await waitFor(() => expect(onRoundAnswers).toHaveBeenCalled())
     expect(onRoundAnswers.mock.calls.at(-1)?.[0].review.items).toEqual([])
 
-    await user.click(screen.getByRole('button', { name: 'Reveal answer 1' }))
+    await user.click(await screen.findByRole('button', { name: 'Reveal answer 1' }))
     await waitFor(() =>
       expect(onRoundAnswers.mock.calls.at(-1)?.[0].review.items).toEqual([
         expect.objectContaining({ answer: 'Paris', number: 1, status: 'correct' }),
