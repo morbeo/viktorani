@@ -43,6 +43,7 @@ const BASE_GAME: Game = {
   autoAdvanceOnCorrect: false,
   autoAdvanceOnTimerExpiry: false,
   autoAdvanceDelaySeconds: 5,
+  revealTiming: 'manual',
   autoStartTimerOnQuestionShow: false,
   defaultTimerDuration: 60,
   soundEffectsMuted: false,
@@ -57,6 +58,7 @@ const BASE_GQ: GameQuestion = {
   roundId: 'r1',
   order: 0,
   status: 'pending',
+  revealed: false,
 }
 
 function makeQ(o: Partial<Question> = {}): Question {
@@ -98,7 +100,7 @@ describe('HostQuestionPanel — header', () => {
     expect(screen.getByText('True / False')).toBeInTheDocument()
   })
   it('renders the status badge', () => {
-    rp(makeQ(), { ...BASE_GQ, status: 'correct' })
+    rp(makeQ(), { ...BASE_GQ, status: 'correct', revealed: false })
     expect(screen.getByText('Correct')).toBeInTheDocument()
   })
   it('host always sees title regardless of showQuestion flag', () => {

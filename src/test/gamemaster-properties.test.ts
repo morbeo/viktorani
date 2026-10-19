@@ -42,6 +42,7 @@ const navSeq: fc.Arbitrary<{ sizes: number[]; seq: NavEntry[] }> = fc
         roundId: `r${r}`,
         order: order++,
         status: 'pending' as const,
+        revealed: false,
       }))
     )
     return fc

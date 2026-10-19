@@ -209,6 +209,7 @@ export async function seedDemo(): Promise<void> {
     autoAdvanceOnCorrect: false,
     autoAdvanceOnTimerExpiry: false,
     autoAdvanceDelaySeconds: 5,
+    revealTiming: 'manual',
     autoStartTimerOnQuestionShow: false,
     defaultTimerDuration: 60,
     soundEffectsMuted: false,
@@ -249,6 +250,7 @@ export async function seedDemo(): Promise<void> {
       roundId: r.id,
       order: order++,
       status: 'pending' as const,
+      revealed: false,
     }))
   )
 

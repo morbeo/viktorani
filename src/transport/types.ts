@@ -77,6 +77,7 @@ export type GameEvent =
       title: string | null
       description: string | null
       options: string[] | null
+      /** The correct answer, `null` until the host reveals it (ADR 0023). */
       answer: string | null
       media: string | null
       mediaType: 'image' | 'audio' | 'video' | null

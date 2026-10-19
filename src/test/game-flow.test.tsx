@@ -142,6 +142,7 @@ const GAME: Game = {
   autoAdvanceOnCorrect: false,
   autoAdvanceOnTimerExpiry: false,
   autoAdvanceDelaySeconds: 5,
+  revealTiming: 'manual',
   autoStartTimerOnQuestionShow: false,
   defaultTimerDuration: 60,
   soundEffectsMuted: false,
@@ -227,6 +228,7 @@ async function seedGame() {
     roundId: 'r1',
     order: 0,
     status: 'pending',
+    revealed: false,
   })
 }
 

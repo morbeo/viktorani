@@ -243,6 +243,14 @@ You don't need the buzzer to rule. Under the current question, click **Correct**
 also starts the auto-advance countdown when that's turned on. Ruling doesn't show the answer
 to players.
 
+### Revealing the answer
+
+Players and the screen don't see the correct answer until you reveal it. Click **Reveal
+answer** under the current question: phones and the screen show the answer and mark the
+correct option, and the layout moves to its reveal phase. To reveal after every ruling
+instead, set **Show the answer** to **After each ruling** in the game's settings, under
+**Round flow**. A wrong buzz doesn't count as a ruling there, since others can still buzz.
+
 ### Managing the buzzer
 
 1. Click **Unlock** to open the buzzer — players can now buzz in.

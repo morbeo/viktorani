@@ -25,6 +25,7 @@ const BASE_GQ: GameQuestion = {
   roundId: 'r1',
   order: 0,
   status: 'pending',
+  revealed: false,
 }
 
 function q(o: Partial<Question> = {}): Question {

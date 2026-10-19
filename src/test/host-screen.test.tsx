@@ -42,6 +42,7 @@ const GAME: Game = {
   autoAdvanceOnCorrect: false,
   autoAdvanceOnTimerExpiry: false,
   autoAdvanceDelaySeconds: 5,
+  revealTiming: 'manual',
   autoStartTimerOnQuestionShow: false,
   defaultTimerDuration: 60,
   soundEffectsMuted: false,
@@ -103,8 +104,24 @@ beforeEach(async () => {
     question('q2', 'Longest river?'),
   ])
   await db.gameQuestions.bulkAdd([
-    { id: 'gq1', gameId: 'g1', questionId: 'q1', roundId: 'r1', order: 0, status: 'pending' },
-    { id: 'gq2', gameId: 'g1', questionId: 'q2', roundId: 'r1', order: 1, status: 'pending' },
+    {
+      id: 'gq1',
+      gameId: 'g1',
+      questionId: 'q1',
+      roundId: 'r1',
+      order: 0,
+      status: 'pending',
+      revealed: false,
+    },
+    {
+      id: 'gq2',
+      gameId: 'g1',
+      questionId: 'q2',
+      roundId: 'r1',
+      order: 1,
+      status: 'pending',
+      revealed: false,
+    },
   ])
 })
 

@@ -401,6 +401,7 @@ function GameWizard({
         autoAdvanceOnCorrect: state.autoAdvanceOnCorrect,
         autoAdvanceOnTimerExpiry: state.autoAdvanceOnTimerExpiry,
         autoAdvanceDelaySeconds: state.autoAdvanceDelaySeconds,
+        revealTiming: state.revealTiming,
         autoStartTimerOnQuestionShow: state.autoStartTimerOnQuestionShow,
         defaultTimerDuration: state.defaultTimerDuration,
         soundEffectsMuted: state.soundEffectsMuted,

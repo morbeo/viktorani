@@ -32,6 +32,7 @@ export function buildGameQuestions(
       roundId,
       order: order++,
       status: 'pending' as const,
+      revealed: false,
     }))
   })
 }
@@ -73,7 +74,13 @@ export async function cloneGame(game: Game): Promise<string> {
     const gqs = await db.gameQuestions.where('gameId').equals(game.id).toArray()
     await db.games.add(clone)
     await db.gameQuestions.bulkAdd(
-      gqs.map(gq => ({ ...gq, id: crypto.randomUUID(), gameId: newId, status: 'pending' as const }))
+      gqs.map(gq => ({
+        ...gq,
+        id: crypto.randomUUID(),
+        gameId: newId,
+        status: 'pending' as const,
+        revealed: false,
+      }))
     )
   })
   return newId

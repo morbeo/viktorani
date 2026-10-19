@@ -57,11 +57,13 @@ function LocalScreen({
   heading,
   content,
   questionId,
+  revealed,
 }: {
   game: Game
   heading: string
   content: ScreenData['content']
   questionId: string | null
+  revealed: boolean
 }) {
   const { entries } = useScoreboard(game)
   const layouts = useLiveQuery(() => loadGameLayouts(game.id), [game.id])
@@ -71,7 +73,7 @@ function LocalScreen({
     [game.id, questionId]
   )
   const [override] = usePhaseOverride(game.id)
-  const phase = effectivePhase(autoPhase(game.status, buzzes ?? []), override)
+  const phase = effectivePhase(autoPhase(game.status, buzzes ?? [], revealed), override)
   return (
     <ScreenView
       layouts={layouts}
@@ -130,11 +132,22 @@ export default function Screen() {
     )
   }
 
-  const content = question ? buildQuestionContent(question, 'screen', game.visibility.screen) : null
+  const revealed = gameQuestions?.find(gq => gq.id === entry?.gameQuestionId)?.revealed ?? false
+  const content = question
+    ? buildQuestionContent(question, 'screen', game.visibility.screen, revealed)
+    : null
   const inRound = entry ? seq.filter(e => e.roundId === entry.roundId) : []
   const heading = entry
     ? `${entry.roundName} · Question ${inRound.indexOf(entry) + 1} of ${inRound.length}`
     : game.name
 
-  return <LocalScreen game={game} heading={heading} content={content} questionId={questionId} />
+  return (
+    <LocalScreen
+      game={game}
+      heading={heading}
+      content={content}
+      questionId={questionId}
+      revealed={revealed}
+    />
+  )
 }

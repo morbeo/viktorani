@@ -38,6 +38,7 @@ export const LOG_KIND_LABELS: Record<LogRowKind, string> = {
   buzzer_unlocked: 'Buzzer unlocked',
   buzzes_cleared: 'Buzzes cleared',
   question_ruled: 'Question ruled',
+  answer_revealed: 'Answer revealed',
   timer_started: 'Timer started',
   timer_paused: 'Timer paused',
   timer_resumed: 'Timer resumed',

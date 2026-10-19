@@ -227,6 +227,7 @@ describe('DB schema', () => {
       autoAdvanceOnCorrect: false,
       autoAdvanceOnTimerExpiry: false,
       autoAdvanceDelaySeconds: 5,
+      revealTiming: 'manual',
       autoStartTimerOnQuestionShow: false,
       defaultTimerDuration: 60,
       soundEffectsMuted: false,
@@ -280,6 +281,7 @@ describe('DB schema', () => {
       autoAdvanceOnCorrect: false,
       autoAdvanceOnTimerExpiry: false,
       autoAdvanceDelaySeconds: 5,
+      revealTiming: 'manual' as const,
       autoStartTimerOnQuestionShow: false,
       defaultTimerDuration: 60,
       soundEffectsMuted: false,
@@ -554,7 +556,15 @@ describe('importDatabase', () => {
         version: 2,
         exportedAt: Date.now(),
         gameQuestions: [
-          { id: 'gq1', gameId: 'g1', questionId: 'q1', roundId: 'r1', order: 0, status: 'pending' },
+          {
+            id: 'gq1',
+            gameId: 'g1',
+            questionId: 'q1',
+            roundId: 'r1',
+            order: 0,
+            status: 'pending',
+            revealed: false,
+          },
         ],
       })
     )
@@ -708,6 +718,7 @@ describe('exportDatabase', () => {
       roundId: 'r1',
       order: 0,
       status: 'pending',
+      revealed: false,
     })
     let captured: Blob | null = null
     ;(URL.createObjectURL as ReturnType<typeof vi.fn>).mockImplementationOnce((blob: Blob) => {

@@ -24,6 +24,7 @@ function makeGQ(overrides: Partial<GameQuestion> = {}): GameQuestion {
     roundId: 'r1',
     order: 0,
     status: 'pending',
+    revealed: false,
     ...overrides,
   }
 }

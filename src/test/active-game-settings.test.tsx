@@ -92,7 +92,11 @@ vi.mock('@/components/gamemaster/ScreensPanel', () => ({ ScreensPanel: () => nul
 vi.mock('@/components/gamemaster/MessagePanel', () => ({ MessagePanel: () => null }))
 vi.mock('@/components/gamemaster/GameLogPanel', () => ({ GameLogPanel: () => null }))
 const { questionPanel } = vi.hoisted(() => ({
-  questionPanel: { props: null as null | { ruling?: { onRule: (...args: unknown[]) => void } } },
+  questionPanel: {
+    props: null as null | {
+      ruling?: { onRule: (...args: unknown[]) => void; onReveal: () => void }
+    },
+  },
 }))
 vi.mock('@/components/host/HostQuestionPanel', () => ({
   HostQuestionPanel: (props: typeof questionPanel.props) => {
@@ -144,6 +148,7 @@ function makeGame(overrides: Partial<Game> = {}): Game {
     autoAdvanceOnCorrect: false,
     autoAdvanceOnTimerExpiry: false,
     autoAdvanceDelaySeconds: 5,
+    revealTiming: 'manual',
     autoStartTimerOnQuestionShow: false,
     defaultTimerDuration: 60,
     soundEffectsMuted: false,
@@ -169,6 +174,7 @@ function makeGameQuestion(overrides: Partial<GameQuestion> = {}): GameQuestion {
     roundId: 'r1',
     order: 0,
     status: 'pending',
+    revealed: false,
     ...overrides,
   }
 }
@@ -427,25 +433,29 @@ describe('ActiveGame: auto-advance', () => {
   })
 })
 
+async function seedWithQuestion() {
+  await seed()
+  await db.questions.add({
+    id: 'q1',
+    title: 'Capital of France?',
+    type: 'open_ended',
+    options: [],
+    answer: 'Paris',
+    description: '',
+    difficulty: null,
+    tags: [],
+    media: null,
+    mediaType: null,
+    createdAt: 0,
+    updatedAt: 0,
+  })
+}
+
 // ── Rulings without a buzz ────────────────────────────────────────────────────
 
 describe('ActiveGame: host rulings', () => {
   it('records a correct ruling with no buzz and auto-advances', async () => {
-    await seed()
-    await db.questions.add({
-      id: 'q1',
-      title: 'Capital of France?',
-      type: 'open_ended',
-      options: [],
-      answer: 'Paris',
-      description: '',
-      difficulty: null,
-      tags: [],
-      media: null,
-      mediaType: null,
-      createdAt: 0,
-      updatedAt: 0,
-    })
+    await seedWithQuestion()
     renderActiveGame(makeGame({ autoAdvanceOnCorrect: true, autoAdvanceDelaySeconds: 1 }))
 
     await waitFor(() => expect(questionPanel.props?.ruling).toBeDefined())
@@ -459,5 +469,70 @@ describe('ActiveGame: host rulings', () => {
         ),
       { timeout: 3000 }
     )
+  })
+})
+
+// ── Revealing the answer ──────────────────────────────────────────────────────
+
+describe('ActiveGame: answer reveal', () => {
+  function renderRevealGame(game: Game) {
+    const onQuestionContent = vi.fn()
+    render(
+      <ActiveGame
+        game={game}
+        onGameChange={vi.fn()}
+        lifecycle={{ pauseGame: vi.fn(), resumeGame: vi.fn(), endGame: vi.fn() }}
+        buzzHandlerRef={{ current: null }}
+        pendingJoins={[]}
+        onApproveJoin={vi.fn()}
+        onRejectJoin={vi.fn()}
+        players={[]}
+        teams={[]}
+        onKick={vi.fn()}
+        onAddPlayer={vi.fn()}
+        onAssignPlayer={vi.fn()}
+        onAdjustScore={vi.fn()}
+        onUpdatePlayerNotes={vi.fn()}
+        onCreateTeam={vi.fn()}
+        onQuestionContent={onQuestionContent}
+        onScreenContent={vi.fn()}
+        screens={{
+          roomId: 'ROOM1',
+          pending: [],
+          connected: [],
+          onApprove: vi.fn(),
+          onReject: vi.fn(),
+          onDisconnect: vi.fn(),
+        }}
+        messages={{ players: [], teams: [], onSend: vi.fn() }}
+      />
+    )
+    return onQuestionContent
+  }
+  const lastAnswer = (fn: ReturnType<typeof vi.fn>) =>
+    (fn.mock.calls.at(-1)?.[0] as { answer: string | null } | null)?.answer ?? null
+
+  it('sends the answer only after the host reveals it', async () => {
+    await seedWithQuestion()
+    const onQuestionContent = renderRevealGame(makeGame())
+
+    await waitFor(() => expect(questionPanel.props?.ruling).toBeDefined())
+    await waitFor(() => expect(onQuestionContent).toHaveBeenCalled())
+    await act(async () => questionPanel.props!.ruling!.onRule('incorrect', null))
+    expect(lastAnswer(onQuestionContent)).toBeNull()
+
+    await act(async () => questionPanel.props!.ruling!.onReveal())
+    await waitFor(() => expect(lastAnswer(onQuestionContent)).toBe('Paris'))
+    expect((await db.gameQuestions.get('gq1'))?.revealed).toBe(true)
+  })
+
+  it('reveals as soon as the host rules when the game reveals after each ruling', async () => {
+    await seedWithQuestion()
+    const onQuestionContent = renderRevealGame(makeGame({ revealTiming: 'perQuestion' }))
+
+    await waitFor(() => expect(questionPanel.props?.ruling).toBeDefined())
+    await act(async () => questionPanel.props!.ruling!.onRule('skipped', null))
+
+    await waitFor(() => expect(lastAnswer(onQuestionContent)).toBe('Paris'))
   })
 })

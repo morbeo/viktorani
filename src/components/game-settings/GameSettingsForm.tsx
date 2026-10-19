@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { Lock } from 'lucide-react'
 import { Button, HelpTip, Icon, Input } from '@/components/ui'
 import { JOIN_POLICY_HELP } from '@/components/gamemaster/join-policy-help'
-import type { BuzzDeduplication, TargetVisibility } from '@/db'
+import type { BuzzDeduplication, RevealTiming, TargetVisibility } from '@/db'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { MAX_PRESETS, MAX_TIMER_SECONDS } from '@/lib/app-settings'
 import {
@@ -45,6 +45,11 @@ const VISIBILITY_COLUMNS = [
 const DEDUP_OPTIONS: Array<{ value: BuzzDeduplication; label: string }> = [
   { value: 'firstOnly', label: 'First per player' },
   { value: 'all', label: 'All attempts' },
+]
+
+const REVEAL_OPTIONS: Array<{ value: RevealTiming; label: string }> = [
+  { value: 'manual', label: 'When I reveal it' },
+  { value: 'perQuestion', label: 'After each ruling' },
 ]
 
 /** Game settings grouped into Basics, Joining, Buzzer and Visibility, with presets. */
@@ -224,6 +229,18 @@ export function GameSettingsForm({
           onChange={v => onChange({ autoAdvanceDelaySeconds: v })}
         />
       )}
+      <Row
+        label="Show the answer"
+        help="When players and the screen see the correct answer. When I reveal it: only after you click Reveal answer on the question. After each ruling: as soon as you rule the question Correct, Wrong or Skip, or rule a buzz correct."
+      >
+        <Segmented
+          label="Show the answer"
+          options={REVEAL_OPTIONS}
+          value={value.revealTiming}
+          disabled={disabled}
+          onChange={v => onChange({ revealTiming: v })}
+        />
+      </Row>
       <Toggle
         label="Auto-start timer on question"
         help="Start a timer automatically whenever a question is shown, using the default duration below."

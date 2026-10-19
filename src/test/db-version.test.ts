@@ -87,8 +87,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(19)
-    expect(db.backendDB().version).toBe(190)
+    expect(db.verno).toBe(20)
+    expect(db.backendDB().version).toBe(200)
     expect(db.backendDB().objectStoreNames.contains('managedPlayers')).toBe(true)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
     expect(await db.managedLabels.count()).toBe(0)
@@ -102,8 +102,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(19)
-    expect(db.backendDB().version).toBe(190)
+    expect(db.verno).toBe(20)
+    expect(db.backendDB().version).toBe(200)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
   })
 
@@ -264,5 +264,16 @@ describe('Dexie schema version', () => {
     await db.open()
 
     expect(await db.games.get('g-old')).toMatchObject({ autoRemoveAfterMinutes: 0 })
+  })
+
+  it('back-fills revealTiming and GameQuestion.revealed (v20)', async () => {
+    await seedRawDb(190, V1_STORES, {}, [], [], {
+      gameQuestions: [{ id: 'gq-old', gameId: 'g-old', status: 'correct' }],
+    })
+
+    await db.open()
+
+    expect(await db.games.get('g-old')).toMatchObject({ revealTiming: 'manual' })
+    expect(await db.gameQuestions.get('gq-old')).toMatchObject({ revealed: false })
   })
 })

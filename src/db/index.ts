@@ -224,6 +224,11 @@ export interface Game {
   autoAdvanceOnTimerExpiry: boolean
   /** Seconds the host has to cancel an automatic move to the next question. */
   autoAdvanceDelaySeconds: number
+  /**
+   * When players and screens see the correct answer: `manual` when the host clicks Reveal
+   * answer, `perQuestion` as soon as the host rules on the question (ADR 0023).
+   */
+  revealTiming: RevealTiming
   // Timer defaults
   /** Start a timer automatically whenever a question is shown. */
   autoStartTimerOnQuestionShow: boolean
@@ -342,6 +347,7 @@ export type GameLogKind =
   | 'buzzer_unlocked'
   | 'buzzes_cleared'
   | 'question_ruled'
+  | 'answer_revealed'
   | 'timer_started'
   | 'timer_paused'
   | 'timer_resumed'
@@ -386,6 +392,12 @@ export const GAME_PHASES = ['lobby', 'question', 'buzzed', 'reveal', 'scoreboard
 
 /** See {@link GAME_PHASES}. */
 export type GamePhase = (typeof GAME_PHASES)[number]
+
+/** Ways a game can reveal the correct answer, see {@link Game.revealTiming}. */
+export const REVEAL_TIMINGS = ['manual', 'perQuestion'] as const
+
+/** See {@link REVEAL_TIMINGS}. */
+export type RevealTiming = (typeof REVEAL_TIMINGS)[number]
 
 /** A phase a layout can be chosen for, or `all` for every phase with no choice of its own. */
 export type LayoutSlot = GamePhase | 'all'
@@ -584,6 +596,8 @@ export interface GameQuestion {
   /** Zero-based position across all rounds of the game. */
   order: number
   status: 'pending' | 'correct' | 'incorrect' | 'skipped'
+  /** Whether the correct answer has been shown to players and screens. */
+  revealed: boolean
 }
 
 // ── Database ─────────────────────────────────────────────────────────────────
@@ -621,6 +635,8 @@ export interface GameQuestion {
  * - 18: same stores; back-fills `Game.autoAdvanceOnCorrect` and `Game.autoAdvanceOnTimerExpiry`
  *   (`false`) and `Game.autoAdvanceDelaySeconds` (`5`) on existing games.
  * - 19: same stores; back-fills `Game.autoRemoveAfterMinutes` (`0`, never) on existing games.
+ * - 20: same stores; back-fills `Game.revealTiming` (`'manual'`) on existing games and
+ *   `GameQuestion.revealed` (`false`) on existing game questions.
  *
  * To change the schema, add a new `this.version(N + 1)` block below; keep existing blocks.
  */
@@ -823,6 +839,22 @@ export class ViktoraniDB extends Dexie {
             g.autoRemoveAfterMinutes ??= 0
           })
       )
+    this.version(20)
+      .stores({})
+      .upgrade(async tx => {
+        await tx
+          .table('games')
+          .toCollection()
+          .modify((g: Partial<Game>) => {
+            g.revealTiming ??= 'manual'
+          })
+        await tx
+          .table('gameQuestions')
+          .toCollection()
+          .modify((gq: Partial<GameQuestion>) => {
+            gq.revealed ??= false
+          })
+      })
   }
 }
 

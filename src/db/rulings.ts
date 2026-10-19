@@ -19,6 +19,22 @@ export async function questionPoints(questionId: string | null): Promise<number>
   return (await db.difficulties.get(question.difficulty))?.score ?? 1
 }
 
+/**
+ * Show the correct answer of a question to players and screens (ADR 0023). Does nothing for
+ * another game's question or one already revealed. Resolves to whether it was revealed now.
+ */
+export async function revealQuestion(gameId: string, gameQuestionId: string): Promise<boolean> {
+  const gq = await db.transaction('rw', db.gameQuestions, async () => {
+    const row = await db.gameQuestions.get(gameQuestionId)
+    if (!row || row.gameId !== gameId || row.revealed) return null
+    await db.gameQuestions.update(gameQuestionId, { revealed: true })
+    return row
+  })
+  if (!gq) return false
+  logEvent(gameId, 'answer_revealed', { subjectId: gq.questionId })
+  return true
+}
+
 /** Whether `gameId` already has a correct-answer score for `questionId`. */
 async function alreadyAwarded(gameId: string, questionId: string): Promise<boolean> {
   const event = await db.scoreEvents

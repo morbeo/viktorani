@@ -6,12 +6,15 @@ import rehypeSanitize from 'rehype-sanitize'
 import type { QuestionContent } from './player-session'
 import { isSafeMedia } from './safe-media'
 
-/** The question as far as the host lets players see it: title, description, options, media. */
+/**
+ * The question as far as the host lets players see it: title, description, options, media,
+ * and the answer once the host reveals it.
+ */
 export function PlayerQuestion({ question }: { question: QuestionContent }) {
-  const { title, description, options, media, mediaType } = question
+  const { title, description, options, answer, media, mediaType } = question
   const safeMedia = media && mediaType && isSafeMedia(media, mediaType) ? media : null
 
-  if (!title && !description && !options && !safeMedia) return null
+  if (!title && !description && !options && !answer && !safeMedia) return null
 
   return (
     <section
@@ -49,12 +52,22 @@ export function PlayerQuestion({ question }: { question: QuestionContent }) {
       {options && (
         <ol className="flex flex-col gap-2">
           {options.map((option, i) => (
-            <li key={i} className="rounded-lg border px-3 py-2 text-sm border-border text-text">
+            <li
+              key={i}
+              aria-current={option === answer ? 'true' : undefined}
+              className={`rounded-lg border px-3 py-2 text-sm text-text ${option === answer ? 'border-positive border-2' : 'border-border'}`}
+            >
               <span className="mono mr-2 text-muted">{String.fromCharCode(65 + i)}</span>
               {option}
             </li>
           ))}
         </ol>
+      )}
+
+      {answer && (
+        <p role="status" className="font-semibold text-positive">
+          Answer: {answer}
+        </p>
       )}
     </section>
   )
