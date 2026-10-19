@@ -200,6 +200,18 @@ describe('markAnswers', () => {
     expect(await status()).toBe('pending')
   })
 
+  it('closes a question nobody answered as told, so no answer slips in after', async () => {
+    expect(await markAnswers(GAME, 'gq1', 'skipped')).toBeNull()
+    expect(await status()).toBe('skipped')
+    expect(await recordAnswer('g1', 'gq1', 'p1', 1, 1)).toBe(false)
+  })
+
+  it('closes by the answers, not as told, when there are answers to mark', async () => {
+    await recordAnswer('g1', 'gq1', 'p1', 1, 1)
+    await markAnswers(GAME, 'gq1', 'skipped')
+    expect(await status()).toBe('correct')
+  })
+
   it('marks without scoring when scoring is off', async () => {
     await recordAnswer('g1', 'gq1', 'p1', 1, 1)
     await markAnswers({ id: 'g1', scoringEnabled: false }, 'gq1')

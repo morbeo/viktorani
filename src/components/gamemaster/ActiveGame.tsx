@@ -380,7 +380,7 @@ export function ActiveGame({
   const handleRule = useCallback(
     async (ruling: QuestionRuling, award: RulingAward | null) => {
       if (!currentGameQuestionId) return
-      await markAnswers(game, currentGameQuestionId)
+      await markAnswers(game, currentGameQuestionId, ruling)
       await ruleQuestion(game, currentGameQuestionId, ruling, award)
       if (game.revealTiming === 'perQuestion') await handleReveal()
       if (ruling === 'correct') onCorrect()

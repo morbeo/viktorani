@@ -1,5 +1,5 @@
 import { db } from '@/db'
-import type { Answer, Game, Question } from '@/db'
+import type { Answer, Game, GameQuestion, Question } from '@/db'
 import { logEvent } from '@/db/game-log'
 import { questionPoints } from '@/db/rulings'
 import { broadcastScores, writeScore } from '@/hooks/useScoreboard'
@@ -77,11 +77,14 @@ export interface MarkResult {
  * ones. Each correct answer scores the question's points for its team, or for the player
  * when they're not on a team. Answers are marked once: running it again only marks answers
  * that arrived since. When any answer is marked, the question becomes `correct` if one was
- * right and `incorrect` otherwise. Resolves to `null` when there was nothing to mark.
+ * right and `incorrect` otherwise. With nothing to mark, a still-open question becomes
+ * `closeAs` when given, in the same transaction, so no answer slips in before the caller's
+ * ruling or move lands. Resolves to `null` when there was nothing to mark.
  */
 export async function markAnswers(
   game: Pick<Game, 'id' | 'scoringEnabled'>,
-  gameQuestionId: string
+  gameQuestionId: string,
+  closeAs?: Exclude<GameQuestion['status'], 'pending'>
 ): Promise<MarkResult | null> {
   const result = await db.transaction(
     'rw',
@@ -102,7 +105,12 @@ export async function markAnswers(
         .equals(gameQuestionId)
         .filter((a: Answer) => a.ruling === 'pending')
         .toArray()
-      if (pending.length === 0) return null
+      if (pending.length === 0) {
+        if (closeAs && gq.status === 'pending') {
+          await db.gameQuestions.update(gameQuestionId, { status: closeAs })
+        }
+        return null
+      }
 
       const question = await db.questions.get(gq.questionId)
       const options = question ? choiceOptions(question) : []

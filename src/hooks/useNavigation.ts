@@ -101,8 +101,9 @@ export function useNavigation(
       // Moving on closes the question: players' choices are marked, and one nobody
       // answered is skipped
       if (dir === 1) {
-        await markAnswers(game, seq[pos.flatIndex].gameQuestionId)
-        await updateQuestionStatus(seq[pos.flatIndex].gameQuestionId, 'left')
+        const id = seq[pos.flatIndex].gameQuestionId
+        await markAnswers(game, id, 'skipped')
+        await updateQuestionStatus(id, 'left')
       }
       await db.games.update(game.id, {
         currentRoundIdx: nextPos.roundIdx,
