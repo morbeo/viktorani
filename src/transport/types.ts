@@ -122,6 +122,34 @@ export type GameEvent =
    * and to both whenever the game or app theme changes. Layout overrides stay in `LAYOUT`.
    */
   | { type: 'THEME'; theme: ResolvedTheme }
+  /**
+   * The answers revealed so far in the host's end-of-round review (ADR 0023), for one
+   * target, or `null` once the review is closed. Sent whenever a review answer is revealed,
+   * on admit and on screen approval while a review is open.
+   */
+  | { type: 'ROUND_ANSWERS'; target: VisibilityTarget; review: RoundAnswers | null }
+
+/** How the end-of-round review shows the round's answers. */
+export type RoundReviewView = 'list' | 'table'
+
+/** The revealed answers of one round, as sent in `ROUND_ANSWERS`. */
+export interface RoundAnswers {
+  roundName: string
+  view: RoundReviewView
+  items: RoundAnswerItem[]
+}
+
+/** One revealed question of a round review. */
+export interface RoundAnswerItem {
+  questionId: string
+  /** Position of the question in its round, from 1. */
+  number: number
+  /** `null` when the target may not see the question. */
+  title: string | null
+  answer: string
+  /** The host's ruling on the question. */
+  status: 'pending' | 'correct' | 'incorrect' | 'skipped'
+}
 
 /** Surfaces on other devices that get their layout over the transport. */
 export type RemoteLayoutTarget = 'player' | 'screen'

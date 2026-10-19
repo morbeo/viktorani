@@ -35,6 +35,7 @@ const EMPTY: PlayerSession = {
   layouts: null,
   phase: null,
   theme: null,
+  roundAnswers: null,
 }
 
 function content(target: 'players' | 'screen'): QuestionContent {
@@ -56,6 +57,15 @@ function emit(event: TransportEvent) {
 }
 
 describe('reduceSession', () => {
+  it("keeps the players' round answers and clears them when the review closes", () => {
+    const review = { roundName: 'R1', view: 'list' as const, items: [] }
+    const open = reduceSession(EMPTY, { type: 'ROUND_ANSWERS', target: 'players', review })
+    expect(open.roundAnswers).toEqual(review)
+    expect(reduceSession(EMPTY, { type: 'ROUND_ANSWERS', target: 'screen', review })).toBe(EMPTY)
+    const closed = reduceSession(open, { type: 'ROUND_ANSWERS', target: 'players', review: null })
+    expect(closed.roundAnswers).toBeNull()
+  })
+
   it('keeps the latest host message, as a new object each time, and clears it', () => {
     const first = reduceSession(EMPTY, { type: 'MESSAGE', text: 'Hi' })
     expect(first.message).toEqual({ text: 'Hi' })

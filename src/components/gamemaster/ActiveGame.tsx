@@ -16,6 +16,9 @@ import type { LucideIcon } from 'lucide-react'
 import { NavHeader } from '@/components/NavHeader'
 import { RoundBoundary } from '@/components/RoundBoundary'
 import { ConfirmSkipModal } from '@/components/gamemaster/ConfirmSkipModal'
+import { RoundReviewModal } from '@/components/gamemaster/RoundReviewModal'
+import type { RoundReviewRow } from '@/components/gamemaster/RoundReviewModal'
+import { useRoundReview } from '@/hooks/useRoundReview'
 import { AutoAdvanceNotice } from '@/components/gamemaster/AutoAdvanceNotice'
 import { useAutoAdvance } from '@/hooks/useAutoAdvance'
 import { ScoreboardPanel } from '@/components/scoreboard/ScoreboardPanel'
@@ -29,7 +32,7 @@ import { GameLogPanel } from '@/components/gamemaster/GameLogPanel'
 import type { MessagePanelProps } from '@/components/gamemaster/MessagePanel'
 import { Icon } from '@/components/ui'
 import { db } from '@/db'
-import { buildQuestionContent } from '@/pages/admin/gamemaster-utils'
+import { buildQuestionContent, buildRoundAnswers } from '@/pages/admin/gamemaster-utils'
 import { useNavigation } from '@/hooks/useNavigation'
 import { useKeyNav } from '@/hooks/useKeyNav'
 import { useBuzzer } from '@/hooks/useBuzzer'
@@ -69,6 +72,11 @@ export interface ActiveGameProps {
   onQuestionContent: (content: QuestionContent | null) => void
   /** Receives the screen's content for the current question, or `null` when there is none. */
   onScreenContent: (content: QuestionContent | null) => void
+  /**
+   * Receives the end-of-round review's revealed answers for players and the screen
+   * whenever they change, with `review: null` once it closes.
+   */
+  onRoundAnswers?: (players: RoundAnswersEvent, screen: RoundAnswersEvent) => void
   screens: ScreensPanelProps
   messages: MessagePanelProps
   /** Stored layouts for the play column; the built-in default is used when none fits. */
@@ -82,6 +90,7 @@ export interface ActiveGameProps {
 
 export type BuzzHandler = ReturnType<typeof useBuzzer>['handleIncomingBuzz']
 export type QuestionContent = Extract<GameEvent, { type: 'QUESTION_CONTENT' }>
+export type RoundAnswersEvent = Extract<GameEvent, { type: 'ROUND_ANSWERS' }>
 
 type SideTab = 'people' | 'messages' | 'scoreboard' | 'log'
 type TabId = 'play' | SideTab
@@ -159,6 +168,7 @@ export function ActiveGame({
   onCreateTeam,
   onQuestionContent,
   onScreenContent,
+  onRoundAnswers,
   screens,
   messages,
   layouts = [],
@@ -181,6 +191,37 @@ export function ActiveGame({
 
   const { seq, pos, goNext, goPrev, isReady, isEmpty } = useNavigation(game, handleBoundary)
 
+  // The end-of-round answer review (ADR 0023). With answers shown at the end of the round,
+  // Next on a round's last question opens it once, and Continue in it moves on.
+  const [review, setReview] = useRoundReview(game.id)
+  const [continueAfterReview, setContinueAfterReview] = useState(false)
+  const reviewedRoundsRef = useRef(new Set<string>())
+  const leaveRound = useCallback(() => {
+    const current = pos ? seq[pos.flatIndex] : undefined
+    const next = pos ? seq[pos.flatIndex + 1] : undefined
+    const lastOfRound = current && next && next.roundId !== current.roundId
+    if (
+      game.revealTiming === 'endOfRound' &&
+      current &&
+      lastOfRound &&
+      !reviewedRoundsRef.current.has(current.roundId)
+    ) {
+      setReview({ roundId: current.roundId, view: 'list' })
+      setContinueAfterReview(true)
+      return
+    }
+    void goNext()
+  }, [game.revealTiming, pos, seq, goNext, setReview])
+  const closeReview = useCallback(() => {
+    if (review) reviewedRoundsRef.current.add(review.roundId)
+    setReview(null)
+    setContinueAfterReview(false)
+  }, [review, setReview])
+  const continueFromReview = useCallback(() => {
+    closeReview()
+    void goNext()
+  }, [closeReview, goNext])
+
   // Confirm before leaving a question with no ruling, when the setting is on
   const [confirmingNav, setConfirmingNav] = useState(false)
   const confirmedGoNext = useCallback(() => {
@@ -189,8 +230,8 @@ export function ActiveGame({
       setConfirmingNav(true)
       return
     }
-    void goNext()
-  }, [game.confirmUnruledNavigation, pos, seq, goNext])
+    leaveRound()
+  }, [game.confirmUnruledNavigation, pos, seq, leaveRound])
 
   // Current question ID derived from nav position
   const currentQuestionId = pos ? (seq[pos.flatIndex]?.questionId ?? null) : null
@@ -226,6 +267,43 @@ export function ActiveGame({
       question ? buildQuestionContent(question, 'screen', screenVisibility, revealed) : null
     )
   }, [question, screenVisibility, revealed, onScreenContent])
+
+  // The round under review and its questions, in order
+  const reviewRound = review ? seq.find(e => e.roundId === review.roundId) : undefined
+  const reviewRows = useLiveQuery(async (): Promise<RoundReviewRow[]> => {
+    if (!review) return []
+    const gqs = await db.gameQuestions
+      .where('gameId')
+      .equals(game.id)
+      .filter(gq => gq.roundId === review.roundId)
+      .sortBy('order')
+    const qs = await db.questions.bulkGet(gqs.map(gq => gq.questionId))
+    return gqs.map((gameQuestion, i) => ({ gameQuestion, question: qs[i] }))
+  }, [game.id, review?.roundId])
+
+  // Send the review's revealed answers while it is open, and close it on players and screens
+  const reviewOpenRef = useRef(false)
+  useEffect(() => {
+    if (!onRoundAnswers) return
+    if (review && reviewRound && reviewRows) {
+      reviewOpenRef.current = true
+      const build = (target: 'players' | 'screen') =>
+        buildRoundAnswers(
+          reviewRound.roundName,
+          review.view,
+          reviewRows,
+          target,
+          target === 'players' ? playerVisibility : screenVisibility
+        )
+      onRoundAnswers(build('players'), build('screen'))
+    } else if (!review && reviewOpenRef.current) {
+      reviewOpenRef.current = false
+      onRoundAnswers(
+        { type: 'ROUND_ANSWERS', target: 'players', review: null },
+        { type: 'ROUND_ANSWERS', target: 'screen', review: null }
+      )
+    }
+  }, [review, reviewRound, reviewRows, playerVisibility, screenVisibility, onRoundAnswers])
 
   const { displayBuzzes, buzzes, toggleLock, adjudicate, clearBuzzes, handleIncomingBuzz } =
     useBuzzer(game, currentQuestionId, onGameChange)
@@ -482,9 +560,21 @@ export function ActiveGame({
         onClose={() => setConfirmingNav(false)}
         onConfirm={() => {
           setConfirmingNav(false)
-          void goNext()
+          leaveRound()
         }}
       />
+
+      {review && reviewRound && (
+        <RoundReviewModal
+          roundName={reviewRound.roundName}
+          view={review.view}
+          rows={reviewRows ?? []}
+          onViewChange={view => setReview({ ...review, view })}
+          onReveal={gameQuestionId => void revealQuestion(game.id, gameQuestionId)}
+          onClose={closeReview}
+          onContinue={continueAfterReview ? continueFromReview : undefined}
+        />
+      )}
 
       <HostTabs
         label="Host sections"
@@ -537,6 +627,10 @@ export function ActiveGame({
                 teams,
                 onRule: (ruling, award) => void handleRule(ruling, award),
                 onReveal: () => void handleReveal(),
+                onReviewRound: () => {
+                  const current = pos ? seq[pos.flatIndex] : undefined
+                  if (current) setReview({ roundId: current.roundId, view: 'list' })
+                },
               }}
               cellClassName="mt-6"
             />

@@ -1,5 +1,6 @@
 import type {
   Game,
+  GameQuestion,
   ManagedPlayer,
   ManagedTeam,
   Player,
@@ -8,12 +9,19 @@ import type {
   TargetVisibility,
   Team,
 } from '@/db'
-import type { GameEvent, SerializedGameState, VisibilityTarget } from '@/transport/types'
+import type {
+  GameEvent,
+  RoundReviewView,
+  SerializedGameState,
+  VisibilityTarget,
+} from '@/transport/types'
 import {
+  MAX_LABEL_LENGTH,
   MAX_LOBBY_TEAMS,
   MAX_MEDIA_LENGTH,
   MAX_NAME_LENGTH,
   MAX_OPTIONS,
+  MAX_ROUND_ANSWERS,
   MAX_TEXT_LENGTH,
 } from '@/transport/messages'
 
@@ -99,6 +107,44 @@ export function buildQuestionContent(
     answer: revealed && question.answer ? clip(question.answer) : null,
     media,
     mediaType: media ? question.mediaType : null,
+  }
+}
+
+/**
+ * Builds the ROUND_ANSWERS for one target from a round's questions in order: the revealed
+ * ones that have an answer, numbered by their place in the round. The title needs
+ * `showQuestion`; the answer is sent because it has been revealed. Text is clipped to the
+ * transport limits. Pure function.
+ */
+export function buildRoundAnswers(
+  roundName: string,
+  view: RoundReviewView,
+  rows: ReadonlyArray<{ gameQuestion: GameQuestion; question: Question | undefined }>,
+  target: VisibilityTarget,
+  flags: TargetVisibility
+): Extract<GameEvent, { type: 'ROUND_ANSWERS' }> {
+  const clip = (s: string) => s.slice(0, MAX_TEXT_LENGTH)
+  const items = rows.flatMap(({ gameQuestion, question }, i) =>
+    gameQuestion.revealed && question?.answer
+      ? [
+          {
+            questionId: question.id,
+            number: i + 1,
+            title: flags.showQuestion ? clip(question.title) : null,
+            answer: clip(question.answer),
+            status: gameQuestion.status,
+          },
+        ]
+      : []
+  )
+  return {
+    type: 'ROUND_ANSWERS',
+    target,
+    review: {
+      roundName: roundName.slice(0, MAX_LABEL_LENGTH),
+      view,
+      items: items.slice(0, MAX_ROUND_ANSWERS),
+    },
   }
 }
 

@@ -25,6 +25,7 @@ import {
   MAX_STATUS_LENGTH,
   MAX_TEXT_LENGTH,
   MAX_THEME_EVENT_LENGTH,
+  MAX_ROUND_ANSWERS,
 } from '@/transport/messages'
 import { BUILT_IN_THEMES, resolveTheme } from '@/lib/theme'
 import type { SerializedGameState, TransportEvent } from '@/transport/types'
@@ -150,6 +151,23 @@ const FIXTURES: { [K in TransportEvent['type']]: Extract<TransportEvent, { type:
     theme: {
       ...resolveTheme({ app: BUILT_IN_THEMES[1], surface: 'player' }),
       logo: { wordmark: LOGO, mark: null },
+    },
+  },
+  ROUND_ANSWERS: {
+    type: 'ROUND_ANSWERS',
+    target: 'players',
+    review: {
+      roundName: 'Round 1',
+      view: 'table',
+      items: [
+        {
+          questionId: 'q1',
+          number: 1,
+          title: 'Capital of France?',
+          answer: 'Paris',
+          status: 'correct',
+        },
+      ],
     },
   },
 }
@@ -685,5 +703,36 @@ describe('THEME', () => {
     expect(accepts({ ...event, theme: { ...theme, logo: { wordmark: big, mark: big } } })).toBe(
       false
     )
+  })
+})
+
+describe('ROUND_ANSWERS', () => {
+  it('accepts a closed review', () => {
+    expect(
+      GameEventSchemas.ROUND_ANSWERS.safeParse({
+        type: 'ROUND_ANSWERS',
+        target: 'screen',
+        review: null,
+      }).success
+    ).toBe(true)
+  })
+
+  it('rejects too many answers', () => {
+    const item = FIXTURES.ROUND_ANSWERS.review!.items[0]
+    const review = {
+      ...FIXTURES.ROUND_ANSWERS.review!,
+      items: Array.from({ length: MAX_ROUND_ANSWERS + 1 }, () => item),
+    }
+    expect(
+      GameEventSchemas.ROUND_ANSWERS.safeParse({ ...FIXTURES.ROUND_ANSWERS, review }).success
+    ).toBe(false)
+  })
+
+  it('accepts a question numbered past the answer cap', () => {
+    const item = { ...FIXTURES.ROUND_ANSWERS.review!.items[0], number: MAX_ROUND_ANSWERS + 1 }
+    const review = { ...FIXTURES.ROUND_ANSWERS.review!, items: [item] }
+    expect(
+      GameEventSchemas.ROUND_ANSWERS.safeParse({ ...FIXTURES.ROUND_ANSWERS, review }).success
+    ).toBe(true)
   })
 })

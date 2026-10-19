@@ -92,6 +92,8 @@ export interface GamemasterData {
   onRule: (ruling: QuestionRuling, award: RulingAward | null) => void
   /** Shows the correct answer of the question shown to players and screens. */
   onReveal: () => void
+  /** Opens the review of the current round's answers (ADR 0023). */
+  onReviewRound: () => void
 }
 
 /** What a player's phone knows about the game, as handed to its widgets. */

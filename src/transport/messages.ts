@@ -66,6 +66,8 @@ export const MAX_LAYOUT_EVENT_LENGTH = 3_000_000
 export const MAX_THEME_NAME_LENGTH = 60
 /** Max size of a whole `THEME`, in characters of JSON; like `LAYOUT`, it fits one large logo. */
 export const MAX_THEME_EVENT_LENGTH = 3_000_000
+/** Most questions a round review sends. */
+export const MAX_ROUND_ANSWERS = 200
 
 const id = z.string().max(MAX_ID_LENGTH)
 const name = z.string().max(MAX_NAME_LENGTH)
@@ -245,6 +247,28 @@ export const GameEventSchemas = {
   THEME: z
     .strictObject({ type: z.literal('THEME'), theme: themePayload })
     .refine(e => JSON.stringify(e).length <= MAX_THEME_EVENT_LENGTH, 'Theme too large'),
+  ROUND_ANSWERS: z.strictObject({
+    type: z.literal('ROUND_ANSWERS'),
+    target,
+    review: z
+      .strictObject({
+        roundName: z.string().max(MAX_LABEL_LENGTH),
+        view: z.enum(['list', 'table']),
+        items: z
+          .array(
+            z.strictObject({
+              questionId: id,
+              // The question's position in its round, which can pass the item cap
+              number: z.number().int().min(1),
+              title: text.nullable(),
+              answer: text,
+              status: z.enum(['pending', 'correct', 'incorrect', 'skipped']),
+            })
+          )
+          .max(MAX_ROUND_ANSWERS),
+      })
+      .nullable(),
+  }),
 }
 
 /** Schemas for events sent by players to the GameMaster. */
@@ -294,6 +318,7 @@ export const TransportEventSchema = z.discriminatedUnion('type', [
   GameEventSchemas.LAYOUT,
   GameEventSchemas.PHASE,
   GameEventSchemas.THEME,
+  GameEventSchemas.ROUND_ANSWERS,
   PlayerEventSchemas.BUZZ,
   PlayerEventSchemas.JOIN,
   PlayerEventSchemas.LEAVE,

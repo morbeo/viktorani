@@ -100,7 +100,7 @@ No tracking epic; standalone issues/PRs in the gamemaster area.
 - [x] Remove players who stay disconnected past a timeout, part of #424's scope
 - [x] Rule on a question (Correct / Wrong / Skip, with optional points to a player or team) without a buzz, so games can run with the buzzer off
 - [x] Reveal the correct answer to players and the screen, by hand or after each ruling (ADR 0023, step 2)
-- [ ] End-of-round answer review, one by one or as a table (ADR 0023, step 3)
+- [x] End-of-round answer review, one by one or as a table (ADR 0023, step 3)
 - [ ] Expand game settings further: tiebreaker modes, local-network-only join, auto-reveal the correct answer, spectator join (#424, remaining scope — the player cap shipped in #432, confirm-navigation in #434, and "floor scores at zero" already holds)
 - [x] Per-question/round/game timers: shortcut presets in the new-timer dialog, and the auto-started question timer is reused instead of stacked (#421)
 
@@ -123,7 +123,8 @@ Epic: #364. Scope and dependency order are in the epic body: widget registry →
 - **Auto-advance (#424):** after a correct ruling, or when a question timer (auto-reset `question`) runs out, the game moves to the next question after a countdown the host can cancel (5 s by default, 1 to 60). Navigating by hand, pausing or the last question drops it, and a timer that ran out before the page opened doesn't count. "Auto-reveal the correct answer" is left out: players are never sent the correct answer today, so revealing it needs a transport change of its own.
 - **Auto-remove (#424):** `autoRemoveAfterMinutes` (0 = never, up to 99) marks a player who stays disconnected that long as left, checked every 5 s on the host. Players who left, by Leave or this timeout, no longer count toward `maxPlayers`, and can still rejoin as themselves when rejoining is allowed, as long as a place is free (the security review on #475 caught a cap bypass otherwise).
 - **Host rulings (#424 follow-up):** the buzzer is optional, one input type among others. The question panel's Correct / Wrong / Skip sets the question's status, scores the chosen player (and their team) or team, and logs `question_ruled`, with no buzz needed. Revealing answers stays separate (ADR 0023).
-- **Answer reveal (ADR 0023):** `Game.revealTiming` is `manual` (Reveal answer on the question panel) or `perQuestion` (any panel ruling, or a correct buzz). `GameQuestion.revealed` (Dexie v20) makes `buildQuestionContent` fill `QUESTION_CONTENT.answer`, so rejoining players and screens get the answer only once it's revealed; the phase becomes `reveal`. A separate `REVEAL` event is left for the end-of-round review.
+- **Answer reveal (ADR 0023):** `Game.revealTiming` is `manual` (Reveal answer on the question panel) or `perQuestion` (any panel ruling, or a correct buzz). `GameQuestion.revealed` (Dexie v20) makes `buildQuestionContent` fill `QUESTION_CONTENT.answer`, so rejoining players and screens get the answer only once it's revealed; the phase becomes `reveal`. Past questions are revealed through the end-of-round review instead.
+- **End-of-round review (ADR 0023, step 3):** with `revealTiming: 'endOfRound'`, Next on a round's last question opens a review (one by one, or a table) instead of moving on. Each reveal sets `GameQuestion.revealed`; the host sends `ROUND_ANSWERS` (the round's revealed answers, built by `buildRoundAnswers` under the visibility flags, `review: null` to close) to players and remote screens, and on rejoin. Which round is under review is kept per game in local storage, so the projector window follows it.
 - **Next up:** #424's remaining settings, one PR each.
 
 ## Decisions (2026-10-16)

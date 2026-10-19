@@ -73,6 +73,15 @@ beforeEach(() => {
 })
 
 describe('reduceScreen', () => {
+  it("keeps the screen's round answers only", () => {
+    const review = { roundName: 'R1', view: 'table' as const, items: [] }
+    const s = reduceScreen(INITIAL_SCREEN, { type: 'ROUND_ANSWERS', target: 'screen', review })
+    expect(s.roundAnswers).toEqual(review)
+    expect(reduceScreen(INITIAL_SCREEN, { type: 'ROUND_ANSWERS', target: 'players', review })).toBe(
+      INITIAL_SCREEN
+    )
+  })
+
   it('keeps the host message and clears it', () => {
     const s = reduceScreen(INITIAL_SCREEN, { type: 'MESSAGE', text: 'Break: 10 minutes' })
     expect(s.message).toBe('Break: 10 minutes')

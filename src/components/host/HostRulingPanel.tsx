@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, Eye, SkipForward, X } from 'lucide-react'
+import { Check, Eye, ListChecks, SkipForward, X } from 'lucide-react'
 import { Button, Icon } from '@/components/ui'
 import type { GameQuestion, Player, Team } from '@/db'
 import type { QuestionRuling, RulingAward } from '@/db/rulings'
@@ -20,6 +20,8 @@ interface HostRulingPanelProps {
   /** Whether players and screens have been shown the correct answer. */
   revealed: boolean
   onReveal: () => void
+  /** Opens the review of the round's answers; no button without it. */
+  onReviewRound?: () => void
 }
 
 /**
@@ -36,6 +38,7 @@ export function HostRulingPanel({
   onRule,
   revealed,
   onReveal,
+  onReviewRound,
 }: HostRulingPanelProps) {
   // `player:<id>` or `team:<id>`, or '' for nobody
   const [awardKey, setAwardKey] = useState('')
@@ -100,6 +103,12 @@ export function HostRulingPanel({
           <Icon icon={Eye} size="sm" />
           {revealed ? 'Answer revealed' : 'Reveal answer'}
         </Button>
+        {onReviewRound && (
+          <Button size="sm" variant="secondary" disabled={disabled} onClick={onReviewRound}>
+            <Icon icon={ListChecks} size="sm" />
+            Round answers
+          </Button>
+        )}
       </div>
     </section>
   )

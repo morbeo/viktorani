@@ -3,6 +3,7 @@
 // confirm-before-navigate on an unruled question, and auto-starting a timer
 // when a question is shown. Every other child panel is mocked out so these
 // tests only exercise navigation + the timer auto-start effect.
+import type { ComponentProps } from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -179,7 +180,7 @@ function makeGameQuestion(overrides: Partial<GameQuestion> = {}): GameQuestion {
   }
 }
 
-function renderActiveGame(game: Game) {
+function renderActiveGame(game: Game, extra: Partial<ComponentProps<typeof ActiveGame>> = {}) {
   return render(
     <ActiveGame
       game={game}
@@ -208,6 +209,7 @@ function renderActiveGame(game: Game) {
         onDisconnect: vi.fn(),
       }}
       messages={{ players: [], teams: [], onSend: vi.fn() }}
+      {...extra}
     />
   )
 }
@@ -534,5 +536,79 @@ describe('ActiveGame: answer reveal', () => {
     await act(async () => questionPanel.props!.ruling!.onRule('skipped', null))
 
     await waitFor(() => expect(lastAnswer(onQuestionContent)).toBe('Paris'))
+  })
+})
+
+// ── End-of-round review ───────────────────────────────────────────────────────
+
+describe('ActiveGame: end-of-round review', () => {
+  async function seedTwoRounds() {
+    await db.rounds.bulkAdd([
+      { ...ROUND, questionIds: ['q1'] },
+      { ...ROUND, id: 'r2', name: 'Round 2', questionIds: ['q2'] },
+    ])
+    await db.gameQuestions.bulkAdd([
+      makeGameQuestion({ status: 'correct' }),
+      makeGameQuestion({ id: 'gq2', questionId: 'q2', roundId: 'r2', order: 1 }),
+    ])
+    await db.questions.add({
+      id: 'q1',
+      title: 'Capital of France?',
+      type: 'open_ended',
+      options: [],
+      answer: 'Paris',
+      description: '',
+      difficulty: null,
+      tags: [],
+      media: null,
+      mediaType: null,
+      createdAt: 0,
+      updatedAt: 0,
+    })
+  }
+
+  it("opens on Next at a round's end, reveals answers one by one, and moves on", async () => {
+    const user = userEvent.setup()
+    localStorage.clear()
+    await seedTwoRounds()
+    const onRoundAnswers = vi.fn()
+    const game = makeGame({ revealTiming: 'endOfRound', roundIds: ['r1', 'r2'] })
+    renderActiveGame(game, { onRoundAnswers })
+
+    await user.click(await screen.findByRole('button', { name: 'Next question' }))
+    expect(await screen.findByText('Round answers · Round 1')).toBeInTheDocument()
+    expect(mockSend).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'SLIDE_CHANGE' }))
+    await waitFor(() => expect(onRoundAnswers).toHaveBeenCalled())
+    expect(onRoundAnswers.mock.calls.at(-1)?.[0].review.items).toEqual([])
+
+    await user.click(await screen.findByRole('button', { name: 'Reveal answer 1' }))
+    await waitFor(() =>
+      expect(onRoundAnswers.mock.calls.at(-1)?.[0].review.items).toEqual([
+        expect.objectContaining({ answer: 'Paris', number: 1, status: 'correct' }),
+      ])
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Continue' }))
+    await waitFor(() =>
+      expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({ type: 'SLIDE_CHANGE' }))
+    )
+    expect(onRoundAnswers.mock.calls.at(-1)?.[0]).toEqual({
+      type: 'ROUND_ANSWERS',
+      target: 'players',
+      review: null,
+    })
+  })
+
+  it('moves straight on when answers are revealed some other way', async () => {
+    const user = userEvent.setup()
+    localStorage.clear()
+    await seedTwoRounds()
+    renderActiveGame(makeGame({ revealTiming: 'manual', roundIds: ['r1', 'r2'] }))
+
+    await user.click(await screen.findByRole('button', { name: 'Next question' }))
+    await waitFor(() =>
+      expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({ type: 'SLIDE_CHANGE' }))
+    )
+    expect(screen.queryByText('Round answers · Round 1')).toBeNull()
   })
 })
