@@ -132,6 +132,9 @@ function makeGame(overrides: Partial<Game> = {}): Game {
     buzzDeduplication: 'firstOnly',
     tiebreakerMode: 'serverOrder',
     confirmUnruledNavigation: false,
+    autoAdvanceOnCorrect: false,
+    autoAdvanceOnTimerExpiry: false,
+    autoAdvanceDelaySeconds: 5,
     autoStartTimerOnQuestionShow: false,
     defaultTimerDuration: 60,
     soundEffectsMuted: false,
@@ -355,5 +358,56 @@ describe('ActiveGame: auto-start timer', () => {
     expect(mockDeleteTimer).toHaveBeenCalledWith('timer-1')
     expect(mockRestartTimer).not.toHaveBeenCalled()
     await waitFor(() => expect(mockStartTimer).toHaveBeenCalledWith('timer-2'))
+  })
+})
+
+// ── Auto-advance ──────────────────────────────────────────────────────────────
+
+describe('ActiveGame: auto-advance', () => {
+  // A running question timer that runs out a moment after the page opens
+  function expiringQuestionTimer(): Timer {
+    return {
+      id: 'q-timer',
+      gameId: 'g1',
+      label: 'Question',
+      duration: 10,
+      remaining: 10,
+      target: 'all',
+      message: '',
+      visible: true,
+      paused: false,
+      startedAt: Date.now() - 9_900,
+      audioNotify: 'none',
+      visualNotify: 'none',
+      autoReset: 'question',
+    }
+  }
+
+  it('moves to the next question after the question timer runs out', async () => {
+    await seed()
+    mockTimers.push(expiringQuestionTimer())
+    renderActiveGame(makeGame({ autoAdvanceOnTimerExpiry: true, autoAdvanceDelaySeconds: 1 }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent("Time's up. Next question in")
+    await waitFor(
+      () =>
+        expect(mockSend).toHaveBeenCalledWith(
+          expect.objectContaining({ type: 'SLIDE_CHANGE', index: 1 })
+        ),
+      { timeout: 3000 }
+    )
+  })
+
+  it('stays on the question when the host presses Stay', async () => {
+    const user = userEvent.setup()
+    await seed()
+    mockTimers.push(expiringQuestionTimer())
+    renderActiveGame(makeGame({ autoAdvanceOnTimerExpiry: true, autoAdvanceDelaySeconds: 1 }))
+
+    await user.click(await screen.findByRole('button', { name: 'Stay' }))
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    await new Promise(r => setTimeout(r, 1200))
+    expect(mockSend).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'SLIDE_CHANGE' }))
   })
 })

@@ -213,6 +213,12 @@ export interface Game {
   tiebreakerMode: TiebreakerMode
   /** Ask for confirmation before leaving a question with no ruling (`pending`). */
   confirmUnruledNavigation: boolean
+  /** Move to the next question a few seconds after a correct ruling. */
+  autoAdvanceOnCorrect: boolean
+  /** Move to the next question a few seconds after the question timer runs out. */
+  autoAdvanceOnTimerExpiry: boolean
+  /** Seconds the host has to cancel an automatic move to the next question. */
+  autoAdvanceDelaySeconds: number
   // Timer defaults
   /** Start a timer automatically whenever a question is shown. */
   autoStartTimerOnQuestionShow: boolean
@@ -606,6 +612,8 @@ export interface GameQuestion {
  *   widget's `width: 'full' | 'half'` becomes a 12-column `grid` rect, packed into rows in
  *   `order`, with no `breakpoints` overrides.
  * - 17: adds `themes`, the host's own themes (ADR 0022).
+ * - 18: same stores; back-fills `Game.autoAdvanceOnCorrect` and `Game.autoAdvanceOnTimerExpiry`
+ *   (`false`) and `Game.autoAdvanceDelaySeconds` (`5`) on existing games.
  *
  * To change the schema, add a new `this.version(N + 1)` block below; keep existing blocks.
  */
@@ -784,6 +792,19 @@ export class ViktoraniDB extends Dexie {
       })
 
     this.version(17).stores({ themes: 'id, name' })
+
+    this.version(18)
+      .stores({})
+      .upgrade(tx =>
+        tx
+          .table('games')
+          .toCollection()
+          .modify((g: Partial<Game>) => {
+            g.autoAdvanceOnCorrect ??= false
+            g.autoAdvanceOnTimerExpiry ??= false
+            g.autoAdvanceDelaySeconds ??= 5
+          })
+      )
   }
 }
 

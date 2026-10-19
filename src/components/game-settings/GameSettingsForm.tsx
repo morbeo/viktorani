@@ -8,6 +8,7 @@ import { MAX_PRESETS, MAX_TIMER_SECONDS } from '@/lib/app-settings'
 import {
   GAME_SETTINGS_KEYS,
   LIVE_PRESET_KEYS,
+  MAX_AUTO_ADVANCE_DELAY,
   MAX_LIMIT,
   matchPreset,
   pickGameSettings,
@@ -191,6 +192,31 @@ export function GameSettingsForm({
         disabled={disabled}
         onChange={v => onChange({ confirmUnruledNavigation: v })}
       />
+      <Toggle
+        label="Next question after a correct answer"
+        help="Moves on by itself a few seconds after you rule a buzz correct. You can cancel it from the countdown."
+        checked={value.autoAdvanceOnCorrect}
+        disabled={disabled}
+        onChange={v => onChange({ autoAdvanceOnCorrect: v })}
+      />
+      <Toggle
+        label="Next question when the question timer runs out"
+        help="Moves on by itself a few seconds after a question timer (one that resets every question) reaches zero. You can cancel it from the countdown."
+        checked={value.autoAdvanceOnTimerExpiry}
+        disabled={disabled}
+        onChange={v => onChange({ autoAdvanceOnTimerExpiry: v })}
+      />
+      {(value.autoAdvanceOnCorrect || value.autoAdvanceOnTimerExpiry) && (
+        <LimitStepper
+          label="Countdown before moving on (seconds)"
+          help="How long you have to cancel before the next question is shown."
+          value={value.autoAdvanceDelaySeconds}
+          min={1}
+          max={MAX_AUTO_ADVANCE_DELAY}
+          disabled={disabled}
+          onChange={v => onChange({ autoAdvanceDelaySeconds: v })}
+        />
+      )}
       <Toggle
         label="Auto-start timer on question"
         help="Start a timer automatically whenever a question is shown, using the default duration below."
@@ -469,19 +495,25 @@ function Segmented<T extends string | null>({
   )
 }
 
+/** A number stepper; `0` means no limit unless `min` is set above it. */
 function LimitStepper({
   label,
   help,
   value,
   disabled,
   onChange,
+  min = 0,
+  max = MAX_LIMIT,
 }: {
   label: string
   help: string
   value: number
   disabled: boolean
   onChange: (v: number) => void
+  min?: number
+  max?: number
 }) {
+  const unlimited = min === 0
   const btn = 'w-6 h-6 rounded border text-sm leading-none disabled:opacity-40'
   return (
     <Row label={label} help={help}>
@@ -489,7 +521,7 @@ function LimitStepper({
         <button
           type="button"
           aria-label={`Decrease ${label}`}
-          disabled={disabled || value <= 0}
+          disabled={disabled || value <= min}
           onClick={() => onChange(value - 1)}
           className={btn}
           style={{ borderColor: 'var(--color-border)' }}
@@ -497,27 +529,29 @@ function LimitStepper({
           −
         </button>
         <span className="mono text-xs w-16 text-center" aria-live="polite">
-          {value === 0 ? 'No limit' : value}
+          {unlimited && value === 0 ? 'No limit' : value}
         </span>
         <button
           type="button"
           aria-label={`Increase ${label}`}
-          disabled={disabled || value >= MAX_LIMIT}
+          disabled={disabled || value >= max}
           onClick={() => onChange(value + 1)}
           className={btn}
           style={{ borderColor: 'var(--color-border)' }}
         >
           +
         </button>
-        <button
-          type="button"
-          aria-label={`No limit for ${label}`}
-          disabled={disabled || value === 0}
-          onClick={() => onChange(0)}
-          className="text-xs underline disabled:opacity-40 disabled:no-underline text-muted"
-        >
-          ∞
-        </button>
+        {unlimited && (
+          <button
+            type="button"
+            aria-label={`No limit for ${label}`}
+            disabled={disabled || value === 0}
+            onClick={() => onChange(0)}
+            className="text-xs underline disabled:opacity-40 disabled:no-underline text-muted"
+          >
+            ∞
+          </button>
+        )}
       </span>
     </Row>
   )

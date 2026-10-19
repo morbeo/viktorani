@@ -87,8 +87,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(17)
-    expect(db.backendDB().version).toBe(170)
+    expect(db.verno).toBe(18)
+    expect(db.backendDB().version).toBe(180)
     expect(db.backendDB().objectStoreNames.contains('managedPlayers')).toBe(true)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
     expect(await db.managedLabels.count()).toBe(0)
@@ -102,8 +102,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(17)
-    expect(db.backendDB().version).toBe(170)
+    expect(db.verno).toBe(18)
+    expect(db.backendDB().version).toBe(180)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
   })
 
@@ -244,5 +244,17 @@ describe('Dexie schema version', () => {
       expect(w).not.toHaveProperty('width')
       expect(w.breakpoints).toEqual({})
     }
+  })
+
+  it('back-fills the auto-advance defaults on existing games (v18)', async () => {
+    await seedRawDb(160, V1_STORES)
+
+    await db.open()
+
+    expect(await db.games.get('g-old')).toMatchObject({
+      autoAdvanceOnCorrect: false,
+      autoAdvanceOnTimerExpiry: false,
+      autoAdvanceDelaySeconds: 5,
+    })
   })
 })

@@ -16,6 +16,8 @@ import type { LucideIcon } from 'lucide-react'
 import { NavHeader } from '@/components/NavHeader'
 import { RoundBoundary } from '@/components/RoundBoundary'
 import { ConfirmSkipModal } from '@/components/gamemaster/ConfirmSkipModal'
+import { AutoAdvanceNotice } from '@/components/gamemaster/AutoAdvanceNotice'
+import { useAutoAdvance } from '@/hooks/useAutoAdvance'
 import { ScoreboardPanel } from '@/components/scoreboard/ScoreboardPanel'
 import { GameControls } from '@/components/gamemaster/GameControls'
 import { PendingJoinsPanel } from '@/components/gamemaster/PendingJoinsPanel'
@@ -229,20 +231,31 @@ export function ActiveGame({
     onPhase?.(phase)
   }, [phase, onPhase])
 
-  // Rule on the buzz, then record the result against the question shown
-  const handleAdjudicate = useCallback(
-    async (buzzId: string, decision: GmDecision) => {
-      await adjudicate(buzzId, decision)
-      if (currentGameQuestionId) await updateQuestionStatus(currentGameQuestionId, decision)
-    },
-    [adjudicate, currentGameQuestionId]
-  )
-
   const timerHook = useTimerList(game.id)
   const timerHookRef = useRef(timerHook)
   useEffect(() => {
     timerHookRef.current = timerHook
   }, [timerHook])
+
+  // Move on by itself after a correct ruling or when the question timer runs out
+  const autoAdvance = useAutoAdvance({
+    game,
+    flatIndex: pos?.flatIndex ?? null,
+    isLast: !pos || pos.flatIndex >= seq.length - 1,
+    timers: timerHook.timers,
+    onAdvance: goNext,
+  })
+  const { onCorrect } = autoAdvance
+
+  // Rule on the buzz, then record the result against the question shown
+  const handleAdjudicate = useCallback(
+    async (buzzId: string, decision: GmDecision) => {
+      await adjudicate(buzzId, decision)
+      if (currentGameQuestionId) await updateQuestionStatus(currentGameQuestionId, decision)
+      if (decision === 'Correct') onCorrect()
+    },
+    [adjudicate, currentGameQuestionId, onCorrect]
+  )
 
   // Auto-reset timers on navigation, then auto-start the question timer for the question
   // shown. The auto-started timer is reused from question to question rather than stacked.
@@ -432,6 +445,10 @@ export function ActiveGame({
       <GameControls game={game} onGameChange={onGameChange} lifecycle={lifecycle} />
 
       <NavHeader pos={pos} seq={seq} onPrev={goPrev} onNext={confirmedGoNext} />
+
+      {autoAdvance.pending && (
+        <AutoAdvanceNotice pending={autoAdvance.pending} onCancel={autoAdvance.cancel} />
+      )}
 
       <ConfirmSkipModal
         open={confirmingNav}
