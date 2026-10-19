@@ -341,6 +341,7 @@ export type GameLogKind =
   | 'buzzer_locked'
   | 'buzzer_unlocked'
   | 'buzzes_cleared'
+  | 'question_ruled'
   | 'timer_started'
   | 'timer_paused'
   | 'timer_resumed'

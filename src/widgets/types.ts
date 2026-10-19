@@ -1,4 +1,5 @@
 import type { ComponentType, ReactNode } from 'react'
+import type { QuestionRuling, RulingAward } from '@/db/rulings'
 import type { z } from 'zod'
 import type {
   BuzzEvent,
@@ -87,6 +88,8 @@ export interface GamemasterData {
   /** Everyone who has joined the game, and its teams. */
   players: Player[]
   teams: Team[]
+  /** Rules on the question shown without a buzz, awarding its points to `award` if correct. */
+  onRule: (ruling: QuestionRuling, award: RulingAward | null) => void
 }
 
 /** What a player's phone knows about the game, as handed to its widgets. */

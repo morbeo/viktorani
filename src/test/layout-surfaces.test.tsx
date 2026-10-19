@@ -63,6 +63,7 @@ function gmData(game: Partial<Game> = {}, rest: Partial<GamemasterData> = {}): G
     timers: {} as UseTimerListResult,
     players: [],
     teams: [],
+    onRule: vi.fn(),
     ...rest,
   }
 }

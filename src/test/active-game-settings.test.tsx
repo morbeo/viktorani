@@ -4,7 +4,7 @@
 // when a question is shown. Every other child panel is mocked out so these
 // tests only exercise navigation + the timer auto-start effect.
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { Game, GameQuestion, Round, Timer } from '@/db'
 import type { CreateTimerOptions } from '@/hooks/useTimer'
@@ -91,7 +91,15 @@ vi.mock('@/components/gamemaster/RosterPanel', () => ({ RosterPanel: () => null 
 vi.mock('@/components/gamemaster/ScreensPanel', () => ({ ScreensPanel: () => null }))
 vi.mock('@/components/gamemaster/MessagePanel', () => ({ MessagePanel: () => null }))
 vi.mock('@/components/gamemaster/GameLogPanel', () => ({ GameLogPanel: () => null }))
-vi.mock('@/components/host/HostQuestionPanel', () => ({ HostQuestionPanel: () => null }))
+const { questionPanel } = vi.hoisted(() => ({
+  questionPanel: { props: null as null | { ruling?: { onRule: (...args: unknown[]) => void } } },
+}))
+vi.mock('@/components/host/HostQuestionPanel', () => ({
+  HostQuestionPanel: (props: typeof questionPanel.props) => {
+    questionPanel.props = props
+    return null
+  },
+}))
 vi.mock('@/components/timer/TimerPanel', () => ({ TimerPanel: () => null }))
 
 import { db } from '@/db'
@@ -209,7 +217,13 @@ async function seed(gqOverrides: Partial<GameQuestion> = {}) {
 beforeEach(async () => {
   vi.clearAllMocks()
   mockTimers.length = 0
-  await Promise.all([db.rounds.clear(), db.gameQuestions.clear(), db.games.clear()])
+  questionPanel.props = null
+  await Promise.all([
+    db.rounds.clear(),
+    db.gameQuestions.clear(),
+    db.games.clear(),
+    db.questions.clear(),
+  ])
 })
 
 // ── Confirm before leaving an unruled question ────────────────────────────────
@@ -410,5 +424,40 @@ describe('ActiveGame: auto-advance', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
     await new Promise(r => setTimeout(r, 1200))
     expect(mockSend).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'SLIDE_CHANGE' }))
+  })
+})
+
+// ── Rulings without a buzz ────────────────────────────────────────────────────
+
+describe('ActiveGame: host rulings', () => {
+  it('records a correct ruling with no buzz and auto-advances', async () => {
+    await seed()
+    await db.questions.add({
+      id: 'q1',
+      title: 'Capital of France?',
+      type: 'open_ended',
+      options: [],
+      answer: 'Paris',
+      description: '',
+      difficulty: null,
+      tags: [],
+      media: null,
+      mediaType: null,
+      createdAt: 0,
+      updatedAt: 0,
+    })
+    renderActiveGame(makeGame({ autoAdvanceOnCorrect: true, autoAdvanceDelaySeconds: 1 }))
+
+    await waitFor(() => expect(questionPanel.props?.ruling).toBeDefined())
+    await act(async () => questionPanel.props!.ruling!.onRule('correct', null))
+
+    await waitFor(async () => expect((await db.gameQuestions.get('gq1'))?.status).toBe('correct'))
+    await waitFor(
+      () =>
+        expect(mockSend).toHaveBeenCalledWith(
+          expect.objectContaining({ type: 'SLIDE_CHANGE', index: 1 })
+        ),
+      { timeout: 3000 }
+    )
   })
 })

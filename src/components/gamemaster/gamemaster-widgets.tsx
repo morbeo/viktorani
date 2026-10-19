@@ -38,7 +38,7 @@ export function GamemasterProgressWidget({ data }: GamemasterWidgetProps) {
 }
 
 export function GamemasterQuestionWidget({ data }: GamemasterWidgetProps) {
-  const { question, gameQuestion, game, onGameChange } = data
+  const { question, gameQuestion, game, onGameChange, players, teams, onRule } = data
   if (!question || !gameQuestion) return null
   return (
     <HostQuestionPanel
@@ -46,6 +46,7 @@ export function GamemasterQuestionWidget({ data }: GamemasterWidgetProps) {
       gameQuestion={gameQuestion}
       game={game}
       onGameChange={onGameChange}
+      ruling={{ players, teams, onRule }}
     />
   )
 }
