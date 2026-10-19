@@ -210,6 +210,8 @@ export async function seedDemo(): Promise<void> {
     autoAdvanceOnTimerExpiry: false,
     autoAdvanceDelaySeconds: 5,
     revealTiming: 'manual',
+    holdScores: false,
+    scoresAnnouncedAt: null,
     autoStartTimerOnQuestionShow: false,
     defaultTimerDuration: 60,
     soundEffectsMuted: false,

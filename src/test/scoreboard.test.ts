@@ -12,6 +12,14 @@ vi.mock('@/transport', () => ({
 }))
 
 import { transportManager } from '@/transport'
+import {
+  announceScores,
+  broadcastScores,
+  changeScore,
+  readShownScores,
+  scoresAsOf,
+  shownScoreEvents,
+} from '@/hooks/useScoreboard'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -21,6 +29,8 @@ async function clearAll() {
     db.players.clear(),
     db.teams.clear(),
     db.difficulties.clear(),
+    db.scoreEvents.clear(),
+    db.gameLog.clear(),
   ])
 }
 
@@ -59,6 +69,8 @@ function makeGame(overrides: Partial<Game> = {}): Game {
     autoAdvanceOnTimerExpiry: false,
     autoAdvanceDelaySeconds: 5,
     revealTiming: 'manual',
+    holdScores: false,
+    scoresAnnouncedAt: null,
     autoStartTimerOnQuestionShow: false,
     defaultTimerDuration: 60,
     soundEffectsMuted: false,
@@ -229,5 +241,77 @@ describe('scoringEnabled gate', () => {
     // ScoreboardPanel returns null when scoringEnabled is false
     // We test the condition directly (rendering tests covered in component tests)
     expect(game.scoringEnabled).toBe(false)
+  })
+})
+
+describe('held scores', () => {
+  beforeEach(async () => {
+    vi.clearAllMocks()
+    await clearAll()
+  })
+
+  const event = (targetId: string, from: number, to: number, timestamp: number) => ({
+    targetId,
+    from,
+    to,
+    timestamp,
+  })
+
+  it('works out each score as of a time from its changes', () => {
+    const live = { p1: 9, p2: 4, p3: 7 }
+    const events = [event('p1', 0, 3, 10), event('p1', 3, 9, 30), event('p2', 1, 4, 40)]
+    expect(scoresAsOf(live, events, 20)).toEqual({ p1: 3, p2: 1, p3: 7 })
+    expect(scoresAsOf(live, events, null)).toEqual({ p1: 0, p2: 1, p3: 7 })
+    expect(scoresAsOf(live, events, 50)).toEqual(live)
+  })
+
+  it('ignores changes to players and teams no longer in the game', () => {
+    expect(scoresAsOf({ p1: 1 }, [event('gone', 0, 5, 1)], 0)).toEqual({ p1: 1 })
+  })
+
+  it('shows players the scores of the last announcement while scores are held', async () => {
+    await db.games.add(makeGame({ holdScores: true, scoresAnnouncedAt: null }))
+    await db.players.add(makePlayer())
+    await changeScore({
+      gameId: 'g1',
+      id: 'p1',
+      kind: 'player',
+      next: s => s + 3,
+      reason: 'correct',
+      questionId: null,
+    })
+
+    expect(await readShownScores('g1')).toEqual({ p1: 0 })
+    await broadcastScores('g1')
+    expect(transportManager.send).toHaveBeenLastCalledWith({
+      type: 'SCORE_UPDATE',
+      scores: { p1: 0 },
+    })
+
+    const patch = await announceScores('g1')
+    expect((await db.games.get('g1'))?.scoresAnnouncedAt).toBe(patch.scoresAnnouncedAt)
+    expect(transportManager.send).toHaveBeenLastCalledWith({
+      type: 'SCORE_UPDATE',
+      scores: { p1: 3 },
+    })
+    const log = await db.gameLog.where('gameId').equals('g1').toArray()
+    expect(log.map(e => e.kind)).toContain('scores_announced')
+  })
+
+  it('shows live scores when not held, and once the game has ended', async () => {
+    await db.games.add(makeGame({ holdScores: true, status: 'ended' }))
+    await db.players.add(makePlayer({ score: 5 }))
+    expect(await readShownScores('g1')).toEqual({ p1: 5 })
+    await db.games.update('g1', { status: 'active', holdScores: false })
+    expect(await readShownScores('g1')).toEqual({ p1: 5 })
+  })
+
+  it('hides score changes after the announcement from the public log', () => {
+    const events = [event('p1', 0, 5, 100), event('p1', 5, 10, 300)]
+    const held = { holdScores: true, status: 'active' as const, scoresAnnouncedAt: 200 }
+    expect(shownScoreEvents(held, events)).toEqual([events[0]])
+    expect(shownScoreEvents({ ...held, scoresAnnouncedAt: null }, events)).toEqual([])
+    expect(shownScoreEvents({ ...held, status: 'ended' as const }, events)).toEqual(events)
+    expect(shownScoreEvents({ ...held, holdScores: false }, events)).toEqual(events)
   })
 })

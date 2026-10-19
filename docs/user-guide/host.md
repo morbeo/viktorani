@@ -270,6 +270,15 @@ correct answers at the end. Mark typed answers there with ✓ and ✗, or **Mark
 correct** for the whole round. **Close answers** closes every open question of the round
 shown so far, which marks the choices.
 
+### Holding scores until you announce them
+
+To keep the scores a surprise while you mark, turn on **Hold scores until announced** in the
+game's settings. Marks still score as usual and the host view shows the current scores, but
+phones and the screen keep showing the scores from your last announcement. Click **Announce
+scores** in the toolbar, the command palette or the round sheet to show the current ones.
+When the game ends, everyone sees the final scores. The screen's game log leaves out held score
+changes too, but it still lists buzzer rulings as they happen.
+
 ### Revealing the answer
 
 Players and the screen don't see the correct answer until you reveal it. Click **Reveal

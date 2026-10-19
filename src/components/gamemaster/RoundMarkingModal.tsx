@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Check, CheckCheck, Lock, X } from 'lucide-react'
+import { Check, CheckCheck, Lock, Megaphone, X } from 'lucide-react'
 import { Button, Icon, Modal } from '@/components/ui'
 import { db } from '@/db'
 import type { Answer, Player, Team } from '@/db'
@@ -18,6 +18,8 @@ interface RoundMarkingModalProps {
   onMarkTyped: (answers: SeenAnswer[], ruling: 'correct' | 'incorrect') => void
   /** Closes the round's open questions to new answers, marking choices. */
   onCloseAnswers: (gameQuestionIds: string[]) => void
+  /** Shows players and screens the scores as they stand, in a game that holds them. */
+  onAnnounceScores?: () => void
   onClose: () => void
 }
 
@@ -38,6 +40,7 @@ export function RoundMarkingModal({
   disabled = false,
   onMarkTyped,
   onCloseAnswers,
+  onAnnounceScores,
   onClose,
 }: RoundMarkingModalProps) {
   const ids = rows.map(r => r.gameQuestion.id)
@@ -171,6 +174,12 @@ export function RoundMarkingModal({
             <Icon icon={CheckCheck} size="sm" />
             Mark matching correct
           </Button>
+          {onAnnounceScores && (
+            <Button variant="secondary" disabled={disabled} onClick={onAnnounceScores}>
+              <Icon icon={Megaphone} size="sm" />
+              Announce scores
+            </Button>
+          )}
           <Button variant="primary" onClick={onClose}>
             Done
           </Button>

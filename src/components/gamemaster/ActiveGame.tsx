@@ -36,6 +36,7 @@ import { db } from '@/db'
 import { buildQuestionContent, buildRoundAnswers } from '@/pages/admin/gamemaster-utils'
 import { useNavigation } from '@/hooks/useNavigation'
 import { useKeyNav } from '@/hooks/useKeyNav'
+import { announceScores } from '@/hooks/useScoreboard'
 import { useBuzzer } from '@/hooks/useBuzzer'
 import { useTimerList } from '@/hooks/useTimer'
 import type { PendingJoin } from '@/pages/admin/player-connections'
@@ -673,6 +674,11 @@ export function ActiveGame({
           disabled={isEnded}
           onMarkTyped={(answers, ruling) => void handleMarkTyped(answers, ruling)}
           onCloseAnswers={ids => void handleCloseRound(ids)}
+          onAnnounceScores={
+            game.holdScores && game.scoringEnabled
+              ? () => void announceScores(game.id).then(onGameChange)
+              : undefined
+          }
           onClose={() => setMarkingRoundId(null)}
         />
       )}

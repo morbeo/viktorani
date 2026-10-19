@@ -233,6 +233,17 @@ export interface Game {
    * review of the round's answers before the next round (ADR 0023).
    */
   revealTiming: RevealTiming
+  /**
+   * Keep score changes from players and screens until the host announces them: they see the
+   * scores as of {@link Game.scoresAnnouncedAt} while the game runs.
+   */
+  holdScores: boolean
+  /**
+   * When the host last announced scores (epoch ms), or `null` before the first time; with
+   * {@link Game.holdScores}, players and screens see the scores as of then (the starting
+   * scores when `null`). Set when holding is turned on, so nothing already shown goes back.
+   */
+  scoresAnnouncedAt: number | null
   // Timer defaults
   /** Start a timer automatically whenever a question is shown. */
   autoStartTimerOnQuestionShow: boolean
@@ -354,6 +365,7 @@ export type GameLogKind =
   | 'answer_revealed'
   | 'answers_marked'
   | 'answer_marked'
+  | 'scores_announced'
   | 'timer_started'
   | 'timer_paused'
   | 'timer_resumed'
@@ -678,6 +690,8 @@ export interface Answer {
  * - 21: adds `answers`, players' answers in `choice` games; replaces `Game.buzzerEnabled`
  *   with `Game.inputType` (`buzzer`, or `none` for a game with the buzzer off).
  * - 22: same stores; back-fills `Answer.text` (`null`) for typed answers in `text` games.
+ * - 23: same stores; back-fills `Game.holdScores` (`false`) and `Game.scoresAnnouncedAt`
+ *   (`null`) on existing games.
  *
  * To change the schema, add a new `this.version(N + 1)` block below; keep existing blocks.
  */
@@ -918,6 +932,18 @@ export class ViktoraniDB extends Dexie {
           .toCollection()
           .modify((a: Partial<Answer>) => {
             a.text ??= null
+          })
+      )
+
+    this.version(23)
+      .stores({})
+      .upgrade(tx =>
+        tx
+          .table('games')
+          .toCollection()
+          .modify((g: Partial<Game>) => {
+            g.holdScores ??= false
+            g.scoresAnnouncedAt ??= null
           })
       )
   }
