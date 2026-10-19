@@ -1,4 +1,5 @@
 import type { ComponentType, ReactNode } from 'react'
+import type { SeenAnswer } from '@/db/answers'
 import type { QuestionRuling, RulingAward } from '@/db/rulings'
 import type { z } from 'zod'
 import type {
@@ -95,7 +96,7 @@ export interface GamemasterData {
   /** Closes the question shown to new answers, marking players' choices. */
   onMarkAnswers: () => void
   /** Marks typed answers right or wrong, in a game that takes them. */
-  onMarkTyped: (answerIds: string[], ruling: 'correct' | 'incorrect') => void
+  onMarkTyped: (answers: SeenAnswer[], ruling: 'correct' | 'incorrect') => void
   /** Opens the review of the current round's answers (ADR 0023). */
   onReviewRound: () => void
 }

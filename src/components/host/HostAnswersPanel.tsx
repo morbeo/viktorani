@@ -4,6 +4,7 @@ import { Button, Icon } from '@/components/ui'
 import { db } from '@/db'
 import type { Answer, GameQuestion, Player, Question, Team } from '@/db'
 import { choiceOptions, textMatches } from '@/db/answers'
+import type { SeenAnswer } from '@/db/answers'
 
 interface HostAnswersPanelProps {
   /** How players answer: by picking an option, or by typing. */
@@ -16,7 +17,7 @@ interface HostAnswersPanelProps {
   /** Closes the question to new answers, marking choices. */
   onMark: () => void
   /** Marks typed answers right or wrong. */
-  onMarkTyped?: (answerIds: string[], ruling: 'correct' | 'incorrect') => void
+  onMarkTyped?: (answers: SeenAnswer[], ruling: 'correct' | 'incorrect') => void
 }
 
 const RULING_LABELS: Record<Answer['ruling'], string> = {
@@ -81,12 +82,7 @@ export function HostAnswersPanel({
               size="sm"
               variant="ghost"
               disabled={disabled || matching.length === 0}
-              onClick={() =>
-                onMarkTyped(
-                  matching.map(a => a.id),
-                  'correct'
-                )
-              }
+              onClick={() => onMarkTyped(matching, 'correct')}
             >
               <Icon icon={CheckCheck} size="sm" />
               Mark matching correct
@@ -141,7 +137,7 @@ export function HostAnswersPanel({
                     aria-label={`Mark ${nameOf(a)} correct`}
                     aria-pressed={a.ruling === 'correct'}
                     disabled={disabled}
-                    onClick={() => onMarkTyped([a.id], 'correct')}
+                    onClick={() => onMarkTyped([a], 'correct')}
                   >
                     <Icon icon={Check} size="sm" />
                   </Button>
@@ -151,7 +147,7 @@ export function HostAnswersPanel({
                     aria-label={`Mark ${nameOf(a)} wrong`}
                     aria-pressed={a.ruling === 'incorrect'}
                     disabled={disabled}
-                    onClick={() => onMarkTyped([a.id], 'incorrect')}
+                    onClick={() => onMarkTyped([a], 'incorrect')}
                   >
                     <Icon icon={X} size="sm" />
                   </Button>

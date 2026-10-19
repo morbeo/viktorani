@@ -48,7 +48,7 @@ import { autoPhase, effectivePhase } from '@/lib/layout-phase'
 import { updateQuestionStatus } from '@/db/games'
 import { revealQuestion, ruleQuestion } from '@/db/rulings'
 import { markAnswers, markTypedAnswers, recordAnswer } from '@/db/answers'
-import type { AnswerInput } from '@/db/answers'
+import type { AnswerInput, SeenAnswer } from '@/db/answers'
 import type { QuestionRuling, RulingAward } from '@/db/rulings'
 import { layoutCommands, phaseCommands } from '@/components/gamemaster/layout-commands'
 import type { GameEvent } from '@/transport/types'
@@ -382,8 +382,8 @@ export function ActiveGame({
 
   // Mark typed answers right or wrong
   const handleMarkTyped = useCallback(
-    (answerIds: string[], ruling: 'correct' | 'incorrect') =>
-      markTypedAnswers(game, answerIds, ruling),
+    (answers: SeenAnswer[], ruling: 'correct' | 'incorrect') =>
+      markTypedAnswers(game, answers, ruling),
     [game]
   )
 

@@ -7,7 +7,7 @@ import type { ComponentProps } from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { Game, GameQuestion, Round, Timer } from '@/db'
+import type { Answer, Game, GameQuestion, Round, Timer } from '@/db'
 import type { CreateTimerOptions } from '@/hooks/useTimer'
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
@@ -699,9 +699,9 @@ describe('ActiveGame: choice answers', () => {
 
     const ruling = questionPanel.props?.ruling as unknown as {
       onMarkAnswers: () => void
-      onMarkTyped: (ids: string[], ruling: 'correct' | 'incorrect') => void
+      onMarkTyped: (answers: Answer[], ruling: 'correct' | 'incorrect') => void
     }
-    act(() => ruling.onMarkTyped([answer.id], 'correct'))
+    act(() => ruling.onMarkTyped([answer], 'correct'))
     await waitFor(async () => expect((await db.players.get('p1'))?.score).toBe(1))
     act(() => ruling.onMarkAnswers())
     await waitFor(async () => expect((await db.gameQuestions.get('gq1'))?.status).toBe('correct'))

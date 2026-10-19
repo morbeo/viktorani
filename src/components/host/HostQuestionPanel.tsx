@@ -6,6 +6,7 @@ import { HostVisibilityToggles } from './HostVisibilityToggles'
 import { HostRulingPanel } from './HostRulingPanel'
 import { HostAnswersPanel } from './HostAnswersPanel'
 import type { Player, Team } from '@/db'
+import type { SeenAnswer } from '@/db/answers'
 import type { QuestionRuling, RulingAward } from '@/db/rulings'
 
 interface HostQuestionPanelProps {
@@ -24,7 +25,7 @@ interface HostQuestionPanelProps {
     /** Marks players' choices, in a game where they pick an option. */
     onMarkAnswers?: () => void
     /** Marks typed answers right or wrong, in a game where players type them. */
-    onMarkTyped?: (answerIds: string[], ruling: 'correct' | 'incorrect') => void
+    onMarkTyped?: (answers: SeenAnswer[], ruling: 'correct' | 'incorrect') => void
   }
 }
 

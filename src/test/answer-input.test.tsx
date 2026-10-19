@@ -290,9 +290,12 @@ describe('HostAnswersPanel', () => {
     ).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'Mark Bob wrong' }))
-    expect(onMarkTyped).toHaveBeenLastCalledWith(['a2'], 'incorrect')
+    expect(onMarkTyped).toHaveBeenLastCalledWith(
+      [expect.objectContaining({ id: 'a2' })],
+      'incorrect'
+    )
     await userEvent.click(screen.getByRole('button', { name: 'Mark matching correct' }))
-    expect(onMarkTyped).toHaveBeenLastCalledWith(['a1'], 'correct')
+    expect(onMarkTyped).toHaveBeenLastCalledWith([expect.objectContaining({ id: 'a1' })], 'correct')
     await userEvent.click(screen.getByRole('button', { name: 'Close answers' }))
     expect(onMark).toHaveBeenCalled()
   })

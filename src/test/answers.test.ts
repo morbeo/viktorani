@@ -284,13 +284,13 @@ describe('typed answers', () => {
 
   it('scores a typed answer the host marks right, and takes the points back on a change', async () => {
     await typed('p1', 'Paris')
-    const { id } = await answerOf('p1')
+    const seen = await answerOf('p1')
 
-    expect(await markTypedAnswers(GAME, [id], 'correct')).toBe(1)
+    expect(await markTypedAnswers(GAME, [seen], 'correct')).toBe(1)
     expect((await db.players.get('p1'))?.score).toBe(3)
     expect(await status()).toBe('pending')
 
-    await markTypedAnswers(GAME, [id], 'incorrect')
+    await markTypedAnswers(GAME, [seen], 'incorrect')
     expect((await db.players.get('p1'))?.score).toBe(0)
     expect((await answerOf('p1')).ruling).toBe('incorrect')
   })
@@ -301,15 +301,15 @@ describe('typed answers', () => {
     await markAnswers(GAME, 'gq1', 'skipped')
     expect(await status()).toBe('incorrect')
 
-    await markTypedAnswers(GAME, [(await answerOf('p1')).id], 'correct')
+    await markTypedAnswers(GAME, [await answerOf('p1')], 'correct')
     expect(await status()).toBe('correct')
-    await markTypedAnswers(GAME, [(await answerOf('p1')).id], 'incorrect')
+    await markTypedAnswers(GAME, [await answerOf('p1')], 'incorrect')
     expect(await status()).toBe('incorrect')
   })
 
   it("puts a changed answer back to unmarked, without the old one's points", async () => {
     await typed('p1', 'Paris')
-    await markTypedAnswers(GAME, [(await answerOf('p1')).id], 'correct')
+    await markTypedAnswers(GAME, [await answerOf('p1')], 'correct')
     await typed('p1', 'Lyon', 2)
     expect(await answerOf('p1')).toMatchObject({ text: 'Lyon', ruling: 'pending' })
     expect((await db.players.get('p1'))?.score).toBe(0)
@@ -340,13 +340,23 @@ describe('typed answers', () => {
         ruling: 'pending',
       },
     ])
-    expect(await markTypedAnswers(GAME, ['other', 'picked', 'missing'], 'correct')).toBe(0)
+    const seen = ['other', 'picked', 'missing'].map(id => ({ id, receivedAt: 1 }))
+    expect(await markTypedAnswers(GAME, seen, 'correct')).toBe(0)
+    expect((await db.players.get('p1'))?.score).toBe(0)
+  })
+
+  it('leaves an answer replaced since the host saw it unmarked', async () => {
+    await typed('p1', 'Paris', 1)
+    const seen = await answerOf('p1')
+    await typed('p1', 'Lyon', 2)
+    expect(await markTypedAnswers(GAME, [seen], 'correct')).toBe(0)
+    expect(await answerOf('p1')).toMatchObject({ text: 'Lyon', ruling: 'pending' })
     expect((await db.players.get('p1'))?.score).toBe(0)
   })
 
   it('logs who was marked', async () => {
     await typed('p1', 'Paris')
-    await markTypedAnswers(GAME, [(await answerOf('p1')).id], 'correct')
+    await markTypedAnswers(GAME, [await answerOf('p1')], 'correct')
     const log = await db.gameLog.where('gameId').equals('g1').toArray()
     expect(log).toEqual([
       expect.objectContaining({

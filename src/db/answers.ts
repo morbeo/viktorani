@@ -203,27 +203,32 @@ export async function markAnswers(
   return { correct: result.correct, total: result.total, status: result.status }
 }
 
+/** The answer the host saw: its id, and when its current text arrived. */
+export type SeenAnswer = Pick<Answer, 'id' | 'receivedAt'>
+
 /**
  * The host marks typed answers right or wrong (ADR 0023), for the question shown or one
  * already closed. A right answer scores the question's points for its team (or player), and
  * changing a mark moves them. On a closed question the status follows the marks: `correct`
  * when any is right, `incorrect` otherwise. An open question keeps taking answers until it is
- * closed. Answers of another game, and choices (which are marked automatically), are left
- * alone. Resolves to how many answers changed.
+ * closed. Answers of another game, choices (which are marked automatically), and answers the
+ * player replaced since the host saw them are left alone. Resolves to how many changed.
  */
 export async function markTypedAnswers(
   game: Pick<Game, 'id' | 'scoringEnabled'>,
-  answerIds: string[],
+  seen: SeenAnswer[],
   ruling: Exclude<Answer['ruling'], 'pending'>
 ): Promise<number> {
   const result = await db.transaction('rw', RULING_TABLES, async () => {
-    const rows = await db.answers.bulkGet(answerIds)
+    const rows = await db.answers.bulkGet(seen.map(s => s.id))
     let changed = 0
     let scored = false
     const touched = new Map<string, GameQuestion>()
     const marked: { questionId: string; name: string }[] = []
-    for (const a of rows) {
+    for (const [i, a] of rows.entries()) {
       if (!a || a.gameId !== game.id || a.text === null || a.ruling === ruling) continue
+      // Replaced since the host saw it: the mark was meant for the earlier text
+      if (a.receivedAt !== seen[i].receivedAt) continue
       const gq = touched.get(a.gameQuestionId) ?? (await db.gameQuestions.get(a.gameQuestionId))
       if (!gq || gq.gameId !== game.id) continue
       touched.set(gq.id, gq)

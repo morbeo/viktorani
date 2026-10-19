@@ -769,8 +769,9 @@ describe('ANSWER and choices', () => {
     expect(parsed).toMatchObject({ text: 'Paris' })
   })
 
-  it('rejects empty, blank or too long text', () => {
-    for (const text of ['', '   ', 'x'.repeat(MAX_ANSWER_TEXT_LENGTH + 1), 5]) {
+  it('rejects empty, blank or too long text, padding included', () => {
+    const padded = `x${' '.repeat(MAX_ANSWER_TEXT_LENGTH * 2)}`
+    for (const text of ['', '   ', 'x'.repeat(MAX_ANSWER_TEXT_LENGTH + 1), padded, 5]) {
       expect(ok(answer(null, text))).toBe(false)
     }
   })

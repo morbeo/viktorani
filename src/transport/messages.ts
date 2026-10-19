@@ -303,7 +303,14 @@ export const PlayerEventSchemas = {
         .min(0)
         .max(MAX_OPTIONS - 1)
         .nullable(),
-      text: z.string().trim().min(1).max(MAX_ANSWER_TEXT_LENGTH).nullable(),
+      // Bounded before trimming too, so padding can't carry an oversized string past the cap
+      text: z
+        .string()
+        .max(MAX_ANSWER_TEXT_LENGTH * 2)
+        .trim()
+        .min(1)
+        .max(MAX_ANSWER_TEXT_LENGTH)
+        .nullable(),
     })
     .refine(e => (e.choice === null) !== (e.text === null), 'Send a choice or text, not both'),
   LEAVE: z.strictObject({ type: z.literal('LEAVE') }),
