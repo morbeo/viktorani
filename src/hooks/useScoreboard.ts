@@ -79,6 +79,19 @@ export function scoresAsOf(
 }
 
 /**
+ * The score changes players and screens may see: in a game that holds its scores, only those
+ * up to the last announcement, so the public log doesn't give away held scores. Pure function.
+ */
+export function shownScoreEvents<E extends Pick<ScoreEvent, 'timestamp'>>(
+  game: Pick<Game, 'holdScores' | 'status' | 'scoresAnnouncedAt'> | undefined,
+  events: E[]
+): E[] {
+  if (!game || !holdsScores(game)) return events
+  const at = game.scoresAnnouncedAt ?? -Infinity
+  return events.filter(e => e.timestamp <= at)
+}
+
+/**
  * The scores players and screens see: the live ones, or with {@link Game.holdScores} the
  * scores as of the host's last announcement, until the game ends.
  */

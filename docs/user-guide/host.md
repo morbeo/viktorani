@@ -276,7 +276,8 @@ To keep the scores a surprise while you mark, turn on **Hold scores until announ
 game's settings. Marks still score as usual and the host view shows the current scores, but
 phones and the screen keep showing the scores from your last announcement. Click **Announce
 scores** in the toolbar, the command palette or the round sheet to show the current ones.
-When the game ends, everyone sees the final scores.
+When the game ends, everyone sees the final scores. The screen's game log leaves out held score
+changes too, but it still lists buzzer rulings as they happen.
 
 ### Revealing the answer
 

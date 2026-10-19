@@ -139,7 +139,7 @@ export const GameSchema = z
       .default(AUTO_ADVANCE_DEFAULT_DELAY),
     revealTiming: z.enum(REVEAL_TIMINGS).default('manual'),
     holdScores: z.boolean().default(false),
-    scoresAnnouncedAt: z.number().nullable().default(null),
+    scoresAnnouncedAt: z.number().int().min(0).nullable().default(null),
     autoStartTimerOnQuestionShow: z.boolean().default(false),
     defaultTimerDuration: z.number().int().min(1).max(MAX_TIMER_SECONDS).default(60),
     soundEffectsMuted: z.boolean().default(false),

@@ -18,6 +18,7 @@ import {
   changeScore,
   readShownScores,
   scoresAsOf,
+  shownScoreEvents,
 } from '@/hooks/useScoreboard'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -303,5 +304,14 @@ describe('held scores', () => {
     expect(await readShownScores('g1')).toEqual({ p1: 5 })
     await db.games.update('g1', { status: 'active', holdScores: false })
     expect(await readShownScores('g1')).toEqual({ p1: 5 })
+  })
+
+  it('hides score changes after the announcement from the public log', () => {
+    const events = [event('p1', 0, 5, 100), event('p1', 5, 10, 300)]
+    const held = { holdScores: true, status: 'active' as const, scoresAnnouncedAt: 200 }
+    expect(shownScoreEvents(held, events)).toEqual([events[0]])
+    expect(shownScoreEvents({ ...held, scoresAnnouncedAt: null }, events)).toEqual([])
+    expect(shownScoreEvents({ ...held, status: 'ended' as const }, events)).toEqual(events)
+    expect(shownScoreEvents({ ...held, holdScores: false }, events)).toEqual(events)
   })
 })

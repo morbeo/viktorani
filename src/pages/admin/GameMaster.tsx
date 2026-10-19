@@ -34,6 +34,7 @@ import {
   holdsScores,
   readShownScores,
   scoresAsOf,
+  shownScoreEvents,
 } from '@/hooks/useScoreboard'
 import { buildLogRows, toPublicLogEntries } from '@/lib/game-log-rows'
 import { PlayerConnections, messageRecipients, resolveJoin } from '@/pages/admin/player-connections'
@@ -477,7 +478,8 @@ export default function GameMaster() {
   // Public feed of the game log, sent to screens only (see PUBLIC_LOG_KINDS)
   const logGameRows = useLiveQuery(async () => {
     if (!id) return []
-    const [log, buzzes, scores, ps, ts] = await Promise.all([
+    const [g, log, buzzes, scores, ps, ts] = await Promise.all([
+      db.games.get(id),
       db.gameLog.where('gameId').equals(id).toArray(),
       db.buzzEvents.where('gameId').equals(id).toArray(),
       db.scoreEvents.where('gameId').equals(id).toArray(),
@@ -487,7 +489,7 @@ export default function GameMaster() {
     const names = new Map<string, string>()
     for (const p of ps) names.set(p.id, p.name)
     for (const t of ts) names.set(t.id, t.name)
-    return buildLogRows(log, buzzes, scores, names)
+    return buildLogRows(log, buzzes, shownScoreEvents(g, scores), names)
   }, [id])
   const logFeed = JSON.stringify(toPublicLogEntries(logGameRows ?? [], MAX_LOG_ENTRIES))
   useEffect(() => {
