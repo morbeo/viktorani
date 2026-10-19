@@ -162,8 +162,40 @@ describe('TimerPanel', () => {
       gameId: 'g1',
       label: 'New Timer',
       duration: 45,
+      autoReset: undefined,
     })
     expect(mockHook.startTimer).toHaveBeenCalledWith('new')
+  })
+
+  it.each([
+    ['This question', 'Question', 'question'],
+    ['This round', 'Round', 'round'],
+    ['Whole game', 'Game', 'none'],
+  ] as const)('creates a "%s" timer with its label and auto-reset', async (chip, label, reset) => {
+    render(<TimerPanel gameId="g1" hook={mockHook} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Add timer' }))
+    await userEvent.click(screen.getByRole('button', { name: chip }))
+    expect(screen.getByRole('button', { name: chip })).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(screen.getByRole('button', { name: 'Create' }))
+    expect(mockHook.createTimer).toHaveBeenCalledWith(
+      expect.objectContaining({ gameId: 'g1', label, autoReset: reset })
+    )
+  })
+
+  it('keeps a typed label on a scoped timer, and a second click clears the scope', async () => {
+    render(<TimerPanel gameId="g1" hook={mockHook} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Add timer' }))
+    await userEvent.click(screen.getByRole('button', { name: 'This round' }))
+    await userEvent.type(screen.getByPlaceholderText('Round'), 'Picture round')
+    await userEvent.click(screen.getByRole('button', { name: 'This round' }))
+    expect(screen.getByRole('button', { name: 'This round' })).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Create' }))
+    expect(mockHook.createTimer).toHaveBeenCalledWith(
+      expect.objectContaining({ label: 'Picture round', autoReset: undefined })
+    )
   })
 
   it('calls pauseAll when Pause all is clicked', async () => {

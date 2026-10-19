@@ -10,7 +10,7 @@ export type { TimerNotify, TimerAutoReset }
 
 export interface UseTimerListResult {
   timers: Timer[]
-  createTimer: (opts: { gameId: string; label: string; duration: number }) => Promise<Timer>
+  createTimer: (opts: CreateTimerOptions) => Promise<Timer>
   startTimer: (id: string) => Promise<void>
   pauseTimer: (id: string) => Promise<void>
   resumeTimer: (id: string) => Promise<void>
@@ -26,6 +26,14 @@ export interface UseTimerListResult {
   deleteAll: () => Promise<void>
   autoReset: (changeType: NavChangeType) => Promise<void>
   remaining: (id: string) => number
+}
+
+/** A new timer's settings; `autoReset` overrides the app default. */
+export interface CreateTimerOptions {
+  gameId: string
+  label: string
+  duration: number
+  autoReset?: TimerAutoReset
 }
 
 export function useTimerList(gameId: string): UseTimerListResult {
@@ -77,27 +85,25 @@ export function useTimerList(gameId: string): UseTimerListResult {
     setTimers(prev => prev.map(t => (t.id === id ? { ...t, ...patch } : t)))
   }, [])
 
-  const createTimer = useCallback(
-    async (opts: { gameId: string; label: string; duration: number }): Promise<Timer> => {
-      const timer: Timer = {
-        id: crypto.randomUUID(),
-        gameId: opts.gameId,
-        label: opts.label,
-        duration: opts.duration,
-        remaining: opts.duration,
-        target: 'all',
-        message: '',
-        visible: true,
-        paused: true,
-        startedAt: null,
-        ...timerDefaults(),
-      }
-      await db.timers.add(timer)
-      setTimers(prev => [...prev, timer])
-      return timer
-    },
-    []
-  )
+  const createTimer = useCallback(async (opts: CreateTimerOptions): Promise<Timer> => {
+    const timer: Timer = {
+      id: crypto.randomUUID(),
+      gameId: opts.gameId,
+      label: opts.label,
+      duration: opts.duration,
+      remaining: opts.duration,
+      target: 'all',
+      message: '',
+      visible: true,
+      paused: true,
+      startedAt: null,
+      ...timerDefaults(),
+      ...(opts.autoReset && { autoReset: opts.autoReset }),
+    }
+    await db.timers.add(timer)
+    setTimers(prev => [...prev, timer])
+    return timer
+  }, [])
 
   const startTimer = useCallback(
     async (id: string) => {

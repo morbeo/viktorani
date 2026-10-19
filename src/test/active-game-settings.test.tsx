@@ -6,7 +6,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { Game, GameQuestion, Round } from '@/db'
+import type { Game, GameQuestion, Round, Timer } from '@/db'
+import type { CreateTimerOptions } from '@/hooks/useTimer'
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -25,37 +26,51 @@ vi.mock('@/hooks/useBuzzer', () => ({
   }),
 }))
 
-const { mockCreateTimer, mockStartTimer } = vi.hoisted(() => ({
-  mockCreateTimer: vi.fn(
-    async (opts: { gameId: string; label: string; duration: number }) =>
-      ({
-        id: 'timer-1',
+const { mockTimers, mockCreateTimer, mockStartTimer, mockRestartTimer, mockDeleteTimer } =
+  vi.hoisted(() => {
+    const mockTimers: Timer[] = []
+    const mockCreateTimer = vi.fn(async (opts: CreateTimerOptions) => {
+      const t: Timer = {
+        id: `timer-${mockCreateTimer.mock.calls.length}`,
         gameId: opts.gameId,
         label: opts.label,
         duration: opts.duration,
         remaining: opts.duration,
-        target: 'all' as const,
+        target: 'all',
         message: '',
         visible: true,
         paused: true,
         startedAt: null,
-        audioNotify: 'none' as const,
-        visualNotify: 'none' as const,
-        autoReset: 'none' as const,
-      }) as const
-  ),
-  mockStartTimer: vi.fn(async () => {}),
-}))
+        audioNotify: 'none',
+        visualNotify: 'none',
+        autoReset: opts.autoReset ?? 'none',
+      }
+      mockTimers.push(t)
+      return t
+    })
+    return {
+      mockTimers,
+      mockCreateTimer,
+      mockStartTimer: vi.fn(async () => {}),
+      mockRestartTimer: vi.fn(async () => {}),
+      mockDeleteTimer: vi.fn(async (id: string) => {
+        mockTimers.splice(
+          mockTimers.findIndex(t => t.id === id),
+          1
+        )
+      }),
+    }
+  })
 
 vi.mock('@/hooks/useTimer', () => ({
   useTimerList: () => ({
-    timers: [],
+    timers: mockTimers,
     createTimer: mockCreateTimer,
     startTimer: mockStartTimer,
     pauseTimer: vi.fn(),
     resumeTimer: vi.fn(),
-    restartTimer: vi.fn(),
-    deleteTimer: vi.fn(),
+    restartTimer: mockRestartTimer,
+    deleteTimer: mockDeleteTimer,
     updateTimer: vi.fn(),
     pauseAll: vi.fn(),
     resumeAll: vi.fn(),
@@ -189,6 +204,7 @@ async function seed(gqOverrides: Partial<GameQuestion> = {}) {
 
 beforeEach(async () => {
   vi.clearAllMocks()
+  mockTimers.length = 0
   await Promise.all([db.rounds.clear(), db.gameQuestions.clear(), db.games.clear()])
 })
 
@@ -253,9 +269,12 @@ describe('ActiveGame: auto-start timer', () => {
 
     await screen.findByRole('button', { name: 'Next question' })
     await waitFor(() => expect(mockCreateTimer).toHaveBeenCalledTimes(1))
-    expect(mockCreateTimer).toHaveBeenCalledWith(
-      expect.objectContaining({ gameId: 'g1', duration: 45 })
-    )
+    expect(mockCreateTimer).toHaveBeenCalledWith({
+      gameId: 'g1',
+      label: 'Question',
+      duration: 45,
+      autoReset: 'question',
+    })
     await waitFor(() => expect(mockStartTimer).toHaveBeenCalledWith('timer-1'))
   })
 
@@ -308,5 +327,33 @@ describe('ActiveGame: auto-start timer', () => {
     await screen.findByRole('button', { name: 'Next question' })
     expect(mockCreateTimer).not.toHaveBeenCalled()
     expect(mockStartTimer).not.toHaveBeenCalled()
+  })
+
+  it('reuses the auto-started timer on the next question instead of adding another', async () => {
+    const user = userEvent.setup()
+    await seed({ status: 'correct' })
+    renderActiveGame(makeGame({ autoStartTimerOnQuestionShow: true, defaultTimerDuration: 45 }))
+    await waitFor(() => expect(mockStartTimer).toHaveBeenCalledWith('timer-1'))
+
+    await user.click(await screen.findByRole('button', { name: 'Next question' }))
+
+    await waitFor(() => expect(mockRestartTimer).toHaveBeenCalledWith('timer-1'))
+    expect(mockCreateTimer).toHaveBeenCalledTimes(1)
+  })
+
+  it('replaces the auto-started timer when the default duration changed', async () => {
+    const user = userEvent.setup()
+    await seed({ status: 'correct' })
+    renderActiveGame(makeGame({ autoStartTimerOnQuestionShow: true, defaultTimerDuration: 45 }))
+    await waitFor(() => expect(mockStartTimer).toHaveBeenCalledWith('timer-1'))
+    // As if the timer was made before the game's default duration changed
+    mockTimers[0].duration = 30
+
+    await user.click(await screen.findByRole('button', { name: 'Next question' }))
+
+    await waitFor(() => expect(mockCreateTimer).toHaveBeenCalledTimes(2))
+    expect(mockDeleteTimer).toHaveBeenCalledWith('timer-1')
+    expect(mockRestartTimer).not.toHaveBeenCalled()
+    await waitFor(() => expect(mockStartTimer).toHaveBeenCalledWith('timer-2'))
   })
 })

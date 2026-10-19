@@ -43,6 +43,7 @@ import { autoPhase, effectivePhase } from '@/lib/layout-phase'
 import { updateQuestionStatus } from '@/db/games'
 import { layoutCommands, phaseCommands } from '@/components/gamemaster/layout-commands'
 import type { GameEvent } from '@/transport/types'
+import { SCOPE_TIMER_LABELS } from '@/components/timer/timer-options'
 
 export interface ActiveGameProps {
   game: Game
@@ -243,28 +244,38 @@ export function ActiveGame({
     timerHookRef.current = timerHook
   }, [timerHook])
 
-  // Auto-reset timers on navigation, and auto-start one for the question shown
+  // Auto-reset timers on navigation, then auto-start the question timer for the question
+  // shown. The auto-started timer is reused from question to question rather than stacked.
   const prevPos = useRef<typeof pos>(null)
   const autoStartedForRef = useRef<number | null>(null)
+  const autoTimerIdRef = useRef<string | null>(null)
   useEffect(() => {
     if (!pos) return
     const prev = prevPos.current
     prevPos.current = pos
-    if (prev) {
-      const changeType = pos.roundIdx !== prev.roundIdx ? 'round' : 'question'
-      void timerHookRef.current.autoReset(changeType)
-    }
-    if (game.autoStartTimerOnQuestionShow && autoStartedForRef.current !== pos.flatIndex) {
-      autoStartedForRef.current = pos.flatIndex
-      void (async () => {
-        const t = await timerHookRef.current.createTimer({
-          gameId: game.id,
-          label: '',
-          duration: game.defaultTimerDuration,
-        })
-        await timerHookRef.current.startTimer(t.id)
-      })()
-    }
+    const changeType = prev ? (pos.roundIdx !== prev.roundIdx ? 'round' : 'question') : null
+    const autoStart =
+      game.autoStartTimerOnQuestionShow && autoStartedForRef.current !== pos.flatIndex
+    if (autoStart) autoStartedForRef.current = pos.flatIndex
+    void (async () => {
+      const hook = timerHookRef.current
+      if (changeType) await hook.autoReset(changeType)
+      if (!autoStart) return
+      const reused = hook.timers.find(t => t.id === autoTimerIdRef.current)
+      if (reused?.duration === game.defaultTimerDuration) {
+        await hook.restartTimer(reused.id)
+        return
+      }
+      if (reused) await hook.deleteTimer(reused.id)
+      const t = await hook.createTimer({
+        gameId: game.id,
+        label: SCOPE_TIMER_LABELS.question,
+        duration: game.defaultTimerDuration,
+        autoReset: 'question',
+      })
+      autoTimerIdRef.current = t.id
+      await hook.startTimer(t.id)
+    })()
   }, [pos, game.autoStartTimerOnQuestionShow, game.defaultTimerDuration, game.id])
 
   // Hand handleIncomingBuzz to the parent's transport listener; cleared on unmount

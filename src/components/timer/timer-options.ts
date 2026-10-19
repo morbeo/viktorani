@@ -21,3 +21,24 @@ export const RESET_OPTIONS: { value: TimerAutoReset; label: string; description:
   { value: 'round', label: 'Per round', description: 'Reset on round change' },
   { value: 'any', label: 'Any nav', description: 'Reset on any slide change' },
 ]
+
+/** What a timer is for: one question, one round or the whole game (#421). */
+export type TimerScope = 'question' | 'round' | 'game'
+
+/**
+ * Shortcuts for a new timer. Each fills in a label and the auto-reset that matches its
+ * lifetime: a question timer resets on every question change, a round timer on every round
+ * change, and a game timer never resets.
+ */
+export const TIMER_SCOPES: { value: TimerScope; label: string; autoReset: TimerAutoReset }[] = [
+  { value: 'question', label: 'This question', autoReset: 'question' },
+  { value: 'round', label: 'This round', autoReset: 'round' },
+  { value: 'game', label: 'Whole game', autoReset: 'none' },
+]
+
+/** The label a scoped timer gets when the host leaves it blank. */
+export const SCOPE_TIMER_LABELS: Record<TimerScope, string> = {
+  question: 'Question',
+  round: 'Round',
+  game: 'Game',
+}
