@@ -125,6 +125,7 @@ const GAME: Game = {
   allowLateJoin: true,
   allowRejoin: true,
   rejoinWindowSeconds: 0,
+  autoRemoveAfterMinutes: 0,
   requireApproval: false,
   allowPlayerTeams: true,
   roundIds: ['r1'],
@@ -365,6 +366,39 @@ describe('game flow', () => {
     await host.waitFor(() => expect(received.map(e => e.type)).toContain('JOIN_PENDING'), SLOW)
     expect(received.map(e => e.type)).not.toContain('JOIN_ACCEPTED')
     expect((await db.players.get('p-fay'))?.presence).toBe('kicked')
+  }, 20_000)
+
+  it("marks a player disconnected past the game's timeout as left", async () => {
+    const { db } = await import('@/db')
+    await seedGame()
+    await db.games.update('g1', { autoRemoveAfterMinutes: 1 })
+    const player = {
+      gameId: 'g1',
+      teamId: null,
+      score: 0,
+      presence: 'disconnected' as const,
+      joinedAt: 1,
+      notes: '',
+    }
+    await db.players.bulkPut([
+      { ...player, id: 'p-gone', name: 'Gus', deviceId: 'device-gus', disconnectedAt: 1 },
+      {
+        ...player,
+        id: 'p-recent',
+        name: 'Hal',
+        deviceId: 'device-hal',
+        disconnectedAt: Date.now(),
+      },
+    ])
+    const host = await mountSide('host', '/admin/game/g1')
+
+    await host.waitFor(
+      async () => expect((await db.players.get('p-gone'))?.presence).toBe('left'),
+      {
+        timeout: 8000,
+      }
+    )
+    expect((await db.players.get('p-recent'))?.presence).toBe('disconnected')
   }, 20_000)
 
   it('ignores buzzes while the game is paused', async () => {

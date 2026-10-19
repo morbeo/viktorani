@@ -19,6 +19,7 @@ import {
   upsertPlayer,
   setPlayerPresence,
   isConnected,
+  playersDueForRemoval,
   assignPlayerTeam,
 } from '@/pages/admin/gamemaster-utils'
 import { useAppSettings } from '@/hooks/useAppSettings'
@@ -80,6 +81,9 @@ const FOCUS_LOG_LIMIT = 10
 const FOCUS_LOG_WINDOW_MS = 60_000
 
 // ── Main component ────────────────────────────────────────────────────────────
+
+/** How often the host checks for players disconnected past `Game.autoRemoveAfterMinutes`. */
+const AUTO_REMOVE_CHECK_MS = 5_000
 
 export default function GameMaster() {
   const { id } = useParams<{ id: string }>()
@@ -154,6 +158,33 @@ export default function GameMaster() {
   useEffect(() => {
     gameRef.current = game
   }, [game])
+
+  // Mark players who stayed disconnected too long as left, freeing their place (#424)
+  const playersRef = useRef<Player[]>([])
+  useEffect(() => {
+    playersRef.current = players
+  }, [players])
+  const gameId = game?.id
+  const removeAfter = game && game.status !== 'ended' ? game.autoRemoveAfterMinutes : 0
+  useEffect(() => {
+    if (!gameId || removeAfter <= 0) return
+    const id = setInterval(() => {
+      const due = playersDueForRemoval(playersRef.current, removeAfter, Date.now())
+      if (due.length === 0) return
+      const isDue = (p: Player) => due.includes(p.id) && p.presence === 'disconnected'
+      setPlayers(prev => prev.map(p => (isDue(p) ? { ...p, presence: 'left' as const } : p)))
+      db.players
+        .where('id')
+        .anyOf(due)
+        .filter(isDue)
+        .modify({ presence: 'left' })
+        .catch(err => console.error('[GameMaster] Removing disconnected players failed:', err))
+      for (const playerId of due) {
+        logEvent(gameId, 'player_left', { subjectId: playerId, data: { reason: 'timeout' } })
+      }
+    }, AUTO_REMOVE_CHECK_MS)
+    return () => clearInterval(id)
+  }, [gameId, removeAfter])
 
   // Broadcasts (scores, timers, buzzer, navigation) reach admitted players and approved
   // screens only, never connections that are still choosing a team or waiting for approval

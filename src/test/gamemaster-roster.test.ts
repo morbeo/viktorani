@@ -6,6 +6,7 @@ import {
   assignPlayerTeam,
   canCreateTeam,
   canAssignToTeam,
+  playersDueForRemoval,
 } from '@/pages/admin/gamemaster-utils'
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -183,5 +184,27 @@ describe('canAssignToTeam', () => {
       makePlayer({ id: 'p2', teamId: 't2' }),
     ]
     expect(canAssignToTeam({ maxPerTeam: 1 }, team, players, 'p3')).toBe(true)
+  })
+})
+
+describe('playersDueForRemoval', () => {
+  const NOW = 10_000_000
+  const players = [
+    makePlayer({ id: 'long', presence: 'disconnected', disconnectedAt: NOW - 3 * 60_000 }),
+    makePlayer({ id: 'just', presence: 'disconnected', disconnectedAt: NOW - 2 * 60_000 }),
+    makePlayer({ id: 'short', presence: 'disconnected', disconnectedAt: NOW - 60_000 }),
+    makePlayer({ id: 'unknown', presence: 'disconnected', disconnectedAt: null }),
+    makePlayer({ id: 'here', presence: 'connected', disconnectedAt: NOW - 3 * 60_000 }),
+    makePlayer({ id: 'hidden', presence: 'hidden', disconnectedAt: NOW - 3 * 60_000 }),
+    makePlayer({ id: 'left', presence: 'left', disconnectedAt: NOW - 3 * 60_000 }),
+    makePlayer({ id: 'kicked', presence: 'kicked', disconnectedAt: NOW - 3 * 60_000 }),
+  ]
+
+  it('picks players disconnected for at least the given minutes', () => {
+    expect(playersDueForRemoval(players, 2, NOW)).toEqual(['long', 'just'])
+  })
+
+  it('picks nobody when removal is off', () => {
+    expect(playersDueForRemoval(players, 0, NOW)).toEqual([])
   })
 })

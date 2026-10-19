@@ -87,8 +87,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(18)
-    expect(db.backendDB().version).toBe(180)
+    expect(db.verno).toBe(19)
+    expect(db.backendDB().version).toBe(190)
     expect(db.backendDB().objectStoreNames.contains('managedPlayers')).toBe(true)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
     expect(await db.managedLabels.count()).toBe(0)
@@ -102,8 +102,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(18)
-    expect(db.backendDB().version).toBe(180)
+    expect(db.verno).toBe(19)
+    expect(db.backendDB().version).toBe(190)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
   })
 
@@ -256,5 +256,13 @@ describe('Dexie schema version', () => {
       autoAdvanceOnTimerExpiry: false,
       autoAdvanceDelaySeconds: 5,
     })
+  })
+
+  it('back-fills autoRemoveAfterMinutes 0 (never) on existing games (v19)', async () => {
+    await seedRawDb(160, V1_STORES)
+
+    await db.open()
+
+    expect(await db.games.get('g-old')).toMatchObject({ autoRemoveAfterMinutes: 0 })
   })
 })

@@ -205,6 +205,7 @@ export async function seedDemo(): Promise<void> {
     buzzDeduplication: 'firstOnly',
     tiebreakerMode: 'serverOrder',
     confirmUnruledNavigation: false,
+    autoRemoveAfterMinutes: 0,
     autoAdvanceOnCorrect: false,
     autoAdvanceOnTimerExpiry: false,
     autoAdvanceDelaySeconds: 5,

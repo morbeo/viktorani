@@ -28,6 +28,7 @@ const BASE_GAME: Game = {
   allowLateJoin: true,
   allowRejoin: true,
   rejoinWindowSeconds: 0,
+  autoRemoveAfterMinutes: 0,
   requireApproval: false,
   allowPlayerTeams: true,
   roundIds: [],

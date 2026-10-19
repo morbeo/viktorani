@@ -167,6 +167,22 @@ export function setPlayerPresence(
   return players.map(p => (p.id === playerId ? { ...p, presence, ...patch } : p))
 }
 
+/**
+ * Players who have been disconnected for at least `minutes` at `now`, to be marked as left
+ * (`Game.autoRemoveAfterMinutes`). Nobody is due when `minutes` is `0`. Pure function.
+ */
+export function playersDueForRemoval(players: Player[], minutes: number, now: number): string[] {
+  if (minutes <= 0) return []
+  return players
+    .filter(
+      p =>
+        p.presence === 'disconnected' &&
+        p.disconnectedAt !== null &&
+        now - p.disconnectedAt >= minutes * 60_000
+    )
+    .map(p => p.id)
+}
+
 /** True while the player has a connection to the host, whether or not their tab is in view. */
 export function isConnected(player: Player): boolean {
   return player.presence === 'connected' || player.presence === 'hidden'
