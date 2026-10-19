@@ -708,6 +708,25 @@ describe('ActiveGame: choice answers', () => {
     await waitFor(() => expect(onQuestionContent.mock.calls.at(-1)?.[0]?.acceptsText).toBe(false))
   })
 
+  it("opens the round's answer sheet and closes the round's answers from it", async () => {
+    const user = userEvent.setup()
+    await seedChoice('text')
+    const answerHandlerRef: { current: AnswerHandler | null } = { current: null }
+    renderActiveGame(makeGame({ inputType: 'text' }), { answerHandlerRef })
+
+    await waitFor(() => expect(answerHandlerRef.current).not.toBeNull())
+    await act(() => answerHandlerRef.current!('p1', 'q1', { text: 'Lyon' }, 1))
+    const ruling = questionPanel.props?.ruling as unknown as { onMarkRound: () => void }
+    act(() => ruling.onMarkRound())
+
+    expect(await screen.findByText(/Mark answers ·/)).toBeInTheDocument()
+    expect(await screen.findByText('Lyon')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Close answers' }))
+    await waitFor(async () => expect((await db.gameQuestions.get('gq1'))?.status).toBe('incorrect'))
+    // The round's next question hasn't been shown, so it stays open
+    expect((await db.gameQuestions.get('gq2'))?.status).toBe('pending')
+  })
+
   it('takes no choices in a game with another input type', async () => {
     await seedChoice()
     const answerHandlerRef: { current: AnswerHandler | null } = { current: null }

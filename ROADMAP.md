@@ -103,7 +103,8 @@ No tracking epic; standalone issues/PRs in the gamemaster area.
 - [x] End-of-round answer review, one by one or as a table (ADR 0023, step 3)
 - [x] Players pick an option on their phones, marked and scored automatically (ADR 0023, step 4)
 - [x] Typed answers, marked by the host (ADR 0023, step 5)
-- [ ] Answers close at the end of the round, with an end-of-round marking table (ADR 0023)
+- [x] Round answer sheet: mark a round's answers in one table (ADR 0023)
+- [ ] Answers stay open until the host collects the round, with every question of the round on phones (ADR 0023)
 - [ ] Expand game settings further: tiebreaker modes, local-network-only join, auto-reveal the correct answer, spectator join (#424, remaining scope — the player cap shipped in #432, confirm-navigation in #434, and "floor scores at zero" already holds)
 - [x] Per-question/round/game timers: shortcut presets in the new-timer dialog, and the auto-started question timer is reused instead of stacked (#421)
 

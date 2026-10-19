@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Check, CheckCheck, Lock, X } from 'lucide-react'
+import { Check, CheckCheck, ClipboardCheck, Lock, X } from 'lucide-react'
 import { Button, Icon } from '@/components/ui'
 import { db } from '@/db'
 import type { Answer, GameQuestion, Player, Question, Team } from '@/db'
@@ -16,6 +16,8 @@ interface HostAnswersPanelProps {
   disabled?: boolean
   /** Closes the question to new answers, marking choices. */
   onMark: () => void
+  /** Opens the round's answer sheet. */
+  onMarkRound?: () => void
   /** Marks typed answers right or wrong. */
   onMarkTyped?: (answers: SeenAnswer[], ruling: 'correct' | 'incorrect') => void
 }
@@ -40,6 +42,7 @@ export function HostAnswersPanel({
   teams,
   disabled = false,
   onMark,
+  onMarkRound,
   onMarkTyped,
 }: HostAnswersPanelProps) {
   const answers = useLiveQuery(
@@ -76,7 +79,13 @@ export function HostAnswersPanel({
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-semibold uppercase tracking-wider text-muted">Answers</span>
         <span className="text-xs text-muted">{list.length} in</span>
-        <div className="ml-auto flex gap-2">
+        <div className="ml-auto flex flex-wrap gap-2">
+          {onMarkRound && (
+            <Button size="sm" variant="ghost" onClick={onMarkRound}>
+              <Icon icon={ClipboardCheck} size="sm" />
+              Round sheet
+            </Button>
+          )}
           {inputType === 'text' && onMarkTyped && (
             <Button
               size="sm"
