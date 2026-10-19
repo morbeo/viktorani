@@ -112,7 +112,7 @@ export function GameSettingsForm({
       />
       <LimitStepper
         label="Remove after disconnect (minutes)"
-        help="A player who stays disconnected this long is marked as left, which frees their place when the game has a player cap. They can still rejoin if rejoining is allowed. 0 = never."
+        help="A player who stays disconnected this long is marked as left, which frees their place when the game has a player cap. They can still rejoin if rejoining is allowed and a place is free. 0 = never."
         value={value.autoRemoveAfterMinutes}
         disabled={disabled}
         onChange={v => onChange({ autoRemoveAfterMinutes: v })}

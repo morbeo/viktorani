@@ -264,6 +264,15 @@ describe('resolveJoin', () => {
     expect(await rejection(game({ maxPlayers: 1 }), JOIN)).toBeNull()
   })
 
+  it('checks a player who left against the cap when they come back', async () => {
+    await db.players.bulkAdd([
+      player({ id: 'p1', presence: 'left' }),
+      player({ id: 'p2', deviceId: 'dev-b', presence: 'connected' }),
+    ])
+    expect(await rejection(game({ maxPlayers: 1 }), JOIN)).toBe('This game is full')
+    expect(await rejection(game({ maxPlayers: 2 }), JOIN)).toBeNull()
+  })
+
   it('rejoins a disconnected player within the rejoin window', async () => {
     await db.players.add(player({ presence: 'disconnected', disconnectedAt: Date.now() - 1000 }))
     const joined = await accepted(game({ rejoinWindowSeconds: 10 }), JOIN)

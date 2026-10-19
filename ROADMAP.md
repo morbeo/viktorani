@@ -118,7 +118,7 @@ Epic: #364. Scope and dependency order are in the epic body: widget registry →
 
 - **Scoped timers (#421):** shortcut presets rather than fully automatic timers. The new-timer dialog offers This question, This round and Whole game, which set the label (Question, Round, Game) and the auto-reset (`question`, `round`, `none`). The game's auto-started timer is a question timer reused from question to question, and replaced only when the default duration changed.
 - **Auto-advance (#424):** after a correct ruling, or when a question timer (auto-reset `question`) runs out, the game moves to the next question after a countdown the host can cancel (5 s by default, 1 to 60). Navigating by hand, pausing or the last question drops it, and a timer that ran out before the page opened doesn't count. "Auto-reveal the correct answer" is left out: players are never sent the correct answer today, so revealing it needs a transport change of its own.
-- **Auto-remove (#424):** `autoRemoveAfterMinutes` (0 = never, up to 99) marks a player who stays disconnected that long as left, checked every 5 s on the host. Players who left, by Leave or this timeout, no longer count toward `maxPlayers`, and can still rejoin as themselves when rejoining is allowed.
+- **Auto-remove (#424):** `autoRemoveAfterMinutes` (0 = never, up to 99) marks a player who stays disconnected that long as left, checked every 5 s on the host. Players who left, by Leave or this timeout, no longer count toward `maxPlayers`, and can still rejoin as themselves when rejoining is allowed, as long as a place is free (the security review on #475 caught a cap bypass otherwise).
 - **Next up:** #424's remaining settings, one PR each.
 
 ## Decisions (2026-10-16)
