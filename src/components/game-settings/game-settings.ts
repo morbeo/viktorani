@@ -13,6 +13,7 @@ export type GameSettings = Pick<
   | 'allowLateJoin'
   | 'allowRejoin'
   | 'rejoinWindowSeconds'
+  | 'autoRemoveAfterMinutes'
   | 'requireApproval'
   | 'buzzerEnabled'
   | 'autoLockOnFirstCorrect'
@@ -47,6 +48,7 @@ export const GAME_SETTINGS_KEYS = [
   'allowLateJoin',
   'allowRejoin',
   'rejoinWindowSeconds',
+  'autoRemoveAfterMinutes',
   'requireApproval',
   'buzzerEnabled',
   'autoLockOnFirstCorrect',
@@ -114,6 +116,7 @@ export function defaultSettings(): GameSettings {
     allowLateJoin: true,
     allowRejoin: true,
     rejoinWindowSeconds: 0,
+    autoRemoveAfterMinutes: 0,
     requireApproval: false,
     maxTeams: 0,
     maxPerTeam: 0,

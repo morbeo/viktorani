@@ -384,6 +384,7 @@ function GameWizard({
         allowLateJoin: state.allowLateJoin,
         allowRejoin: state.allowRejoin,
         rejoinWindowSeconds: state.rejoinWindowSeconds,
+        autoRemoveAfterMinutes: state.autoRemoveAfterMinutes,
         requireApproval: state.requireApproval,
         allowPlayerTeams: state.allowPlayerTeams,
         roundIds: state.roundMode === 'custom' ? newRounds.map(r => r.id) : state.selectedRoundIds,

@@ -125,7 +125,7 @@ describe('GameSettingsForm', () => {
     expect(onChange).toHaveBeenLastCalledWith({ maxTeams: 2 })
     await userEvent.click(screen.getByRole('button', { name: 'No limit for Max teams' }))
     expect(onChange).toHaveBeenLastCalledWith({ maxTeams: 0 })
-    expect(screen.getAllByText('No limit')).toHaveLength(4)
+    expect(screen.getAllByText('No limit')).toHaveLength(5)
   })
 
   it('shows the auto-advance countdown once either auto-advance is on, from 1 to 60 s', async () => {

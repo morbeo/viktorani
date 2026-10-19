@@ -131,6 +131,7 @@ function game(overrides: Partial<Game> = {}): Game {
     allowLateJoin: true,
     allowRejoin: true,
     rejoinWindowSeconds: 0,
+    autoRemoveAfterMinutes: 0,
     requireApproval: false,
     allowPlayerTeams: true,
     roundIds: [],
@@ -256,6 +257,11 @@ describe('resolveJoin', () => {
     const g = game({ maxPlayers: 1 })
     expect(await rejection(g, JOIN)).toBe('This game is full')
     expect(await rejection(g, { ...JOIN, deviceId: 'dev-b' })).toBeNull()
+  })
+
+  it('does not count players who left toward the player cap', async () => {
+    await db.players.add(player({ id: 'p2', deviceId: 'dev-b', presence: 'left' }))
+    expect(await rejection(game({ maxPlayers: 1 }), JOIN)).toBeNull()
   })
 
   it('rejoins a disconnected player within the rejoin window', async () => {

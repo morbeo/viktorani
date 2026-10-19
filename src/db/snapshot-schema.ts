@@ -104,6 +104,7 @@ export const GameSchema = z
     allowLateJoin: z.boolean().default(true),
     allowRejoin: z.boolean().default(true),
     rejoinWindowSeconds: z.number().int().min(0).max(MAX_LIMIT).default(0),
+    autoRemoveAfterMinutes: z.number().int().min(0).max(MAX_LIMIT).default(0),
     requireApproval: z.boolean().default(false),
     allowPlayerTeams: z.boolean().default(true),
     roundIds: z.array(z.string()),

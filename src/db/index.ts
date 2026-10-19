@@ -190,6 +190,11 @@ export interface Game {
   allowRejoin: boolean
   /** Seconds a disconnected device has to rejoin as the same player; `0` means no limit. */
   rejoinWindowSeconds: number
+  /**
+   * Minutes a player may stay disconnected before they're marked as left, which frees their
+   * place under `maxPlayers`; `0` never removes them.
+   */
+  autoRemoveAfterMinutes: number
   /** New players wait in the lobby until the GM accepts them. */
   requireApproval: boolean
   /** Players may create their own team when joining. */
@@ -614,6 +619,7 @@ export interface GameQuestion {
  * - 17: adds `themes`, the host's own themes (ADR 0022).
  * - 18: same stores; back-fills `Game.autoAdvanceOnCorrect` and `Game.autoAdvanceOnTimerExpiry`
  *   (`false`) and `Game.autoAdvanceDelaySeconds` (`5`) on existing games.
+ * - 19: same stores; back-fills `Game.autoRemoveAfterMinutes` (`0`, never) on existing games.
  *
  * To change the schema, add a new `this.version(N + 1)` block below; keep existing blocks.
  */
@@ -803,6 +809,17 @@ export class ViktoraniDB extends Dexie {
             g.autoAdvanceOnCorrect ??= false
             g.autoAdvanceOnTimerExpiry ??= false
             g.autoAdvanceDelaySeconds ??= 5
+          })
+      )
+
+    this.version(19)
+      .stores({})
+      .upgrade(tx =>
+        tx
+          .table('games')
+          .toCollection()
+          .modify((g: Partial<Game>) => {
+            g.autoRemoveAfterMinutes ??= 0
           })
       )
   }

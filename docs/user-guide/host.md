@@ -128,6 +128,7 @@ The first step of the **New game** wizard holds the game settings. They start fr
 | Players may create teams         | Players may type a new team name when they join                                     |
 | Allow late join / rejoin         | Who may join after the start, and whether a dropped player comes back as themselves |
 | Require approval                 | New players wait in Join requests until you approve them                            |
+| Remove after disconnect          | Mark a player as left after this many minutes disconnected, freeing their place     |
 | Max teams / Max per team         | Team limits; **No limit** (∞) by default                                            |
 | Auto-lock after a correct answer | Lock the buzzer after the first correct ruling                                      |
 | Record false starts              | Keep buzzes that arrive while the buzzer is locked                                  |
