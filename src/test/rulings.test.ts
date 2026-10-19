@@ -118,6 +118,51 @@ describe('ruleQuestion', () => {
     expect((await db.players.get('p1'))?.score).toBe(3)
   })
 
+  it.each([
+    ['ruled correct twice', ['correct']],
+    ['ruled correct, wrong, then correct', ['incorrect', 'correct']],
+  ] as const)('awards the points once when %s', async (_, after) => {
+    await db.players.add(player())
+    await ruleQuestion(GAME, 'gq1', 'correct', { kind: 'player', id: 'p1' })
+    for (const ruling of after)
+      await ruleQuestion(GAME, 'gq1', ruling, { kind: 'player', id: 'p1' })
+
+    expect(await status()).toBe('correct')
+    expect((await db.players.get('p1'))?.score).toBe(3)
+    expect(await db.scoreEvents.count()).toBe(1)
+  })
+
+  it('awards the points once when two correct rulings race', async () => {
+    await db.players.add(player())
+    const award = { kind: 'player', id: 'p1' } as const
+    await Promise.all([
+      ruleQuestion(GAME, 'gq1', 'correct', award),
+      ruleQuestion(GAME, 'gq1', 'correct', award),
+    ])
+    expect((await db.players.get('p1'))?.score).toBe(3)
+  })
+
+  it('awards nothing more when a buzz already scored the question', async () => {
+    await db.players.bulkAdd([player(), player({ id: 'p2', name: 'Bob', deviceId: 'dev-b' })])
+    await db.scoreEvents.add({
+      id: 'se1',
+      gameId: 'g1',
+      targetId: 'p2',
+      kind: 'player',
+      name: 'Bob',
+      from: 0,
+      to: 3,
+      reason: 'correct',
+      questionId: 'q1',
+      timestamp: 1,
+    })
+
+    await ruleQuestion(GAME, 'gq1', 'correct', { kind: 'player', id: 'p1' })
+
+    expect(await status()).toBe('correct')
+    expect((await db.players.get('p1'))?.score).toBe(0)
+  })
+
   it("ignores another game's question", async () => {
     await ruleQuestion({ ...GAME, id: 'g2' }, 'gq1', 'correct')
     expect(await status()).toBe('pending')

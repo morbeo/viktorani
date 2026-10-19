@@ -19,11 +19,23 @@ export async function questionPoints(questionId: string | null): Promise<number>
   return (await db.difficulties.get(question.difficulty))?.score ?? 1
 }
 
+/** Whether `gameId` already has a correct-answer score for `questionId`. */
+async function alreadyAwarded(gameId: string, questionId: string): Promise<boolean> {
+  const event = await db.scoreEvents
+    .where('gameId')
+    .equals(gameId)
+    .filter(e => e.reason === 'correct' && e.questionId === questionId)
+    .first()
+  return event !== undefined
+}
+
 /**
  * Rule on the question shown without a buzz (#424): set its status and, for a correct
  * ruling with scoring on, award its points to `award`. A player's points count for their
- * team too, as with a buzz. Ruling again replaces the status but never takes points back;
- * the host adjusts those on the scoreboard. Nothing is sent to players about the answer.
+ * team too, as with a buzz. A question's points are awarded once: when this game already
+ * has a correct-answer score for it (from a ruling or a buzz), ruling it correct again only
+ * sets the status. Ruling again never takes points back either; the host adjusts those on
+ * the scoreboard. Nothing is sent to players about the answer.
  */
 export async function ruleQuestion(
   game: Pick<Game, 'id' | 'scoringEnabled'>,
@@ -45,6 +57,7 @@ export async function ruleQuestion(
         award.kind === 'team' ? await db.teams.get(award.id) : await db.players.get(award.id)
       if (row?.gameId !== game.id) return done
       if (!game.scoringEnabled) return { ...done, name: row.name }
+      if (await alreadyAwarded(game.id, gq.questionId)) return { ...done, name: row.name }
 
       const points = await questionPoints(gq.questionId)
       const change = {
