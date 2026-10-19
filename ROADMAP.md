@@ -97,7 +97,7 @@ No tracking epic; standalone issues/PRs in the gamemaster area.
 - [x] Rejoin window, confirm navigating away from an unruled question, auto-start timer, and timer sound mute, part of #424's scope (#434)
 - [x] Warn the host when a join's device doesn't match an existing player with that name (#435)
 - [ ] Expand game settings further: tiebreaker modes, auto-kick on disconnect, local-network-only join, auto-advance on correct/timer-expiry (#424, remaining scope — the player cap shipped in #432, confirm-navigation in #434, and "floor scores at zero" already holds)
-- [ ] Per-question/round/game timers — needs a design decision first: shortcut buttons vs. fully automatic timers (#421)
+- [x] Per-question/round/game timers: shortcut presets in the new-timer dialog, and the auto-started question timer is reused instead of stacked (#421)
 
 ## Phase 7: Screen layout designer (in progress)
 
@@ -111,6 +111,11 @@ Epic: #364. Scope and dependency order are in the epic body: widget registry →
 - [x] Designer: templates, undo/redo, device previews, keyboard editing (#413)
 - [x] Phase-based automatic layout switching and the GM override (#414) — ADR 0019
 - [x] Assign layouts per surface and phase in game settings (#415) — ADR 0020
+
+## Decisions (2026-10-19)
+
+- **Scoped timers (#421):** shortcut presets rather than fully automatic timers. The new-timer dialog offers This question, This round and Whole game, which set the label (Question, Round, Game) and the auto-reset (`question`, `round`, `none`). The game's auto-started timer is a question timer reused from question to question, and replaced only when the default duration changed.
+- **Next up:** #424's remaining settings, one PR each.
 
 ## Decisions (2026-10-16)
 

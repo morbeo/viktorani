@@ -266,11 +266,19 @@ Timers can be used for timed rounds, thinking time, or dramatic effect.
 
 1. In the GM view, open the **Timers** panel.
 2. Click **Add timer**.
-3. Set an optional label (e.g. `"Thinking time"`) and a duration, or pick a preset
+3. Optionally pick what the timer is **For**: **This question**, **This round** or
+   **Whole game**. The shortcut names the timer (Question, Round or Game) unless you type a
+   label, and sets its auto-reset: a question timer resets on every question change, a round
+   timer on every round change, and a game timer never resets on its own.
+4. Set an optional label (e.g. `"Thinking time"`) and a duration, or pick a preset
    (30 s, 1 m, 2 m, 5 m).
-4. Click **Start** on the new timer.
+5. Click **Create**. The timer starts right away.
 
 Every running timer is shown to all players and screens and counts down live.
+
+With **Auto-start timer on question** on in the game's settings, each question you show starts the
+game's question timer with the default duration. The same timer restarts on every question,
+so they don't pile up.
 
 ### Notifications and auto-reset
 

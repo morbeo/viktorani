@@ -7,6 +7,8 @@ import { EditTimerModal } from './EditTimerModal'
 import { useTimerExpiry } from '@/hooks/useTimer'
 import type { UseTimerListResult, ExpiryEvent } from '@/hooks/useTimer'
 import type { Timer } from '@/db'
+import { TIMER_SCOPES } from './timer-options'
+import type { TimerScope } from './timer-options'
 
 interface TimerPanelProps {
   gameId: string
@@ -61,8 +63,9 @@ export function TimerPanel({ gameId, hook, soundMuted = false }: TimerPanelProps
 
   useTimerExpiry(timers, remaining, handleExpire, soundMuted)
 
-  async function handleCreate(label: string, duration: number) {
-    const t = await createTimer({ gameId, label, duration })
+  async function handleCreate(label: string, duration: number, scope?: TimerScope) {
+    const autoReset = TIMER_SCOPES.find(s => s.value === scope)?.autoReset
+    const t = await createTimer({ gameId, label, duration, autoReset })
     setShowCreate(false)
     await startTimer(t.id)
   }

@@ -93,6 +93,25 @@ describe('useTimerList', () => {
     localStorage.clear()
   })
 
+  it('createTimer lets a scoped timer override the default auto-reset', async () => {
+    setSettings({ timerAutoReset: 'none' })
+    const { result } = renderHook(() => useTimerList(GAME_ID))
+    await flush()
+
+    await act(async () => {
+      await result.current.createTimer({
+        gameId: GAME_ID,
+        label: 'Round',
+        duration: 60,
+        autoReset: 'round',
+      })
+    })
+
+    expect(result.current.timers[0].autoReset).toBe('round')
+    expect((await db.timers.where('gameId').equals(GAME_ID).first())?.autoReset).toBe('round')
+    localStorage.clear()
+  })
+
   it('startTimer emits TIMER_START and marks timer running', async () => {
     const { result } = renderHook(() => useTimerList(GAME_ID))
     await flush()
