@@ -89,6 +89,16 @@ describe('ruleQuestion', () => {
     )
   })
 
+  it("leaves out a team from another game on the player's record", async () => {
+    await db.teams.add(team({ gameId: 'g2' }))
+    await db.players.add(player({ teamId: 't1' }))
+
+    await ruleQuestion(GAME, 'gq1', 'correct', { kind: 'player', id: 'p1' })
+
+    expect((await db.players.get('p1'))?.score).toBe(3)
+    expect((await db.teams.get('t1'))?.score).toBe(0)
+  })
+
   it('awards a team directly', async () => {
     await db.teams.add(team())
     await ruleQuestion(GAME, 'gq1', 'correct', { kind: 'team', id: 't1' })

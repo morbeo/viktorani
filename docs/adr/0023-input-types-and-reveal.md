@@ -83,7 +83,29 @@ and screens, and switches the layout phase to `reveal`. `results` is a short lis
 phones; the screen may show it in the table view. The answer is sent only in `REVEAL`, never in
 `QUESTION_CONTENT`, so a player client can't read it early.
 
-### 4. Delivery order
+### 4. Security rules for answers and reveals
+
+Player answers are untrusted input, and the correct answer is a secret until revealed:
+
+- **Who answered comes from the host.** The host sets `playerId`, `teamId` and `receivedAt`
+  from its own connection-to-player mapping and clock, never from the payload. The host's
+  clock decides whether an answer arrived before the question locked.
+- **`ANSWER` is checked against the game.** The host accepts it only for the current
+  `gameQuestionId` of the same game. `choice` is checked against the question's options, and
+  `text` is trimmed and limited in the zod schema. Replacing an answer is rate-limited per
+  connection.
+- **Team answers belong to the team.** In a team game any member may submit the team's
+  answer, and the latest one replaces it until the question locks. The host shows who sent it.
+- **Typed answers are plain text.** They render as React text on the host and screens, never
+  as markdown or HTML. `REVEAL.results` has a size limit in the schema.
+- **The answer can't leak early.** `QUESTION_CONTENT.answer` is removed (or pinned to
+  `z.null()`) when `REVEAL` lands, so it can't regress. A rejoining player gets `REVEAL` only
+  for questions already revealed.
+- **Imported answers are checked.** Snapshot import validates the `answers` rows with zod,
+  limits their number and size, and remaps their ids to the imported game, as for the other
+  tables.
+
+### 5. Delivery order
 
 1. Host rulings with no buzz (done).
 2. `revealTiming` with `manual` and `perQuestion`, and the `REVEAL` event.

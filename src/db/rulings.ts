@@ -67,8 +67,9 @@ export async function ruleQuestion(
         questionId: gq.questionId,
       }
       const scored = await writeScore({ ...change, ...award })
-      if ('teamId' in row && row.teamId) {
-        await writeScore({ ...change, kind: 'team', id: row.teamId })
+      const teamId = 'teamId' in row ? row.teamId : null
+      if (teamId && (await db.teams.get(teamId))?.gameId === game.id) {
+        await writeScore({ ...change, kind: 'team', id: teamId })
       }
       return { ...done, name: row.name, scored }
     }
