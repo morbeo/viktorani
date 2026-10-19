@@ -258,7 +258,8 @@ export const GameEventSchemas = {
           .array(
             z.strictObject({
               questionId: id,
-              number: z.number().int().min(1).max(MAX_ROUND_ANSWERS),
+              // The question's position in its round, which can pass the item cap
+              number: z.number().int().min(1),
               title: text.nullable(),
               answer: text,
               status: z.enum(['pending', 'correct', 'incorrect', 'skipped']),

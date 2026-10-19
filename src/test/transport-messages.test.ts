@@ -727,4 +727,12 @@ describe('ROUND_ANSWERS', () => {
       GameEventSchemas.ROUND_ANSWERS.safeParse({ ...FIXTURES.ROUND_ANSWERS, review }).success
     ).toBe(false)
   })
+
+  it('accepts a question numbered past the answer cap', () => {
+    const item = { ...FIXTURES.ROUND_ANSWERS.review!.items[0], number: MAX_ROUND_ANSWERS + 1 }
+    const review = { ...FIXTURES.ROUND_ANSWERS.review!, items: [item] }
+    expect(
+      GameEventSchemas.ROUND_ANSWERS.safeParse({ ...FIXTURES.ROUND_ANSWERS, review }).success
+    ).toBe(true)
+  })
 })
