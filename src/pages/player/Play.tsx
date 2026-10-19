@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { ModeSwitch } from '@/components/ModeSwitch'
+import { ThemeLogo } from '@/components/ThemeLogo'
 import { Button } from '@/components/ui'
 import { useRemoteTheme } from '@/hooks/useAppTheme'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
@@ -171,7 +172,8 @@ export default function Play() {
       {!problem && joined && (
         <>
           <header className="w-full max-w-sm flex items-center justify-between gap-4">
-            <div>
+            <ThemeLogo kind="mark" className="h-10 w-10 shrink-0" />
+            <div className="flex-1 min-w-0">
               <p className="font-semibold text-text">{name}</p>
               <p className="text-sm text-muted">
                 Score <span className="mono tabular-nums">{score}</span>

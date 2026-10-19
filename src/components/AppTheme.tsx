@@ -4,8 +4,9 @@ import { useAppTheme, useIsDark } from '@/hooks/useAppTheme'
 import { themeVars } from '@/lib/theme'
 
 /**
- * Applies the app theme to the whole document: its colours for this device's light or dark
- * mode, its fonts and its icon stroke. Renders nothing.
+ * Applies the page's theme to the whole document: its colours for this device's light or
+ * dark mode, its fonts and its icon stroke, and its background as the browser bar colour
+ * (`<meta name="theme-color">`). Renders nothing.
  *
  * @remarks
  * The variables go on `<html>` as inline custom properties, which the CSP allows (it
@@ -16,6 +17,17 @@ export function AppTheme() {
   const [{ theme: mode }] = useAppSettings()
   const theme = useAppTheme()
   const dark = useIsDark(mode)
+
+  const bg = dark ? theme.dark.bg : theme.light.bg
+  useEffect(() => {
+    let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
+    if (!meta) {
+      meta = document.createElement('meta')
+      meta.name = 'theme-color'
+      document.head.append(meta)
+    }
+    meta.content = bg
+  }, [bg])
 
   useEffect(() => {
     const root = document.documentElement

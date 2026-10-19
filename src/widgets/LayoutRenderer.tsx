@@ -22,6 +22,8 @@ interface LayoutRendererProps<T extends LayoutTarget> {
   style?: CSSProperties
   /** Whether the surface shows its dark palette; defaults to this device's light or dark mode. */
   dark?: boolean
+  /** A logo to show when the layout has none of its own, such as the theme's wordmark. */
+  logo?: string | null
   /** Classes for each widget's grid cell. */
   cellClassName?: string
 }
@@ -59,6 +61,7 @@ export function LayoutRenderer<T extends LayoutTarget>({
   style,
   cellClassName = '',
   dark,
+  logo = null,
 }: LayoutRendererProps<T>) {
   const [{ theme: mode }] = useAppSettings()
   const deviceDark = useIsDark(mode)
@@ -71,8 +74,12 @@ export function LayoutRenderer<T extends LayoutTarget>({
       style={{ ...style, ...themeStyle(layout.theme, target, dark ?? deviceDark) }}
       data-layout-id={layout.id}
     >
-      {layout.theme.logo && (
-        <img src={layout.theme.logo} alt="" className="absolute top-4 left-4 max-h-16 max-w-48" />
+      {(layout.theme.logo ?? logo) && (
+        <img
+          src={layout.theme.logo ?? logo ?? undefined}
+          alt=""
+          className="absolute top-4 left-4 max-h-16 max-w-48"
+        />
       )}
       {sorted.map(widget => {
         const def = WIDGET_REGISTRY[widget.type]

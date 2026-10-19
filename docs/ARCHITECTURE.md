@@ -151,7 +151,10 @@ screen pages show it through `useGameTheme`, and `LayoutRenderer` sets a layout'
 overrides on its own root (`layoutVars`), so they apply over the game theme. Players and
 remote screens get the game's theme, resolved on the host with both palettes, in a `THEME`
 event, and show it through `useRemoteTheme`; each player picks light or dark with the
-switch on the join and play pages.
+switch on the join and play pages. `ThemeLogo` shows the page theme's wide logo in the
+admin sidebar, on the join page and on the screen (where a layout's own logo wins), and its
+square logo in the player's header. `AppTheme` also sets `<meta name="theme-color">` to the
+theme's background.
 
 ## Why there is no class hierarchy
 

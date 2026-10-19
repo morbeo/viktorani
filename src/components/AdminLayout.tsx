@@ -18,6 +18,7 @@ import { Icon } from '@/components/ui'
 import { LiveGameIndicator } from '@/components/LiveGameIndicator'
 import { useLiveGames, liveGamesLabel } from '@/hooks/useLiveGames'
 import { buildInfo } from '@/buildInfo'
+import { ThemeLogo } from '@/components/ThemeLogo'
 
 interface Props {
   children: ReactNode
@@ -58,12 +59,18 @@ export default function AdminLayout({ children, title }: Props) {
           }}
         >
           {!collapsed && (
-            <div>
-              <h1 className="text-xl font-black tracking-tight text-text font-display">
-                Viktorani
-              </h1>
-              <p className="text-xs mt-0.5 text-muted">Bar Trivia</p>
-            </div>
+            <ThemeLogo
+              kind="wordmark"
+              className="max-h-10 max-w-[10rem]"
+              fallback={
+                <div>
+                  <h1 className="text-xl font-black tracking-tight text-text font-display">
+                    Viktorani
+                  </h1>
+                  <p className="text-xs mt-0.5 text-muted">Bar Trivia</p>
+                </div>
+              }
+            />
           )}
           <button
             onClick={() => setCollapsed(c => !c)}
