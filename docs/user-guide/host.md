@@ -235,6 +235,14 @@ auto-started one). A countdown appears under the navigation bar, set by **Countd
 moving on** (5 s by default). Press **Stay** to keep the question. Moving on by hand, pausing
 the game or reaching the last question cancels it.
 
+### Ruling on a question
+
+You don't need the buzzer to rule. Under the current question, click **Correct**, **Wrong** or
+**Skip** to record how it went. When scoring is on, pick who gets the points under
+**Points to** (a player, a team, or **Nobody**) before clicking **Correct**. A correct ruling
+also starts the auto-advance countdown when that's turned on. Ruling doesn't show the answer
+to players.
+
 ### Managing the buzzer
 
 1. Click **Unlock** to open the buzzer — players can now buzz in.

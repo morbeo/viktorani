@@ -98,6 +98,7 @@ No tracking epic; standalone issues/PRs in the gamemaster area.
 - [x] Warn the host when a join's device doesn't match an existing player with that name (#435)
 - [x] Auto-advance after a correct ruling or when the question timer runs out, part of #424's scope
 - [x] Remove players who stay disconnected past a timeout, part of #424's scope
+- [x] Rule on a question (Correct / Wrong / Skip, with optional points to a player or team) without a buzz, so games can run with the buzzer off
 - [ ] Expand game settings further: tiebreaker modes, local-network-only join, auto-reveal the correct answer, spectator join (#424, remaining scope — the player cap shipped in #432, confirm-navigation in #434, and "floor scores at zero" already holds)
 - [x] Per-question/round/game timers: shortcut presets in the new-timer dialog, and the auto-started question timer is reused instead of stacked (#421)
 
@@ -119,6 +120,7 @@ Epic: #364. Scope and dependency order are in the epic body: widget registry →
 - **Scoped timers (#421):** shortcut presets rather than fully automatic timers. The new-timer dialog offers This question, This round and Whole game, which set the label (Question, Round, Game) and the auto-reset (`question`, `round`, `none`). The game's auto-started timer is a question timer reused from question to question, and replaced only when the default duration changed.
 - **Auto-advance (#424):** after a correct ruling, or when a question timer (auto-reset `question`) runs out, the game moves to the next question after a countdown the host can cancel (5 s by default, 1 to 60). Navigating by hand, pausing or the last question drops it, and a timer that ran out before the page opened doesn't count. "Auto-reveal the correct answer" is left out: players are never sent the correct answer today, so revealing it needs a transport change of its own.
 - **Auto-remove (#424):** `autoRemoveAfterMinutes` (0 = never, up to 99) marks a player who stays disconnected that long as left, checked every 5 s on the host. Players who left, by Leave or this timeout, no longer count toward `maxPlayers`, and can still rejoin as themselves when rejoining is allowed, as long as a place is free (the security review on #475 caught a cap bypass otherwise).
+- **Host rulings (#424 follow-up):** the buzzer is optional, one input type among others. The question panel's Correct / Wrong / Skip sets the question's status, scores the chosen player (and their team) or team, and logs `question_ruled`, with no buzz needed. Revealing answers stays separate; an input-types ADR will cover typed and multiple-choice answers and per-question vs end-of-round reveal.
 - **Next up:** #424's remaining settings, one PR each.
 
 ## Decisions (2026-10-16)

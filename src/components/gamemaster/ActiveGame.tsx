@@ -43,6 +43,8 @@ import type { Game, GamePhase, GmDecision, Player, Team } from '@/db'
 import { PhaseControl } from '@/components/gamemaster/PhaseControl'
 import { autoPhase, effectivePhase } from '@/lib/layout-phase'
 import { updateQuestionStatus } from '@/db/games'
+import { ruleQuestion } from '@/db/rulings'
+import type { QuestionRuling, RulingAward } from '@/db/rulings'
 import { layoutCommands, phaseCommands } from '@/components/gamemaster/layout-commands'
 import type { GameEvent } from '@/transport/types'
 import { SCOPE_TIMER_LABELS } from '@/components/timer/timer-options'
@@ -255,6 +257,16 @@ export function ActiveGame({
       if (decision === 'Correct') onCorrect()
     },
     [adjudicate, currentGameQuestionId, onCorrect]
+  )
+
+  // Rule on the question without a buzz, e.g. in a game with no buzzer
+  const handleRule = useCallback(
+    async (ruling: QuestionRuling, award: RulingAward | null) => {
+      if (!currentGameQuestionId) return
+      await ruleQuestion(game, currentGameQuestionId, ruling, award)
+      if (ruling === 'correct') onCorrect()
+    },
+    [game, currentGameQuestionId, onCorrect]
   )
 
   // Auto-reset timers on navigation, then auto-start the question timer for the question
@@ -508,6 +520,7 @@ export function ActiveGame({
                 timers: timerHook,
                 players,
                 teams,
+                onRule: (ruling, award) => void handleRule(ruling, award),
               }}
               cellClassName="mt-6"
             />

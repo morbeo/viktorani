@@ -37,6 +37,7 @@ export const LOG_KIND_LABELS: Record<LogRowKind, string> = {
   buzzer_locked: 'Buzzer locked',
   buzzer_unlocked: 'Buzzer unlocked',
   buzzes_cleared: 'Buzzes cleared',
+  question_ruled: 'Question ruled',
   timer_started: 'Timer started',
   timer_paused: 'Timer paused',
   timer_resumed: 'Timer resumed',
@@ -66,6 +67,12 @@ const RULINGS: Record<GmDecision, string> = {
   Skip: 'Skipped',
 }
 
+const QUESTION_RULINGS: Record<string, string> = {
+  correct: 'Correct',
+  incorrect: 'Wrong',
+  skipped: 'Skipped',
+}
+
 const SCORE_REASONS: Record<ScoreEvent['reason'], string> = {
   step: 'adjusted',
   set: 'set',
@@ -85,6 +92,8 @@ function logDetails(e: GameLogEntry): string {
       return 'Different device than an existing player with this name'
     case 'buzzes_cleared':
       return `${d.count} removed`
+    case 'question_ruled':
+      return QUESTION_RULINGS[String(d.status)] ?? String(d.status)
     case 'visibility_changed': {
       const item = VISIBILITY_ITEMS[String(d.item)] ?? String(d.item)
       const where = d.target === 'screen' ? 'the screen' : 'player devices'
