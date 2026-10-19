@@ -263,6 +263,13 @@ have to judge the near misses. Players can change their answer until you click *
 answers**, rule on the question or move on. You can go back to a closed question to finish
 marking; its status follows your marks.
 
+To mark a whole round at once, click **Round sheet** under the answers, or **Mark answers** in
+the end-of-round review. The sheet has a row for each player or team and a column for each of
+the round's questions shown so far, with the correct answer on top and each one's number of
+correct answers at the end. Mark typed answers there with ✓ and ✗, or **Mark matching
+correct** for the whole round. **Close answers** closes every open question of the round
+shown so far, which marks the choices.
+
 ### Revealing the answer
 
 Players and the screen don't see the correct answer until you reveal it. Click **Reveal

@@ -1,4 +1,4 @@
-import { Eye, ListOrdered, Table } from 'lucide-react'
+import { ClipboardCheck, Eye, ListOrdered, Table } from 'lucide-react'
 import { Button, Icon, Modal } from '@/components/ui'
 import type { GameQuestion, Question } from '@/db'
 import type { RoundReviewView } from '@/transport/types'
@@ -19,6 +19,8 @@ interface RoundReviewModalProps {
   onClose: () => void
   /** Close the review and move on; only when it opened on the way to the next round. */
   onContinue?: () => void
+  /** Open the round's answer sheet, in a game where players send answers. */
+  onMarkAnswers?: () => void
 }
 
 const RULING_LABELS: Record<GameQuestion['status'], string> = {
@@ -45,6 +47,7 @@ export function RoundReviewModal({
   onReveal,
   onClose,
   onContinue,
+  onMarkAnswers,
 }: RoundReviewModalProps) {
   const hidden = rows.filter(r => !r.gameQuestion.revealed && r.question?.answer)
   const next = hidden[0]
@@ -94,6 +97,12 @@ export function RoundReviewModal({
         </table>
 
         <div className="flex flex-wrap justify-end gap-3">
+          {onMarkAnswers && (
+            <Button variant="secondary" className="mr-auto" onClick={onMarkAnswers}>
+              <Icon icon={ClipboardCheck} size="sm" />
+              Mark answers
+            </Button>
+          )}
           {view === 'list' ? (
             <Button
               variant="secondary"

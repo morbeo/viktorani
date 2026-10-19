@@ -16,6 +16,7 @@ import type { LucideIcon } from 'lucide-react'
 import { NavHeader } from '@/components/NavHeader'
 import { RoundBoundary } from '@/components/RoundBoundary'
 import { ConfirmSkipModal } from '@/components/gamemaster/ConfirmSkipModal'
+import { RoundMarkingModal } from '@/components/gamemaster/RoundMarkingModal'
 import { RoundReviewModal } from '@/components/gamemaster/RoundReviewModal'
 import type { RoundReviewRow } from '@/components/gamemaster/RoundReviewModal'
 import { useRoundReview } from '@/hooks/useRoundReview'
@@ -288,18 +289,35 @@ export function ActiveGame({
     )
   }, [question, screenVisibility, revealed, onScreenContent])
 
-  // The round under review and its questions, in order
+  // A round's questions, in order, for the answer review and the answer sheet
+  const roundRows = useCallback(
+    async (roundId: string | undefined): Promise<RoundReviewRow[]> => {
+      if (!roundId) return []
+      const gqs = await db.gameQuestions
+        .where('gameId')
+        .equals(game.id)
+        .filter(gq => gq.roundId === roundId)
+        .sortBy('order')
+      const qs = await db.questions.bulkGet(gqs.map(gq => gq.questionId))
+      return gqs.map((gameQuestion, i) => ({ gameQuestion, question: qs[i] }))
+    },
+    [game.id]
+  )
+
+  // The round under review and its questions
   const reviewRound = review ? seq.find(e => e.roundId === review.roundId) : undefined
-  const reviewRows = useLiveQuery(async (): Promise<RoundReviewRow[]> => {
-    if (!review) return []
-    const gqs = await db.gameQuestions
-      .where('gameId')
-      .equals(game.id)
-      .filter(gq => gq.roundId === review.roundId)
-      .sortBy('order')
-    const qs = await db.questions.bulkGet(gqs.map(gq => gq.questionId))
-    return gqs.map((gameQuestion, i) => ({ gameQuestion, question: qs[i] }))
-  }, [game.id, review?.roundId])
+  const reviewRows = useLiveQuery(() => roundRows(review?.roundId), [roundRows, review?.roundId])
+
+  // The round whose answer sheet the host has open, and its questions shown so far: one not
+  // yet reached has no answers, and closing the round's answers must leave it open
+  const [markingRoundId, setMarkingRoundId] = useState<string | null>(null)
+  const markingRound = markingRoundId ? seq.find(e => e.roundId === markingRoundId) : undefined
+  // From the navigation position, so it is known before the question's row has loaded
+  const shownIds = (pos ? seq.slice(0, pos.flatIndex + 1) : []).map(e => e.gameQuestionId).join()
+  const markingRows = useLiveQuery(async () => {
+    const shown = new Set(shownIds.split(','))
+    return (await roundRows(markingRoundId ?? undefined)).filter(r => shown.has(r.gameQuestion.id))
+  }, [roundRows, markingRoundId, shownIds])
 
   // Send the review's revealed answers while it is open, and close it on players and screens
   const reviewOpenRef = useRef(false)
@@ -379,6 +397,14 @@ export function ActiveGame({
     if (game.revealTiming === 'perQuestion') await handleReveal()
     if (result.status === 'correct') onCorrect()
   }, [game, currentGameQuestionId, handleReveal, onCorrect])
+
+  // Close the round's open questions to new answers from its answer sheet, marking choices
+  const handleCloseRound = useCallback(
+    async (gameQuestionIds: string[]) => {
+      for (const id of gameQuestionIds) await markAnswers(game, id, 'skipped')
+    },
+    [game]
+  )
 
   // Mark typed answers right or wrong
   const handleMarkTyped = useCallback(
@@ -630,6 +656,24 @@ export function ActiveGame({
           onReveal={gameQuestionId => void revealQuestion(game.id, gameQuestionId)}
           onClose={closeReview}
           onContinue={continueAfterReview ? continueFromReview : undefined}
+          onMarkAnswers={
+            game.inputType === 'choice' || game.inputType === 'text'
+              ? () => setMarkingRoundId(review.roundId)
+              : undefined
+          }
+        />
+      )}
+
+      {markingRoundId && markingRound && (
+        <RoundMarkingModal
+          roundName={markingRound.roundName}
+          rows={markingRows ?? []}
+          players={players}
+          teams={teams}
+          disabled={isEnded}
+          onMarkTyped={(answers, ruling) => void handleMarkTyped(answers, ruling)}
+          onCloseAnswers={ids => void handleCloseRound(ids)}
+          onClose={() => setMarkingRoundId(null)}
         />
       )}
 
@@ -686,6 +730,10 @@ export function ActiveGame({
                 onReveal: () => void handleReveal(),
                 onMarkAnswers: () => void handleMark(),
                 onMarkTyped: (ids, ruling) => void handleMarkTyped(ids, ruling),
+                onMarkRound: () => {
+                  const current = pos ? seq[pos.flatIndex] : undefined
+                  if (current) setMarkingRoundId(current.roundId)
+                },
                 onReviewRound: () => {
                   const current = pos ? seq[pos.flatIndex] : undefined
                   if (current) setReview({ roundId: current.roundId, view: 'list' })

@@ -99,6 +99,8 @@ export interface GamemasterData {
   onMarkTyped: (answers: SeenAnswer[], ruling: 'correct' | 'incorrect') => void
   /** Opens the review of the current round's answers (ADR 0023). */
   onReviewRound: () => void
+  /** Opens the current round's answer sheet, to mark players' answers. */
+  onMarkRound: () => void
 }
 
 /** What a player's phone knows about the game, as handed to its widgets. */

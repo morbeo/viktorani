@@ -68,6 +68,7 @@ function gmData(game: Partial<Game> = {}, rest: Partial<GamemasterData> = {}): G
     onReviewRound: vi.fn(),
     onMarkAnswers: vi.fn(),
     onMarkTyped: vi.fn(),
+    onMarkRound: vi.fn(),
     ...rest,
   }
 }

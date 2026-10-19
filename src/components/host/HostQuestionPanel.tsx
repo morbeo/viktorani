@@ -26,6 +26,8 @@ interface HostQuestionPanelProps {
     onMarkAnswers?: () => void
     /** Marks typed answers right or wrong, in a game where players type them. */
     onMarkTyped?: (answers: SeenAnswer[], ruling: 'correct' | 'incorrect') => void
+    /** Opens the round's answer sheet. */
+    onMarkRound?: () => void
   }
 }
 
@@ -50,6 +52,7 @@ export function HostQuestionPanel({
           disabled={game.status === 'ended'}
           onMark={ruling.onMarkAnswers}
           onMarkTyped={ruling.onMarkTyped}
+          onMarkRound={ruling.onMarkRound}
         />
       )}
       {ruling && (
