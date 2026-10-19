@@ -82,6 +82,7 @@ const GameSettingsSchema = z.object({
     .max(MAX_AUTO_ADVANCE_DELAY)
     .catch(BUILT_IN_GAME.autoAdvanceDelaySeconds),
   revealTiming: z.enum(REVEAL_TIMINGS).catch(BUILT_IN_GAME.revealTiming),
+  holdScores: z.boolean().catch(BUILT_IN_GAME.holdScores),
   autoStartTimerOnQuestionShow: z.boolean().catch(BUILT_IN_GAME.autoStartTimerOnQuestionShow),
   defaultTimerDuration: z
     .number()

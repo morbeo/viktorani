@@ -1,6 +1,7 @@
 import { useEffect, useCallback, useRef } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
+import { logEvent } from '@/db/game-log'
 import { transportManager } from '@/transport'
 import { applyScoreDelta, toScore } from '@/pages/admin/gamemaster-utils'
 import type { Game, Player, ScoreChangeReason, ScoreEvent, Team } from '@/db'
@@ -45,6 +46,59 @@ export async function readScores(gameId: string): Promise<Record<string, number>
   for (const p of players) scores[p.id] = p.score
   for (const t of teams) scores[t.id] = t.score
   return scores
+}
+
+/** Whether players and screens see the game's held scores rather than the live ones. */
+export function holdsScores(game: Pick<Game, 'holdScores' | 'status'>): boolean {
+  return game.holdScores && game.status !== 'ended'
+}
+
+/**
+ * Each player's and team's score as of `at` (epoch ms), from the game's score history: the
+ * score after its last change up to then, or before its first change after then. One with
+ * no changes keeps its `live` score. `null` means before any change. Pure function.
+ */
+export function scoresAsOf(
+  live: Record<string, number>,
+  events: Pick<ScoreEvent, 'targetId' | 'from' | 'to' | 'timestamp'>[],
+  at: number | null
+): Record<string, number> {
+  const cutoff = at ?? -Infinity
+  const shown = { ...live }
+  const settled = new Set<string>()
+  for (const e of [...events].sort((a, b) => a.timestamp - b.timestamp)) {
+    if (!(e.targetId in shown) || settled.has(e.targetId)) continue
+    if (e.timestamp <= cutoff) {
+      shown[e.targetId] = e.to
+    } else {
+      shown[e.targetId] = e.from
+      settled.add(e.targetId)
+    }
+  }
+  return shown
+}
+
+/**
+ * The scores players and screens see: the live ones, or with {@link Game.holdScores} the
+ * scores as of the host's last announcement, until the game ends.
+ */
+export async function readShownScores(gameId: string): Promise<Record<string, number>> {
+  const [game, live] = await Promise.all([db.games.get(gameId), readScores(gameId)])
+  if (!game || !holdsScores(game)) return live
+  const events = await db.scoreEvents.where('gameId').equals(gameId).toArray()
+  return scoresAsOf(live, events, game.scoresAnnouncedAt)
+}
+
+/**
+ * Announce the current scores (ADR 0023): with {@link Game.holdScores}, players and screens
+ * see the scores as of now until the next announcement. Resolves to the game's change.
+ */
+export async function announceScores(gameId: string): Promise<Pick<Game, 'scoresAnnouncedAt'>> {
+  const patch = { scoresAnnouncedAt: Date.now() }
+  await db.games.update(gameId, patch)
+  logEvent(gameId, 'scores_announced')
+  await broadcastScores(gameId)
+  return patch
 }
 
 /** A score change to make with {@link writeScore}. */
@@ -123,11 +177,12 @@ export function useScoreHistory(gameId: string): ScoreEvent[] {
 }
 
 /**
- * Broadcast every player and team score of a game as one `SCORE_UPDATE`.
- * The single emitter for score changes (manual adjustments and adjudication).
+ * Broadcast every player and team score of a game as one `SCORE_UPDATE`, as players may see
+ * them ({@link readShownScores}). The single emitter for score changes (manual adjustments
+ * and adjudication), and for announcements.
  */
 export async function broadcastScores(gameId: string): Promise<void> {
-  transportManager.send({ type: 'SCORE_UPDATE', scores: await readScores(gameId) })
+  transportManager.send({ type: 'SCORE_UPDATE', scores: await readShownScores(gameId) })
 }
 
 /**

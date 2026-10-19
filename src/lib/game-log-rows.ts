@@ -41,6 +41,7 @@ export const LOG_KIND_LABELS: Record<LogRowKind, string> = {
   answer_revealed: 'Answer revealed',
   answers_marked: 'Answers marked',
   answer_marked: 'Answer marked',
+  scores_announced: 'Scores announced',
   timer_started: 'Timer started',
   timer_paused: 'Timer paused',
   timer_resumed: 'Timer resumed',

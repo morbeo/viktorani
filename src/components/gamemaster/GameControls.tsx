@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pause, Play, Square, ChevronLeft, Monitor } from 'lucide-react'
+import { Pause, Play, Square, ChevronLeft, Megaphone, Monitor } from 'lucide-react'
 import { Button, Icon, ControlSizePicker } from '@/components/ui'
 import { EndGameModal } from '@/components/gamemaster/EndGameModal'
 import { GameSettingsDrawer } from '@/components/gamemaster/GameSettingsDrawer'
 import type { Game } from '@/db'
+import { announceScores } from '@/hooks/useScoreboard'
 import type { UseGameLifecycleResult } from '@/hooks/useGameLifecycle'
 import { useRegisterCommands } from '@/components/command-palette/commands'
 import type { Command } from '@/components/command-palette/commands'
@@ -53,6 +54,12 @@ export function GameControls({ game, onGameChange, lifecycle }: GameControlsProp
     }
   }
 
+  // Show players and screens the scores as they stand, in a game that holds them
+  async function handleAnnounce() {
+    onGameChange(await announceScores(game.id))
+  }
+  const canAnnounce = !isEnded && game.holdScores && game.scoringEnabled
+
   // A named window, so pressing again brings the same screen back instead of opening another
   function handleOpenScreen() {
     const { pathname, search } = window.location
@@ -60,9 +67,9 @@ export function GameControls({ game, onGameChange, lifecycle }: GameControlsProp
   }
 
   // Palette commands call the latest handlers without re-registering on every render
-  const handlersRef = useRef({ handlePauseResume, handleOpenScreen })
+  const handlersRef = useRef({ handlePauseResume, handleOpenScreen, handleAnnounce })
   useEffect(() => {
-    handlersRef.current = { handlePauseResume, handleOpenScreen }
+    handlersRef.current = { handlePauseResume, handleOpenScreen, handleAnnounce }
   })
   const commands = useMemo<Command[]>(
     () =>
@@ -84,8 +91,20 @@ export function GameControls({ game, onGameChange, lifecycle }: GameControlsProp
               keywords: 'projector display window',
               run: () => handlersRef.current.handleOpenScreen(),
             },
+            ...(canAnnounce
+              ? [
+                  {
+                    id: 'gm:announce-scores',
+                    label: 'Announce scores',
+                    group: 'Game',
+                    icon: Megaphone,
+                    keywords: 'show reveal scores held',
+                    run: () => void handlersRef.current.handleAnnounce(),
+                  },
+                ]
+              : []),
           ],
-    [isEnded, isPaused]
+    [isEnded, isPaused, canAnnounce]
   )
   useRegisterCommands('game-controls', commands)
 
@@ -127,6 +146,13 @@ export function GameControls({ game, onGameChange, lifecycle }: GameControlsProp
         <ControlSizePicker />
 
         {!isEnded && <GameSettingsDrawer game={game} onGameChange={onGameChange} />}
+
+        {canAnnounce && (
+          <Button variant="secondary" size="sm" onClick={() => void handleAnnounce()}>
+            <Icon icon={Megaphone} size="sm" />
+            Announce scores
+          </Button>
+        )}
 
         <Button variant="secondary" size="sm" onClick={handleOpenScreen}>
           <Icon icon={Monitor} size="sm" />

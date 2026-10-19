@@ -6,6 +6,12 @@ import { GameControls } from '@/components/gamemaster/GameControls'
 import { RosterPanel } from '@/components/gamemaster/RosterPanel'
 import type { Game, Player, Team } from '@/db'
 
+const announceScores = vi.hoisted(() => vi.fn(async () => ({ scoresAnnouncedAt: 1 })))
+vi.mock('@/hooks/useScoreboard', async orig => ({
+  ...(await orig<typeof import('@/hooks/useScoreboard')>()),
+  announceScores,
+}))
+
 const mockGame: Game = {
   id: 'g1',
   name: 'Test Game',
@@ -40,6 +46,8 @@ const mockGame: Game = {
   autoAdvanceOnTimerExpiry: false,
   autoAdvanceDelaySeconds: 5,
   revealTiming: 'manual',
+  holdScores: false,
+  scoresAnnouncedAt: null,
   autoStartTimerOnQuestionShow: false,
   defaultTimerDuration: 60,
   soundEffectsMuted: false,
@@ -68,6 +76,25 @@ describe('GameControls', () => {
     expect(screen.getByRole('button', { name: 'Pause game' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'End game' })).toBeInTheDocument()
     expect(screen.getByText('Open screen')).toBeInTheDocument()
+  })
+
+  it('announces held scores', async () => {
+    const onGameChange = vi.fn()
+    render(
+      <GameControls
+        game={{ ...mockGame, holdScores: true, scoringEnabled: true }}
+        onGameChange={onGameChange}
+        lifecycle={mockLifecycle}
+      />
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Announce scores' }))
+    expect(announceScores).toHaveBeenCalledWith('g1')
+    expect(onGameChange).toHaveBeenCalledWith({ scoresAnnouncedAt: 1 })
+  })
+
+  it('offers no announcement when scores are live', () => {
+    render(<GameControls game={mockGame} onGameChange={vi.fn()} lifecycle={mockLifecycle} />)
+    expect(screen.queryByRole('button', { name: 'Announce scores' })).toBeNull()
   })
 
   it('shows paused badge when game is paused', () => {

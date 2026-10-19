@@ -87,8 +87,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(22)
-    expect(db.backendDB().version).toBe(220)
+    expect(db.verno).toBe(23)
+    expect(db.backendDB().version).toBe(230)
     expect(db.backendDB().objectStoreNames.contains('managedPlayers')).toBe(true)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
     expect(await db.managedLabels.count()).toBe(0)
@@ -102,8 +102,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(22)
-    expect(db.backendDB().version).toBe(220)
+    expect(db.verno).toBe(23)
+    expect(db.backendDB().version).toBe(230)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
   })
 
@@ -297,5 +297,16 @@ describe('Dexie schema version', () => {
     await db.open()
 
     expect(await db.answers.get('a-old')).toMatchObject({ choice: 1, text: null })
+  })
+
+  it('holds no scores in existing games (v23)', async () => {
+    await seedRawDb(220, V1_STORES)
+
+    await db.open()
+
+    expect(await db.games.get('g-old')).toMatchObject({
+      holdScores: false,
+      scoresAnnouncedAt: null,
+    })
   })
 })

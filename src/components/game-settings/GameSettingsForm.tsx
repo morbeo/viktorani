@@ -254,6 +254,15 @@ export function GameSettingsForm({
           onChange={v => onChange({ revealTiming: v })}
         />
       </Row>
+      {value.scoringEnabled && (
+        <Toggle
+          label="Hold scores until announced"
+          help="Players and the screen keep seeing the scores from your last announcement while you mark. Click Announce scores to show the new ones. Final scores show when the game ends."
+          checked={value.holdScores}
+          disabled={disabled}
+          onChange={v => onChange({ holdScores: v })}
+        />
+      )}
       <Toggle
         label="Auto-start timer on question"
         help="Start a timer automatically whenever a question is shown, using the default duration below."

@@ -7,6 +7,7 @@ import { GameLayoutsPanel } from '@/components/gamemaster/GameLayoutsPanel'
 import type { GameSettings } from '@/components/game-settings/game-settings'
 import { db } from '@/db'
 import type { Game } from '@/db'
+import { broadcastScores } from '@/hooks/useScoreboard'
 
 interface GameSettingsDrawerProps {
   game: Game
@@ -32,11 +33,17 @@ export function GameSettingsDrawer({ game, onGameChange }: GameSettingsDrawerPro
 
   async function save(settings: Partial<GameSettings> | Pick<Game, 'themeId'>) {
     const patch: Partial<Game> = { ...settings, updatedAt: Date.now() }
+    // Holding starts from what players already see, so their scores don't go back
+    if ('holdScores' in settings && settings.holdScores && !game.holdScores) {
+      patch.scoresAnnouncedAt = patch.updatedAt
+    }
     setSaving(true)
     setError(null)
     try {
       await db.games.update(game.id, patch)
       onGameChange(patch)
+      // Phones follow at once: held scores when turned on, the live ones when turned off
+      if ('holdScores' in settings) await broadcastScores(game.id)
     } catch {
       setError('Could not save the game settings')
     } finally {

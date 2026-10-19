@@ -145,6 +145,8 @@ describe('useNavigation', () => {
     autoAdvanceOnTimerExpiry: false,
     autoAdvanceDelaySeconds: 5,
     revealTiming: 'manual',
+    holdScores: false,
+    scoresAnnouncedAt: null,
     autoStartTimerOnQuestionShow: false,
     defaultTimerDuration: 60,
     soundEffectsMuted: false,

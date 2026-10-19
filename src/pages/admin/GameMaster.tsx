@@ -28,7 +28,13 @@ import { hostNow } from '@/hooks/useBuzzer'
 import { runningTimerEvents } from '@/hooks/useTimer'
 import { useGameLifecycle } from '@/hooks/useGameLifecycle'
 import { usePhaseOverride } from '@/hooks/usePhaseOverride'
-import { adjustScore, buildScoreEntries, readScores } from '@/hooks/useScoreboard'
+import {
+  adjustScore,
+  buildScoreEntries,
+  holdsScores,
+  readShownScores,
+  scoresAsOf,
+} from '@/hooks/useScoreboard'
 import { buildLogRows, toPublicLogEntries } from '@/lib/game-log-rows'
 import { PlayerConnections, messageRecipients, resolveJoin } from '@/pages/admin/player-connections'
 import { buildLayoutEvent, type LayoutEvent } from '@/pages/admin/remote-layouts'
@@ -181,7 +187,7 @@ export default function GameMaster() {
     sentInputTypeRef.current = inputType
     const g = gameRef.current
     if (first || !g || (g.status !== 'active' && g.status !== 'paused')) return
-    readScores(g.id)
+    readShownScores(g.id)
       .then(scores =>
         transportManager.send({
           type: 'GAME_STATE',
@@ -308,7 +314,7 @@ export default function GameMaster() {
       if (s === 'connected') {
         const g = gameRef.current
         if (g && (g.status === 'active' || g.status === 'paused')) {
-          readScores(g.id)
+          readShownScores(g.id)
             .then(scores =>
               transportManager.send({ type: 'GAME_STATE', state: serialiseGameState(g, scores) })
             )
@@ -386,7 +392,7 @@ export default function GameMaster() {
       })
       const g = gameRef.current
       if (g) {
-        const scores = await readScores(g.id)
+        const scores = await readShownScores(g.id)
         transportManager.sendTo(connId, {
           type: 'GAME_STATE',
           state: serialiseGameState(g, scores),
@@ -435,13 +441,22 @@ export default function GameMaster() {
 
   // Names and scores for approved screens, sent whenever they change. Empty when scoring
   // is off, so the screen hides its scoreboard.
+  // Held scores stay at the last announcement while the game runs.
   const scoreEntries = useLiveQuery(async () => {
     if (!id) return []
-    const [ps, ts] = await Promise.all([
+    const [g, ps, ts] = await Promise.all([
+      db.games.get(id),
       db.players.where('gameId').equals(id).toArray(),
       db.teams.where('gameId').equals(id).toArray(),
     ])
-    return buildScoreEntries(ps, ts)
+    if (!g || !holdsScores(g)) return buildScoreEntries(ps, ts)
+    const live = Object.fromEntries([...ps, ...ts].map(r => [r.id, r.score]))
+    const events = await db.scoreEvents.where('gameId').equals(id).toArray()
+    const shown = scoresAsOf(live, events, g.scoresAnnouncedAt)
+    return buildScoreEntries(
+      ps.map(p => ({ ...p, score: shown[p.id] })),
+      ts.map(t => ({ ...t, score: shown[t.id] }))
+    )
   }, [id])
   const scoreboard =
     game?.scoringEnabled && scoreEntries
@@ -848,7 +863,7 @@ export default function GameMaster() {
     await db.players.update(playerId, { presence: 'kicked' })
     setPlayers(prev => setPlayerPresence(prev, playerId, 'kicked'))
     logEvent(g.id, 'player_kicked', { subjectId: playerId })
-    const scores = await readScores(g.id)
+    const scores = await readShownScores(g.id)
     transportManager.send({ type: 'GAME_STATE', state: serialiseGameState(g, scores) })
   }, [])
 
@@ -936,7 +951,7 @@ export default function GameMaster() {
     if (!g) return
     await db.players.update(playerId, { teamId })
     setPlayers(prev => assignPlayerTeam(prev, playerId, teamId))
-    const scores = await readScores(g.id)
+    const scores = await readShownScores(g.id)
     transportManager.send({ type: 'GAME_STATE', state: serialiseGameState(g, scores) })
   }, [])
 
@@ -985,7 +1000,7 @@ export default function GameMaster() {
       logEvent(game.id, 'game_started')
       setGame(updated)
       transportManager.send({ type: 'GAME_STATUS', status: 'active' })
-      const scores = await readScores(game.id)
+      const scores = await readShownScores(game.id)
       transportManager.send({ type: 'GAME_STATE', state: serialiseGameState(updated, scores) })
     } finally {
       setStarting(false)
