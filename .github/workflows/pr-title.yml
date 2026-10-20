@@ -18,6 +18,8 @@ env:
 jobs:
   lint-title:
     name: lint-title
+    # Body-only edits also fire `edited`; skip those
+    if: github.event.action != 'edited' || github.event.changes.title
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
