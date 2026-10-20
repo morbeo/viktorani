@@ -73,7 +73,7 @@ jobs:
       - name: Generate changelog
         id: changelog
         run: |
-          npx git-cliff --tag ${{ steps.bump.outputs.version }} -o CHANGELOG.md
+          npx git-cliff --unreleased --tag ${{ steps.bump.outputs.version }} --prepend CHANGELOG.md
           npx git-cliff --latest --strip all > /tmp/release-notes.md
 
       - name: Commit, tag, push
