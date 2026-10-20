@@ -17,59 +17,43 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  lint-title:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 2
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-
-      - name: Install commitlint
-        run: npm install --no-save --legacy-peer-deps @commitlint/cli @commitlint/config-conventional
-
-      - name: Lint PR title
-        env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
-        run: echo "$PR_TITLE" | npx --yes commitlint
-
   detect:
+    name: detect
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       code: ${{ steps.changes.outputs.code }}
     steps:
       - uses: actions/checkout@v7
 
+      # A manual run has no base to diff against, so it always runs the full check
       - name: Detect code changes
         id: changes
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: bash scripts/detect-code-changes.sh "$BASE_SHA"
+        run: |
+          if [[ -z "$BASE_SHA" ]]; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          else
+            bash scripts/detect-code-changes.sh "$BASE_SHA"
+          fi
 
   ci:
-    runs-on: ubuntu-latest
+    name: ci
     needs: detect
     if: needs.detect.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies
-        run: npm ci --legacy-peer-deps
-
-      - name: Type check
-        run: npm run typecheck
+      - uses: ./.github/actions/setup
 
       - name: Lint
         run: npm run lint
+
+      - name: Type check
+        run: npm run typecheck
 
       - name: Test with coverage
         run: npm run test:coverage

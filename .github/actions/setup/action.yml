@@ -1,0 +1,15 @@
+name: Setup
+description: Install Node (version from .nvmrc) and npm dependencies from the lockfile
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v7
+      with:
+        node-version-file: .nvmrc
+        cache: npm
+        cache-dependency-path: package-lock.json
+
+    - name: Install dependencies
+      shell: bash
+      run: npm ci --legacy-peer-deps
