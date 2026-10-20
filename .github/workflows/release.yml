@@ -80,8 +80,8 @@ jobs:
         run: |
           git add package.json package-lock.json CHANGELOG.md
           git commit -m "chore(release): ${{ steps.bump.outputs.version }}"
-          git tag ${{ steps.bump.outputs.version }}
-          git push origin master --follow-tags
+          git tag -a ${{ steps.bump.outputs.version }} -m "${{ steps.bump.outputs.version }}"
+          git push origin master ${{ steps.bump.outputs.version }}
 
       - name: Create GitHub Release
         run: |
