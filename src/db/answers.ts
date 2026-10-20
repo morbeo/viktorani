@@ -1,5 +1,5 @@
 import { db, MAX_ANSWER_TEXT_LENGTH } from '@/db'
-import type { Answer, Game, GameQuestion, Question } from '@/db'
+import type { Answer, Game, GameQuestion, Player, Question, Team } from '@/db'
 import { logEvent } from '@/db/game-log'
 import { questionPoints } from '@/db/rulings'
 import { broadcastScores, writeScore } from '@/hooks/useScoreboard'
@@ -22,6 +22,27 @@ export function keepsAnswersOpen(game: Pick<Game, 'inputType' | 'answersClose'>)
   return (
     game.answersClose === 'endOfRound' && (game.inputType === 'choice' || game.inputType === 'text')
   )
+}
+
+/** Whether a player is on the team and hasn't left or been removed. */
+function isActiveMember(p: Pick<Player, 'teamId' | 'presence'>, teamId: string): boolean {
+  return p.teamId === teamId && p.presence !== 'left' && p.presence !== 'kicked'
+}
+
+/**
+ * The member who answers for a team when only captains answer ({@link Game.teamAnswering}):
+ * the host's chosen captain while still on the team, else the member who joined first.
+ * Members who left or were removed don't count. `null` when the team has nobody. Pure function.
+ */
+export function teamCaptain(
+  team: Pick<Team, 'id' | 'captainId'>,
+  players: ReadonlyArray<Pick<Player, 'id' | 'teamId' | 'joinedAt' | 'presence'>>
+): string | null {
+  const members = players
+    .filter(p => isActiveMember(p, team.id))
+    .sort((a, b) => a.joinedAt - b.joinedAt || a.id.localeCompare(b.id))
+  if (team.captainId && members.some(p => p.id === team.captainId)) return team.captainId
+  return members[0]?.id ?? null
 }
 
 /** What a player sends: an option's index in a `choice` game, typed text in a `text` game. */
@@ -84,7 +105,10 @@ async function setRuling(
  * that takes this kind of answer: a choice the question has an option for, or text of 1 to
  * {@link MAX_ANSWER_TEXT_LENGTH} characters once trimmed. In a team game the answer is the
  * team's: it replaces the one any member sent before, and goes back to unmarked (taking back
- * any points it had scored). Resolves to whether it was accepted.
+ * any points it had scored). How the team decides it follows {@link Game.teamAnswering}: with
+ * `firstReply` only the member who answered first may change it (anyone, once they are off
+ * the team), and with `captain` only the
+ * team's captain ({@link teamCaptain}) answers. Resolves to whether it was accepted.
  */
 export async function recordAnswer(
   gameId: string,
@@ -117,12 +141,26 @@ export async function recordAnswer(
     if (player?.gameId !== gameId) return false
     const team = player.teamId ? await db.teams.get(player.teamId) : undefined
     const teamId = team?.gameId === gameId ? team.id : null
+    if (team && teamId && game.teamAnswering === 'captain') {
+      const members = await db.players.where('teamId').equals(teamId).toArray()
+      if (teamCaptain(team, members) !== playerId) return false
+    }
 
     const existing = await db.answers
       .where('gameQuestionId')
       .equals(gameQuestionId)
       .filter(a => (teamId ? a.teamId === teamId : a.teamId === null && a.playerId === playerId))
       .first()
+    // The first reply holds while whoever sent it is still on the team
+    if (
+      existing &&
+      teamId &&
+      game.teamAnswering === 'firstReply' &&
+      existing.playerId !== playerId
+    ) {
+      const holder = await db.players.get(existing.playerId)
+      if (holder && isActiveMember(holder, teamId)) return false
+    }
     if (existing) {
       await setRuling(game, existing, 'pending', gq, await questionPoints(gq.questionId))
       await db.answers.update(existing.id, { playerId, choice, text, receivedAt })

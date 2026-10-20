@@ -35,6 +35,7 @@ import { Icon } from '@/components/ui'
 import { db } from '@/db'
 import {
   buildOpenQuestions,
+  buildTeamAnswers,
   buildQuestionContent,
   buildRoundAnswers,
 } from '@/pages/admin/gamemaster-utils'
@@ -78,6 +79,8 @@ export interface ActiveGameProps {
   onAdjustScore: (playerId: string, delta: number) => Promise<void>
   onUpdatePlayerNotes: (playerId: string, notes: string) => Promise<void>
   onCreateTeam: (name: string, color: string, icon: string) => Promise<void>
+  /** Makes a member the team's captain, who answers for it when only captains answer. */
+  onSetCaptain?: (teamId: string, playerId: string) => Promise<void>
   /** Receives the players' content for the current question, or `null` when there is none. */
   onQuestionContent: (content: QuestionContent | null) => void
   /** Receives the screen's content for the current question, or `null` when there is none. */
@@ -92,6 +95,11 @@ export interface ActiveGameProps {
    * in a game that keeps answers open until the end of the round.
    */
   onOpenQuestions?: (event: OpenQuestionsEvent) => void
+  /**
+   * Receives a team's answering mode and current answers whenever they change, for each
+   * team, in a team game that takes answers on phones.
+   */
+  onTeamAnswers?: (teamId: string, event: TeamAnswersEvent) => void
   screens: ScreensPanelProps
   messages: MessagePanelProps
   /** Stored layouts for the play column; the built-in default is used when none fits. */
@@ -114,6 +122,7 @@ export type AnswerHandler = (
 export type QuestionContent = Extract<GameEvent, { type: 'QUESTION_CONTENT' }>
 export type RoundAnswersEvent = Extract<GameEvent, { type: 'ROUND_ANSWERS' }>
 export type OpenQuestionsEvent = Extract<GameEvent, { type: 'OPEN_QUESTIONS' }>
+export type TeamAnswersEvent = Extract<GameEvent, { type: 'TEAM_ANSWERS' }>
 
 type SideTab = 'people' | 'messages' | 'scoreboard' | 'log'
 type TabId = 'play' | SideTab
@@ -190,10 +199,12 @@ export function ActiveGame({
   onAdjustScore,
   onUpdatePlayerNotes,
   onCreateTeam,
+  onSetCaptain,
   onQuestionContent,
   onScreenContent,
   onRoundAnswers,
   onOpenQuestions,
+  onTeamAnswers,
   screens,
   messages,
   layouts = [],
@@ -354,6 +365,44 @@ export function ActiveGame({
         : { type: 'OPEN_QUESTIONS', questions: [] }
     )
   }, [openRows, playerVisibility, answerKind, onOpenQuestions])
+
+  // Send each team its answering mode and its answers to the questions still open, so
+  // teammates see the team's answer whenever it changes
+  const answerable = roundSoFar
+    .filter(e => e.questionStatus === 'pending')
+    .map(e => `${e.gameQuestionId}:${e.questionId}`)
+    .join()
+  const teamAnswers = useLiveQuery(async () => {
+    if (!answerKind) return []
+    const [ts, ps] = await Promise.all([
+      db.teams.where('gameId').equals(game.id).toArray(),
+      db.players.where('gameId').equals(game.id).toArray(),
+    ])
+    if (ts.length === 0) return []
+    const items = answerable ? answerable.split(',').map(item => item.split(':')) : []
+    const gqs = await db.gameQuestions.bulkGet(items.map(([gqId]) => gqId))
+    const questionIdOf = new Map(
+      items.filter((_, i) => gqs[i] && !gqs[i].revealed).map(([gqId, qId]) => [gqId, qId])
+    )
+    const answers = await db.answers
+      .where('gameQuestionId')
+      .anyOf([...questionIdOf.keys()])
+      .toArray()
+    return ts.map(t => ({
+      teamId: t.id,
+      event: buildTeamAnswers(game.teamAnswering, t, ps, answers, questionIdOf),
+    }))
+  }, [game.id, game.teamAnswering, answerKind, answerable])
+  const sentTeamAnswersRef = useRef(new Map<string, string>())
+  useEffect(() => {
+    if (!onTeamAnswers || !teamAnswers) return
+    for (const { teamId, event } of teamAnswers) {
+      const json = JSON.stringify(event)
+      if (sentTeamAnswersRef.current.get(teamId) === json) continue
+      sentTeamAnswersRef.current.set(teamId, json)
+      onTeamAnswers(teamId, event)
+    }
+  }, [teamAnswers, onTeamAnswers])
 
   // Same for approved screens, with the screen's visibility
   const screenVisibility = game.visibility.screen
@@ -876,6 +925,7 @@ export function ActiveGame({
                   onAdjustScore={onAdjustScore}
                   onUpdatePlayerNotes={onUpdatePlayerNotes}
                   onCreateTeam={onCreateTeam}
+                  onSetCaptain={onSetCaptain}
                 />
               </div>
             )}

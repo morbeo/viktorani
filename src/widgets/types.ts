@@ -122,6 +122,8 @@ export interface PlayerData {
     selected: number | null
     enabled: boolean
     onChoose: (choice: number) => void
+    /** Who decides the team's answer, shown in place of the usual hint; see `TEAM_ANSWERS`. */
+    note?: string | null
   } | null
   /**
    * The answer box in a game where players type their answers, else `null`. `open` is
@@ -133,6 +135,8 @@ export interface PlayerData {
     sent: string | null
     enabled: boolean
     onSend: (text: string) => void
+    /** Who decides the team's answer, shown in place of the usual hint; see `TEAM_ANSWERS`. */
+    note?: string | null
   } | null
 }
 

@@ -403,6 +403,7 @@ function GameWizard({
         autoAdvanceDelaySeconds: state.autoAdvanceDelaySeconds,
         revealTiming: state.revealTiming,
         answersClose: state.answersClose,
+        teamAnswering: state.teamAnswering,
         holdScores: state.holdScores,
         scoresAnnouncedAt: null,
         autoStartTimerOnQuestionShow: state.autoStartTimerOnQuestionShow,

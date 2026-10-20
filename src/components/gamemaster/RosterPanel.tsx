@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { NotebookText, Plus, StickyNote, UserX } from 'lucide-react'
+import { Crown, NotebookText, Plus, StickyNote, UserX } from 'lucide-react'
 import { Icon, Button, Input } from '@/components/ui'
 import { canAssignToTeam, canCreateTeam, isConnected } from '@/pages/admin/gamemaster-utils'
 import { resolveIcon, TEAM_COLOURS } from '@/components/players-teams/teamIcons'
 import { RosterBulkActionBar } from './RosterBulkActionBar'
 import { PRESENCE } from './presence'
+import { teamCaptain } from '@/db/answers'
 import type { Game, Player, Team } from '@/db'
 
 interface RosterPanelProps {
@@ -17,6 +18,11 @@ interface RosterPanelProps {
   onAdjustScore: (playerId: string, delta: number) => Promise<void>
   onUpdatePlayerNotes: (playerId: string, notes: string) => Promise<void>
   onCreateTeam: (name: string, color: string, icon: string) => Promise<void>
+  /**
+   * Makes a member the team's captain. Offered while only captains answer for their team
+   * (`Game.teamAnswering` is `captain`).
+   */
+  onSetCaptain?: (teamId: string, playerId: string) => Promise<void>
   /**
    * Controls the selection from outside (e.g. clicking a team row elsewhere selects its
    * members). Omit both to let the panel manage its own selection.
@@ -43,6 +49,7 @@ export function RosterPanel({
   onAdjustScore,
   onUpdatePlayerNotes,
   onCreateTeam,
+  onSetCaptain,
   selected: controlledSelected,
   onSelectedChange,
 }: RosterPanelProps) {
@@ -66,6 +73,11 @@ export function RosterPanel({
     team,
     members: players.filter(p => p.teamId === team.id),
   }))
+  // Captains matter only while they alone answer for their team
+  const captains =
+    game.teamAnswering === 'captain' && (game.inputType === 'choice' || game.inputType === 'text')
+      ? new Map(teams.map(t => [t.id, teamCaptain(t, players)]))
+      : null
   const noTeam = players.filter(p => !p.teamId)
   const teamAtCap = !canCreateTeam(game, teams.length)
 
@@ -269,6 +281,14 @@ export function RosterPanel({
                     onAssignPlayer={onAssignPlayer}
                     onKick={onKick}
                     onUpdateNotes={onUpdatePlayerNotes}
+                    captain={
+                      captains && onSetCaptain
+                        ? {
+                            is: captains.get(team.id) === player.id,
+                            onSet: () => void onSetCaptain(team.id, player.id),
+                          }
+                        : undefined
+                    }
                   />
                 ))}
               </div>
@@ -372,6 +392,8 @@ interface PlayerRowProps {
   onAssignPlayer: (playerId: string, teamId: string | null) => Promise<void>
   onKick: (playerId: string) => void
   onUpdateNotes: (playerId: string, notes: string) => Promise<void>
+  /** Whether the player is their team's captain, and how to make them it; unset hides it. */
+  captain?: { is: boolean; onSet: () => void }
 }
 
 /** One player row: select, presence, name, team, score, notes and kick. */
@@ -386,6 +408,7 @@ function PlayerRow({
   onAssignPlayer,
   onKick,
   onUpdateNotes,
+  captain,
 }: PlayerRowProps) {
   const [showNotes, setShowNotes] = useState(false)
   const [notes, setNotes] = useState(player.notes)
@@ -444,6 +467,26 @@ function PlayerRow({
             )
           })}
         </select>
+
+        {/* Captain */}
+        {captain && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={captain.onSet}
+            aria-label={
+              captain.is ? `${player.name} is the captain` : `Make ${player.name} captain`
+            }
+            aria-pressed={captain.is}
+            title={captain.is ? 'Captain' : 'Make captain'}
+            style={{
+              padding: '0.25rem',
+              color: captain.is ? 'var(--color-accent)' : 'var(--color-muted)',
+            }}
+          >
+            <Icon icon={Crown} size="sm" aria-hidden />
+          </Button>
+        )}
 
         {/* Score */}
         <span className="mono text-sm font-bold w-8 text-right shrink-0 text-text">

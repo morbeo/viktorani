@@ -44,6 +44,7 @@ const GAME = {
   autoAdvanceDelaySeconds: 5,
   revealTiming: 'manual',
   answersClose: 'perQuestion',
+  teamAnswering: 'anyone',
   holdScores: false,
   scoresAnnouncedAt: null,
   autoStartTimerOnQuestionShow: false,

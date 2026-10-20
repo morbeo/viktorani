@@ -152,6 +152,7 @@ function makeGame(overrides: Partial<Game> = {}): Game {
     autoAdvanceDelaySeconds: 5,
     revealTiming: 'manual',
     answersClose: 'perQuestion',
+    teamAnswering: 'anyone',
     holdScores: false,
     scoresAnnouncedAt: null,
     autoStartTimerOnQuestionShow: false,
@@ -728,6 +729,41 @@ describe('ActiveGame: choice answers', () => {
     await waitFor(async () => expect((await db.gameQuestions.get('gq1'))?.status).toBe('incorrect'))
     // The round's next question hasn't been shown, so it stays open
     expect((await db.gameQuestions.get('gq2'))?.status).toBe('pending')
+  })
+
+  it('sends each team its mode and current answers as they change', async () => {
+    await seedChoice()
+    await db.teams.clear()
+    await db.teams.add({
+      id: 't1',
+      gameId: 'g1',
+      name: 'Reds',
+      color: '#f00',
+      icon: 'Shield',
+      score: 0,
+      notes: '',
+    })
+    await db.players.update('p1', { teamId: 't1' })
+    const answerHandlerRef: { current: AnswerHandler | null } = { current: null }
+    const onTeamAnswers = vi.fn()
+    renderActiveGame(makeGame({ inputType: 'choice', teamAnswering: 'captain' }), {
+      answerHandlerRef,
+      onTeamAnswers,
+    })
+
+    await waitFor(() =>
+      expect(onTeamAnswers).toHaveBeenCalledWith(
+        't1',
+        expect.objectContaining({ mode: 'captain', captainId: 'p1', answers: [] })
+      )
+    )
+    await waitFor(() => expect(answerHandlerRef.current).not.toBeNull())
+    await act(() => answerHandlerRef.current!('p1', 'q1', { choice: 1 }, 1))
+    await waitFor(() =>
+      expect(onTeamAnswers.mock.calls.at(-1)?.[1].answers).toEqual([
+        { questionId: 'q1', playerId: 'p1', playerName: 'Alice', choice: 1, text: null },
+      ])
+    )
   })
 
   it('takes no choices in a game with another input type', async () => {

@@ -44,6 +44,7 @@ export function ChoicePad({
   selected,
   enabled,
   onChoose,
+  note = null,
 }: NonNullable<PlayerData['choice']>) {
   if (count === null) {
     if (selected === null) return null
@@ -73,9 +74,10 @@ export function ChoicePad({
         ))}
       </div>
       <p role="status" className="text-xs text-muted">
-        {selected === null
-          ? 'Pick an answer.'
-          : `Answer ${letter(selected)} sent. You can change it until the host marks answers.`}
+        {note ??
+          (selected === null
+            ? 'Pick an answer.'
+            : `Answer ${letter(selected)} sent. You can change it until the host marks answers.`)}
       </p>
     </section>
   )
@@ -86,7 +88,13 @@ export function ChoicePad({
  * answer replaces it until the host closes the question; after that only the sent answer is
  * left. The parent remounts it per question, so a draft never carries over.
  */
-export function TextPad({ open, sent, enabled, onSend }: NonNullable<PlayerData['typed']>) {
+export function TextPad({
+  open,
+  sent,
+  enabled,
+  onSend,
+  note = null,
+}: NonNullable<PlayerData['typed']>) {
   const [draft, setDraft] = useState('')
   if (!open) {
     if (sent === null) return null
@@ -127,9 +135,10 @@ export function TextPad({ open, sent, enabled, onSend }: NonNullable<PlayerData[
         </button>
       </div>
       <p role="status" className="text-xs text-muted">
-        {sent === null
-          ? 'Type your answer and send it.'
-          : `Sent: ${sent}. You can send a new one until the host closes answers.`}
+        {note ??
+          (sent === null
+            ? 'Type your answer and send it.'
+            : `Sent: ${sent}. You can send a new one until the host closes answers.`)}
       </p>
     </form>
   )

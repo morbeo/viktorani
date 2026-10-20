@@ -277,6 +277,13 @@ you click **Close answers** on the round sheet or leave the round. Leaving the r
 clicking **Next** into its answer review, closes them all and marks the choices. Revealing a
 question's answer also stops players answering it.
 
+In a team game, each team has one answer per question. **Team answers** in the game's settings
+says how it's decided: **Anyone can change it** lets any member answer or change it, **First
+reply holds it** keeps the first member's answer (only they can change it), and **Captain
+only** lets just the team's captain answer. The captain is the member who joined first until
+you click the crown next to another member in the player list. Teammates' phones show the
+team's current answer and who sent it.
+
 ### Holding scores until you announce them
 
 To keep the scores a surprise while you mark, turn on **Hold scores until announced** in the

@@ -14,6 +14,7 @@ import { resolveLayout } from '@/widgets/layouts'
 import { getDeviceId } from './device-id'
 import { OpenQuestions } from './OpenQuestions'
 import type { SentAnswer } from './OpenQuestions'
+import { teamAnswerView } from './team-answer'
 import {
   getPlayerSession,
   remotePhase,
@@ -160,27 +161,34 @@ export default function Play() {
       : session.buzzerLocked
         ? 'Locked'
         : 'BUZZ'
-  // What this player sent for the question shown, if anything
-  const mine = session.question ? sent[session.question.questionId] : undefined
-  const picked = mine && 'choice' in mine ? mine.choice : null
+  // The answer for the question shown: the team's, or what this player sent
+  const view = session.question
+    ? teamAnswerView(
+        session.teamAnswers,
+        session.question.questionId,
+        session.playerId,
+        sent[session.question.questionId]
+      )
+    : null
   const choice =
-    session.inputType === 'choice' && session.question
+    session.inputType === 'choice' && session.question && view
       ? {
           count: session.question.choices,
           options: session.question.options,
-          selected: picked,
-          enabled: joined && !paused,
+          selected: view.choice,
+          enabled: joined && !paused && view.canAnswer,
           onChoose: handleChoose,
+          note: view.note,
         }
       : null
-  const sentText = mine && 'text' in mine ? mine.text : null
   const typedInput =
-    session.inputType === 'text' && session.question
+    session.inputType === 'text' && session.question && view
       ? {
           open: session.question.acceptsText,
-          sent: sentText,
-          enabled: joined && !paused,
+          sent: view.text,
+          enabled: joined && !paused && view.canAnswer,
           onSend: handleSendText,
+          note: view.note,
         }
       : null
   const score = session.playerId ? (session.scores[session.playerId] ?? 0) : 0
@@ -278,6 +286,8 @@ export default function Play() {
             <OpenQuestions
               questions={session.openQuestions}
               sent={sent}
+              team={session.teamAnswers}
+              playerId={session.playerId}
               enabled={!paused}
               onChoose={choose}
               onSendText={sendText}
