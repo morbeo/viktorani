@@ -426,6 +426,14 @@ describe('recordAnswer: team answering modes', () => {
     expect(await answers()).toEqual([expect.objectContaining({ playerId: 'p2', choice: 2 })])
   })
 
+  it('lets the team change a first reply once its sender is off the team', async () => {
+    await teamGame('firstReply')
+    await recordAnswer('g1', 'gq1', 'p2', { choice: 0 }, 1)
+    await db.players.update('p2', { presence: 'left' })
+    expect(await recordAnswer('g1', 'gq1', 'p1', { choice: 1 }, 2)).toBe(true)
+    expect(await answers()).toEqual([expect.objectContaining({ playerId: 'p1', choice: 1 })])
+  })
+
   it('ignores the mode for players on no team', async () => {
     await db.games.update('g1', { teamAnswering: 'captain' })
     expect(await recordAnswer('g1', 'gq1', 'p1', { choice: 1 }, 1)).toBe(true)

@@ -87,6 +87,18 @@ describe('buildTeamAnswers', () => {
     })
   })
 
+  it("drops a first reply whose sender left, so it doesn't hold", () => {
+    const gone = players.map(p => (p.id === 'p2' ? { ...p, presence: 'left' as const } : p))
+    const event = buildTeamAnswers(
+      'firstReply',
+      { id: 't1' },
+      gone,
+      [answer('gq1', 't1')],
+      new Map([['gq1', 'q1']])
+    )
+    expect(event.answers).toEqual([])
+  })
+
   it('names no captain in other modes', () => {
     const event = buildTeamAnswers('anyone', { id: 't1' }, players, [], new Map())
     expect(event).toMatchObject({ captainId: null, captainName: null, answers: [] })

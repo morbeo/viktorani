@@ -153,7 +153,8 @@ export function buildRoundAnswers(
  * Builds the TEAM_ANSWERS for one team's members: the game's team answering mode, the
  * team's captain in `captain` mode (see {@link teamCaptain}), and the team's answers to the
  * questions still open, keyed by question id through `questionIdOf` (game question id to
- * question id). Answers to other questions or by other teams are left out. Pure function.
+ * question id). Answers to other questions or by other teams are left out, and so is a first
+ * reply whose sender is no longer on the team, since it no longer holds. Pure function.
  */
 export function buildTeamAnswers(
   mode: Game['teamAnswering'],
@@ -174,6 +175,11 @@ export function buildTeamAnswers(
     answers: answers
       .flatMap(a => {
         const questionId = questionIdOf.get(a.gameQuestionId)
+        // A first reply from someone now off the team no longer holds, so it isn't shown
+        const sender = players.find(p => p.id === a.playerId)
+        const holds =
+          sender?.teamId === team.id && sender.presence !== 'left' && sender.presence !== 'kicked'
+        if (mode === 'firstReply' && !holds) return []
         return a.teamId === team.id && questionId
           ? [
               {

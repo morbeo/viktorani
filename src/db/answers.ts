@@ -24,6 +24,11 @@ export function keepsAnswersOpen(game: Pick<Game, 'inputType' | 'answersClose'>)
   )
 }
 
+/** Whether a player is on the team and hasn't left or been removed. */
+function isActiveMember(p: Pick<Player, 'teamId' | 'presence'>, teamId: string): boolean {
+  return p.teamId === teamId && p.presence !== 'left' && p.presence !== 'kicked'
+}
+
 /**
  * The member who answers for a team when only captains answer ({@link Game.teamAnswering}):
  * the host's chosen captain while still on the team, else the member who joined first.
@@ -34,7 +39,7 @@ export function teamCaptain(
   players: ReadonlyArray<Pick<Player, 'id' | 'teamId' | 'joinedAt' | 'presence'>>
 ): string | null {
   const members = players
-    .filter(p => p.teamId === team.id && p.presence !== 'left' && p.presence !== 'kicked')
+    .filter(p => isActiveMember(p, team.id))
     .sort((a, b) => a.joinedAt - b.joinedAt || a.id.localeCompare(b.id))
   if (team.captainId && members.some(p => p.id === team.captainId)) return team.captainId
   return members[0]?.id ?? null
@@ -101,7 +106,8 @@ async function setRuling(
  * {@link MAX_ANSWER_TEXT_LENGTH} characters once trimmed. In a team game the answer is the
  * team's: it replaces the one any member sent before, and goes back to unmarked (taking back
  * any points it had scored). How the team decides it follows {@link Game.teamAnswering}: with
- * `firstReply` only the member who answered first may change it, and with `captain` only the
+ * `firstReply` only the member who answered first may change it (anyone, once they are off
+ * the team), and with `captain` only the
  * team's captain ({@link teamCaptain}) answers. Resolves to whether it was accepted.
  */
 export async function recordAnswer(
@@ -145,13 +151,15 @@ export async function recordAnswer(
       .equals(gameQuestionId)
       .filter(a => (teamId ? a.teamId === teamId : a.teamId === null && a.playerId === playerId))
       .first()
+    // The first reply holds while whoever sent it is still on the team
     if (
       existing &&
       teamId &&
       game.teamAnswering === 'firstReply' &&
       existing.playerId !== playerId
     ) {
-      return false
+      const holder = await db.players.get(existing.playerId)
+      if (holder && isActiveMember(holder, teamId)) return false
     }
     if (existing) {
       await setRuling(game, existing, 'pending', gq, await questionPoints(gq.questionId))
