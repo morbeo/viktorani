@@ -8,6 +8,7 @@ const GAME = {
   allowPlayerTeams: true,
   maxTeams: 0,
   maxPerTeam: 0,
+  allowSpectators: false,
 } as Game
 
 function team(id: string): Team {
@@ -44,7 +45,9 @@ describe('buildLobbyInfo', () => {
       teams: [{ id: 't1', name: 'Team t1' }],
       allowIndividual: true,
       allowPlayerTeams: true,
+      allowSpectators: false,
     })
+    expect(buildLobbyInfo({ ...GAME, allowSpectators: true }, [], []).allowSpectators).toBe(true)
   })
 
   it('leaves out full teams', () => {

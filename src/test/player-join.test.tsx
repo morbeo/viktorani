@@ -29,11 +29,12 @@ vi.mock('@/transport', () => ({
 import { transportManager } from '@/transport'
 import Join from '@/pages/player/Join'
 
-const LOBBY: TransportEvent = {
+const LOBBY: Extract<TransportEvent, { type: 'LOBBY_INFO' }> = {
   type: 'LOBBY_INFO',
   teams: [{ id: 't1', name: 'Owls' }],
   allowIndividual: true,
   allowPlayerTeams: true,
+  allowSpectators: false,
 }
 
 function emit(event: TransportEvent) {
@@ -47,6 +48,7 @@ function renderJoin(path = '/join/abc-234') {
         <Route path="/join" element={<Join />} />
         <Route path="/join/:roomId" element={<Join />} />
         <Route path="/play/:roomId" element={<p>Play screen</p>} />
+        <Route path="/watch/:roomId" element={<p>Watch screen</p>} />
       </Routes>
     </MemoryRouter>
   )
@@ -111,6 +113,14 @@ describe('Join', () => {
     emit({ ...LOBBY, allowIndividual: false, allowPlayerTeams: false })
     expect(screen.queryByRole('radio', { name: 'Create a new team' })).not.toBeInTheDocument()
     expect(screen.queryByRole('radio', { name: 'Play on my own' })).not.toBeInTheDocument()
+  })
+
+  it('offers Just watch only when the game allows spectators', async () => {
+    await reachChoices()
+    expect(screen.queryByRole('button', { name: 'Just watch' })).not.toBeInTheDocument()
+    emit({ ...LOBBY, allowSpectators: true })
+    await userEvent.click(screen.getByRole('button', { name: 'Just watch' }))
+    expect(screen.getByText('Watch screen')).toBeInTheDocument()
   })
 
   it('sends JOIN for an existing team with a stable device id', async () => {

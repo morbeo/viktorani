@@ -87,8 +87,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(26)
-    expect(db.backendDB().version).toBe(260)
+    expect(db.verno).toBe(27)
+    expect(db.backendDB().version).toBe(270)
     expect(db.backendDB().objectStoreNames.contains('managedPlayers')).toBe(true)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
     expect(await db.managedLabels.count()).toBe(0)
@@ -102,8 +102,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(26)
-    expect(db.backendDB().version).toBe(260)
+    expect(db.verno).toBe(27)
+    expect(db.backendDB().version).toBe(270)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
   })
 
@@ -116,6 +116,7 @@ describe('Dexie schema version', () => {
       allowLateJoin: true,
       allowRejoin: true,
       requireApproval: false,
+      allowSpectators: false,
       allowPlayerTeams: true,
     })
   })
@@ -334,5 +335,12 @@ describe('Dexie schema version', () => {
     await db.open()
 
     expect(await db.games.get('g-old')).toMatchObject({ rankTies: 'share' })
+  })
+  it('takes no spectators in existing games (v27)', async () => {
+    await seedRawDb(260, V1_STORES)
+
+    await db.open()
+
+    expect(await db.games.get('g-old')).toMatchObject({ allowSpectators: false })
   })
 })

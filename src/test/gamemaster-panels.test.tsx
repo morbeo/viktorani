@@ -33,6 +33,7 @@ const mockGame: Game = {
   rejoinWindowSeconds: 0,
   autoRemoveAfterMinutes: 0,
   requireApproval: false,
+  allowSpectators: false,
   allowPlayerTeams: false,
   scoringEnabled: true,
   inputType: 'buzzer',

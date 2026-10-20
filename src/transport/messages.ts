@@ -213,6 +213,7 @@ export const GameEventSchemas = {
     teams: z.array(z.strictObject({ id, name })).max(MAX_LOBBY_TEAMS),
     allowIndividual: z.boolean(),
     allowPlayerTeams: z.boolean(),
+    allowSpectators: z.boolean(),
   }),
   JOIN_PENDING: z.strictObject({ type: z.literal('JOIN_PENDING') }),
   JOIN_ACCEPTED: z.strictObject({
@@ -378,7 +379,10 @@ export const PlayerEventSchemas = {
     type: z.literal('FOCUS_CHANGE'),
     away: z.boolean(),
   }),
-  SCREEN_JOIN: z.strictObject({ type: z.literal('SCREEN_JOIN') }),
+  SCREEN_JOIN: z.strictObject({
+    type: z.literal('SCREEN_JOIN'),
+    watch: z.literal(true).optional(),
+  }),
 }
 
 /** Discriminated union of every transport message, keyed on `type`. */

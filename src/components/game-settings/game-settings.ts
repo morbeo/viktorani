@@ -15,6 +15,7 @@ export type GameSettings = Pick<
   | 'rejoinWindowSeconds'
   | 'autoRemoveAfterMinutes'
   | 'requireApproval'
+  | 'allowSpectators'
   | 'inputType'
   | 'autoLockOnFirstCorrect'
   | 'allowFalseStarts'
@@ -55,6 +56,7 @@ export const GAME_SETTINGS_KEYS = [
   'rejoinWindowSeconds',
   'autoRemoveAfterMinutes',
   'requireApproval',
+  'allowSpectators',
   'inputType',
   'autoLockOnFirstCorrect',
   'allowFalseStarts',
@@ -128,6 +130,7 @@ export function defaultSettings(): GameSettings {
     rejoinWindowSeconds: 0,
     autoRemoveAfterMinutes: 0,
     requireApproval: false,
+    allowSpectators: false,
     maxTeams: 0,
     maxPerTeam: 0,
     maxPlayers: 0,

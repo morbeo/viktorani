@@ -81,6 +81,7 @@ const FIXTURES: { [K in TransportEvent['type']]: Extract<TransportEvent, { type:
     teams: [{ id: 'team1', name: 'Owls' }],
     allowIndividual: true,
     allowPlayerTeams: false,
+    allowSpectators: true,
   },
   JOIN_PENDING: { type: 'JOIN_PENDING' },
   JOIN_ACCEPTED: { type: 'JOIN_ACCEPTED', playerId: 'p1', teamId: 'team1' },
@@ -796,6 +797,16 @@ describe('OPEN_QUESTIONS', () => {
   it('rejects a question with no number or extra fields', () => {
     expect(parse([{ ...item, number: 0 }])).toBe(false)
     expect(parse([{ ...item, answer: 'Paris' }])).toBe(false)
+  })
+})
+
+describe('SCREEN_JOIN', () => {
+  it('accepts a plain or watching join only', () => {
+    expect(accepts({ type: 'SCREEN_JOIN' })).toBe(true)
+    expect(accepts({ type: 'SCREEN_JOIN', watch: true })).toBe(true)
+    expect(accepts({ type: 'SCREEN_JOIN', watch: false })).toBe(false)
+    expect(accepts({ type: 'SCREEN_JOIN', watch: 'yes' })).toBe(false)
+    expect(accepts({ type: 'SCREEN_JOIN', playerId: 'p1' })).toBe(false)
   })
 })
 

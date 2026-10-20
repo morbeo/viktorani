@@ -59,11 +59,12 @@ function emit(event: TransportEvent) {
   act(() => bus.handlers.forEach(h => h(event, 'host')))
 }
 
-function renderScreen() {
+function renderScreen(path = '/screen/ABC234') {
   return render(
-    <MemoryRouter initialEntries={['/screen/ABC234']}>
+    <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route path="/screen/:roomId" element={<RemoteScreen />} />
+        <Route path="/watch/:roomId" element={<RemoteScreen watch />} />
       </Routes>
     </MemoryRouter>
   )
@@ -148,6 +149,17 @@ describe('RemoteScreen', () => {
     expect(transportManager.connect).toHaveBeenCalledWith({ role: 'player', roomId: 'ABC234' })
     emit({ type: 'JOIN_PENDING' })
     expect(screen.getByRole('status')).toHaveTextContent('Waiting for the host to approve')
+  })
+
+  it('joins as a spectator to watch, and says when the game takes none', async () => {
+    renderScreen('/watch/ABC234')
+    await waitFor(() =>
+      expect(transportManager.send).toHaveBeenCalledWith({ type: 'SCREEN_JOIN', watch: true })
+    )
+    emit({ type: 'JOIN_REJECTED', reason: "This game isn't taking spectators." })
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      "You can't watch this game: This game isn't taking spectators."
+    )
   })
 
   it('shows the question and scoreboard once approved', async () => {

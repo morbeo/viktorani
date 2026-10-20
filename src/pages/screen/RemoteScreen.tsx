@@ -10,10 +10,10 @@ import { remotePhase } from '@/pages/player/player-session'
 import { INITIAL_SCREEN, reduceScreen } from './screen-session'
 import type { ScreenSession } from './screen-session'
 
-/** Connect to the room and ask the host to let this screen follow the game. */
-async function joinAsScreen(roomId: string) {
+/** Connect to the room and ask the host to let this screen, or spectator, follow the game. */
+async function joinAsScreen(roomId: string, watch: boolean) {
   await transportManager.connect({ role: 'player', roomId })
-  transportManager.send({ type: 'SCREEN_JOIN' })
+  transportManager.send(watch ? { type: 'SCREEN_JOIN', watch } : { type: 'SCREEN_JOIN' })
 }
 
 /**
@@ -21,9 +21,10 @@ async function joinAsScreen(roomId: string) {
  * approve it, then shows what the host sends to screens: the question as far as the
  * `screen` visibility allows, the timers and the scoreboard. Once the game has ended it
  * keeps the final scoreboard up. A lost connection is retried a few times (the screen then
- * waits for approval again) before it offers a Reconnect button.
+ * waits for approval again) before it offers a Reconnect button. With `watch` it is a
+ * spectator's phone, let in without approval when the game allows spectators.
  */
-export default function RemoteScreen() {
+export default function RemoteScreen({ watch = false }: { watch?: boolean }) {
   const { roomId = '' } = useParams<{ roomId: string }>()
   const [session, setSession] = useState(INITIAL_SCREEN)
   useRemoteTheme(session.theme)
@@ -54,7 +55,7 @@ export default function RemoteScreen() {
   const connect = useCallback(() => {
     setLost(false)
     updateSession(INITIAL_SCREEN)
-    retry(() => joinAsScreen(roomId), {
+    retry(() => joinAsScreen(roomId, watch), {
       cancelled: () => unmountedRef.current,
       onRetry: setReconnecting,
     })
@@ -64,7 +65,7 @@ export default function RemoteScreen() {
         setLost(true)
       })
       .finally(() => setReconnecting(null))
-  }, [roomId, updateSession])
+  }, [roomId, watch, updateSession])
 
   // The host disconnects everyone right after ending the game; that is not a lost connection
   useEffect(() => {
@@ -114,7 +115,10 @@ export default function RemoteScreen() {
         ) : reconnecting !== null ? (
           <p role="status">Lost the connection to the host. Reconnecting… (retry {reconnecting})</p>
         ) : session.status === 'rejected' ? (
-          <p role="alert">The host declined this screen: {session.reason}</p>
+          <p role="alert">
+            {watch ? "You can't watch this game" : 'The host declined this screen'}:{' '}
+            {session.reason}
+          </p>
         ) : (
           <p role="status">
             {session.status === 'pending'

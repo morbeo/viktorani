@@ -128,12 +128,18 @@ The first step of the **New game** wizard holds the game settings. They start fr
 | Players may create teams         | Players may type a new team name when they join                                     |
 | Allow late join / rejoin         | Who may join after the start, and whether a dropped player comes back as themselves |
 | Require approval                 | New players wait in Join requests until you approve them                            |
+| Allow spectators                 | People can tap **Just watch** to follow the game without playing                    |
 | Remove after disconnect          | Mark a player as left after this many minutes disconnected, freeing their place     |
 | Max teams / Max per team         | Team limits; **No limit** (∞) by default                                            |
 | How players answer               | **Out loud**, **Buzzer**, **Pick an option** or **Type an answer** on their phones  |
 | Auto-lock after a correct answer | Lock the buzzer after the first correct ruling                                      |
 | Record false starts              | Keep buzzes that arrive while the buzzer is locked                                  |
 | Buzz display                     | `First per player` or `All attempts`                                                |
+
+Spectators see on their phone what the screen shows. Anyone with the room code can watch, players
+included, so the screen's visibility settings decide what they see. They get in without your
+approval, can't answer and don't get your messages; **Screens** shows how many are watching.
+Turning the setting off sends them away.
 
 During the game, **Game settings** in the header opens a drawer to change the joining and buzzer
 settings live. Visibility is changed on the question panel. A preset picked there only
