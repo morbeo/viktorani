@@ -352,14 +352,14 @@ describe('RosterPanel', () => {
       'title',
       'Connected: Playing.'
     )
-    expect(screen.getByRole('img', { name: 'Tab hidden' })).toHaveAttribute(
+    expect(screen.getByRole('img', { name: 'Away' })).toHaveAttribute(
       'title',
-      'Tab hidden: Connected, but looking at something else.'
+      'Away: Connected, but the game is not on their screen or in focus.'
     )
     expect(screen.getByRole('img', { name: 'Disconnected' })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Left' })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Kicked' })).toBeInTheDocument()
-    expect(screen.getByText('Connected 1/5 · 1 tab hidden')).toBeInTheDocument()
+    expect(screen.getByText('Connected 1/5 · 1 away')).toBeInTheDocument()
   })
 
   it('calls onKick when kick button is clicked', async () => {

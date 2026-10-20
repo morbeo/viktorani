@@ -15,8 +15,8 @@ export const PRESENCE: Record<
   hidden: {
     icon: EyeOff,
     color: 'var(--color-accent)',
-    label: 'Tab hidden',
-    meaning: 'Connected, but looking at something else.',
+    label: 'Away',
+    meaning: 'Connected, but the game is not on their screen or in focus.',
   },
   disconnected: {
     icon: WifiOff,

@@ -26,6 +26,7 @@ import { ScoreboardPanel } from '@/components/scoreboard/ScoreboardPanel'
 import { GameControls } from '@/components/gamemaster/GameControls'
 import { PendingJoinsPanel } from '@/components/gamemaster/PendingJoinsPanel'
 import { RosterPanel } from '@/components/gamemaster/RosterPanel'
+import { FocusFlagsPanel } from '@/components/gamemaster/FocusFlagsPanel'
 import { ScreensPanel } from '@/components/gamemaster/ScreensPanel'
 import type { ScreensPanelProps } from '@/components/gamemaster/ScreensPanel'
 import { MessagePanel } from '@/components/gamemaster/MessagePanel'
@@ -943,6 +944,7 @@ export function ActiveGame({
                   onCreateTeam={onCreateTeam}
                   onSetCaptain={onSetCaptain}
                 />
+                <FocusFlagsPanel game={game} players={players} teams={teams} />
               </div>
             )}
             {!isEnded && (

@@ -66,8 +66,7 @@ export function RosterPanel({
   const onlineCount = players.filter(p => p.presence === 'connected').length
   const hiddenCount = players.filter(p => p.presence === 'hidden').length
   const summary =
-    `Connected ${onlineCount}/${players.length}` +
-    (hiddenCount > 0 ? ` · ${hiddenCount} tab hidden` : '')
+    `Connected ${onlineCount}/${players.length}` + (hiddenCount > 0 ? ` · ${hiddenCount} away` : '')
 
   const groups = teams.map(team => ({
     team,
