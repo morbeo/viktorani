@@ -390,6 +390,29 @@ describe('game flow', () => {
     await host.waitFor(() => expect(local.received.map(e => e.type)).toContain('JOIN_ACCEPTED'))
   }, 20_000)
 
+  it('checks a waiting screen again when the host turns local-network-only on', async () => {
+    await seedGame()
+    const host = await mountSide('host', '/admin/game/g1')
+    await host.waitFor(() => expect(hub.state.host).not.toBeNull())
+
+    const { client, received } = await connectClient()
+    client.route = 'remote'
+    client.send({ type: 'SCREEN_JOIN' })
+    await host.waitFor(() => expect(received.map(e => e.type)).toContain('JOIN_PENDING'))
+
+    const user = userEvent.setup()
+    await user.click(host.view.getAllByRole('button', { name: 'Game settings' })[0])
+    await user.click(await host.view.findByRole('switch', { name: 'Local network only' }))
+    await user.click(await host.view.findByRole('button', { name: 'Approve screen 1' }, SLOW))
+    await host.waitFor(() =>
+      expect(received).toContainEqual({
+        type: 'JOIN_REJECTED',
+        reason: "This game only takes devices on the host's local network.",
+      })
+    )
+    expect(received.map(e => e.type)).not.toContain('SCREEN_ACCEPTED')
+  }, 20_000)
+
   it('turns screens away once ten are waiting', async () => {
     await seedGame()
     const host = await mountSide('host', '/admin/game/g1')

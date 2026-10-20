@@ -47,8 +47,8 @@ describe('routeFromStats', () => {
     ).toBe('local')
   })
 
-  it('is local for a host candidate whose address the browser hides', () => {
-    expect(routeFromStats(report(host(), host()))).toBe('local')
+  it('is unknown when the browser hides the remote address', () => {
+    expect(routeFromStats(report(host(), host()))).toBe('unknown')
     expect(routeFromStats(report(host(), { candidateType: 'prflx' }))).toBe('unknown')
   })
 

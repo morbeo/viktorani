@@ -100,8 +100,7 @@ export function routeFromStats(stats: RTCStatsReport): ConnectionRoute {
 
   const remoteAddress = remote.address ?? remote.ip
   const localAddress = local.address ?? local.ip
-  // A browser may leave out a host candidate's address; a host candidate needs no NAT
-  if (!remoteAddress) return remote.candidateType === 'host' ? 'local' : 'unknown'
+  if (!remoteAddress) return 'unknown'
   if (isLocalAddress(remoteAddress)) return 'local'
   if (localAddress && sameIpv6Network(localAddress, remoteAddress)) return 'local'
   return 'remote'

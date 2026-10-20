@@ -290,6 +290,23 @@ export default function GameMaster() {
   )
 
   // Send a newly admitted screen or spectator what the screens currently show
+  // In a local-network-only game, turn the connection away unless it is direct on the local
+  // network; resolves to whether it was turned away. The route is read once per connection.
+  const offLocalNetwork = useCallback(async (connId: string) => {
+    if (!gameRef.current?.localNetworkOnly) return false
+    let route = routesRef.current.get(connId)
+    if (!route) {
+      route = transportManager.connectionRoute(connId)
+      routesRef.current.set(connId, route)
+    }
+    if ((await route) === 'local') return false
+    transportManager.sendTo(connId, {
+      type: 'JOIN_REJECTED',
+      reason: "This game only takes devices on the host's local network.",
+    })
+    return true
+  }, [])
+
   const sendScreenState = useCallback((connId: string) => {
     transportManager.sendTo(connId, { type: 'SCREEN_ACCEPTED' })
     if (screenContentRef.current) transportManager.sendTo(connId, screenContentRef.current)
@@ -679,18 +696,7 @@ export default function GameMaster() {
 
       // A local-network-only game turns away anything that isn't direct on the local network
       if ((event.type === 'JOIN' || event.type === 'SCREEN_JOIN') && g.localNetworkOnly) {
-        let route = routesRef.current.get(from)
-        if (!route) {
-          route = transportManager.connectionRoute(from)
-          routesRef.current.set(from, route)
-        }
-        if ((await route) !== 'local') {
-          transportManager.sendTo(from, {
-            type: 'JOIN_REJECTED',
-            reason: "This game only takes devices on the host's local network.",
-          })
-          return
-        }
+        if (await offLocalNetwork(from)) return
         // The connection may have closed or been admitted while the route was read
         if (closedRef.current.has(from) || screensRef.current.has(from)) return
       }
@@ -794,7 +800,7 @@ export default function GameMaster() {
         }
       }
     },
-    [addToast, enqueueJoin, handleJoin, updatePendingScreens, sendScreenState]
+    [addToast, enqueueJoin, handleJoin, updatePendingScreens, sendScreenState, offLocalNetwork]
   )
 
   // Turning spectators off sends everyone watching away
@@ -859,6 +865,8 @@ export default function GameMaster() {
       const name = pending.join.playerName
       logEvent(g.id, 'join_approved', { data: { name } })
       await enqueueJoin(async () => {
+        // The setting may have been turned on while the join waited
+        if (await offLocalNetwork(connId)) return
         const result = await resolveJoin(gameRef.current ?? g, pending.join)
         if (result.status === 'rejected') {
           logEvent(g.id, 'join_rejected', { data: { name, reason: result.reason } })
@@ -871,7 +879,7 @@ export default function GameMaster() {
         await admit(connId, result)
       })
     },
-    [addToast, admit, enqueueJoin, updatePendingJoins]
+    [addToast, admit, enqueueJoin, updatePendingJoins, offLocalNetwork]
   )
 
   const handleRejectJoin = useCallback(
@@ -890,14 +898,16 @@ export default function GameMaster() {
 
   // Approve a waiting screen and send it what the screen currently shows
   const handleApproveScreen = useCallback(
-    (connId: string) => {
+    async (connId: string) => {
       if (!pendingScreensRef.current.includes(connId)) return
       updatePendingScreens(prev => prev.filter(c => c !== connId))
+      // The setting may have been turned on while the screen waited
+      if ((await offLocalNetwork(connId)) || closedRef.current.has(connId)) return
       addConnectedScreen(connId)
       if (gameRef.current) logEvent(gameRef.current.id, 'screen_approved')
       sendScreenState(connId)
     },
-    [updatePendingScreens, addConnectedScreen, sendScreenState]
+    [updatePendingScreens, addConnectedScreen, sendScreenState, offLocalNetwork]
   )
 
   // Host-initiated disconnect of an already-approved screen

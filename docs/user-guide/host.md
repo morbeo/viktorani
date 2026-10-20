@@ -143,9 +143,10 @@ approval, can't answer and don't get your messages; **Screens** shows how many a
 Turning the setting off sends them away.
 
 With **Local network only**, the host checks how each new device reaches it and turns away
-anything that comes over the internet instead of directly over the local network. Devices still
-need internet to find the game, since the join goes through the connection server. Devices
-already in the game stay when you turn it on.
+anything that comes over the internet instead of directly over a private network, like your
+Wi-Fi. A VPN that uses private addresses counts as private too. Devices still need internet to
+find the game, since the join goes through the connection server. Devices already in the game
+stay when you turn it on; devices waiting for approval are checked again when you approve them.
 
 During the game, **Game settings** in the header opens a drawer to change the joining and buzzer
 settings live. Visibility is changed on the question panel. A preset picked there only
