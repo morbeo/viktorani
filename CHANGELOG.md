@@ -4,20 +4,6 @@
 
 ### Bug Fixes
 
-- Use pull_request_target for dependabot automerge workflow ([b89831f](../../commit/b89831fa649482a25c05ac4bbc45174d6e7b9fc6))
-- Add legacy-peer-deps again ([145181b](../../commit/145181b6e84832c1cd136b68224188291fb9e3d0))
-- Run npm install --legacy-peer-deps ([6bc25c2](../../commit/6bc25c2ce2a6f421a81fb5c3a41eac718df8f44d))
-- Linter issue ([f901467](../../commit/f901467ee79c1ccdc5fab08fc852b8e25c07e6fe))
-- Fix QR scan lint and typecheck errors ([edf4947](../../commit/edf494705211cf4f6adc3832f4d5bb0acf9a6a4d))
-- Removed unused imports ([ff3f751](../../commit/ff3f7517413a54b04f043d7ef9ee4e2c2ab1d18d))
-- Lint and typecheck errors ([890f7b0](../../commit/890f7b03f905ea941564310b29375cfd4c2247d0))
-- Resolve TS2769 tuple destructure in game-lifecycle test ([9bebbb8](../../commit/9bebbb81d57dd371942673a8593de1523625720c))
-- Yaml indentation ([24ed8fd](../../commit/24ed8fdc0374b64dc1b9486a615657d5700b9e7a))
-- Render lists, h5/h6, definitions, and sanitized html in markdown ([39e9b9b](../../commit/39e9b9ba0f0a2329abed13516e2615a4552c48e3))
-- Render team icons as lucide components in player list and form ([f1ab069](../../commit/f1ab069906cb3ec6d2efef4d03fc987bc7dd8448))
-- Wire ManageLabels into Settings page ([7b001a0](../../commit/7b001a0b3a897a0e3ade2e591688f8dd2415eb40))
-- Add multi-select checkboxes to team list ([584242d](../../commit/584242d8a4a8e538730e4b4419a723bf6656094a))
-- Correct dashboard test queries and round fixture shape ([275a27d](../../commit/275a27de44dd69065427694c89bb2f4a7eed02d8))
 - Resolve react-hooks/set-state-in-effect and refs errors ([48d62a3](../../commit/48d62a3b7c899345f1aee5a66ffda60cea37b43c))
 - Fix failing test ([d48c95d](../../commit/d48c95de405a03ae24b5d5dad53b8dfc0f2093cd))
 - Use jest-dom vitest entry for vitest 5 matcher types ([288a02a](../../commit/288a02ab6d47e1fccbfd83a73dd5c3471c260916))
@@ -66,17 +52,6 @@
 
 ### Chores
 
-- Bump the dev-dependencies group with 9 updates (#141) ([cf5081e](../../commit/cf5081e4452c5d675d6368b62573292e6de4a0be))
-- Bump dependabot/fetch-metadata from 2 to 3 ([639e89d](../../commit/639e89dc2a6eaa6453d488c58f47b9829077c276))
-- Update dependencies ([050c134](../../commit/050c1343cbc6a337634081d95b1ea293767354aa))
-- Add CI-driven release workflow ([742b955](../../commit/742b9550c589bab2a4c45b8b0378746141c46c15))
-- Remove automerge workflow as it is always skipped ([d09c108](../../commit/d09c1089f4a09053a0551c2812531dd7d9d2f8bb))
-- Remove unnecessary workflow ([b39d565](../../commit/b39d565f00869740a543f485eac7b4936d220eaa))
-- Fix Create GitHub Release step ([6cdbdf9](../../commit/6cdbdf930bf3dd0f862411fb39d0b878c4a8dbe6))
-- Update release workflow name dynamically ([6adb073](../../commit/6adb073ce5bb31310a5e90f2eb79902e795517a4))
-- Remove release-it ([408d45d](../../commit/408d45d852e9633e7b2be6c15a689824c7017a29))
-- Update package-lock.json ([f04994f](../../commit/f04994fa5c33f5a87cdcd97937a404165336d38d))
-- Remove pack script clutter ([3a56f55](../../commit/3a56f551ec82a5da08c69296020d32badb1fb7a8))
 - Bump the production-dependencies group with 2 updates ([4a608a8](../../commit/4a608a8cd3e67c042480c0ffbf0d6c8c2b7edab0))
 - Bump the dev-dependencies group across 1 directory with 11 updates ([c3709d3](../../commit/c3709d3a1f5016815d6c47ba89e943e03144dfab))
 - Update package-lock ([f6b6177](../../commit/f6b6177c08f12049e81f59dc7cb4ea4c8c6051fa))
@@ -132,15 +107,6 @@
 
 ### Features
 
-- Add manual ci workflow dispatch ([99bd171](../../commit/99bd171349507cdedd39c07dff5547574938657a))
-- Player roster, team management, and away status ([b12a7b9](../../commit/b12a7b90e4193a451a312e2a0754ce6ed67c3f08))
-- Player roster, team management, and away status ([6b3b60f](../../commit/6b3b60f3bb2cf63bccfb1726a0affb2a94406021))
-- Team badges, icon picker, import from managed, join URL copy ([10a2d78](../../commit/10a2d78de43b0f9e52a6bc38cb3c833e2b0e20a6))
-- Add useGameLifecycle hook for pause/resume/end ([5744d1c](../../commit/5744d1cd07ba55176ac1e8be0886677545cb0365))
-- Pause/resume/end controls and reconnect sync ([d0d5d5c](../../commit/d0d5d5c60a940c79160144b93fbcdda24124fa2e))
-- In-game progress indicator with round pills and question circles ([4d4af55](../../commit/4d4af5507293aebb079977d4493eaea4aea00db6))
-- Add unit and integration test coverage for gamemaster logic ([186b7e9](../../commit/186b7e976999232ca8c8f0640f3a90db71f02273))
-- Tri-state action button display mode setting ([d229e8a](../../commit/d229e8a4234b35e8b8ecaed4be0d6f6627eb7394))
 - Add npm run demo to seed a ready-to-play demo game (#240) ([5f85f88](../../commit/5f85f8824d8872de9d876f4a867d56696d505627))
 - Add size limits to transport message schemas (#293) ([f88e687](../../commit/f88e6876801f9c05ec8f707e0c97efc5ace8ffb0))
 - Add a Content Security Policy (#298) ([77c2119](../../commit/77c21194f7ca5e7717a574d449676e45a9180c1d))
@@ -226,13 +192,6 @@
 
 ### Refactoring
 
-- Change release gh workflow to manual ([f12a577](../../commit/f12a577aad541a8823aeedf7605fab6945de3cd4))
-- Single workflow CI-driven release ([14bb1db](../../commit/14bb1db2ba8c1cf7c2317519faa1e21f1e62f800))
-- Single workflow CI-driven release ([c70e50e](../../commit/c70e50e157cf275356d4185a9b938b5642edb40c))
-- Changelog output ([e4e40a9](../../commit/e4e40a9e37da4c967804a0cee04a54e8ad29871c))
-- Sadly can't be updated dynamically ([283f3d0](../../commit/283f3d08b48cccd675ec55f9bb3ee38e7eb4638e))
-- Replace full-screen timer overlay with toast system ([c02c834](../../commit/c02c8340a1920545d687f632bf206806a4f4cbd0))
-- Redesign dashboard with 3 tiles and structural footers ([baa2ebb](../../commit/baa2ebb3f126571cd212328e75d29f516a26a286))
 - Remove the Gun.js transport (#307) ([e4f2c54](../../commit/e4f2c546bbba419d8da8265b1e838e80b6acb71f))
 - Use canStartGame in the lobby and drop the unused modalOpen state (#368) ([2e50fa4](../../commit/2e50fa4c028364e966aa977568b2088bcd024e26))
 - Move PlayerTimers to a shared component (#370) ([b608021](../../commit/b60802139c7155cb3f24f0efa80e834431adb15c))
@@ -241,7 +200,6 @@
 
 ### test
 
-- Add game-lifecycle tests for pause/resume/end ([18458c0](../../commit/18458c09422b9e50d5850dd9729b92e35c7730d4))
 - Smoke — loads and passes offline audit ([fb9a34d](../../commit/fb9a34d3c249bfd203ba748a4fc9ada19de59fb2))
 - Install and wire up playwright ([936983e](../../commit/936983e6b6f8ea0faf049b871aa5a8712594b40a))
 - Manage players and teams end-to-end ([14f2bb9](../../commit/14f2bb92a60126ce9faf36e8a0fb9fedf66963e4))
