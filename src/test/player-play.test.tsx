@@ -163,6 +163,23 @@ describe('Play', () => {
     Object.defineProperty(document, 'hidden', { configurable: true, value: false })
   })
 
+  it('reports losing window focus to the host', async () => {
+    await reachGame()
+    const focus = vi.spyOn(document, 'hasFocus').mockReturnValue(false)
+    act(() => {
+      window.dispatchEvent(new Event('blur'))
+    })
+    await waitFor(() =>
+      expect(transportManager.send).toHaveBeenLastCalledWith({ type: 'FOCUS_CHANGE', away: true })
+    )
+    focus.mockReturnValue(true)
+    act(() => {
+      window.dispatchEvent(new Event('focus'))
+    })
+    expect(transportManager.send).toHaveBeenLastCalledWith({ type: 'FOCUS_CHANGE', away: false })
+    focus.mockRestore()
+  })
+
   it('leaves the game and returns to the join screen', async () => {
     await reachGame()
     await userEvent.click(screen.getByRole('button', { name: 'Leave' }))

@@ -191,12 +191,12 @@ showing where they stand (hover it for a description):
 | Icon                   | State        | Meaning                                                                                               |
 | ---------------------- | ------------ | ----------------------------------------------------------------------------------------------------- |
 | Green dot              | Connected    | Playing                                                                                               |
-| Gold crossed-out eye   | Tab hidden   | Connected, but looking at something else                                                              |
+| Gold crossed-out eye   | Away         | Connected, but the game is not on their screen or in focus                                            |
 | Grey crossed-out Wi-Fi | Disconnected | The connection dropped, or they haven't joined from a device; they can rejoin if rejoining is allowed |
 | Grey exit arrow        | Left         | They pressed Leave                                                                                    |
 | Red crossed-out person | Kicked       | You removed them; if they rejoin, they wait for your approval, even after you reload the page         |
 
-The count above the list shows connected players, with tab-hidden and disconnected
+The count above the list shows connected players, with away and disconnected
 players counted separately. Once everyone is in, click **Start** to begin the first round.
 
 > **Solo / offline play:** You can skip the lobby and start immediately by clicking
@@ -358,6 +358,18 @@ to 280 characters. Pick who gets it under **To**: everyone (players and screens)
 the screens, one team, or one connected player. Players see it in a banner they can dismiss;
 screens show it at the top until you send another message or click **Clear everywhere**.
 Messages are not resent to players who join or rejoin later.
+
+### Focus flags
+
+A player's phone tells you when the game leaves their screen or loses focus: they switched to
+another app or tab, opened a split screen or popup, or locked the phone. The **Focus flags**
+panel on the **People** tab lists each team (or player without a team) that did so while the
+game was running, with how many times and how long in total. Expand a row to see each time:
+when it started, who it was, the question on show and how long they were away.
+
+Flags are only a hint. Nothing is deducted, and a locked phone looks the same as a search for
+the answer, so it is up to you to judge. Lapses in the lobby, while paused or after the end
+are not counted. Each switch also appears in the game log.
 
 ---
 
