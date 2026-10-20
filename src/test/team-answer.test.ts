@@ -139,16 +139,22 @@ describe('buildTeamAnswers', () => {
     expect(event.answers).toEqual([])
   })
 
-  it('carries the vote counts in vote mode', () => {
+  it('carries the vote counts of members still on the team in vote mode', () => {
     const votes = [
       { playerId: 'p1', choice: null, text: 'Rome', at: 1 },
       { playerId: 'p2', choice: null, text: 'paris', at: 2 },
       { playerId: 'p3', choice: null, text: 'Paris ', at: 3 },
+      { playerId: 'p4', choice: null, text: 'Rome', at: 4 },
+    ]
+    const team3 = [
+      ...players,
+      { id: 'p3', name: 'Cy', teamId: 't1', joinedAt: 3, presence: 'connected' as const },
+      { id: 'p4', name: 'Di', teamId: 't1', joinedAt: 4, presence: 'left' as const },
     ]
     const event = buildTeamAnswers(
       'vote',
       { id: 't1' },
-      players,
+      team3,
       [{ ...answer('gq1', 't1'), votes }],
       new Map([['gq1', 'q1']])
     )

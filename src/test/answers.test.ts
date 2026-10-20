@@ -8,6 +8,8 @@ import {
   markTypedAnswers,
   normaliseAnswerText,
   recordAnswer,
+  recountVotes,
+  staleVotes,
   tallyVotes,
   teamCaptain,
   textMatches,
@@ -515,5 +517,28 @@ describe('recordAnswer: team vote', () => {
     const [answer] = await answers()
     expect(answer.votes?.map(v => v.playerId)).toEqual(['p2', 'p3'])
     expect(answer.choice).toBe(0)
+  })
+
+  it('recounts once a voter leaves, so their vote no longer decides', async () => {
+    await recordAnswer('g1', 'gq1', 'p1', { choice: 0 }, 1)
+    await recordAnswer('g1', 'gq1', 'p2', { choice: 1 }, 2)
+    await db.players.update('p1', { presence: 'kicked' })
+    const [before] = await answers()
+    expect(staleVotes([before], await db.players.toArray())).toEqual([before.id])
+    expect(await recountVotes('g1', before.id, 3)).toBe(true)
+    expect(await answers()).toEqual([expect.objectContaining({ playerId: 'p2', choice: 1 })])
+    expect(staleVotes(await answers(), await db.players.toArray())).toEqual([])
+    expect(await recountVotes('g1', before.id, 4)).toBe(false)
+  })
+
+  it('removes the answer once no voter is left, and leaves closed questions alone', async () => {
+    await recordAnswer('g1', 'gq1', 'p1', { choice: 1 }, 1)
+    await db.players.update('p1', { teamId: null })
+    const [answer] = await answers()
+    await db.gameQuestions.update('gq1', { revealed: true })
+    expect(await recountVotes('g1', answer.id, 2)).toBe(false)
+    await db.gameQuestions.update('gq1', { revealed: false })
+    expect(await recountVotes('g1', answer.id, 3)).toBe(true)
+    expect(await answers()).toEqual([])
   })
 })

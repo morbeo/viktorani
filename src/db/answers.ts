@@ -138,6 +138,83 @@ async function setRuling(
 }
 
 /**
+ * Set a team's answer from its votes: the leading one ({@link tallyVotes}), keeping the mark
+ * while it stays the same and putting it back to unmarked when it changes. With no votes
+ * left the answer is removed. Call inside a transaction over {@link RULING_TABLES}.
+ */
+async function applyVotes(
+  game: Pick<Game, 'id' | 'scoringEnabled'>,
+  gq: GameQuestion,
+  answer: Answer,
+  votes: Vote[],
+  receivedAt: number
+): Promise<void> {
+  const [top] = tallyVotes(votes)
+  if (top && sameAnswer(answer, top)) {
+    await db.answers.update(answer.id, { votes })
+    return
+  }
+  await setRuling(game, answer, 'pending', gq, await questionPoints(gq.questionId))
+  if (!top) {
+    await db.answers.delete(answer.id)
+    return
+  }
+  await db.answers.update(answer.id, {
+    playerId: top.playerId,
+    choice: top.choice,
+    text: top.text,
+    receivedAt,
+    votes,
+  })
+}
+
+/**
+ * The team answers whose votes include someone no longer on the team, so the host can
+ * {@link recountVotes} them. Pure function.
+ */
+export function staleVotes(
+  answers: ReadonlyArray<Pick<Answer, 'id' | 'teamId' | 'votes'>>,
+  players: ReadonlyArray<Pick<Player, 'id' | 'teamId' | 'presence'>>
+): string[] {
+  return answers
+    .filter(a => {
+      const teamId = a.teamId
+      return (
+        teamId &&
+        a.votes?.some(v => !players.some(p => p.id === v.playerId && isActiveMember(p, teamId)))
+      )
+    })
+    .map(a => a.id)
+}
+
+/**
+ * Drop the votes of members no longer on the team from a team answer to a question still
+ * open, in a game where teams vote, and set the answer from the votes left. Resolves to
+ * whether it changed.
+ */
+export async function recountVotes(
+  gameId: string,
+  answerId: string,
+  receivedAt: number
+): Promise<boolean> {
+  return db.transaction('rw', [db.games, ...RULING_TABLES], async () => {
+    const game = await db.games.get(gameId)
+    const answer = await db.answers.get(answerId)
+    if (game?.teamAnswering !== 'vote' || answer?.gameId !== gameId) return false
+    const { teamId, votes = [] } = answer
+    const gq = await db.gameQuestions.get(answer.gameQuestionId)
+    if (!teamId || !gq || gq.status !== 'pending' || gq.revealed) return false
+    const members = await db.players.where('teamId').equals(teamId).toArray()
+    const kept = votes.filter(v =>
+      members.some(m => m.id === v.playerId && isActiveMember(m, teamId))
+    )
+    if (kept.length === votes.length) return false
+    await applyVotes(game, gq, answer, kept, receivedAt)
+    return true
+  })
+}
+
+/**
  * Record a player's answer to the question shown (ADR 0023). The host calls this with the
  * player it mapped the connection to and its own clock, never values from the payload.
  * Accepted only for a question of the same game that is still open (`pending`) and whose
@@ -213,8 +290,10 @@ export async function recordAnswer(
         ...(existing?.votes ?? []).filter(counts),
         { playerId, choice, text, at: receivedAt },
       ]
-      const [top] = tallyVotes(votes)
-      if (!existing) {
+      if (existing) {
+        await applyVotes(game, gq, existing, votes, receivedAt)
+      } else {
+        const [top] = tallyVotes(votes)
         await db.answers.add({
           id: crypto.randomUUID(),
           gameId,
@@ -225,17 +304,6 @@ export async function recordAnswer(
           text: top.text,
           receivedAt,
           ruling: 'pending',
-          votes,
-        })
-      } else if (sameAnswer(existing, top)) {
-        await db.answers.update(existing.id, { votes })
-      } else {
-        await setRuling(game, existing, 'pending', gq, await questionPoints(gq.questionId))
-        await db.answers.update(existing.id, {
-          playerId: top.playerId,
-          choice: top.choice,
-          text: top.text,
-          receivedAt,
           votes,
         })
       }

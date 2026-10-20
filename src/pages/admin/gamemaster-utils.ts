@@ -156,7 +156,7 @@ export function buildRoundAnswers(
  * questions still open, keyed by question id through `questionIdOf` (game question id to
  * question id). Answers to other questions or by other teams are left out, and so is a first
  * reply whose sender is no longer on the team, since it no longer holds. In `vote` mode each
- * answer carries the team's vote counts. Pure function.
+ * answer carries the vote counts of members still on the team. Pure function.
  */
 export function buildTeamAnswers(
   mode: Game['teamAnswering'],
@@ -172,6 +172,10 @@ export function buildTeamAnswers(
 ): Extract<GameEvent, { type: 'TEAM_ANSWERS' }> {
   const nameOf = (id: string) => players.find(p => p.id === id)?.name.slice(0, MAX_NAME_LENGTH)
   const captainId = mode === 'captain' ? teamCaptain(team, players) : null
+  const isOnTeam = (id: string) => {
+    const p = players.find(p => p.id === id)
+    return p?.teamId === team.id && p.presence !== 'left' && p.presence !== 'kicked'
+  }
   return {
     type: 'TEAM_ANSWERS',
     mode,
@@ -181,10 +185,7 @@ export function buildTeamAnswers(
       .flatMap(a => {
         const questionId = questionIdOf.get(a.gameQuestionId)
         // A first reply from someone now off the team no longer holds, so it isn't shown
-        const sender = players.find(p => p.id === a.playerId)
-        const holds =
-          sender?.teamId === team.id && sender.presence !== 'left' && sender.presence !== 'kicked'
-        if (mode === 'firstReply' && !holds) return []
+        if (mode === 'firstReply' && !isOnTeam(a.playerId)) return []
         return a.teamId === team.id && questionId
           ? [
               {
@@ -195,7 +196,7 @@ export function buildTeamAnswers(
                 text: a.text,
                 votes:
                   mode === 'vote'
-                    ? tallyVotes(a.votes ?? [])
+                    ? tallyVotes((a.votes ?? []).filter(v => isOnTeam(v.playerId)))
                         .slice(0, MAX_TEAM_VOTES)
                         .map(({ choice, text, count }) => ({ choice, text, count }))
                     : [],
