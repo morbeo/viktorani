@@ -7,7 +7,7 @@ import { choiceOptions, textMatches } from '@/db/answers'
 import type { SeenAnswer } from '@/db/answers'
 
 interface HostAnswersPanelProps {
-  /** How players answer: by picking an option, or by typing. */
+  /** How players answer this question: by picking an option, or by typing (see `answerKind`). */
   inputType: 'choice' | 'text'
   question: Question
   gameQuestion: GameQuestion
@@ -50,18 +50,6 @@ export function HostAnswersPanel({
     [gameQuestion.id]
   )
   const options = choiceOptions(question)
-
-  if (inputType === 'choice' && options.length === 0) {
-    return (
-      <section aria-label="Answers" className="flex flex-col gap-2">
-        <span className="text-xs font-semibold uppercase tracking-wider text-muted">Answers</span>
-        <p className="text-sm text-muted">
-          This question has no options to pick from, so players can't answer it on their phones.
-          Rule on it below.
-        </p>
-      </section>
-    )
-  }
 
   const nameOf = (a: Answer) =>
     (a.teamId

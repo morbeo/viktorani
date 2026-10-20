@@ -299,21 +299,6 @@ describe('HostAnswersPanel', () => {
     expect(screen.getByRole('button', { name: 'Mark answers' })).toBeDisabled()
   })
 
-  it('says an open-ended question has to be ruled by hand', () => {
-    const open = { ...QUESTION, type: 'open_ended' as const, options: [] }
-    render(
-      <HostAnswersPanel
-        inputType="choice"
-        question={open}
-        gameQuestion={GQ}
-        players={[]}
-        teams={[]}
-        onMark={vi.fn()}
-      />
-    )
-    expect(screen.getByText(/no options to pick from/)).toBeInTheDocument()
-  })
-
   it('lets the host mark typed answers one by one or all that match', async () => {
     const typedAnswer = (id: string, playerId: string, text: string) => ({
       id,

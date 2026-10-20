@@ -265,8 +265,9 @@ team has one answer, which any member can change. Under the current question, **
 lists who picked what. Players can change their pick until you click **Mark answers**, which
 marks each answer right or wrong, gives the question's points to everyone who got it right
 (the team, in a team game), and closes the question. Moving on, or ruling on the question,
-marks the answers too. An open-ended question has no options to pick from, so you rule on it
-as usual.
+marks the answers too. An open-ended question has no options to pick from, so players type
+their answer to it instead, and you mark those answers as described for **Type an answer**
+below.
 
 With **Type an answer**, players type their answer to any question instead. **Answers** lists
 each one with ✓ and ✗ buttons: mark them as they come in or after the question closes, and

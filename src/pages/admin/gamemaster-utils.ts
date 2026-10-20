@@ -15,7 +15,7 @@ import type {
   SerializedGameState,
   VisibilityTarget,
 } from '@/transport/types'
-import { choiceOptions, tallyVotes, teamCaptain } from '@/db/answers'
+import { answerKind, choiceOptions, tallyVotes, teamCaptain } from '@/db/answers'
 import {
   MAX_LABEL_LENGTH,
   MAX_LOBBY_TEAMS,
@@ -213,13 +213,14 @@ export function buildTeamAnswers(
  * Builds the OPEN_QUESTIONS for players from the round's earlier questions still open to
  * answers, each with its place in the round. Like `QUESTION_CONTENT`, the title needs
  * `showQuestion` and the options `showAnswers`; the correct answer and media are never sent.
- * `accepts` says whether players pick an option or type. Text is clipped to the transport
- * limits. Pure function.
+ * `inputType` says whether players pick an option or type ({@link answerKind}: an open-ended
+ * question takes typed answers in a `choice` game). Text is clipped to the transport limits.
+ * Pure function.
  */
 export function buildOpenQuestions(
   rows: ReadonlyArray<{ number: number; question: Question }>,
   flags: TargetVisibility,
-  accepts: 'choice' | 'text'
+  inputType: 'choice' | 'text'
 ): Extract<GameEvent, { type: 'OPEN_QUESTIONS' }> {
   const clip = (s: string) => s.slice(0, MAX_TEXT_LENGTH)
   return {
@@ -227,6 +228,7 @@ export function buildOpenQuestions(
     questions: rows
       .map(({ number, question }) => {
         const options = choiceOptions(question)
+        const accepts = answerKind(inputType, question)
         return {
           questionId: question.id,
           number,
@@ -242,8 +244,6 @@ export function buildOpenQuestions(
           acceptsText: accepts === 'text',
         }
       })
-      // A question players can't answer, like an open-ended one in a choice game, is left out
-      .filter(q => q.choices !== null || q.acceptsText)
       .slice(0, MAX_OPEN_QUESTIONS),
   }
 }

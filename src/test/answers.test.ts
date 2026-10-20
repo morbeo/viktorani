@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { db } from '@/db'
 import type { Game, Player, Team } from '@/db'
 import {
+  answerKind,
   choiceOptions,
   markAnswers,
   markTypedAnswers,
@@ -277,12 +278,31 @@ describe('typed answers', () => {
     expect(await recordAnswer('g1', 'gq1', 'p1', { choice: 1 }, 2)).toBe(false)
   })
 
-  it('refuses blank or too long text, and text in a choice game', async () => {
+  it('refuses blank or too long text', async () => {
     expect(await typed('p1', '   ')).toBe(false)
     expect(await typed('p1', 'x'.repeat(201))).toBe(false)
-    await db.games.update('g1', { inputType: 'choice' })
-    expect(await typed('p1', 'Paris')).toBe(false)
     expect(await answers()).toEqual([])
+  })
+
+  it('takes typed answers to an open-ended question in a choice game, and only those', async () => {
+    await db.games.update('g1', { inputType: 'choice' })
+    expect(await recordAnswer('g1', 'gq1', 'p1', { choice: 0 }, 1)).toBe(false)
+    expect(await typed('p1', 'Paris', 2)).toBe(true)
+
+    // A question with options still takes only a pick
+    await db.questions.update('q1', { type: 'multiple_choice', options: ['Paris', 'Lyon'] })
+    expect(await typed('p2', 'Paris', 3)).toBe(false)
+    expect(await answers()).toEqual([expect.objectContaining({ playerId: 'p1', text: 'Paris' })])
+  })
+
+  it('says how each question is answered for the input type', () => {
+    const open = { type: 'open_ended' as const, options: [] }
+    const mc = { type: 'multiple_choice' as const, options: ['A', 'B'] }
+    const tf = { type: 'true_false' as const, options: [] }
+    expect([open, mc, tf].map(q => answerKind('choice', q))).toEqual(['text', 'choice', 'choice'])
+    expect([open, mc, tf].map(q => answerKind('text', q))).toEqual(['text', 'text', 'text'])
+    expect(answerKind('buzzer', mc)).toBeNull()
+    expect(answerKind('none', open)).toBeNull()
   })
 
   it('leaves typed answers for the host when the question closes', async () => {

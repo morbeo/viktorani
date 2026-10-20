@@ -63,6 +63,7 @@ import {
   recountVotes,
   staleVotes,
 } from '@/db/answers'
+import { answerKind } from '@/db/answers'
 import type { AnswerInput, SeenAnswer } from '@/db/answers'
 import type { QuestionRuling, RulingAward } from '@/db/rulings'
 import { layoutCommands, phaseCommands } from '@/components/gamemaster/layout-commands'
@@ -310,10 +311,8 @@ export function ActiveGame({
   // Players pick an option or type an answer until the question is closed (its answers
   // marked, a ruling, or moving on) or its answer revealed
   const accepts =
-    (game.inputType === 'choice' || game.inputType === 'text') &&
-    gameQuestion?.status === 'pending' &&
-    !gameQuestion.revealed
-      ? game.inputType
+    question && gameQuestion?.status === 'pending' && !gameQuestion.revealed
+      ? answerKind(game.inputType, question)
       : null
   useEffect(() => {
     onQuestionContent(
@@ -359,7 +358,7 @@ export function ActiveGame({
       return question && !gqs[i]?.revealed ? [{ number: item.number, question }] : []
     })
   }, [openEarlier])
-  const answerKind =
+  const openInputType =
     game.inputType === 'choice' || game.inputType === 'text' ? game.inputType : null
   const sentOpenRef = useRef(false)
   useEffect(() => {
@@ -368,11 +367,11 @@ export function ActiveGame({
     if (openRows.length === 0 && !sentOpenRef.current) return
     sentOpenRef.current = openRows.length > 0
     onOpenQuestions(
-      answerKind
-        ? buildOpenQuestions(openRows, playerVisibility, answerKind)
+      openInputType
+        ? buildOpenQuestions(openRows, playerVisibility, openInputType)
         : { type: 'OPEN_QUESTIONS', questions: [] }
     )
-  }, [openRows, playerVisibility, answerKind, onOpenQuestions])
+  }, [openRows, playerVisibility, openInputType, onOpenQuestions])
 
   // Send each team its answering mode and its answers to the questions still open, so
   // teammates see the team's answer whenever it changes
@@ -615,7 +614,7 @@ export function ActiveGame({
   // the question is still open and the answer is the kind the game takes.
   useEffect(() => {
     if (!answerHandlerRef) return
-    if (!answerKind || roundSoFar.length === 0) {
+    if (!openInputType || roundSoFar.length === 0) {
       answerHandlerRef.current = null
       return
     }
@@ -628,7 +627,7 @@ export function ActiveGame({
     return () => {
       answerHandlerRef.current = null
     }
-  }, [answerHandlerRef, game.id, answerKind, roundSoFar])
+  }, [answerHandlerRef, game.id, openInputType, roundSoFar])
 
   // Space = toggle buzzer lock
   useEffect(() => {

@@ -72,7 +72,8 @@ change it.
 
 ### Typing an answer
 
-In games where you type your answers, a box appears under the question. Type your answer and
+In games where you type your answers, and for questions without options in games where you
+pick, a box appears under the question. Type your answer and
 tap **Send**; you can send a new one until the host closes answers to the question, and the
 last one counts. The host marks typed answers, so spelling that's close enough can still be
 right. In a team game your answer is your team's, and a teammate can replace it.

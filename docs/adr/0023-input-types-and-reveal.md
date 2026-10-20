@@ -45,8 +45,9 @@ A game picks how players answer with `Game.inputType`:
 `none` with the buzzer off) and removes the flag. Nothing in the flow may depend on the buzzer: rulings,
 scoring, auto-advance and the log work the same for every input type.
 
-A question of the wrong shape for the input type (an open-ended question in a `choice` game)
-falls back to `none` for that question, and the host panel says so.
+An open-ended question in a `choice` game has no options to pick from, so it takes typed
+answers instead, marked by the host like in a `text` game (`answerKind`). This replaced the
+first rule, where such a question fell back to `none`: players couldn't answer it at all.
 
 ### 2. Answers are stored per player, and judged per answer
 
