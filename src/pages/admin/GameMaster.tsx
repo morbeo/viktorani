@@ -11,7 +11,7 @@ import { db } from '@/db'
 import { logEvent } from '@/db/game-log'
 import { loadGameLayouts } from '@/db/layouts'
 import { RateLimiter } from '@/lib/rate-limit'
-import { isAbortError, retry, transportManager } from '@/transport'
+import { isAbortError, retry, transportManager, type ConnectionRoute } from '@/transport'
 import {
   buildLobbyInfo,
   buildManagedImport,
@@ -163,6 +163,8 @@ export default function GameMaster() {
   const [connectedScreens, setConnectedScreens] = useState<string[]>([])
   // Spectators get what screens get, so they are in `screensRef` too, but aren't listed
   const spectatorsRef = useRef(new Set<string>())
+  // Each connection's route, looked up once, for local-network-only games
+  const routesRef = useRef(new Map<string, Promise<ConnectionRoute>>())
   const [watching, setWatching] = useState(0)
   const [pendingScreens, setPendingScreens] = useState<string[]>([])
   const pendingScreensRef = useRef<string[]>([])
@@ -675,6 +677,24 @@ export default function GameMaster() {
       // An approved screen only listens
       if (screensRef.current.has(from)) return
 
+      // A local-network-only game turns away anything that isn't direct on the local network
+      if ((event.type === 'JOIN' || event.type === 'SCREEN_JOIN') && g.localNetworkOnly) {
+        let route = routesRef.current.get(from)
+        if (!route) {
+          route = transportManager.connectionRoute(from)
+          routesRef.current.set(from, route)
+        }
+        if ((await route) !== 'local') {
+          transportManager.sendTo(from, {
+            type: 'JOIN_REJECTED',
+            reason: "This game only takes devices on the host's local network.",
+          })
+          return
+        }
+        // The connection may have closed or been admitted while the route was read
+        if (closedRef.current.has(from) || screensRef.current.has(from)) return
+      }
+
       if (event.type === 'SCREEN_JOIN') {
         if (joinersRef.current.has(from) || pendingScreensRef.current.includes(from)) return
         // A spectator gets straight in while the game allows them
@@ -811,6 +831,7 @@ export default function GameMaster() {
   useEffect(() => {
     return transportManager.onPeerClose(connId => {
       closedRef.current.add(connId)
+      routesRef.current.delete(connId)
       updatePendingJoins(prev => prev.filter(p => p.connId !== connId))
       updatePendingScreens(prev => prev.filter(c => c !== connId))
       const gameId = gameRef.current?.id

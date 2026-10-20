@@ -87,8 +87,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(27)
-    expect(db.backendDB().version).toBe(270)
+    expect(db.verno).toBe(28)
+    expect(db.backendDB().version).toBe(280)
     expect(db.backendDB().objectStoreNames.contains('managedPlayers')).toBe(true)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
     expect(await db.managedLabels.count()).toBe(0)
@@ -102,8 +102,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(27)
-    expect(db.backendDB().version).toBe(270)
+    expect(db.verno).toBe(28)
+    expect(db.backendDB().version).toBe(280)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
   })
 
@@ -117,6 +117,7 @@ describe('Dexie schema version', () => {
       allowRejoin: true,
       requireApproval: false,
       allowSpectators: false,
+      localNetworkOnly: false,
       allowPlayerTeams: true,
     })
   })
@@ -342,5 +343,12 @@ describe('Dexie schema version', () => {
     await db.open()
 
     expect(await db.games.get('g-old')).toMatchObject({ allowSpectators: false })
+  })
+  it('leaves existing games open beyond the local network (v28)', async () => {
+    await seedRawDb(270, V1_STORES)
+
+    await db.open()
+
+    expect(await db.games.get('g-old')).toMatchObject({ localNetworkOnly: false })
   })
 })

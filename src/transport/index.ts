@@ -1,4 +1,5 @@
 import { parseTransportEvent } from './messages'
+import type { ConnectionRoute } from './route'
 import type {
   ITransport,
   TransportConfig,
@@ -8,6 +9,7 @@ import type {
 } from './types'
 
 export type { TransportConfig, TransportEvent, TransportStatus, TransportType }
+export type { ConnectionRoute } from './route'
 export type { GameEvent, PlayerEvent, SerializedGameState } from './types'
 export {
   GameEventSchemas,
@@ -329,6 +331,16 @@ export class TransportManager {
    */
   closeConnection(connId: string) {
     this.transport?.closeConnection(connId)
+  }
+
+  /**
+   * Host side: whether one connection runs directly over the local network.
+   *
+   * @param connId - The `from` value an {@link TransportManager.onEvent} handler received.
+   * @returns `unknown` when not connected, or when the transport or browser can't tell.
+   */
+  async connectionRoute(connId: string): Promise<ConnectionRoute> {
+    return (await this.transport?.connectionRoute?.(connId)) ?? 'unknown'
   }
 
   /**

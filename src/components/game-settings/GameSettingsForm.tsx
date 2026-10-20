@@ -169,6 +169,13 @@ export function GameSettingsForm({
         disabled={disabled}
         onChange={v => onChange({ allowSpectators: v })}
       />
+      <Toggle
+        label="Local network only"
+        help={JOIN_POLICY_HELP.localNetworkOnly}
+        checked={value.localNetworkOnly}
+        disabled={disabled}
+        onChange={v => onChange({ localNetworkOnly: v })}
+      />
       <LimitStepper
         label="Max teams"
         help="Players can't create a new team once the game has this many teams."

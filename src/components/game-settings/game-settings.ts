@@ -16,6 +16,7 @@ export type GameSettings = Pick<
   | 'autoRemoveAfterMinutes'
   | 'requireApproval'
   | 'allowSpectators'
+  | 'localNetworkOnly'
   | 'inputType'
   | 'autoLockOnFirstCorrect'
   | 'allowFalseStarts'
@@ -57,6 +58,7 @@ export const GAME_SETTINGS_KEYS = [
   'autoRemoveAfterMinutes',
   'requireApproval',
   'allowSpectators',
+  'localNetworkOnly',
   'inputType',
   'autoLockOnFirstCorrect',
   'allowFalseStarts',
@@ -131,6 +133,7 @@ export function defaultSettings(): GameSettings {
     autoRemoveAfterMinutes: 0,
     requireApproval: false,
     allowSpectators: false,
+    localNetworkOnly: false,
     maxTeams: 0,
     maxPerTeam: 0,
     maxPlayers: 0,

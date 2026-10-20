@@ -202,6 +202,11 @@ export interface Game {
    * join without approval (see the `/watch` route).
    */
   allowSpectators: boolean
+  /**
+   * Only devices on the host's local network may join, play, show the screen or watch: the
+   * host checks that each connection runs directly over the local network.
+   */
+  localNetworkOnly: boolean
   /** Players may create their own team when joining. */
   allowPlayerTeams: boolean
   // Rounds / navigation
@@ -761,6 +766,7 @@ export interface Vote {
  * - 25: same stores; back-fills `Game.teamAnswering` (`anyone`) on existing games.
  * - 26: same stores; back-fills `Game.rankTies` (`share`) on existing games.
  * - 27: same stores; back-fills `Game.allowSpectators` (`false`) on existing games.
+ * - 28: same stores; back-fills `Game.localNetworkOnly` (`false`) on existing games.
  *
  * To change the schema, add a new `this.version(N + 1)` block below; keep existing blocks.
  */
@@ -1057,6 +1063,17 @@ export class ViktoraniDB extends Dexie {
           .toCollection()
           .modify((g: Partial<Game>) => {
             g.allowSpectators ??= false
+          })
+      )
+
+    this.version(28)
+      .stores({})
+      .upgrade(tx =>
+        tx
+          .table('games')
+          .toCollection()
+          .modify((g: Partial<Game>) => {
+            g.localNetworkOnly ??= false
           })
       )
   }

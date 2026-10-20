@@ -136,6 +136,7 @@ describe('useNavigation', () => {
     autoRemoveAfterMinutes: 0,
     requireApproval: false,
     allowSpectators: false,
+    localNetworkOnly: false,
     allowPlayerTeams: false,
     scoringEnabled: true,
     inputType: 'buzzer',

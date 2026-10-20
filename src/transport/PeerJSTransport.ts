@@ -1,4 +1,5 @@
 import Peer, { type DataConnection } from 'peerjs'
+import { routeFromStats, type ConnectionRoute } from './route'
 import type { ITransport, TransportConfig, TransportEvent, TransportStatus } from './types'
 
 // PeerJS peer IDs are prefixed to avoid collisions with other apps
@@ -193,6 +194,16 @@ export class PeerJSTransport implements ITransport {
   sendTo(connId: string, event: TransportEvent) {
     const conn = this.connections.get(connId)
     if (conn?.open) conn.send(event)
+  }
+
+  async connectionRoute(connId: string): Promise<ConnectionRoute> {
+    const pc = this.connections.get(connId)?.peerConnection
+    if (!pc) return 'unknown'
+    try {
+      return routeFromStats(await pc.getStats())
+    } catch {
+      return 'unknown'
+    }
   }
 
   closeConnection(connId: string) {
