@@ -451,6 +451,39 @@ describe('PeerJSTransport', () => {
     expect(() => t.closeConnection('unknown')).not.toThrow()
   })
 
+  it('host: connectionRoute reads the selected candidate pair', async () => {
+    const { PeerJSTransport } = await import('@/transport/PeerJSTransport')
+    const t = new PeerJSTransport()
+
+    const connectPromise = t.connect(PEER_HOST_CONFIG)
+    MockPeer.lastInstance.emit('open')
+    await connectPromise
+
+    const stats = new Map<string, Record<string, unknown>>([
+      ['T', { id: 'T', type: 'transport', selectedCandidatePairId: 'P' }],
+      ['P', { id: 'P', type: 'candidate-pair', localCandidateId: 'L', remoteCandidateId: 'R' }],
+      ['L', { id: 'L', type: 'local-candidate', candidateType: 'host', address: '192.168.1.2' }],
+      ['R', { id: 'R', type: 'remote-candidate', candidateType: 'host', address: '192.168.1.9' }],
+    ])
+    const conn = {
+      ...mockConn('p1'),
+      peerConnection: { getStats: vi.fn().mockResolvedValue(stats) },
+    }
+    const broken = {
+      ...mockConn('p2'),
+      peerConnection: { getStats: vi.fn().mockRejectedValue(new Error('closed')) },
+    }
+    const peer = MockPeer.lastInstance as unknown as { emit(e: string, ...a: unknown[]): void }
+    for (const c of [conn, broken]) {
+      peer.emit('connection', c)
+      c.on.mock.calls.find((args: unknown[]) => args[0] === 'open')?.[1]?.()
+    }
+
+    expect(await t.connectionRoute('dc_p1')).toBe('local')
+    expect(await t.connectionRoute('dc_p2')).toBe('unknown')
+    expect(await t.connectionRoute('unknown')).toBe('unknown')
+  })
+
   it('host: notifies open handlers when a player connection opens', async () => {
     const { PeerJSTransport } = await import('@/transport/PeerJSTransport')
     const t = new PeerJSTransport()

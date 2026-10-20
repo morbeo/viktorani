@@ -3,6 +3,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { within } from '@testing-library/react/pure'
 import userEvent from '@testing-library/user-event'
 import type { Game, GamePhase, Question, WidgetType } from '@/db'
+import type { ConnectionRoute } from '@/transport/route'
 import type { ITransport, TransportConfig, TransportEvent } from '@/transport/types'
 
 // The real host and player screens, run against each other in one document. Each side
@@ -33,6 +34,8 @@ const hub = vi.hoisted(() => {
     closeHandlers: ConnHandler[] = []
     private role: TransportConfig['role'] = 'host'
     private connId = ''
+    /** How this player's connection reaches the host. */
+    route: ConnectionRoute = 'local'
 
     async connect(config: TransportConfig) {
       this.role = config.role
@@ -71,6 +74,10 @@ const hub = vi.hoisted(() => {
 
     sendTo(connId: string, event: TransportEvent) {
       deliver(state.players.get(connId), event, 'host')
+    }
+
+    async connectionRoute(connId: string) {
+      return state.players.get(connId)?.route ?? 'unknown'
     }
 
     closeConnection(connId: string) {
@@ -129,6 +136,7 @@ const GAME: Game = {
   autoRemoveAfterMinutes: 0,
   requireApproval: false,
   allowSpectators: false,
+  localNetworkOnly: false,
   allowPlayerTeams: true,
   roundIds: ['r1'],
   currentRoundIdx: 0,
@@ -352,6 +360,57 @@ describe('game flow', () => {
     await user.click(host.view.getAllByRole('button', { name: 'Game settings' })[0])
     await user.click(await host.view.findByRole('switch', { name: 'Allow spectators' }))
     await host.waitFor(() => expect(host.view.queryByText('1 person watching')).toBeNull())
+  }, 20_000)
+
+  it('turns away devices off the local network in a local-network-only game', async () => {
+    await seedGame()
+    const { db } = await import('@/db')
+    await db.games.update('g1', { localNetworkOnly: true, allowSpectators: true })
+    const host = await mountSide('host', '/admin/game/g1')
+    await host.waitFor(() => expect(hub.state.host).not.toBeNull())
+    const rejected = {
+      type: 'JOIN_REJECTED',
+      reason: "This game only takes devices on the host's local network.",
+    }
+
+    const remote = await connectClient()
+    remote.client.route = 'remote'
+    remote.client.send(JOIN)
+    await host.waitFor(() => expect(remote.received).toContainEqual(rejected))
+    expect(remote.received.map(e => e.type)).not.toContain('JOIN_ACCEPTED')
+
+    const watcher = await connectClient()
+    watcher.client.route = 'unknown'
+    watcher.client.send({ type: 'SCREEN_JOIN', watch: true })
+    await host.waitFor(() => expect(watcher.received).toContainEqual(rejected))
+    expect(watcher.received.map(e => e.type)).not.toContain('SCREEN_ACCEPTED')
+
+    const local = await connectClient()
+    local.client.send(JOIN)
+    await host.waitFor(() => expect(local.received.map(e => e.type)).toContain('JOIN_ACCEPTED'))
+  }, 20_000)
+
+  it('checks a waiting screen again when the host turns local-network-only on', async () => {
+    await seedGame()
+    const host = await mountSide('host', '/admin/game/g1')
+    await host.waitFor(() => expect(hub.state.host).not.toBeNull())
+
+    const { client, received } = await connectClient()
+    client.route = 'remote'
+    client.send({ type: 'SCREEN_JOIN' })
+    await host.waitFor(() => expect(received.map(e => e.type)).toContain('JOIN_PENDING'))
+
+    const user = userEvent.setup()
+    await user.click(host.view.getAllByRole('button', { name: 'Game settings' })[0])
+    await user.click(await host.view.findByRole('switch', { name: 'Local network only' }))
+    await user.click(await host.view.findByRole('button', { name: 'Approve screen 1' }, SLOW))
+    await host.waitFor(() =>
+      expect(received).toContainEqual({
+        type: 'JOIN_REJECTED',
+        reason: "This game only takes devices on the host's local network.",
+      })
+    )
+    expect(received.map(e => e.type)).not.toContain('SCREEN_ACCEPTED')
   }, 20_000)
 
   it('turns screens away once ten are waiting', async () => {

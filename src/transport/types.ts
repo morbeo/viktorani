@@ -1,3 +1,4 @@
+import type { ConnectionRoute } from './route'
 import type {
   GamePhase,
   GameVisibility,
@@ -417,6 +418,13 @@ export interface ITransport {
    * @param connId - The `from` value passed to {@link ITransport.onEvent} handlers.
    */
   closeConnection(connId: string): void
+
+  /**
+   * Host side: how one connection reaches the host, from the browser's WebRTC stats.
+   * Transports that can't tell leave it out, and callers treat that as `unknown`.
+   * @param connId - The `from` value passed to {@link ITransport.onEvent} handlers.
+   */
+  connectionRoute?(connId: string): Promise<ConnectionRoute>
 
   /**
    * Subscribe to incoming events.

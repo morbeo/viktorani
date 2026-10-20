@@ -122,24 +122,31 @@ The first step of the **New game** wizard holds the game settings. They start fr
 - **Visibility**: what player phones and the screen show (question text, answers, media).
 - **Advanced** (collapsed): the individual joining and answering settings.
 
-| Option                           | What it does                                                                        |
-| -------------------------------- | ----------------------------------------------------------------------------------- |
-| Individual play                  | Players may join without a team                                                     |
-| Players may create teams         | Players may type a new team name when they join                                     |
-| Allow late join / rejoin         | Who may join after the start, and whether a dropped player comes back as themselves |
-| Require approval                 | New players wait in Join requests until you approve them                            |
-| Allow spectators                 | People can tap **Just watch** to follow the game without playing                    |
-| Remove after disconnect          | Mark a player as left after this many minutes disconnected, freeing their place     |
-| Max teams / Max per team         | Team limits; **No limit** (∞) by default                                            |
-| How players answer               | **Out loud**, **Buzzer**, **Pick an option** or **Type an answer** on their phones  |
-| Auto-lock after a correct answer | Lock the buzzer after the first correct ruling                                      |
-| Record false starts              | Keep buzzes that arrive while the buzzer is locked                                  |
-| Buzz display                     | `First per player` or `All attempts`                                                |
+| Option                           | What it does                                                                           |
+| -------------------------------- | -------------------------------------------------------------------------------------- |
+| Individual play                  | Players may join without a team                                                        |
+| Players may create teams         | Players may type a new team name when they join                                        |
+| Allow late join / rejoin         | Who may join after the start, and whether a dropped player comes back as themselves    |
+| Require approval                 | New players wait in Join requests until you approve them                               |
+| Allow spectators                 | People can tap **Just watch** to follow the game without playing                       |
+| Local network only               | Only devices on your local network (the same Wi-Fi) can join, show the screen or watch |
+| Remove after disconnect          | Mark a player as left after this many minutes disconnected, freeing their place        |
+| Max teams / Max per team         | Team limits; **No limit** (∞) by default                                               |
+| How players answer               | **Out loud**, **Buzzer**, **Pick an option** or **Type an answer** on their phones     |
+| Auto-lock after a correct answer | Lock the buzzer after the first correct ruling                                         |
+| Record false starts              | Keep buzzes that arrive while the buzzer is locked                                     |
+| Buzz display                     | `First per player` or `All attempts`                                                   |
 
 Spectators see on their phone what the screen shows. Anyone with the room code can watch, players
 included, so the screen's visibility settings decide what they see. They get in without your
 approval, can't answer and don't get your messages; **Screens** shows how many are watching.
 Turning the setting off sends them away.
+
+With **Local network only**, the host checks how each new device reaches it and turns away
+anything that comes over the internet instead of directly over a private network, like your
+Wi-Fi. A VPN that uses private addresses counts as private too. Devices still need internet to
+find the game, since the join goes through the connection server. Devices already in the game
+stay when you turn it on; devices waiting for approval are checked again when you approve them.
 
 During the game, **Game settings** in the header opens a drawer to change the joining and buzzer
 settings live. Visibility is changed on the question panel. A preset picked there only

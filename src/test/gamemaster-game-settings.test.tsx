@@ -35,6 +35,7 @@ const GAME: Game = {
   autoRemoveAfterMinutes: 0,
   requireApproval: false,
   allowSpectators: false,
+  localNetworkOnly: false,
   allowPlayerTeams: true,
   roundIds: [],
   currentRoundIdx: 0,

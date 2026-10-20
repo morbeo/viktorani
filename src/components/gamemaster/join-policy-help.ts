@@ -7,6 +7,7 @@ type JoinSetting =
   | 'allowRejoin'
   | 'requireApproval'
   | 'allowSpectators'
+  | 'localNetworkOnly'
 
 /** Help text for the join settings, shared by the new-game wizard and the live panel. */
 export const JOIN_POLICY_HELP: Record<JoinSetting & keyof Game, string> = {
@@ -22,4 +23,6 @@ export const JOIN_POLICY_HELP: Record<JoinSetting & keyof Game, string> = {
     'New players wait in Join requests until you approve them. Players rejoining as themselves get straight back in.',
   allowSpectators:
     "People can follow the game on their phone without playing: the join page offers Just watch, which shows what the screen shows. Anyone with the room code can watch, players included, so keep anything you don't want them to see off the screen. Watchers don't need your approval, can't answer and don't get your messages. Off: anyone watching is disconnected.",
+  localNetworkOnly:
+    'Only devices that reach you directly on a private network, like your Wi-Fi, can join, play, show the screen or watch. Players still need internet to find the game. Devices already in the game stay when you turn it on; waiting ones are checked again when you approve them.',
 }
