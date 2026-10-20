@@ -6,6 +6,7 @@ on:
     types: [completed]
 
 permissions:
+  actions: write
   contents: write
   pull-requests: write
 
@@ -32,10 +33,33 @@ jobs:
             --jq ".[] | select(.headRefOid == \"$HEAD_SHA\" and (.author.login | test(\"dependabot\"))) | .number")
           echo "number=$number" >> "$GITHUB_OUTPUT"
 
-      - name: Enable auto-merge
+      # CI already passed, so merge now. A conflict leaves the PR open:
+      # Dependabot rebases it, CI runs again and this workflow retries.
+      - name: Merge
+        id: merge
         if: steps.pr.outputs.number != ''
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           NUMBER: ${{ steps.pr.outputs.number }}
-        run: gh pr merge "$NUMBER" --repo "$REPO" --squash --auto
+        run: |
+          if gh pr merge "$NUMBER" --repo "$REPO" --squash; then
+            echo "merged=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::#$NUMBER was not merged (conflict or not mergeable yet)"
+          fi
+
+      # Merges made with GITHUB_TOKEN don't trigger deploy.yml's push event.
+      # Only npm production updates change what users get.
+      - name: Deploy production updates
+        if: steps.merge.outputs.merged == 'true' && startsWith(github.event.workflow_run.head_branch, 'dependabot/npm_and_yarn/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          if gh api "repos/$REPO/commits/$HEAD_SHA" --jq .commit.message | grep -q 'dependency-type: direct:production'; then
+            gh workflow run deploy.yml --repo "$REPO" --ref master
+          else
+            echo "Dev dependencies only; no deploy"
+          fi
