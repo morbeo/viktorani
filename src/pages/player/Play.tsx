@@ -170,8 +170,14 @@ export default function Play() {
         sent[session.question.questionId]
       )
     : null
+  // A question with no options takes typed answers in a choice game too: the host says so
+  // with acceptsText while it is open, and the answer sent shows once it closes
+  const typed =
+    session.inputType === 'text' ||
+    (session.inputType === 'choice' &&
+      (session.question?.acceptsText === true || (view?.text ?? null) !== null))
   const choice =
-    session.inputType === 'choice' && session.question && view
+    session.inputType === 'choice' && !typed && session.question && view
       ? {
           count: session.question.choices,
           options: session.question.options,
@@ -182,7 +188,7 @@ export default function Play() {
         }
       : null
   const typedInput =
-    session.inputType === 'text' && session.question && view
+    typed && session.question && view
       ? {
           open: session.question.acceptsText,
           sent: view.text,

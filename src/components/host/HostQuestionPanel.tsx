@@ -6,6 +6,7 @@ import { HostVisibilityToggles } from './HostVisibilityToggles'
 import { HostRulingPanel } from './HostRulingPanel'
 import { HostAnswersPanel } from './HostAnswersPanel'
 import type { Player, Team } from '@/db'
+import { answerKind } from '@/db/answers'
 import type { SeenAnswer } from '@/db/answers'
 import type { QuestionRuling, RulingAward } from '@/db/rulings'
 
@@ -38,13 +39,14 @@ export function HostQuestionPanel({
   onGameChange,
   ruling,
 }: HostQuestionPanelProps) {
+  const kind = answerKind(game.inputType, question)
   return (
     <div className="flex flex-col gap-6">
       <HostQuestionHeader question={question} gameQuestion={gameQuestion} />
       <HostQuestionAnswers question={question} />
-      {ruling?.onMarkAnswers && (game.inputType === 'choice' || game.inputType === 'text') && (
+      {ruling?.onMarkAnswers && kind && (
         <HostAnswersPanel
-          inputType={game.inputType}
+          inputType={kind}
           question={question}
           gameQuestion={gameQuestion}
           players={ruling.players}

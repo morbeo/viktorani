@@ -15,6 +15,20 @@ export function choiceOptions(question: Pick<Question, 'type' | 'options'>): str
 }
 
 /**
+ * How players answer a question on their phones: by picking an option in a `choice` game,
+ * or by typing in a `text` game. A question with no options to pick from (open-ended) takes
+ * typed answers in a `choice` game too. `null` when the game takes no answers on phones.
+ */
+export function answerKind(
+  inputType: Game['inputType'],
+  question: Pick<Question, 'type' | 'options'>
+): 'choice' | 'text' | null {
+  if (inputType === 'text') return 'text'
+  if (inputType === 'choice') return choiceOptions(question).length > 0 ? 'choice' : 'text'
+  return null
+}
+
+/**
  * Whether the game keeps players' answers open until the end of the round
  * ({@link Game.answersClose}): only in a game that takes answers on phones.
  */
@@ -219,7 +233,7 @@ export async function recountVotes(
  * player it mapped the connection to and its own clock, never values from the payload.
  * Accepted only for a question of the same game that is still open (`pending`) and whose
  * answer hasn't been revealed, in a game
- * that takes this kind of answer: a choice the question has an option for, or text of 1 to
+ * that takes this kind of answer ({@link answerKind}): a choice the question has an option for, or text of 1 to
  * {@link MAX_ANSWER_TEXT_LENGTH} characters once trimmed. In a team game the answer is the
  * team's: it replaces the one any member sent before, and goes back to unmarked (taking back
  * any points it had scored). How the team decides it follows {@link Game.teamAnswering}: with
@@ -246,13 +260,14 @@ export async function recordAnswer(
 
     let choice: number | null = null
     let text: string | null = null
+    const kind = answerKind(game.inputType, question)
     if ('choice' in input) {
-      if (game.inputType !== 'choice') return false
+      if (kind !== 'choice') return false
       if (!Number.isInteger(input.choice) || input.choice < 0) return false
       if (input.choice >= choiceOptions(question).length) return false
       choice = input.choice
     } else {
-      if (game.inputType !== 'text' || typeof input.text !== 'string') return false
+      if (kind !== 'text' || typeof input.text !== 'string') return false
       text = normaliseAnswerText(input.text)
       if (text === '' || text.length > MAX_ANSWER_TEXT_LENGTH) return false
     }

@@ -146,6 +146,36 @@ describe('Play', () => {
     expect(screen.queryByRole('region', { name: 'Question' })).toBeNull()
   })
 
+  it('offers a text box for an open-ended question in a choice game', async () => {
+    renderPlay()
+    await waitFor(() => expect(transportManager.send).toHaveBeenCalled())
+    emit({ type: 'JOIN_ACCEPTED', playerId: 'p1', teamId: null })
+    emit({ ...STATE, state: { ...STATE.state, inputType: 'choice' } })
+    emit({
+      type: 'QUESTION_CONTENT',
+      target: 'players',
+      questionId: 'q2',
+      title: 'Name a French river',
+      description: null,
+      options: null,
+      answer: null,
+      choices: null,
+      acceptsText: true,
+      media: null,
+      mediaType: null,
+    })
+    expect(screen.queryByRole('button', { name: 'Buzz' })).toBeNull()
+    await userEvent.type(screen.getByRole('textbox', { name: 'Answer' }), 'Loire')
+    await userEvent.click(screen.getByRole('button', { name: 'Send' }))
+    expect(transportManager.send).toHaveBeenCalledWith({
+      type: 'ANSWER',
+      questionId: 'q2',
+      choice: null,
+      text: 'Loire',
+    })
+    expect(screen.getByText(/Sent: Loire/)).toBeInTheDocument()
+  })
+
   it('disables the buzz button while the host keeps the buzzer locked', async () => {
     await reachGame()
     emit({ type: 'BUZZER_LOCK' })

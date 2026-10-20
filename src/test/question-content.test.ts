@@ -212,12 +212,15 @@ describe('buildOpenQuestions', () => {
     expect(JSON.stringify(event)).not.toContain('Think')
   })
 
-  it('leaves out a question players cannot answer in a choice game', () => {
+  it('lets players type an answer to an open-ended question in a choice game', () => {
     const rows = [
       { number: 1, question: OPEN_ENDED },
       { number: 2, question: QUESTION },
     ]
-    expect(buildOpenQuestions(rows, ALL, 'choice').questions.map(q => q.number)).toEqual([2])
+    expect(buildOpenQuestions(rows, ALL, 'choice').questions).toEqual([
+      expect.objectContaining({ number: 1, acceptsText: true, choices: null }),
+      expect.objectContaining({ number: 2, acceptsText: false, choices: 3 }),
+    ])
     expect(buildOpenQuestions(rows, ALL, 'text').questions).toEqual([
       expect.objectContaining({ number: 1, acceptsText: true, choices: null }),
       expect.objectContaining({ number: 2, acceptsText: true, choices: null }),
