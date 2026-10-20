@@ -67,6 +67,8 @@ export type GameEvent =
       teams: LobbyTeam[]
       allowIndividual: boolean
       allowPlayerTeams: boolean
+      /** Whether people may watch without playing (see `Game.allowSpectators`). */
+      allowSpectators: boolean
     }
   /** The JOIN is waiting for host approval. */
   | { type: 'JOIN_PENDING' }
@@ -322,8 +324,11 @@ export type PlayerEvent =
   | { type: 'LEAVE' }
   /** Player's tab visibility changed — used to flag distracted players. */
   | { type: 'FOCUS_CHANGE'; away: boolean }
-  /** A projector screen asks to follow the game. Needs GM approval, like a player JOIN. */
-  | { type: 'SCREEN_JOIN' }
+  /**
+   * A projector screen asks to follow the game. Needs GM approval, like a player JOIN. With
+   * `watch`, a spectator asks instead: let in without approval when the game allows them.
+   */
+  | { type: 'SCREEN_JOIN'; watch?: true }
 
 /** Union of all events that flow through the transport layer. */
 export type TransportEvent = GameEvent | PlayerEvent

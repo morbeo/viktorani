@@ -40,7 +40,8 @@ function isAvailable(choice: Choice, lobby: LobbyInfo): boolean {
 /**
  * Player join flow: room code and name → connect → pick a team, create one or play
  * alone, as the host's LOBBY_INFO allows → JOIN. Waits on the host for approval when
- * needed and moves to `/play/:roomId` once accepted.
+ * needed and moves to `/play/:roomId` once accepted. When the game allows spectators,
+ * Just watch moves to `/watch/:roomId` instead.
  */
 export default function Join() {
   const params = useParams<{ roomId: string }>()
@@ -220,6 +221,16 @@ export default function Join() {
             <Button type="submit" variant="primary" disabled={!canJoin || stage.kind === 'joining'}>
               {stage.kind === 'joining' ? 'Joining…' : `Join as ${name.trim()}`}
             </Button>
+            {lobby.allowSpectators && (
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={stage.kind === 'joining'}
+                onClick={() => navigate(`/watch/${code}`)}
+              >
+                Just watch
+              </Button>
+            )}
             <Button type="button" variant="ghost" onClick={handleBack}>
               Back
             </Button>

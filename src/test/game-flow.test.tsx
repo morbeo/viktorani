@@ -128,6 +128,7 @@ const GAME: Game = {
   rejoinWindowSeconds: 0,
   autoRemoveAfterMinutes: 0,
   requireApproval: false,
+  allowSpectators: false,
   allowPlayerTeams: true,
   roundIds: ['r1'],
   currentRoundIdx: 0,
@@ -295,6 +296,49 @@ describe('game flow', () => {
     await host.waitFor(() => expect(received.map(e => e.type)).toContain('JOIN_ACCEPTED'), SLOW)
     expect(received.map(e => e.type)).not.toContain('JOIN_PENDING')
     expect(host.view.queryByRole('button', { name: 'Approve screen 1' })).toBeNull()
+  }, 20_000)
+
+  it('turns spectators away when the game does not allow them', async () => {
+    await seedGame()
+    const host = await mountSide('host', '/admin/game/g1')
+    await host.waitFor(() => expect(hub.state.host).not.toBeNull())
+
+    const { client, received } = await connectClient()
+    client.send({ type: 'SCREEN_JOIN', watch: true })
+    await host.waitFor(() =>
+      expect(received).toContainEqual({
+        type: 'JOIN_REJECTED',
+        reason: "This game isn't taking spectators.",
+      })
+    )
+    expect(received.map(e => e.type)).not.toContain('SCREEN_ACCEPTED')
+  }, 20_000)
+
+  it('lets spectators watch without approval when the game allows them', async () => {
+    await seedGame()
+    const { db } = await import('@/db')
+    await db.games.update('g1', { allowSpectators: true })
+    const host = await mountSide('host', '/admin/game/g1')
+    await host.waitFor(() => expect(hub.state.host).not.toBeNull())
+
+    const { client, received } = await connectClient()
+    client.send({ type: 'SCREEN_JOIN', watch: true })
+    await host.waitFor(() => expect(received.map(e => e.type)).toContain('SCREEN_ACCEPTED'), SLOW)
+    expect(received.map(e => e.type)).not.toContain('JOIN_PENDING')
+    expect(received.map(e => e.type)).toContain('SCOREBOARD')
+    expect(await host.view.findByText('1 person watching')).toBeInTheDocument()
+    expect(host.view.queryByRole('button', { name: 'Disconnect screen 1' })).toBeNull()
+
+    // A spectator only listens: a JOIN from it is ignored
+    client.send(JOIN)
+    await new Promise(r => setTimeout(r, 200))
+    expect(received.map(e => e.type)).not.toContain('JOIN_ACCEPTED')
+
+    // Turning spectators off sends them away
+    const user = userEvent.setup()
+    await user.click(host.view.getAllByRole('button', { name: 'Game settings' })[0])
+    await user.click(await host.view.findByRole('switch', { name: 'Allow spectators' }))
+    await host.waitFor(() => expect(host.view.queryByText('1 person watching')).toBeNull())
   }, 20_000)
 
   it('turns screens away once ten are waiting', async () => {

@@ -88,6 +88,8 @@ function describeMessageTarget(target: MessageTarget, players: Player[], teams: 
 // cannot fill the lobby
 const MAX_PENDING_JOINS = 100
 const MAX_PENDING_SCREENS = 10
+/** Most spectators watching a game at once (see `Game.allowSpectators`). */
+const MAX_SPECTATORS = 100
 // At most this many tab switches per player are logged in any minute
 const FOCUS_LOG_LIMIT = 10
 const FOCUS_LOG_WINDOW_MS = 60_000
@@ -159,6 +161,9 @@ export default function GameMaster() {
   // the scoreboard; pending ones wait for the GM like players do
   const screensRef = useRef(new Set<string>())
   const [connectedScreens, setConnectedScreens] = useState<string[]>([])
+  // Spectators get what screens get, so they are in `screensRef` too, but aren't listed
+  const spectatorsRef = useRef(new Set<string>())
+  const [watching, setWatching] = useState(0)
   const [pendingScreens, setPendingScreens] = useState<string[]>([])
   const pendingScreensRef = useRef<string[]>([])
   const screenContentRef = useRef<QuestionContent | null>(null)
@@ -249,16 +254,50 @@ export default function GameMaster() {
     setPendingScreens(pendingScreensRef.current)
   }, [])
 
-  const addConnectedScreen = useCallback((connId: string) => {
-    screensRef.current.add(connId)
-    setConnectedScreens([...screensRef.current])
+  const listScreens = useCallback(() => {
+    setConnectedScreens([...screensRef.current].filter(c => !spectatorsRef.current.has(c)))
   }, [])
 
-  /** Removes a screen from `screensRef`, syncing state. Returns whether it was present. */
-  const removeConnectedScreen = useCallback((connId: string) => {
-    const removed = screensRef.current.delete(connId)
-    if (removed) setConnectedScreens([...screensRef.current])
-    return removed
+  const addConnectedScreen = useCallback(
+    (connId: string) => {
+      screensRef.current.add(connId)
+      listScreens()
+    },
+    [listScreens]
+  )
+
+  /**
+   * Removes a screen or spectator from `screensRef`, syncing state. Returns whether it was
+   * a screen (not a spectator).
+   */
+  const removeConnectedScreen = useCallback(
+    (connId: string) => {
+      const removed = screensRef.current.delete(connId)
+      const spectator = spectatorsRef.current.delete(connId)
+      if (spectator) setWatching(spectatorsRef.current.size)
+      else if (removed) listScreens()
+      return removed && !spectator
+    },
+    [listScreens]
+  )
+
+  // Send a newly admitted screen or spectator what the screens currently show
+  const sendScreenState = useCallback((connId: string) => {
+    transportManager.sendTo(connId, { type: 'SCREEN_ACCEPTED' })
+    if (screenContentRef.current) transportManager.sendTo(connId, screenContentRef.current)
+    if (screenRoundAnswersRef.current)
+      transportManager.sendTo(connId, screenRoundAnswersRef.current)
+    transportManager.sendTo(connId, { type: 'SCOREBOARD', rows: scoreboardRef.current })
+    transportManager.sendTo(connId, { type: 'LOG', entries: logRef.current })
+    if (screenLayoutRef.current) transportManager.sendTo(connId, screenLayoutRef.current)
+    if (phaseRef.current)
+      transportManager.sendTo(connId, { type: 'PHASE', phase: phaseRef.current })
+    if (themeRef.current) transportManager.sendTo(connId, themeRef.current)
+    const g = gameRef.current
+    if (g) void sendRunningTimers(connId, g.id)
+    if (g?.status === 'paused') {
+      transportManager.sendTo(connId, { type: 'GAME_STATUS', status: 'paused' })
+    }
   }, [])
 
   // Load game + existing players + teams on mount
@@ -632,6 +671,23 @@ export default function GameMaster() {
 
       if (event.type === 'SCREEN_JOIN') {
         if (joinersRef.current.has(from) || pendingScreensRef.current.includes(from)) return
+        // A spectator gets straight in while the game allows them
+        if (event.watch) {
+          const reason = !g.allowSpectators
+            ? "This game isn't taking spectators."
+            : spectatorsRef.current.size >= MAX_SPECTATORS
+              ? 'Too many people are watching. Try again later.'
+              : null
+          if (reason) {
+            transportManager.sendTo(from, { type: 'JOIN_REJECTED', reason })
+            return
+          }
+          spectatorsRef.current.add(from)
+          screensRef.current.add(from)
+          setWatching(spectatorsRef.current.size)
+          sendScreenState(from)
+          return
+        }
         if (pendingScreensRef.current.length >= MAX_PENDING_SCREENS) {
           transportManager.sendTo(from, {
             type: 'JOIN_REJECTED',
@@ -712,8 +768,18 @@ export default function GameMaster() {
         }
       }
     },
-    [addToast, enqueueJoin, handleJoin, updatePendingScreens]
+    [addToast, enqueueJoin, handleJoin, updatePendingScreens, sendScreenState]
   )
+
+  // Turning spectators off sends everyone watching away
+  const allowSpectators = game?.allowSpectators ?? false
+  useEffect(() => {
+    if (allowSpectators) return
+    for (const connId of [...spectatorsRef.current]) {
+      removeConnectedScreen(connId)
+      transportManager.closeConnection(connId)
+    }
+  }, [allowSpectators, removeConnectedScreen])
 
   useEffect(() => {
     return transportManager.onEvent(handleEvent)
@@ -802,23 +868,9 @@ export default function GameMaster() {
       updatePendingScreens(prev => prev.filter(c => c !== connId))
       addConnectedScreen(connId)
       if (gameRef.current) logEvent(gameRef.current.id, 'screen_approved')
-      transportManager.sendTo(connId, { type: 'SCREEN_ACCEPTED' })
-      if (screenContentRef.current) transportManager.sendTo(connId, screenContentRef.current)
-      if (screenRoundAnswersRef.current)
-        transportManager.sendTo(connId, screenRoundAnswersRef.current)
-      transportManager.sendTo(connId, { type: 'SCOREBOARD', rows: scoreboardRef.current })
-      transportManager.sendTo(connId, { type: 'LOG', entries: logRef.current })
-      if (screenLayoutRef.current) transportManager.sendTo(connId, screenLayoutRef.current)
-      if (phaseRef.current)
-        transportManager.sendTo(connId, { type: 'PHASE', phase: phaseRef.current })
-      if (themeRef.current) transportManager.sendTo(connId, themeRef.current)
-      const g = gameRef.current
-      if (g) void sendRunningTimers(connId, g.id)
-      if (g?.status === 'paused') {
-        transportManager.sendTo(connId, { type: 'GAME_STATUS', status: 'paused' })
-      }
+      sendScreenState(connId)
     },
-    [updatePendingScreens, addConnectedScreen]
+    [updatePendingScreens, addConnectedScreen, sendScreenState]
   )
 
   // Host-initiated disconnect of an already-approved screen
@@ -1029,6 +1081,7 @@ export default function GameMaster() {
     roomId: game?.roomId ?? null,
     pending: pendingScreens,
     connected: connectedScreens,
+    watching,
     onApprove: handleApproveScreen,
     onReject: handleRejectScreen,
     onDisconnect: handleDisconnectScreen,

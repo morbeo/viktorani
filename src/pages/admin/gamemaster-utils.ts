@@ -71,6 +71,7 @@ export function buildLobbyInfo(
     teams: listed.map(t => ({ id: t.id, name: t.name.slice(0, MAX_NAME_LENGTH) })),
     allowIndividual: game.allowIndividual,
     allowPlayerTeams: game.allowPlayerTeams && roomForTeam,
+    allowSpectators: game.allowSpectators,
   }
 }
 

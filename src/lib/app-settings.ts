@@ -68,6 +68,7 @@ const GameSettingsSchema = z.object({
   rejoinWindowSeconds: LimitSchema.catch(BUILT_IN_GAME.rejoinWindowSeconds),
   autoRemoveAfterMinutes: LimitSchema.catch(BUILT_IN_GAME.autoRemoveAfterMinutes),
   requireApproval: z.boolean().catch(BUILT_IN_GAME.requireApproval),
+  allowSpectators: z.boolean().catch(BUILT_IN_GAME.allowSpectators),
   inputType: z.enum(INPUT_TYPES).catch(BUILT_IN_GAME.inputType),
   autoLockOnFirstCorrect: z.boolean().catch(BUILT_IN_GAME.autoLockOnFirstCorrect),
   allowFalseStarts: z.boolean().catch(BUILT_IN_GAME.allowFalseStarts),

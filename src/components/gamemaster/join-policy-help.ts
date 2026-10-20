@@ -1,7 +1,12 @@
 import type { Game } from '@/db'
 
 type JoinSetting =
-  'allowIndividual' | 'allowPlayerTeams' | 'allowLateJoin' | 'allowRejoin' | 'requireApproval'
+  | 'allowIndividual'
+  | 'allowPlayerTeams'
+  | 'allowLateJoin'
+  | 'allowRejoin'
+  | 'requireApproval'
+  | 'allowSpectators'
 
 /** Help text for the join settings, shared by the new-game wizard and the live panel. */
 export const JOIN_POLICY_HELP: Record<JoinSetting & keyof Game, string> = {
@@ -15,4 +20,6 @@ export const JOIN_POLICY_HELP: Record<JoinSetting & keyof Game, string> = {
     'A player who drops or reloads comes back as themselves, keeping their team and score. Off: their device joins as a new player.',
   requireApproval:
     'New players wait in Join requests until you approve them. Players rejoining as themselves get straight back in.',
+  allowSpectators:
+    "People can follow the game on their phone without playing: the join page offers Just watch, which shows what the screen shows. They don't need your approval and can't answer. Off: anyone watching is disconnected.",
 }

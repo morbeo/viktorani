@@ -7,19 +7,22 @@ export interface ScreensPanelProps {
   pending: string[]
   /** Connection ids of approved, connected screens, oldest first. */
   connected: string[]
+  /** How many spectators are watching (see `Game.allowSpectators`). */
+  watching?: number
   onApprove: (connId: string) => void
   onReject: (connId: string) => void
   onDisconnect: (connId: string) => void
 }
 
 /**
- * The link for projector screens on other devices, the screens waiting for approval, and the
- * screens currently connected.
+ * The link for projector screens on other devices, the screens waiting for approval, the
+ * screens currently connected, and how many spectators are watching.
  */
 export function ScreensPanel({
   roomId,
   pending,
   connected,
+  watching = 0,
   onApprove,
   onReject,
   onDisconnect,
@@ -95,6 +98,11 @@ export function ScreensPanel({
             </li>
           ))}
         </ul>
+      )}
+      {watching > 0 && (
+        <p className="px-4 py-2 border-t border-border text-sm text-muted">
+          {watching === 1 ? '1 person watching' : `${watching} people watching`}
+        </p>
       )}
     </div>
   )

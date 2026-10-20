@@ -197,6 +197,11 @@ export interface Game {
   autoRemoveAfterMinutes: number
   /** New players wait in the lobby until the GM accepts them. */
   requireApproval: boolean
+  /**
+   * People may watch on their own device without playing: they see what screens show and
+   * join without approval (see the `/watch` route).
+   */
+  allowSpectators: boolean
   /** Players may create their own team when joining. */
   allowPlayerTeams: boolean
   // Rounds / navigation
@@ -755,6 +760,7 @@ export interface Vote {
  * - 24: same stores; back-fills `Game.answersClose` (`perQuestion`) on existing games.
  * - 25: same stores; back-fills `Game.teamAnswering` (`anyone`) on existing games.
  * - 26: same stores; back-fills `Game.rankTies` (`share`) on existing games.
+ * - 27: same stores; back-fills `Game.allowSpectators` (`false`) on existing games.
  *
  * To change the schema, add a new `this.version(N + 1)` block below; keep existing blocks.
  */
@@ -1040,6 +1046,17 @@ export class ViktoraniDB extends Dexie {
           .toCollection()
           .modify((g: Partial<Game>) => {
             g.rankTies ??= 'share'
+          })
+      )
+
+    this.version(27)
+      .stores({})
+      .upgrade(tx =>
+        tx
+          .table('games')
+          .toCollection()
+          .modify((g: Partial<Game>) => {
+            g.allowSpectators ??= false
           })
       )
   }

@@ -49,6 +49,7 @@ function makeGame(overrides: Partial<Game> = {}): Game {
     rejoinWindowSeconds: 0,
     autoRemoveAfterMinutes: 0,
     requireApproval: false,
+    allowSpectators: false,
     allowPlayerTeams: true,
     roundIds: [],
     currentRoundIdx: 0,

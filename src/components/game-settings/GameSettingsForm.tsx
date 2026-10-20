@@ -162,6 +162,13 @@ export function GameSettingsForm({
         disabled={disabled}
         onChange={v => onChange({ requireApproval: v })}
       />
+      <Toggle
+        label="Allow spectators"
+        help={JOIN_POLICY_HELP.allowSpectators}
+        checked={value.allowSpectators}
+        disabled={disabled}
+        onChange={v => onChange({ allowSpectators: v })}
+      />
       <LimitStepper
         label="Max teams"
         help="Players can't create a new team once the game has this many teams."

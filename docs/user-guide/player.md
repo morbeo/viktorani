@@ -34,6 +34,9 @@ Your host will display a QR code or read out a room code at the start of the gam
 > **Teams:** If your host has configured team play, you'll be assigned to a team
 > during the lobby phase. Your host will tell you which team you're on.
 
+> **Just watching:** If the host allows spectators, **Just watch** follows the game on your
+> phone without playing: you see what the screen shows, and can't answer.
+
 ---
 
 ## 2. Online play
