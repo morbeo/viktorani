@@ -47,6 +47,7 @@ const mockGame: Game = {
   autoAdvanceDelaySeconds: 5,
   revealTiming: 'manual',
   answersClose: 'perQuestion',
+  teamAnswering: 'anyone',
   holdScores: false,
   scoresAnnouncedAt: null,
   autoStartTimerOnQuestionShow: false,
@@ -239,6 +240,51 @@ describe('RosterPanel', () => {
       notes: '',
     },
   ]
+
+  it('lets the host pick captains while only captains answer', async () => {
+    const onSetCaptain = vi.fn(async () => {})
+    const mates = [...players, { ...players[1], id: 'p4', name: 'Dana', teamId: 't1' }]
+    render(
+      <RosterPanel
+        game={{ ...mockGame, inputType: 'text', teamAnswering: 'captain' }}
+        players={mates}
+        teams={teams}
+        onKick={vi.fn()}
+        onAddPlayer={vi.fn()}
+        onAssignPlayer={vi.fn()}
+        onAdjustScore={vi.fn()}
+        onUpdatePlayerNotes={vi.fn()}
+        onCreateTeam={vi.fn()}
+        onSetCaptain={onSetCaptain}
+      />
+    )
+    expect(screen.getByRole('button', { name: 'Alice is the captain' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Make Dana captain' }))
+    expect(onSetCaptain).toHaveBeenCalledWith('t1', 'p4')
+    // A player on no team has no captain button
+    expect(screen.queryByRole('button', { name: 'Make Charlie captain' })).toBeNull()
+  })
+
+  it('offers no captains when any member can answer', () => {
+    render(
+      <RosterPanel
+        game={{ ...mockGame, inputType: 'text' }}
+        players={players}
+        teams={teams}
+        onKick={vi.fn()}
+        onAddPlayer={vi.fn()}
+        onAssignPlayer={vi.fn()}
+        onAdjustScore={vi.fn()}
+        onUpdatePlayerNotes={vi.fn()}
+        onCreateTeam={vi.fn()}
+        onSetCaptain={vi.fn()}
+      />
+    )
+    expect(screen.queryByRole('button', { name: /captain/ })).toBeNull()
+  })
 
   it('counts connected players, with disconnected ones apart', () => {
     render(

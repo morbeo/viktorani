@@ -5,6 +5,7 @@ import {
   INPUT_TYPES,
   LAYOUT_TARGETS,
   MAX_ANSWER_TEXT_LENGTH,
+  TEAM_ANSWERING,
   WIDGET_TYPES,
 } from '@/db'
 import {
@@ -77,6 +78,8 @@ export const MAX_THEME_EVENT_LENGTH = 3_000_000
 export const MAX_ROUND_ANSWERS = 200
 /** Most earlier questions an `OPEN_QUESTIONS` lists. */
 export const MAX_OPEN_QUESTIONS = 50
+/** Most answers a `TEAM_ANSWERS` lists: the open earlier questions and the one shown. */
+export const MAX_TEAM_ANSWERS = MAX_OPEN_QUESTIONS + 1
 
 const id = z.string().max(MAX_ID_LENGTH)
 const name = z.string().max(MAX_NAME_LENGTH)
@@ -295,6 +298,28 @@ export const GameEventSchemas = {
       )
       .max(MAX_OPEN_QUESTIONS),
   }),
+  TEAM_ANSWERS: z.strictObject({
+    type: z.literal('TEAM_ANSWERS'),
+    mode: z.enum(TEAM_ANSWERING),
+    captainId: id.nullable(),
+    captainName: name.nullable(),
+    answers: z
+      .array(
+        z.strictObject({
+          questionId: id,
+          playerId: id,
+          playerName: name,
+          choice: z
+            .number()
+            .int()
+            .min(0)
+            .max(MAX_OPTIONS - 1)
+            .nullable(),
+          text: z.string().max(MAX_ANSWER_TEXT_LENGTH).nullable(),
+        })
+      )
+      .max(MAX_TEAM_ANSWERS),
+  }),
 }
 
 /** Schemas for events sent by players to the GameMaster. */
@@ -366,6 +391,7 @@ export const TransportEventSchema = z.discriminatedUnion('type', [
   GameEventSchemas.THEME,
   GameEventSchemas.ROUND_ANSWERS,
   GameEventSchemas.OPEN_QUESTIONS,
+  GameEventSchemas.TEAM_ANSWERS,
   PlayerEventSchemas.BUZZ,
   PlayerEventSchemas.JOIN,
   PlayerEventSchemas.ANSWER,

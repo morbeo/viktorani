@@ -1,5 +1,7 @@
 import type { OpenQuestion } from '@/transport/types'
 import { ChoicePad, TextPad } from './player-widgets'
+import { teamAnswerView } from './team-answer'
+import type { TeamAnswers } from './team-answer'
 
 /** What this phone last sent for a question: an option's index, or typed text. */
 export type SentAnswer = { choice: number } | { text: string }
@@ -8,6 +10,9 @@ interface OpenQuestionsProps {
   questions: OpenQuestion[]
   /** What this phone sent so far, by question id. */
   sent: Record<string, SentAnswer>
+  /** The team's answering mode and answers, in a team game; else `null`. */
+  team?: TeamAnswers | null
+  playerId?: string | null
   enabled: boolean
   onChoose: (questionId: string, choice: number) => void
   onSendText: (questionId: string, text: string) => void
@@ -21,6 +26,8 @@ interface OpenQuestionsProps {
 export function OpenQuestions({
   questions,
   sent,
+  team = null,
+  playerId = null,
   enabled,
   onChoose,
   onSendText,
@@ -32,7 +39,7 @@ export function OpenQuestions({
         Still open this round
       </h2>
       {questions.map(q => {
-        const mine = sent[q.questionId]
+        const view = teamAnswerView(team, q.questionId, playerId, sent[q.questionId])
         return (
           <section
             key={q.questionId}
@@ -47,16 +54,18 @@ export function OpenQuestions({
               <ChoicePad
                 count={q.choices}
                 options={q.options}
-                selected={mine && 'choice' in mine ? mine.choice : null}
-                enabled={enabled}
+                selected={view.choice}
+                enabled={enabled && view.canAnswer}
+                note={view.note}
                 onChoose={choice => onChoose(q.questionId, choice)}
               />
             )}
             {q.acceptsText && (
               <TextPad
                 open
-                sent={mine && 'text' in mine ? mine.text : null}
-                enabled={enabled}
+                sent={view.text}
+                enabled={enabled && view.canAnswer}
+                note={view.note}
                 onSend={text => onSendText(q.questionId, text)}
               />
             )}

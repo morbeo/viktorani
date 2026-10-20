@@ -27,6 +27,7 @@ import {
   MAX_THEME_EVENT_LENGTH,
   MAX_ROUND_ANSWERS,
   MAX_OPEN_QUESTIONS,
+  MAX_TEAM_ANSWERS,
 } from '@/transport/messages'
 import { BUILT_IN_THEMES, resolveTheme } from '@/lib/theme'
 import type { SerializedGameState, TransportEvent } from '@/transport/types'
@@ -174,6 +175,13 @@ const FIXTURES: { [K in TransportEvent['type']]: Extract<TransportEvent, { type:
         },
       ],
     },
+  },
+  TEAM_ANSWERS: {
+    type: 'TEAM_ANSWERS',
+    mode: 'captain',
+    captainId: 'p1',
+    captainName: 'Alice',
+    answers: [{ questionId: 'q1', playerId: 'p1', playerName: 'Alice', choice: 1, text: null }],
   },
   OPEN_QUESTIONS: {
     type: 'OPEN_QUESTIONS',
@@ -771,6 +779,20 @@ describe('OPEN_QUESTIONS', () => {
   it('rejects a question with no number or extra fields', () => {
     expect(parse([{ ...item, number: 0 }])).toBe(false)
     expect(parse([{ ...item, answer: 'Paris' }])).toBe(false)
+  })
+})
+
+describe('TEAM_ANSWERS', () => {
+  const parse = (patch: object) =>
+    GameEventSchemas.TEAM_ANSWERS.safeParse({ ...FIXTURES.TEAM_ANSWERS, ...patch }).success
+  const answer = FIXTURES.TEAM_ANSWERS.answers[0]
+
+  it('rejects an unknown mode, too many answers, or an out-of-range choice', () => {
+    expect(parse({ mode: 'dictator' })).toBe(false)
+    expect(parse({ answers: Array.from({ length: MAX_TEAM_ANSWERS + 1 }, () => answer) })).toBe(
+      false
+    )
+    expect(parse({ answers: [{ ...answer, choice: MAX_OPTIONS }] })).toBe(false)
   })
 })
 

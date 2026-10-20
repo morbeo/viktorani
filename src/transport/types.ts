@@ -1,4 +1,12 @@
-import type { GamePhase, GameVisibility, InputType, Layout, LayoutSlot, Widget } from '@/db'
+import type {
+  GamePhase,
+  GameVisibility,
+  InputType,
+  Layout,
+  LayoutSlot,
+  TeamAnswering,
+  Widget,
+} from '@/db'
 import type { ResolvedTheme } from '@/lib/theme'
 
 // ── Shared event types ────────────────────────────────────────────────────────
@@ -141,6 +149,19 @@ export type GameEvent =
    * Sent to players whenever the list changes and on admit. The question shown is not in it.
    */
   | { type: 'OPEN_QUESTIONS'; questions: OpenQuestion[] }
+  /**
+   * How the player's team decides its answers (see `Game.teamAnswering`), and the team's
+   * current answers to the questions players can answer. Sent to each team's members in a
+   * team game that takes answers on phones, whenever it changes and on admit.
+   */
+  | {
+      type: 'TEAM_ANSWERS'
+      mode: TeamAnswering
+      /** The member who answers for the team; set only in `captain` mode. */
+      captainId: string | null
+      captainName: string | null
+      answers: TeamAnswer[]
+    }
 
 /** An earlier question of the round players can still answer, as sent in `OPEN_QUESTIONS`. */
 export interface OpenQuestion {
@@ -155,6 +176,18 @@ export interface OpenQuestion {
   choices: number | null
   /** Whether players may type an answer, in a `text` game. */
   acceptsText: boolean
+}
+
+/** A team's current answer to an open question, as sent in `TEAM_ANSWERS`. */
+export interface TeamAnswer {
+  questionId: string
+  /** The member who sent it. */
+  playerId: string
+  playerName: string
+  /** The option picked, in a `choice` game; else `null`. */
+  choice: number | null
+  /** The text typed, in a `text` game; else `null`. */
+  text: string | null
 }
 
 /** How the end-of-round review shows the round's answers. */

@@ -58,6 +58,7 @@ import type {
   BuzzHandler,
   QuestionContent,
   OpenQuestionsEvent,
+  TeamAnswersEvent,
   RoundAnswersEvent,
 } from '@/components/gamemaster/ActiveGame'
 
@@ -167,6 +168,7 @@ export default function GameMaster() {
   const playerRoundAnswersRef = useRef<RoundAnswersEvent | null>(null)
   const screenRoundAnswersRef = useRef<RoundAnswersEvent | null>(null)
   const openQuestionsRef = useRef<OpenQuestionsEvent | null>(null)
+  const teamAnswersRef = useRef(new Map<string, TeamAnswersEvent>())
   const scoreboardRef = useRef<ScoreboardRow[]>([])
   const logRef = useRef<LogEntry[]>([])
   // The LAYOUT each kind of remote surface gets; `null` until the stored layouts have loaded
@@ -405,6 +407,8 @@ export default function GameMaster() {
       if (playerRoundAnswersRef.current)
         transportManager.sendTo(connId, playerRoundAnswersRef.current)
       if (openQuestionsRef.current) transportManager.sendTo(connId, openQuestionsRef.current)
+      const teamAnswers = player.teamId ? teamAnswersRef.current.get(player.teamId) : undefined
+      if (teamAnswers) transportManager.sendTo(connId, teamAnswers)
       if (playerLayoutRef.current) transportManager.sendTo(connId, playerLayoutRef.current)
       if (phaseRef.current)
         transportManager.sendTo(connId, { type: 'PHASE', phase: phaseRef.current })
@@ -435,6 +439,16 @@ export default function GameMaster() {
     openQuestionsRef.current = event.questions.length > 0 ? event : null
     for (const connId of connectionsRef.current.connections()) {
       transportManager.sendTo(connId, event)
+    }
+  }, [])
+
+  // A team's answers go only to its own admitted members
+  const handleTeamAnswers = useCallback((teamId: string, event: TeamAnswersEvent) => {
+    teamAnswersRef.current.set(teamId, event)
+    const members = new Set(playersRef.current.filter(p => p.teamId === teamId).map(p => p.id))
+    for (const connId of connectionsRef.current.connections()) {
+      const playerId = connectionsRef.current.playerFor(connId)
+      if (playerId && members.has(playerId)) transportManager.sendTo(connId, event)
     }
   }, [])
 
@@ -903,6 +917,12 @@ export default function GameMaster() {
     setTeams(prev => prev.map(t => (t.id === teamId ? { ...t, name } : t)))
   }, [])
 
+  // Pick the member who answers for the team when only captains answer
+  const handleSetCaptain = useCallback(async (teamId: string, playerId: string) => {
+    await db.teams.update(teamId, { captainId: playerId })
+    setTeams(prev => prev.map(t => (t.id === teamId ? { ...t, captainId: playerId } : t)))
+  }, [])
+
   const handleUpdateTeamNotes = useCallback(async (teamId: string, notes: string) => {
     await db.teams.update(teamId, { notes })
     setTeams(prev => prev.map(t => (t.id === teamId ? { ...t, notes } : t)))
@@ -1124,10 +1144,12 @@ export default function GameMaster() {
           onAdjustScore={handleAdjustScore}
           onUpdatePlayerNotes={handleUpdatePlayerNotes}
           onCreateTeam={handleCreateTeam}
+          onSetCaptain={handleSetCaptain}
           onQuestionContent={handleQuestionContent}
           onScreenContent={handleScreenContent}
           onRoundAnswers={handleRoundAnswers}
           onOpenQuestions={handleOpenQuestions}
+          onTeamAnswers={handleTeamAnswers}
           screens={screens}
           messages={messages}
           layouts={storedLayouts}

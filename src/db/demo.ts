@@ -211,6 +211,7 @@ export async function seedDemo(): Promise<void> {
     autoAdvanceDelaySeconds: 5,
     revealTiming: 'manual',
     answersClose: 'perQuestion',
+    teamAnswering: 'anyone',
     holdScores: false,
     scoresAnnouncedAt: null,
     autoStartTimerOnQuestionShow: false,

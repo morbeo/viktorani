@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react'
 import { transportManager } from '@/transport'
 import type { GamePhase, InputType, LayoutAssignments } from '@/db'
 import type { ResolvedTheme } from '@/lib/theme'
+import type { TeamAnswers } from './team-answer'
 import type {
   GameEvent,
   LayoutPayload,
@@ -47,6 +48,8 @@ export interface PlayerSession {
   roundAnswers: RoundAnswers | null
   /** The round's earlier questions this player can still answer (see `OPEN_QUESTIONS`). */
   openQuestions: OpenQuestion[]
+  /** How the player's team decides its answers, and its current ones (see `TEAM_ANSWERS`). */
+  teamAnswers: TeamAnswers | null
 }
 
 /**
@@ -79,6 +82,7 @@ const INITIAL: PlayerSession = {
   theme: null,
   roundAnswers: null,
   openQuestions: [],
+  teamAnswers: null,
 }
 
 let session = INITIAL
@@ -136,6 +140,16 @@ export function reduceSession(s: PlayerSession, event: TransportEvent): PlayerSe
       return event.target === 'players' ? { ...s, roundAnswers: event.review } : s
     case 'OPEN_QUESTIONS':
       return { ...s, openQuestions: event.questions }
+    case 'TEAM_ANSWERS':
+      return {
+        ...s,
+        teamAnswers: {
+          mode: event.mode,
+          captainId: event.captainId,
+          captainName: event.captainName,
+          answers: event.answers,
+        },
+      }
     default:
       return s
   }

@@ -25,6 +25,7 @@ export type GameSettings = Pick<
   | 'autoAdvanceDelaySeconds'
   | 'revealTiming'
   | 'answersClose'
+  | 'teamAnswering'
   | 'holdScores'
   | 'autoStartTimerOnQuestionShow'
   | 'defaultTimerDuration'
@@ -63,6 +64,7 @@ export const GAME_SETTINGS_KEYS = [
   'autoAdvanceDelaySeconds',
   'revealTiming',
   'answersClose',
+  'teamAnswering',
   'holdScores',
   'autoStartTimerOnQuestionShow',
   'defaultTimerDuration',
@@ -137,6 +139,7 @@ export function defaultSettings(): GameSettings {
     autoAdvanceDelaySeconds: AUTO_ADVANCE_DEFAULT_DELAY,
     revealTiming: 'manual',
     answersClose: 'perQuestion',
+    teamAnswering: 'anyone',
     holdScores: false,
     autoStartTimerOnQuestionShow: false,
     defaultTimerDuration: 60,

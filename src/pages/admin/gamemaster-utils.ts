@@ -15,13 +15,14 @@ import type {
   SerializedGameState,
   VisibilityTarget,
 } from '@/transport/types'
-import { choiceOptions } from '@/db/answers'
+import { choiceOptions, teamCaptain } from '@/db/answers'
 import {
   MAX_LABEL_LENGTH,
   MAX_LOBBY_TEAMS,
   MAX_MEDIA_LENGTH,
   MAX_NAME_LENGTH,
   MAX_OPEN_QUESTIONS,
+  MAX_TEAM_ANSWERS,
   MAX_OPTIONS,
   MAX_ROUND_ANSWERS,
   MAX_TEXT_LENGTH,
@@ -145,6 +146,47 @@ export function buildRoundAnswers(
       view,
       items: items.slice(0, MAX_ROUND_ANSWERS),
     },
+  }
+}
+
+/**
+ * Builds the TEAM_ANSWERS for one team's members: the game's team answering mode, the
+ * team's captain in `captain` mode (see {@link teamCaptain}), and the team's answers to the
+ * questions still open, keyed by question id through `questionIdOf` (game question id to
+ * question id). Answers to other questions or by other teams are left out. Pure function.
+ */
+export function buildTeamAnswers(
+  mode: Game['teamAnswering'],
+  team: Pick<Team, 'id' | 'captainId'>,
+  players: ReadonlyArray<Pick<Player, 'id' | 'name' | 'teamId' | 'joinedAt' | 'presence'>>,
+  answers: ReadonlyArray<
+    Pick<import('@/db').Answer, 'gameQuestionId' | 'teamId' | 'playerId' | 'choice' | 'text'>
+  >,
+  questionIdOf: ReadonlyMap<string, string>
+): Extract<GameEvent, { type: 'TEAM_ANSWERS' }> {
+  const nameOf = (id: string) => players.find(p => p.id === id)?.name.slice(0, MAX_NAME_LENGTH)
+  const captainId = mode === 'captain' ? teamCaptain(team, players) : null
+  return {
+    type: 'TEAM_ANSWERS',
+    mode,
+    captainId,
+    captainName: captainId ? (nameOf(captainId) ?? null) : null,
+    answers: answers
+      .flatMap(a => {
+        const questionId = questionIdOf.get(a.gameQuestionId)
+        return a.teamId === team.id && questionId
+          ? [
+              {
+                questionId,
+                playerId: a.playerId,
+                playerName: nameOf(a.playerId) ?? '',
+                choice: a.choice,
+                text: a.text,
+              },
+            ]
+          : []
+      })
+      .slice(0, MAX_TEAM_ANSWERS),
   }
 }
 

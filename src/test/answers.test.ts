@@ -8,6 +8,7 @@ import {
   markTypedAnswers,
   normaliseAnswerText,
   recordAnswer,
+  teamCaptain,
   textMatches,
 } from '@/db/answers'
 import { ruleQuestion } from '@/db/rulings'
@@ -371,5 +372,62 @@ describe('typed answers', () => {
         data: { name: 'Alice', ruling: 'correct' },
       }),
     ])
+  })
+})
+
+describe('teamCaptain', () => {
+  const members = [
+    player({ id: 'p1', teamId: 't1', joinedAt: 5 }),
+    player({ id: 'p2', teamId: 't1', joinedAt: 2 }),
+    player({ id: 'p3', teamId: 't2', joinedAt: 1 }),
+  ]
+
+  it("is the host's pick while on the team, else the member who joined first", () => {
+    expect(teamCaptain(team(), members)).toBe('p2')
+    expect(teamCaptain(team({ captainId: 'p1' }), members)).toBe('p1')
+    expect(teamCaptain(team({ captainId: 'p3' }), members)).toBe('p2')
+  })
+
+  it('skips members who left or were removed, and is null for an empty team', () => {
+    const gone = members.map(p => (p.id === 'p2' ? { ...p, presence: 'left' as const } : p))
+    expect(teamCaptain(team({ captainId: 'p2' }), gone)).toBe('p1')
+    expect(teamCaptain(team({ id: 't9' }), members)).toBeNull()
+  })
+})
+
+describe('recordAnswer: team answering modes', () => {
+  async function teamGame(teamAnswering: Game['teamAnswering'], captainId?: string) {
+    await db.games.update('g1', { teamAnswering })
+    await db.teams.add(team({ captainId }))
+    await db.players.bulkUpdate([
+      { key: 'p1', changes: { teamId: 't1', joinedAt: 1 } },
+      { key: 'p2', changes: { teamId: 't1', joinedAt: 2 } },
+    ])
+  }
+
+  it('lets only the captain answer for the team', async () => {
+    await teamGame('captain')
+    expect(await recordAnswer('g1', 'gq1', 'p2', { choice: 1 }, 1)).toBe(false)
+    expect(await recordAnswer('g1', 'gq1', 'p1', { choice: 1 }, 2)).toBe(true)
+    expect(await answers()).toEqual([expect.objectContaining({ playerId: 'p1', choice: 1 })])
+  })
+
+  it("follows the host's choice of captain", async () => {
+    await teamGame('captain', 'p2')
+    expect(await recordAnswer('g1', 'gq1', 'p1', { choice: 1 }, 1)).toBe(false)
+    expect(await recordAnswer('g1', 'gq1', 'p2', { choice: 1 }, 2)).toBe(true)
+  })
+
+  it('holds the first reply: only the member who sent it may change it', async () => {
+    await teamGame('firstReply')
+    expect(await recordAnswer('g1', 'gq1', 'p2', { choice: 0 }, 1)).toBe(true)
+    expect(await recordAnswer('g1', 'gq1', 'p1', { choice: 1 }, 2)).toBe(false)
+    expect(await recordAnswer('g1', 'gq1', 'p2', { choice: 2 }, 3)).toBe(true)
+    expect(await answers()).toEqual([expect.objectContaining({ playerId: 'p2', choice: 2 })])
+  })
+
+  it('ignores the mode for players on no team', async () => {
+    await db.games.update('g1', { teamAnswering: 'captain' })
+    expect(await recordAnswer('g1', 'gq1', 'p1', { choice: 1 }, 1)).toBe(true)
   })
 })

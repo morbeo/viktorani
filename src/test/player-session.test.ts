@@ -37,6 +37,7 @@ const EMPTY: PlayerSession = {
   theme: null,
   roundAnswers: null,
   openQuestions: [],
+  teamAnswers: null,
 }
 
 function content(target: 'players' | 'screen'): QuestionContent {

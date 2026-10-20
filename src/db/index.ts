@@ -240,6 +240,13 @@ export interface Game {
    */
   answersClose: AnswersClose
   /**
+   * How a team's one answer is decided in a team game that takes answers on phones:
+   * `anyone` (any member can change it), `firstReply` (the first member to answer holds it;
+   * only they can change it) or `captain` (only the team's captain answers; see
+   * {@link Team.captainId}).
+   */
+  teamAnswering: TeamAnswering
+  /**
    * Keep score changes from players and screens until the host announces them: they see the
    * scores as of {@link Game.scoresAnnouncedAt} while the game runs.
    */
@@ -280,6 +287,12 @@ export interface Team {
   score: number
   /** Free-text notes for the host's own use (e.g. a running bonus, a house rule). */
   notes: string
+  /**
+   * The member who answers for the team when {@link Game.teamAnswering} is `captain`, as
+   * chosen by the host. Unset, or a player no longer on the team, means the member who
+   * joined first.
+   */
+  captainId?: string | null
 }
 
 /** A player connected to a {@link Game} session. */
@@ -428,6 +441,12 @@ export const ANSWERS_CLOSE = ['perQuestion', 'endOfRound'] as const
 
 /** See {@link ANSWERS_CLOSE}. */
 export type AnswersClose = (typeof ANSWERS_CLOSE)[number]
+
+/** How a team's answer is decided: see {@link Game.teamAnswering}. */
+export const TEAM_ANSWERING = ['anyone', 'firstReply', 'captain'] as const
+
+/** See {@link TEAM_ANSWERING}. */
+export type TeamAnswering = (typeof TEAM_ANSWERING)[number]
 
 /** How players answer a question in a game; see {@link Game.inputType}. */
 export const INPUT_TYPES = ['none', 'buzzer', 'choice', 'text'] as const
@@ -705,6 +724,7 @@ export interface Answer {
  * - 23: same stores; back-fills `Game.holdScores` (`false`) and `Game.scoresAnnouncedAt`
  *   (`null`) on existing games.
  * - 24: same stores; back-fills `Game.answersClose` (`perQuestion`) on existing games.
+ * - 25: same stores; back-fills `Game.teamAnswering` (`anyone`) on existing games.
  *
  * To change the schema, add a new `this.version(N + 1)` block below; keep existing blocks.
  */
@@ -968,6 +988,17 @@ export class ViktoraniDB extends Dexie {
           .toCollection()
           .modify((g: Partial<Game>) => {
             g.answersClose ??= 'perQuestion'
+          })
+      )
+
+    this.version(25)
+      .stores({})
+      .upgrade(tx =>
+        tx
+          .table('games')
+          .toCollection()
+          .modify((g: Partial<Game>) => {
+            g.teamAnswering ??= 'anyone'
           })
       )
   }

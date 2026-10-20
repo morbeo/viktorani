@@ -4,6 +4,7 @@ import { Button, HelpTip, Icon, Input } from '@/components/ui'
 import { JOIN_POLICY_HELP } from '@/components/gamemaster/join-policy-help'
 import type {
   AnswersClose,
+  TeamAnswering,
   BuzzDeduplication,
   InputType,
   RevealTiming,
@@ -63,6 +64,12 @@ const INPUT_OPTIONS: Array<{ value: InputType; label: string }> = [
 const CLOSE_OPTIONS: Array<{ value: AnswersClose; label: string }> = [
   { value: 'perQuestion', label: 'When I move on' },
   { value: 'endOfRound', label: 'At the end of the round' },
+]
+
+const TEAM_ANSWER_OPTIONS: Array<{ value: TeamAnswering; label: string }> = [
+  { value: 'anyone', label: 'Anyone can change it' },
+  { value: 'firstReply', label: 'First reply holds it' },
+  { value: 'captain', label: 'Captain only' },
 ]
 
 const REVEAL_OPTIONS: Array<{ value: RevealTiming; label: string }> = [
@@ -197,6 +204,20 @@ export function GameSettingsForm({
             value={value.answersClose}
             disabled={disabled}
             onChange={v => onChange({ answersClose: v })}
+          />
+        </Row>
+      )}
+      {(value.inputType === 'choice' || value.inputType === 'text') && (
+        <Row
+          label="Team answers"
+          help="How a team's one answer is decided. Anyone can change it: any member can answer or change the team's answer. First reply holds it: the first member to answer holds the team's answer, and only they can change it. Captain only: only the team's captain answers; you pick captains in the team list, and otherwise it's the member who joined first."
+        >
+          <Segmented
+            label="Team answers"
+            options={TEAM_ANSWER_OPTIONS}
+            value={value.teamAnswering}
+            disabled={disabled}
+            onChange={v => onChange({ teamAnswering: v })}
           />
         </Row>
       )}
