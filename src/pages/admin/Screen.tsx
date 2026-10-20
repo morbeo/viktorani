@@ -8,7 +8,7 @@ import { loadGameLayouts } from '@/db/layouts'
 import { useGameTheme } from '@/hooks/useAppTheme'
 import { loadBuzzesForQuestion } from '@/hooks/useBuzzer'
 import { usePhaseOverride } from '@/hooks/usePhaseOverride'
-import { useScoreboard } from '@/hooks/useScoreboard'
+import { readShownScoreEntries } from '@/hooks/useScoreboard'
 import { autoPhase, effectivePhase } from '@/lib/layout-phase'
 import { formatTime } from '@/hooks/useTimer'
 import type { ScreenData } from '@/widgets/types'
@@ -74,7 +74,8 @@ function LocalScreen({
   revealed: boolean
   roundAnswers: RoundAnswers | null
 }) {
-  const { entries } = useScoreboard(game)
+  // Held scores stay at the last announcement, as on remote screens
+  const entries = useLiveQuery(() => readShownScoreEntries(game.id), [game.id])
   const layouts = useLiveQuery(() => loadGameLayouts(game.id), [game.id])
   // The same phase the GM's window works out, and the GM's override from it
   const buzzes = useLiveQuery(
@@ -94,7 +95,7 @@ function LocalScreen({
         heading,
         content,
         message: null,
-        rows: game.scoringEnabled ? entries : [],
+        rows: game.scoringEnabled ? (entries ?? []) : [],
         logEntries: [],
         timers: <ScreenTimers gameId={game.id} />,
       }}
@@ -104,6 +105,7 @@ function LocalScreen({
 
 /**
  * The projector view of a game, opened by the GM in a second window on the host machine.
+ * Like a remote screen, it shows held scores as of the last announcement.
  * Reads everything from the local database, so it follows navigation, the `screen`
  * visibility toggles, timers, scores, stored layouts and the layout phase live without a
  * transport connection.

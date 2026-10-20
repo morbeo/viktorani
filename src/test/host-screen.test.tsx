@@ -189,6 +189,55 @@ describe('Screen', () => {
     expect(screen.getByText('7')).toBeInTheDocument()
   })
 
+  it('keeps held scores at the last announcement', async () => {
+    await db.games.update('g1', { holdScores: true, scoresAnnouncedAt: 100 })
+    await db.players.add({
+      id: 'p1',
+      gameId: 'g1',
+      name: 'Alice',
+      teamId: null,
+      score: 7,
+      presence: 'connected',
+      disconnectedAt: null,
+      deviceId: 'd1',
+      joinedAt: 0,
+      notes: '',
+    })
+    await db.scoreEvents.bulkAdd([
+      {
+        id: 'e1',
+        gameId: 'g1',
+        targetId: 'p1',
+        kind: 'player',
+        name: 'Alice',
+        from: 0,
+        to: 4,
+        reason: 'step',
+        questionId: null,
+        timestamp: 50,
+      },
+      {
+        id: 'e2',
+        gameId: 'g1',
+        targetId: 'p1',
+        kind: 'player',
+        name: 'Alice',
+        from: 4,
+        to: 7,
+        reason: 'correct',
+        questionId: 'q1',
+        timestamp: 200,
+      },
+    ])
+    renderScreen()
+    expect(await screen.findByText('Alice')).toBeInTheDocument()
+    expect(await screen.findByText('4')).toBeInTheDocument()
+    expect(screen.queryByText('7')).not.toBeInTheDocument()
+
+    await act(() => db.games.update('g1', { scoresAnnouncedAt: 300 }))
+    expect(await screen.findByText('7')).toBeInTheDocument()
+  })
+
   it('reports an unknown game', async () => {
     renderScreen('missing')
     expect(await screen.findByRole('alert')).toHaveTextContent('Game not found')
