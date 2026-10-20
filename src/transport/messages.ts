@@ -80,6 +80,8 @@ export const MAX_ROUND_ANSWERS = 200
 export const MAX_OPEN_QUESTIONS = 50
 /** Most answers a `TEAM_ANSWERS` lists: the open earlier questions and the one shown. */
 export const MAX_TEAM_ANSWERS = MAX_OPEN_QUESTIONS + 1
+/** Most vote counts a `TEAM_ANSWERS` answer carries: the leading ones. */
+export const MAX_TEAM_VOTES = 10
 
 const id = z.string().max(MAX_ID_LENGTH)
 const name = z.string().max(MAX_NAME_LENGTH)
@@ -316,6 +318,20 @@ export const GameEventSchemas = {
             .max(MAX_OPTIONS - 1)
             .nullable(),
           text: z.string().max(MAX_ANSWER_TEXT_LENGTH).nullable(),
+          votes: z
+            .array(
+              z.strictObject({
+                choice: z
+                  .number()
+                  .int()
+                  .min(0)
+                  .max(MAX_OPTIONS - 1)
+                  .nullable(),
+                text: z.string().max(MAX_ANSWER_TEXT_LENGTH).nullable(),
+                count: z.number().int().min(1),
+              })
+            )
+            .max(MAX_TEAM_VOTES),
         })
       )
       .max(MAX_TEAM_ANSWERS),

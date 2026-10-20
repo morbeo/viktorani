@@ -1,5 +1,5 @@
 import { db, MAX_ANSWER_TEXT_LENGTH } from '@/db'
-import type { Answer, Game, GameQuestion, Player, Question, Team } from '@/db'
+import type { Answer, Game, GameQuestion, Player, Question, Team, Vote } from '@/db'
 import { logEvent } from '@/db/game-log'
 import { questionPoints } from '@/db/rulings'
 import { broadcastScores, writeScore } from '@/hooks/useScoreboard'
@@ -59,6 +59,46 @@ export function textMatches(text: string, answer: string): boolean {
   return a !== '' && normaliseAnswerText(text).toLocaleLowerCase() === a.toLocaleLowerCase()
 }
 
+/** One answer's share of a team's votes, as {@link tallyVotes} counts them. */
+export interface VoteTally {
+  choice: number | null
+  /** As the first member to vote for it typed it. */
+  text: string | null
+  count: number
+  /** The first member to vote for it, and when. */
+  playerId: string
+  at: number
+}
+
+/** How votes and answers are grouped: by option, or by text ignoring case and spacing. */
+function answerKey(a: Pick<Vote, 'choice' | 'text'>): string {
+  return a.choice !== null
+    ? `c${a.choice}`
+    : `t${normaliseAnswerText(a.text ?? '').toLocaleLowerCase()}`
+}
+
+/** Whether two answers count as the same vote. */
+function sameAnswer(a: Pick<Vote, 'choice' | 'text'>, b: Pick<Vote, 'choice' | 'text'>): boolean {
+  return answerKey(a) === answerKey(b)
+}
+
+/**
+ * Count a team's votes by answer, most votes first; a tie goes to the answer voted for
+ * first. Typed answers count as the same when they match ignoring case and spacing.
+ * Pure function.
+ */
+export function tallyVotes(votes: ReadonlyArray<Vote>): VoteTally[] {
+  const tallies = new Map<string, VoteTally>()
+  for (const v of [...votes].sort((a, b) => a.at - b.at)) {
+    const key = answerKey(v)
+    const tally = tallies.get(key)
+    if (tally) tally.count++
+    else
+      tallies.set(key, { choice: v.choice, text: v.text, count: 1, playerId: v.playerId, at: v.at })
+  }
+  return [...tallies.values()].sort((a, b) => b.count - a.count || a.at - b.at)
+}
+
 /** The tables a change to an answer's ruling writes, for the transactions that make one. */
 const RULING_TABLES = [
   db.answers,
@@ -107,8 +147,11 @@ async function setRuling(
  * team's: it replaces the one any member sent before, and goes back to unmarked (taking back
  * any points it had scored). How the team decides it follows {@link Game.teamAnswering}: with
  * `firstReply` only the member who answered first may change it (anyone, once they are off
- * the team), and with `captain` only the
- * team's captain ({@link teamCaptain}) answers. Resolves to whether it was accepted.
+ * the team), with `captain` only the
+ * team's captain ({@link teamCaptain}) answers, and with `vote` the answer is a vote: the
+ * team's answer becomes the one with the most votes from members still on the team
+ * ({@link tallyVotes}), and goes back to unmarked only when that changes. Resolves to whether
+ * it was accepted.
  */
 export async function recordAnswer(
   gameId: string,
@@ -160,6 +203,43 @@ export async function recordAnswer(
     ) {
       const holder = await db.players.get(existing.playerId)
       if (holder && isActiveMember(holder, teamId)) return false
+    }
+    if (teamId && game.teamAnswering === 'vote') {
+      const members = await db.players.where('teamId').equals(teamId).toArray()
+      const counts = (v: Vote) =>
+        v.playerId !== playerId &&
+        members.some(m => m.id === v.playerId && isActiveMember(m, teamId))
+      const votes = [
+        ...(existing?.votes ?? []).filter(counts),
+        { playerId, choice, text, at: receivedAt },
+      ]
+      const [top] = tallyVotes(votes)
+      if (!existing) {
+        await db.answers.add({
+          id: crypto.randomUUID(),
+          gameId,
+          gameQuestionId,
+          playerId: top.playerId,
+          teamId,
+          choice: top.choice,
+          text: top.text,
+          receivedAt,
+          ruling: 'pending',
+          votes,
+        })
+      } else if (sameAnswer(existing, top)) {
+        await db.answers.update(existing.id, { votes })
+      } else {
+        await setRuling(game, existing, 'pending', gq, await questionPoints(gq.questionId))
+        await db.answers.update(existing.id, {
+          playerId: top.playerId,
+          choice: top.choice,
+          text: top.text,
+          receivedAt,
+          votes,
+        })
+      }
+      return true
     }
     if (existing) {
       await setRuling(game, existing, 'pending', gq, await questionPoints(gq.questionId))

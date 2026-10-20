@@ -8,6 +8,7 @@ import {
   markTypedAnswers,
   normaliseAnswerText,
   recordAnswer,
+  tallyVotes,
   teamCaptain,
   textMatches,
 } from '@/db/answers'
@@ -437,5 +438,82 @@ describe('recordAnswer: team answering modes', () => {
   it('ignores the mode for players on no team', async () => {
     await db.games.update('g1', { teamAnswering: 'captain' })
     expect(await recordAnswer('g1', 'gq1', 'p1', { choice: 1 }, 1)).toBe(true)
+  })
+})
+
+describe('tallyVotes', () => {
+  const vote = (
+    playerId: string,
+    at: number,
+    choice: number | null,
+    text: string | null = null
+  ) => ({
+    playerId,
+    at,
+    choice,
+    text,
+  })
+
+  it('puts the most votes first, and a tie to the answer voted for first', () => {
+    expect(tallyVotes([vote('p1', 3, 2), vote('p2', 1, 0), vote('p3', 2, 2)])).toEqual([
+      { choice: 2, text: null, count: 2, playerId: 'p3', at: 2 },
+      { choice: 0, text: null, count: 1, playerId: 'p2', at: 1 },
+    ])
+    expect(tallyVotes([vote('p1', 2, 1), vote('p2', 1, 3)]).map(t => t.choice)).toEqual([3, 1])
+  })
+
+  it('counts typed answers as the same ignoring case and spacing', () => {
+    const [top] = tallyVotes([vote('p1', 1, null, 'New  York'), vote('p2', 2, null, 'new york')])
+    expect(top).toMatchObject({ text: 'New  York', count: 2 })
+  })
+})
+
+describe('recordAnswer: team vote', () => {
+  beforeEach(async () => {
+    await db.games.update('g1', { teamAnswering: 'vote' })
+    await db.teams.add(team())
+    await db.players.bulkUpdate([
+      { key: 'p1', changes: { teamId: 't1' } },
+      { key: 'p2', changes: { teamId: 't1' } },
+    ])
+    await db.players.add(player({ id: 'p3', name: 'Cy', deviceId: 'dev-c', teamId: 't1' }))
+  })
+
+  it("makes the most voted answer the team's, keeping each member's latest vote", async () => {
+    expect(await recordAnswer('g1', 'gq1', 'p1', { choice: 0 }, 1)).toBe(true)
+    await recordAnswer('g1', 'gq1', 'p2', { choice: 1 }, 2)
+    expect(await answers()).toEqual([expect.objectContaining({ playerId: 'p1', choice: 0 })])
+    await recordAnswer('g1', 'gq1', 'p3', { choice: 1 }, 3)
+    expect(await answers()).toEqual([expect.objectContaining({ playerId: 'p2', choice: 1 })])
+    // Cy changes their vote, so the tie goes back to the answer voted for first
+    await recordAnswer('g1', 'gq1', 'p3', { choice: 0 }, 4)
+    const [answer] = await answers()
+    expect(answer).toMatchObject({ choice: 0 })
+    expect(answer.votes?.map(v => [v.playerId, v.choice])).toEqual([
+      ['p1', 0],
+      ['p2', 1],
+      ['p3', 0],
+    ])
+  })
+
+  it('keeps the mark while the leading answer stays, and clears it when it changes', async () => {
+    await db.games.update('g1', { inputType: 'text' })
+    await recordAnswer('g1', 'gq1', 'p1', { text: 'Paris' }, 1)
+    await markTypedAnswers(GAME, [{ id: (await answers())[0].id, receivedAt: 1 }], 'correct')
+    await recordAnswer('g1', 'gq1', 'p2', { text: 'paris' }, 2)
+    expect(await answers()).toEqual([expect.objectContaining({ text: 'Paris', ruling: 'correct' })])
+    await recordAnswer('g1', 'gq1', 'p2', { text: 'Rome' }, 3)
+    await recordAnswer('g1', 'gq1', 'p3', { text: 'Rome' }, 4)
+    expect(await answers()).toEqual([expect.objectContaining({ text: 'Rome', ruling: 'pending' })])
+  })
+
+  it('drops the votes of members off the team', async () => {
+    await recordAnswer('g1', 'gq1', 'p1', { choice: 0 }, 1)
+    await recordAnswer('g1', 'gq1', 'p2', { choice: 0 }, 2)
+    await db.players.update('p1', { presence: 'kicked' })
+    await recordAnswer('g1', 'gq1', 'p3', { choice: 1 }, 3)
+    const [answer] = await answers()
+    expect(answer.votes?.map(v => v.playerId)).toEqual(['p2', 'p3'])
+    expect(answer.choice).toBe(0)
   })
 })

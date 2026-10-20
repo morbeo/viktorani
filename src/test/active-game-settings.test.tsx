@@ -761,7 +761,7 @@ describe('ActiveGame: choice answers', () => {
     await act(() => answerHandlerRef.current!('p1', 'q1', { choice: 1 }, 1))
     await waitFor(() =>
       expect(onTeamAnswers.mock.calls.at(-1)?.[1].answers).toEqual([
-        { questionId: 'q1', playerId: 'p1', playerName: 'Alice', choice: 1, text: null },
+        { questionId: 'q1', playerId: 'p1', playerName: 'Alice', choice: 1, text: null, votes: [] },
       ])
     )
   })
