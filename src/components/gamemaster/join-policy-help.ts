@@ -21,5 +21,5 @@ export const JOIN_POLICY_HELP: Record<JoinSetting & keyof Game, string> = {
   requireApproval:
     'New players wait in Join requests until you approve them. Players rejoining as themselves get straight back in.',
   allowSpectators:
-    "People can follow the game on their phone without playing: the join page offers Just watch, which shows what the screen shows. They don't need your approval and can't answer. Off: anyone watching is disconnected.",
+    "People can follow the game on their phone without playing: the join page offers Just watch, which shows what the screen shows. Anyone with the room code can watch, players included, so keep anything you don't want them to see off the screen. Watchers don't need your approval, can't answer and don't get your messages. Off: anyone watching is disconnected.",
 }

@@ -136,8 +136,10 @@ The first step of the **New game** wizard holds the game settings. They start fr
 | Record false starts              | Keep buzzes that arrive while the buzzer is locked                                  |
 | Buzz display                     | `First per player` or `All attempts`                                                |
 
-Spectators see on their phone what the screen shows. They get in without your approval and can't
-answer; **Screens** shows how many are watching. Turning the setting off sends them away.
+Spectators see on their phone what the screen shows. Anyone with the room code can watch, players
+included, so the screen's visibility settings decide what they see. They get in without your
+approval, can't answer and don't get your messages; **Screens** shows how many are watching.
+Turning the setting off sends them away.
 
 During the game, **Game settings** in the header opens a drawer to change the joining and buzzer
 settings live. Visibility is changed on the question panel. A preset picked there only

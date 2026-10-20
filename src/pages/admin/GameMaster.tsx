@@ -254,9 +254,15 @@ export default function GameMaster() {
     setPendingScreens(pendingScreensRef.current)
   }, [])
 
+  /** Approved screens, leaving out spectators (who share `screensRef` to get screen broadcasts). */
+  const realScreens = useCallback(
+    () => [...screensRef.current].filter(c => !spectatorsRef.current.has(c)),
+    []
+  )
+
   const listScreens = useCallback(() => {
-    setConnectedScreens([...screensRef.current].filter(c => !spectatorsRef.current.has(c)))
-  }, [])
+    setConnectedScreens(realScreens())
+  }, [realScreens])
 
   const addConnectedScreen = useCallback(
     (connId: string) => {
@@ -898,12 +904,8 @@ export default function GameMaster() {
 
   const handleSendMessage = useCallback(
     (target: MessageTarget, text: string | null) => {
-      const recipients = messageRecipients(
-        target,
-        connectionsRef.current,
-        screensRef.current,
-        players
-      )
+      // Host messages go to players and real screens, never to spectators
+      const recipients = messageRecipients(target, connectionsRef.current, realScreens(), players)
       for (const connId of recipients) transportManager.sendTo(connId, { type: 'MESSAGE', text })
       const g = gameRef.current
       if (g && text) {
@@ -913,7 +915,7 @@ export default function GameMaster() {
       }
       return recipients.length
     },
-    [players, teams]
+    [players, teams, realScreens]
   )
 
   // Kick player — mark as kicked in DB + state, broadcast updated game state

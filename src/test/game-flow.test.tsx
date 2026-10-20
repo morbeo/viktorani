@@ -334,8 +334,21 @@ describe('game flow', () => {
     await new Promise(r => setTimeout(r, 200))
     expect(received.map(e => e.type)).not.toContain('JOIN_ACCEPTED')
 
-    // Turning spectators off sends them away
+    // Host messages skip spectators
     const user = userEvent.setup()
+    const side = host.view.getByRole('tablist', { name: 'Side panel' })
+    const messagesTab = Array.from(side.querySelectorAll('[role="tab"]')).find(
+      t => t.textContent === 'Messages'
+    )
+    await user.click(messagesTab as HTMLElement)
+    const panel = within(host.view.getByRole('tabpanel', { name: 'Messages' }))
+    await user.type(panel.getByLabelText('Message'), 'Break time')
+    await user.click(panel.getByRole('button', { name: 'Send' }))
+    await panel.findByRole('status')
+    await new Promise(r => setTimeout(r, 200))
+    expect(received.map(e => e.type)).not.toContain('MESSAGE')
+
+    // Turning spectators off sends them away
     await user.click(host.view.getAllByRole('button', { name: 'Game settings' })[0])
     await user.click(await host.view.findByRole('switch', { name: 'Allow spectators' }))
     await host.waitFor(() => expect(host.view.queryByText('1 person watching')).toBeNull())
