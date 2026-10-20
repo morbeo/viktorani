@@ -279,6 +279,30 @@ export function buildScoreEntries(
 }
 
 /**
+ * The scoreboard rows players and screens see: with {@link Game.holdScores}, the scores as
+ * of the host's last announcement until the game ends, and ties broken only by the correct
+ * answers announced so far.
+ */
+export async function readShownScoreEntries(gameId: string): Promise<ScoreEntry[]> {
+  const [game, players, teams, events] = await Promise.all([
+    db.games.get(gameId),
+    db.players.where('gameId').equals(gameId).toArray(),
+    db.teams.where('gameId').equals(gameId).toArray(),
+    db.scoreEvents.where('gameId').equals(gameId).toArray(),
+  ])
+  if (!game) return []
+  const rank = { rankTies: game.rankTies, correct: correctCounts(shownScoreEvents(game, events)) }
+  if (!holdsScores(game)) return buildScoreEntries(players, teams, rank)
+  const live = Object.fromEntries([...players, ...teams].map(r => [r.id, r.score]))
+  const shown = scoresAsOf(live, events, game.scoresAnnouncedAt)
+  return buildScoreEntries(
+    players.map(p => ({ ...p, score: shown[p.id] })),
+    teams.map(t => ({ ...t, score: shown[t.id] })),
+    rank
+  )
+}
+
+/**
  * Manages scoreboard state for the GM view.
  *
  * @remarks

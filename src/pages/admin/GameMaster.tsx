@@ -30,11 +30,8 @@ import { useGameLifecycle } from '@/hooks/useGameLifecycle'
 import { usePhaseOverride } from '@/hooks/usePhaseOverride'
 import {
   adjustScore,
-  buildScoreEntries,
-  correctCounts,
-  holdsScores,
+  readShownScoreEntries,
   readShownScores,
-  scoresAsOf,
   shownScoreEvents,
 } from '@/hooks/useScoreboard'
 import { buildLogRows, toPublicLogEntries } from '@/lib/game-log-rows'
@@ -469,26 +466,7 @@ export default function GameMaster() {
   // Names and scores for approved screens, sent whenever they change. Empty when scoring
   // is off, so the screen hides its scoreboard.
   // Held scores stay at the last announcement while the game runs.
-  const scoreEntries = useLiveQuery(async () => {
-    if (!id) return []
-    const [g, ps, ts] = await Promise.all([
-      db.games.get(id),
-      db.players.where('gameId').equals(id).toArray(),
-      db.teams.where('gameId').equals(id).toArray(),
-    ])
-    if (!g) return []
-    const events = await db.scoreEvents.where('gameId').equals(id).toArray()
-    // Ties are broken by the correct answers players and screens may see so far
-    const rank = { rankTies: g.rankTies, correct: correctCounts(shownScoreEvents(g, events)) }
-    if (!holdsScores(g)) return buildScoreEntries(ps, ts, rank)
-    const live = Object.fromEntries([...ps, ...ts].map(r => [r.id, r.score]))
-    const shown = scoresAsOf(live, events, g.scoresAnnouncedAt)
-    return buildScoreEntries(
-      ps.map(p => ({ ...p, score: shown[p.id] })),
-      ts.map(t => ({ ...t, score: shown[t.id] })),
-      rank
-    )
-  }, [id])
+  const scoreEntries = useLiveQuery(() => (id ? readShownScoreEntries(id) : []), [id])
   const scoreboard =
     game?.scoringEnabled && scoreEntries
       ? JSON.stringify(
