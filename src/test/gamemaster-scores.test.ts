@@ -65,6 +65,7 @@ function makeGame(overrides: Partial<Game> = {}): Game {
     autoAdvanceOnTimerExpiry: false,
     autoAdvanceDelaySeconds: 5,
     revealTiming: 'manual',
+    answersClose: 'perQuestion',
     holdScores: false,
     scoresAnnouncedAt: null,
     autoStartTimerOnQuestionShow: false,

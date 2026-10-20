@@ -234,6 +234,12 @@ export interface Game {
    */
   revealTiming: RevealTiming
   /**
+   * When players' answers close in a `choice` or `text` game: `perQuestion` when the host
+   * moves on, `endOfRound` once the host closes the round's answers or leaves the round, so
+   * players can still answer the round's earlier questions.
+   */
+  answersClose: AnswersClose
+  /**
    * Keep score changes from players and screens until the host announces them: they see the
    * scores as of {@link Game.scoresAnnouncedAt} while the game runs.
    */
@@ -416,6 +422,12 @@ export const REVEAL_TIMINGS = ['manual', 'perQuestion', 'endOfRound'] as const
 
 /** See {@link REVEAL_TIMINGS}. */
 export type RevealTiming = (typeof REVEAL_TIMINGS)[number]
+
+/** When players' answers close: see {@link Game.answersClose}. */
+export const ANSWERS_CLOSE = ['perQuestion', 'endOfRound'] as const
+
+/** See {@link ANSWERS_CLOSE}. */
+export type AnswersClose = (typeof ANSWERS_CLOSE)[number]
 
 /** How players answer a question in a game; see {@link Game.inputType}. */
 export const INPUT_TYPES = ['none', 'buzzer', 'choice', 'text'] as const
@@ -692,6 +704,7 @@ export interface Answer {
  * - 22: same stores; back-fills `Answer.text` (`null`) for typed answers in `text` games.
  * - 23: same stores; back-fills `Game.holdScores` (`false`) and `Game.scoresAnnouncedAt`
  *   (`null`) on existing games.
+ * - 24: same stores; back-fills `Game.answersClose` (`perQuestion`) on existing games.
  *
  * To change the schema, add a new `this.version(N + 1)` block below; keep existing blocks.
  */
@@ -944,6 +957,17 @@ export class ViktoraniDB extends Dexie {
           .modify((g: Partial<Game>) => {
             g.holdScores ??= false
             g.scoresAnnouncedAt ??= null
+          })
+      )
+
+    this.version(24)
+      .stores({})
+      .upgrade(tx =>
+        tx
+          .table('games')
+          .toCollection()
+          .modify((g: Partial<Game>) => {
+            g.answersClose ??= 'perQuestion'
           })
       )
   }

@@ -33,7 +33,11 @@ import { GameLogPanel } from '@/components/gamemaster/GameLogPanel'
 import type { MessagePanelProps } from '@/components/gamemaster/MessagePanel'
 import { Icon } from '@/components/ui'
 import { db } from '@/db'
-import { buildQuestionContent, buildRoundAnswers } from '@/pages/admin/gamemaster-utils'
+import {
+  buildOpenQuestions,
+  buildQuestionContent,
+  buildRoundAnswers,
+} from '@/pages/admin/gamemaster-utils'
 import { useNavigation } from '@/hooks/useNavigation'
 import { useKeyNav } from '@/hooks/useKeyNav'
 import { announceScores } from '@/hooks/useScoreboard'
@@ -49,7 +53,7 @@ import { PhaseControl } from '@/components/gamemaster/PhaseControl'
 import { autoPhase, effectivePhase } from '@/lib/layout-phase'
 import { updateQuestionStatus } from '@/db/games'
 import { revealQuestion, ruleQuestion } from '@/db/rulings'
-import { markAnswers, markTypedAnswers, recordAnswer } from '@/db/answers'
+import { keepsAnswersOpen, markAnswers, markTypedAnswers, recordAnswer } from '@/db/answers'
 import type { AnswerInput, SeenAnswer } from '@/db/answers'
 import type { QuestionRuling, RulingAward } from '@/db/rulings'
 import { layoutCommands, phaseCommands } from '@/components/gamemaster/layout-commands'
@@ -83,6 +87,11 @@ export interface ActiveGameProps {
    * whenever they change, with `review: null` once it closes.
    */
   onRoundAnswers?: (players: RoundAnswersEvent, screen: RoundAnswersEvent) => void
+  /**
+   * Receives the round's earlier questions players can still answer whenever they change,
+   * in a game that keeps answers open until the end of the round.
+   */
+  onOpenQuestions?: (event: OpenQuestionsEvent) => void
   screens: ScreensPanelProps
   messages: MessagePanelProps
   /** Stored layouts for the play column; the built-in default is used when none fits. */
@@ -104,6 +113,7 @@ export type AnswerHandler = (
 ) => Promise<void>
 export type QuestionContent = Extract<GameEvent, { type: 'QUESTION_CONTENT' }>
 export type RoundAnswersEvent = Extract<GameEvent, { type: 'ROUND_ANSWERS' }>
+export type OpenQuestionsEvent = Extract<GameEvent, { type: 'OPEN_QUESTIONS' }>
 
 type SideTab = 'people' | 'messages' | 'scoreboard' | 'log'
 type TabId = 'play' | SideTab
@@ -183,6 +193,7 @@ export function ActiveGame({
   onQuestionContent,
   onScreenContent,
   onRoundAnswers,
+  onOpenQuestions,
   screens,
   messages,
   layouts = [],
@@ -210,10 +221,16 @@ export function ActiveGame({
   const [review, setReview] = useRoundReview(game.id)
   const [continueAfterReview, setContinueAfterReview] = useState(false)
   const reviewedRoundsRef = useRef(new Set<string>())
-  const leaveRound = useCallback(() => {
+  const leaveRound = useCallback(async () => {
     const current = pos ? seq[pos.flatIndex] : undefined
     const next = pos ? seq[pos.flatIndex + 1] : undefined
     const lastOfRound = current && next && next.roundId !== current.roundId
+    // Answers kept open until the end of the round close before its answers are revealed
+    if (pos && current && lastOfRound && keepsAnswersOpen(game)) {
+      for (const e of seq.slice(0, pos.flatIndex + 1)) {
+        if (e.roundId === current.roundId) await markAnswers(game, e.gameQuestionId, 'skipped')
+      }
+    }
     if (
       game.revealTiming === 'endOfRound' &&
       current &&
@@ -224,8 +241,8 @@ export function ActiveGame({
       setContinueAfterReview(true)
       return
     }
-    void goNext()
-  }, [game.revealTiming, pos, seq, goNext, setReview])
+    await goNext()
+  }, [game, pos, seq, goNext, setReview])
   const closeReview = useCallback(() => {
     if (review) reviewedRoundsRef.current.add(review.roundId)
     setReview(null)
@@ -238,14 +255,17 @@ export function ActiveGame({
 
   // Confirm before leaving a question with no ruling, when the setting is on
   const [confirmingNav, setConfirmingNav] = useState(false)
+  // A question left open on purpose, until the end of its round, needs no confirmation
   const confirmedGoNext = useCallback(() => {
     const current = pos ? seq[pos.flatIndex] : undefined
-    if (game.confirmUnruledNavigation && current?.questionStatus === 'pending') {
+    const next = pos ? seq[pos.flatIndex + 1] : undefined
+    const keptOpen = keepsAnswersOpen(game) && next?.roundId === current?.roundId
+    if (game.confirmUnruledNavigation && current?.questionStatus === 'pending' && !keptOpen) {
       setConfirmingNav(true)
       return
     }
-    leaveRound()
-  }, [game.confirmUnruledNavigation, pos, seq, leaveRound])
+    void leaveRound()
+  }, [game, pos, seq, leaveRound])
 
   // Current question ID derived from nav position
   const currentQuestionId = pos ? (seq[pos.flatIndex]?.questionId ?? null) : null
@@ -268,10 +288,12 @@ export function ActiveGame({
   // changes what players may see, or reveals the answer
   const playerVisibility = game.visibility.players
   const revealed = gameQuestion?.revealed ?? false
-  // Players pick an option or type an answer until the question is closed: its answers
-  // marked, a ruling, or moving on
+  // Players pick an option or type an answer until the question is closed (its answers
+  // marked, a ruling, or moving on) or its answer revealed
   const accepts =
-    (game.inputType === 'choice' || game.inputType === 'text') && gameQuestion?.status === 'pending'
+    (game.inputType === 'choice' || game.inputType === 'text') &&
+    gameQuestion?.status === 'pending' &&
+    !gameQuestion.revealed
       ? game.inputType
       : null
   useEffect(() => {
@@ -281,6 +303,57 @@ export function ActiveGame({
         : null
     )
   }, [question, playerVisibility, revealed, accepts, onQuestionContent])
+
+  // The current round's questions shown so far, oldest first: players may answer any of them
+  // still open in a game that keeps answers open until the end of the round, else only the
+  // question shown
+  const current = pos ? seq[pos.flatIndex] : undefined
+  const roundSoFar = useMemo(
+    () =>
+      pos && current
+        ? keepsAnswersOpen(game)
+          ? seq.slice(0, pos.flatIndex + 1).filter(e => e.roundId === current.roundId)
+          : [current]
+        : [],
+    [game, pos, seq, current]
+  )
+
+  // Send players the round's earlier questions still open to answers whenever they change
+  const roundStart = current ? seq.findIndex(e => e.roundId === current.roundId) : 0
+  const openEarlier = roundSoFar
+    .filter(e => e !== current && e.questionStatus === 'pending')
+    .map(e => `${e.gameQuestionId}:${e.questionId}:${e.flatIndex - roundStart + 1}`)
+    .join()
+  const openRows = useLiveQuery(async () => {
+    if (!openEarlier) return []
+    const items = openEarlier.split(',').map(item => {
+      const [gameQuestionId, questionId, number] = item.split(':')
+      return { gameQuestionId, questionId, number: Number(number) }
+    })
+    const [gqs, qs] = await Promise.all([
+      db.gameQuestions.bulkGet(items.map(i => i.gameQuestionId)),
+      db.questions.bulkGet(items.map(i => i.questionId)),
+    ])
+    // A question whose answer has been revealed takes no more answers
+    return items.flatMap((item, i) => {
+      const question = qs[i]
+      return question && !gqs[i]?.revealed ? [{ number: item.number, question }] : []
+    })
+  }, [openEarlier])
+  const answerKind =
+    game.inputType === 'choice' || game.inputType === 'text' ? game.inputType : null
+  const sentOpenRef = useRef(false)
+  useEffect(() => {
+    if (!onOpenQuestions || !openRows) return
+    // Nothing to clear on phones until a list has been sent
+    if (openRows.length === 0 && !sentOpenRef.current) return
+    sentOpenRef.current = openRows.length > 0
+    onOpenQuestions(
+      answerKind
+        ? buildOpenQuestions(openRows, playerVisibility, answerKind)
+        : { type: 'OPEN_QUESTIONS', questions: [] }
+    )
+  }, [openRows, playerVisibility, answerKind, onOpenQuestions])
 
   // Same for approved screens, with the screen's visibility
   const screenVisibility = game.visibility.screen
@@ -470,24 +543,26 @@ export function ActiveGame({
     }
   }, [buzzHandlerRef, handleIncomingBuzz])
 
-  // Hand the parent's transport listener a handler for answers to the question shown, in a
-  // game that takes them; cleared on unmount and when the question changes. `recordAnswer`
-  // checks the answer is the kind the game takes.
+  // Hand the parent's transport listener a handler for answers to the question shown (or,
+  // in a game that keeps answers open, any of the round's questions shown so far), in a game
+  // that takes them; cleared on unmount and when the question changes. `recordAnswer` checks
+  // the question is still open and the answer is the kind the game takes.
   useEffect(() => {
     if (!answerHandlerRef) return
-    const takesAnswers = game.inputType === 'choice' || game.inputType === 'text'
-    if (!takesAnswers || !currentGameQuestionId || !currentQuestionId) {
+    if (!answerKind || roundSoFar.length === 0) {
       answerHandlerRef.current = null
       return
     }
+    const open = new Map(roundSoFar.map(e => [e.questionId, e.gameQuestionId]))
     answerHandlerRef.current = async (playerId, questionId, input, receivedAt) => {
-      if (questionId !== currentQuestionId) return
-      await recordAnswer(game.id, currentGameQuestionId, playerId, input, receivedAt)
+      const gameQuestionId = open.get(questionId)
+      if (!gameQuestionId) return
+      await recordAnswer(game.id, gameQuestionId, playerId, input, receivedAt)
     }
     return () => {
       answerHandlerRef.current = null
     }
-  }, [answerHandlerRef, game.id, game.inputType, currentGameQuestionId, currentQuestionId])
+  }, [answerHandlerRef, game.id, answerKind, roundSoFar])
 
   // Space = toggle buzzer lock
   useEffect(() => {
@@ -644,7 +719,7 @@ export function ActiveGame({
         onClose={() => setConfirmingNav(false)}
         onConfirm={() => {
           setConfirmingNav(false)
-          leaveRound()
+          void leaveRound()
         }}
       />
 

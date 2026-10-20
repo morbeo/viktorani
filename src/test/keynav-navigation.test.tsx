@@ -108,7 +108,10 @@ vi.mock('@/db', async importOriginal => ({
 }))
 vi.mock('@/transport', () => ({ transportManager: mockTransportManager }))
 vi.mock('@/db/games', () => ({ updateQuestionStatus: vi.fn() }))
-vi.mock('@/db/answers', () => ({ markAnswers: vi.fn() }))
+vi.mock('@/db/answers', async orig => ({
+  ...(await orig<typeof import('@/db/answers')>()),
+  markAnswers: vi.fn(),
+}))
 
 describe('useNavigation', () => {
   const game: Game = {
@@ -145,6 +148,7 @@ describe('useNavigation', () => {
     autoAdvanceOnTimerExpiry: false,
     autoAdvanceDelaySeconds: 5,
     revealTiming: 'manual',
+    answersClose: 'perQuestion',
     holdScores: false,
     scoresAnnouncedAt: null,
     autoStartTimerOnQuestionShow: false,

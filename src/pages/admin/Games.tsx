@@ -402,6 +402,7 @@ function GameWizard({
         autoAdvanceOnTimerExpiry: state.autoAdvanceOnTimerExpiry,
         autoAdvanceDelaySeconds: state.autoAdvanceDelaySeconds,
         revealTiming: state.revealTiming,
+        answersClose: state.answersClose,
         holdScores: state.holdScores,
         scoresAnnouncedAt: null,
         autoStartTimerOnQuestionShow: state.autoStartTimerOnQuestionShow,

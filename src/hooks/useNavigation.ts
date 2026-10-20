@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
 import { updateQuestionStatus } from '@/db/games'
-import { markAnswers } from '@/db/answers'
+import { keepsAnswersOpen, markAnswers } from '@/db/answers'
 import { logEvent } from '@/db/game-log'
 import { transportManager } from '@/transport'
 import { buildNavSequence, getNavPosition, orderRounds, step } from '@/pages/admin/gamemaster-utils'
@@ -99,11 +99,22 @@ export function useNavigation(
 
       // Persist to DB
       // Moving on closes the question: players' choices are marked, and one nobody
-      // answered is skipped
+      // answered is skipped. A game that keeps answers open until the end of the round
+      // closes the round's questions shown so far when the host leaves the round instead.
       if (dir === 1) {
-        const id = seq[pos.flatIndex].gameQuestionId
-        await markAnswers(game, id, 'skipped')
-        await updateQuestionStatus(id, 'left')
+        const leaving = seq[pos.flatIndex]
+        const ids = !keepsAnswersOpen(game)
+          ? [leaving.gameQuestionId]
+          : seq[nextFlat].roundId === leaving.roundId
+            ? []
+            : seq
+                .slice(0, pos.flatIndex + 1)
+                .filter(e => e.roundId === leaving.roundId)
+                .map(e => e.gameQuestionId)
+        for (const id of ids) {
+          await markAnswers(game, id, 'skipped')
+          await updateQuestionStatus(id, 'left')
+        }
       }
       await db.games.update(game.id, {
         currentRoundIdx: nextPos.roundIdx,

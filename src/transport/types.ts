@@ -135,6 +135,27 @@ export type GameEvent =
    * on admit and on screen approval while a review is open.
    */
   | { type: 'ROUND_ANSWERS'; target: VisibilityTarget; review: RoundAnswers | null }
+  /**
+   * The round's earlier questions players can still answer, in a game that keeps answers
+   * open until the end of the round (see `Game.answersClose`); empty when there are none.
+   * Sent to players whenever the list changes and on admit. The question shown is not in it.
+   */
+  | { type: 'OPEN_QUESTIONS'; questions: OpenQuestion[] }
+
+/** An earlier question of the round players can still answer, as sent in `OPEN_QUESTIONS`. */
+export interface OpenQuestion {
+  questionId: string
+  /** Position of the question in its round, from 1. */
+  number: number
+  /** `null` when players may not see the question. */
+  title: string | null
+  /** `null` when players may not see the options, or the question has none. */
+  options: string[] | null
+  /** How many options a player may pick from, in a `choice` game; else `null`. */
+  choices: number | null
+  /** Whether players may type an answer, in a `text` game. */
+  acceptsText: boolean
+}
 
 /** How the end-of-round review shows the round's answers. */
 export type RoundReviewView = 'list' | 'table'

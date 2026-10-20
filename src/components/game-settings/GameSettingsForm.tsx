@@ -2,7 +2,13 @@ import { useState, type ReactNode } from 'react'
 import { Lock } from 'lucide-react'
 import { Button, HelpTip, Icon, Input } from '@/components/ui'
 import { JOIN_POLICY_HELP } from '@/components/gamemaster/join-policy-help'
-import type { BuzzDeduplication, InputType, RevealTiming, TargetVisibility } from '@/db'
+import type {
+  AnswersClose,
+  BuzzDeduplication,
+  InputType,
+  RevealTiming,
+  TargetVisibility,
+} from '@/db'
 import { useAppSettings } from '@/hooks/useAppSettings'
 import { MAX_PRESETS, MAX_TIMER_SECONDS } from '@/lib/app-settings'
 import {
@@ -52,6 +58,11 @@ const INPUT_OPTIONS: Array<{ value: InputType; label: string }> = [
   { value: 'buzzer', label: 'Buzzer' },
   { value: 'choice', label: 'Pick an option' },
   { value: 'text', label: 'Type an answer' },
+]
+
+const CLOSE_OPTIONS: Array<{ value: AnswersClose; label: string }> = [
+  { value: 'perQuestion', label: 'When I move on' },
+  { value: 'endOfRound', label: 'At the end of the round' },
 ]
 
 const REVEAL_OPTIONS: Array<{ value: RevealTiming; label: string }> = [
@@ -175,6 +186,20 @@ export function GameSettingsForm({
           onChange={v => onChange({ inputType: v })}
         />
       </Row>
+      {(value.inputType === 'choice' || value.inputType === 'text') && (
+        <Row
+          label="Close answers"
+          help="When players can no longer answer a question. When I move on: as soon as you show the next question. At the end of the round: players can still answer the round's earlier questions until you click Close answers on the round sheet or leave the round, like handing in an answer sheet."
+        >
+          <Segmented
+            label="Close answers"
+            options={CLOSE_OPTIONS}
+            value={value.answersClose}
+            disabled={disabled}
+            onChange={v => onChange({ answersClose: v })}
+          />
+        </Row>
+      )}
       {value.inputType === 'buzzer' && (
         <>
           <Toggle

@@ -1,11 +1,12 @@
 // @vitest-pool vmForks
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { db } from '@/db'
 import type { GameQuestion, Player, Question } from '@/db'
 import { ChoicePad, PlayerBuzzerWidget, TextPad } from '@/pages/player/player-widgets'
 import { PlayerQuestion } from '@/pages/player/PlayerQuestion'
+import { OpenQuestions } from '@/pages/player/OpenQuestions'
 import { HostAnswersPanel } from '@/components/host/HostAnswersPanel'
 import type { PlayerData } from '@/widgets/types'
 import type { QuestionContent } from '@/pages/player/player-session'
@@ -126,6 +127,61 @@ describe('TextPad', () => {
   it('disables the box while paused', () => {
     render(<TextPad {...pad({ enabled: false })} />)
     expect(screen.getByRole('textbox', { name: 'Answer' })).toBeDisabled()
+  })
+})
+
+describe('OpenQuestions', () => {
+  const choiceItem = {
+    questionId: 'q1',
+    number: 1,
+    title: 'Capital of France?',
+    options: ['Lyon', 'Paris'],
+    choices: 2,
+    acceptsText: false,
+  }
+  const textItem = {
+    questionId: 'q2',
+    number: 2,
+    title: null,
+    options: null,
+    choices: null,
+    acceptsText: true,
+  }
+
+  it('shows nothing when no earlier question is open', () => {
+    const { container } = render(
+      <OpenQuestions questions={[]} sent={{}} enabled onChoose={vi.fn()} onSendText={vi.fn()} />
+    )
+    expect(container).toBeEmptyDOMElement()
+  })
+
+  it("answers each of the round's open questions by its id", async () => {
+    const user = userEvent.setup()
+    const onChoose = vi.fn()
+    const onSendText = vi.fn()
+    render(
+      <OpenQuestions
+        questions={[choiceItem, textItem]}
+        sent={{ q1: { choice: 0 } }}
+        enabled
+        onChoose={onChoose}
+        onSendText={onSendText}
+      />
+    )
+    const first = screen.getByRole('region', { name: 'Question 1' })
+    expect(within(first).getByText('Capital of France?')).toBeInTheDocument()
+    expect(within(first).getByRole('button', { name: 'A Lyon' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
+    await user.click(within(first).getByRole('button', { name: 'B Paris' }))
+    expect(onChoose).toHaveBeenCalledWith('q1', 1)
+
+    // A hidden title falls back to the question's number
+    const second = screen.getByRole('region', { name: 'Question 2' })
+    expect(within(second).getAllByText('Question 2').length).toBeGreaterThan(0)
+    await user.type(within(second).getByRole('textbox', { name: 'Answer' }), 'Rome{Enter}')
+    expect(onSendText).toHaveBeenCalledWith('q2', 'Rome')
   })
 })
 

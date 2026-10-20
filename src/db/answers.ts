@@ -14,6 +14,16 @@ export function choiceOptions(question: Pick<Question, 'type' | 'options'>): str
   return []
 }
 
+/**
+ * Whether the game keeps players' answers open until the end of the round
+ * ({@link Game.answersClose}): only in a game that takes answers on phones.
+ */
+export function keepsAnswersOpen(game: Pick<Game, 'inputType' | 'answersClose'>): boolean {
+  return (
+    game.answersClose === 'endOfRound' && (game.inputType === 'choice' || game.inputType === 'text')
+  )
+}
+
 /** What a player sends: an option's index in a `choice` game, typed text in a `text` game. */
 export type AnswerInput = { choice: number } | { text: string }
 
@@ -69,7 +79,8 @@ async function setRuling(
 /**
  * Record a player's answer to the question shown (ADR 0023). The host calls this with the
  * player it mapped the connection to and its own clock, never values from the payload.
- * Accepted only for a question of the same game that is still open (`pending`), in a game
+ * Accepted only for a question of the same game that is still open (`pending`) and whose
+ * answer hasn't been revealed, in a game
  * that takes this kind of answer: a choice the question has an option for, or text of 1 to
  * {@link MAX_ANSWER_TEXT_LENGTH} characters once trimmed. In a team game the answer is the
  * team's: it replaces the one any member sent before, and goes back to unmarked (taking back
@@ -85,7 +96,7 @@ export async function recordAnswer(
   return db.transaction('rw', [db.games, ...RULING_TABLES], async () => {
     const game = await db.games.get(gameId)
     const gq = await db.gameQuestions.get(gameQuestionId)
-    if (!game || !gq || gq.gameId !== gameId || gq.status !== 'pending') return false
+    if (!game || !gq || gq.gameId !== gameId || gq.status !== 'pending' || gq.revealed) return false
     const question = await db.questions.get(gq.questionId)
     if (!question) return false
 

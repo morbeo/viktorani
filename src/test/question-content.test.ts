@@ -1,9 +1,14 @@
 // @vitest-pool vmForks
 import { describe, it, expect } from 'vitest'
-import { buildQuestionContent, buildRoundAnswers } from '@/pages/admin/gamemaster-utils'
+import {
+  buildOpenQuestions,
+  buildQuestionContent,
+  buildRoundAnswers,
+} from '@/pages/admin/gamemaster-utils'
 import {
   GameEventSchemas,
   MAX_MEDIA_LENGTH,
+  MAX_OPEN_QUESTIONS,
   MAX_OPTIONS,
   MAX_TEXT_LENGTH,
 } from '@/transport/messages'
@@ -177,5 +182,56 @@ describe('buildRoundAnswers', () => {
       ALL
     )
     expect(GameEventSchemas.ROUND_ANSWERS.safeParse(event).success).toBe(true)
+  })
+})
+
+describe('buildOpenQuestions', () => {
+  const OPEN_ENDED: Question = { ...QUESTION, id: 'q2', type: 'open_ended', options: [] }
+
+  it('numbers the questions and offers their options in a choice game', () => {
+    const event = buildOpenQuestions([{ number: 2, question: QUESTION }], ALL, 'choice')
+    expect(event).toEqual({
+      type: 'OPEN_QUESTIONS',
+      questions: [
+        {
+          questionId: 'q1',
+          number: 2,
+          title: 'Capital of France?',
+          options: ['Paris', 'Lyon', 'Nice'],
+          choices: 3,
+          acceptsText: false,
+        },
+      ],
+    })
+    expect(GameEventSchemas.OPEN_QUESTIONS.safeParse(event).success).toBe(true)
+  })
+
+  it('never sends the answer, and hides what players may not see', () => {
+    const event = buildOpenQuestions([{ number: 1, question: QUESTION }], NONE, 'choice')
+    expect(event.questions[0]).toMatchObject({ title: null, options: null, choices: 3 })
+    expect(JSON.stringify(event)).not.toContain('Think')
+  })
+
+  it('leaves out a question players cannot answer in a choice game', () => {
+    const rows = [
+      { number: 1, question: OPEN_ENDED },
+      { number: 2, question: QUESTION },
+    ]
+    expect(buildOpenQuestions(rows, ALL, 'choice').questions.map(q => q.number)).toEqual([2])
+    expect(buildOpenQuestions(rows, ALL, 'text').questions).toEqual([
+      expect.objectContaining({ number: 1, acceptsText: true, choices: null }),
+      expect.objectContaining({ number: 2, acceptsText: true, choices: null }),
+    ])
+  })
+
+  it('stays within the transport limits', () => {
+    const long = { ...QUESTION, title: 'x'.repeat(MAX_TEXT_LENGTH + 10) }
+    const rows = Array.from({ length: MAX_OPEN_QUESTIONS + 5 }, (_, i) => ({
+      number: i + 1,
+      question: long,
+    }))
+    const event = buildOpenQuestions(rows, ALL, 'text')
+    expect(event.questions).toHaveLength(MAX_OPEN_QUESTIONS)
+    expect(GameEventSchemas.OPEN_QUESTIONS.safeParse(event).success).toBe(true)
   })
 })
