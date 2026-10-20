@@ -15,7 +15,9 @@ import { transportManager } from '@/transport'
 import {
   announceScores,
   broadcastScores,
+  buildScoreEntries,
   changeScore,
+  correctCounts,
   readShownScores,
   scoresAsOf,
   shownScoreEvents,
@@ -71,6 +73,7 @@ function makeGame(overrides: Partial<Game> = {}): Game {
     revealTiming: 'manual',
     answersClose: 'perQuestion',
     teamAnswering: 'anyone',
+    rankTies: 'share',
     holdScores: false,
     scoresAnnouncedAt: null,
     autoStartTimerOnQuestionShow: false,
@@ -315,5 +318,48 @@ describe('held scores', () => {
     expect(shownScoreEvents({ ...held, scoresAnnouncedAt: null }, events)).toEqual([])
     expect(shownScoreEvents({ ...held, status: 'ended' as const }, events)).toEqual(events)
     expect(shownScoreEvents({ ...held, holdScores: false }, events)).toEqual(events)
+  })
+})
+
+describe('tied scores', () => {
+  const player = (id: string, score: number) =>
+    ({ id, gameId: 'g1', name: id, teamId: null, score }) as Player
+  const players = [player('a', 5), player('b', 9), player('c', 5), player('d', 2)]
+  const places = (entries: { id: string; place: number }[]) => entries.map(e => [e.id, e.place])
+
+  it('counts correct answers, less those taken back', () => {
+    expect(
+      correctCounts([
+        { targetId: 'a', reason: 'correct' },
+        { targetId: 'a', reason: 'correct' },
+        { targetId: 'a', reason: 'retract' },
+        { targetId: 'c', reason: 'step' },
+        { targetId: 'c', reason: 'correct' },
+      ])
+    ).toEqual({ a: 1, c: 1 })
+  })
+
+  it('shares the place between equal scores by default', () => {
+    expect(places(buildScoreEntries(players, []))).toEqual([
+      ['b', 1],
+      ['a', 2],
+      ['c', 2],
+      ['d', 4],
+    ])
+  })
+
+  it('places more correct answers higher, and shares the place when still level', () => {
+    const rank = { rankTies: 'mostCorrect' as const, correct: { a: 1, c: 3 } }
+    expect(places(buildScoreEntries(players, [], rank))).toEqual([
+      ['b', 1],
+      ['c', 2],
+      ['a', 3],
+      ['d', 4],
+    ])
+    const level = { rankTies: 'mostCorrect' as const, correct: { a: 2, c: 2 } }
+    expect(places(buildScoreEntries(players, [], level)).slice(1, 3)).toEqual([
+      ['a', 2],
+      ['c', 2],
+    ])
   })
 })

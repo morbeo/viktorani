@@ -6,7 +6,7 @@ import {
   defaultSettings,
 } from '@/components/game-settings/game-settings'
 import type { GamePreset, GameSettings } from '@/components/game-settings/game-settings'
-import { ANSWERS_CLOSE, INPUT_TYPES, REVEAL_TIMINGS, TEAM_ANSWERING } from '@/db'
+import { ANSWERS_CLOSE, INPUT_TYPES, RANK_TIES, REVEAL_TIMINGS, TEAM_ANSWERING } from '@/db'
 import type { TiebreakerMode } from '@/db'
 import { DEFAULT_THEME_ID } from '@/lib/theme'
 
@@ -85,6 +85,7 @@ const GameSettingsSchema = z.object({
   answersClose: z.enum(ANSWERS_CLOSE).catch(BUILT_IN_GAME.answersClose),
   teamAnswering: z.enum(TEAM_ANSWERING).catch(BUILT_IN_GAME.teamAnswering),
   holdScores: z.boolean().catch(BUILT_IN_GAME.holdScores),
+  rankTies: z.enum(RANK_TIES).catch(BUILT_IN_GAME.rankTies),
   autoStartTimerOnQuestionShow: z.boolean().catch(BUILT_IN_GAME.autoStartTimerOnQuestionShow),
   defaultTimerDuration: z
     .number()

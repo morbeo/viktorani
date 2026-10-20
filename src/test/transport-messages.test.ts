@@ -112,7 +112,7 @@ const FIXTURES: { [K in TransportEvent['type']]: Extract<TransportEvent, { type:
   FOCUS_CHANGE: { type: 'FOCUS_CHANGE', away: true },
   SCREEN_JOIN: { type: 'SCREEN_JOIN' },
   SCREEN_ACCEPTED: { type: 'SCREEN_ACCEPTED' },
-  SCOREBOARD: { type: 'SCOREBOARD', rows: [{ id: 'p1', name: 'Ann', score: 10 }] },
+  SCOREBOARD: { type: 'SCOREBOARD', rows: [{ id: 'p1', name: 'Ann', score: 10, place: 1 }] },
   MESSAGE: { type: 'MESSAGE', text: 'Two minutes to the next round' },
   LOG: {
     type: 'LOG',
@@ -433,9 +433,16 @@ describe('size limits', () => {
 
   it('accepts a scoreboard at the row limit and rejects one more', () => {
     const rows = (n: number) =>
-      Array.from({ length: n }, (_, i) => ({ id: `p${i}`, name: 'Ann', score: i }))
+      Array.from({ length: n }, (_, i) => ({ id: `p${i}`, name: 'Ann', score: i, place: i + 1 }))
     expect(accepts({ type: 'SCOREBOARD', rows: rows(MAX_SCOREBOARD_ROWS) })).toBe(true)
     expect(accepts({ type: 'SCOREBOARD', rows: rows(MAX_SCOREBOARD_ROWS + 1) })).toBe(false)
+  })
+
+  it('rejects a scoreboard row without a whole place from 1', () => {
+    const row = { id: 'p1', name: 'Ann', score: 3 }
+    for (const place of [undefined, 0, 1.5]) {
+      expect(accepts({ type: 'SCOREBOARD', rows: [{ ...row, place }] })).toBe(false)
+    }
   })
 
   it('accepts a message at the length limit, rejects one longer, and accepts a clear', () => {

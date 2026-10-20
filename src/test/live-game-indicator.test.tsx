@@ -44,6 +44,7 @@ function makeGame(overrides: Partial<Game> = {}): Game {
     revealTiming: 'manual',
     answersClose: 'perQuestion',
     teamAnswering: 'anyone',
+    rankTies: 'share',
     holdScores: false,
     scoresAnnouncedAt: null,
     autoStartTimerOnQuestionShow: false,

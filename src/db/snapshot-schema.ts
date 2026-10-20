@@ -8,6 +8,7 @@ import {
   REVEAL_TIMINGS,
   ANSWERS_CLOSE,
   TEAM_ANSWERING,
+  RANK_TIES,
   WIDGET_TYPES,
 } from '@/db'
 import type {
@@ -143,6 +144,7 @@ export const GameSchema = z
     answersClose: z.enum(ANSWERS_CLOSE).default('perQuestion'),
     teamAnswering: z.enum(TEAM_ANSWERING).default('anyone'),
     holdScores: z.boolean().default(false),
+    rankTies: z.enum(RANK_TIES).default('share'),
     scoresAnnouncedAt: z.number().int().min(0).nullable().default(null),
     autoStartTimerOnQuestionShow: z.boolean().default(false),
     defaultTimerDuration: z.number().int().min(1).max(MAX_TIMER_SECONDS).default(60),

@@ -286,6 +286,12 @@ the team takes their vote with them. The captain is the member who joined first 
 you click the crown next to another member in the player list. Teammates' phones show the
 team's current answer and who sent it, or the vote count in a team vote.
 
+### Tied scores
+
+Teams or players with the same score share a place on the scoreboard and the leaderboard (1, 2,
+2, 4). To break ties, set **Tied scores** in the game's settings to **Most correct answers**:
+the one with more correct answers places higher, and those still level share the place.
+
 ### Holding scores until you announce them
 
 To keep the scores a surprise while you mark, turn on **Hold scores until announced** in the

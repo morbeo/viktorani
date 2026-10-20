@@ -303,6 +303,8 @@ describe('typed answers', () => {
     await markTypedAnswers(GAME, [seen], 'incorrect')
     expect((await db.players.get('p1'))?.score).toBe(0)
     expect((await answerOf('p1')).ruling).toBe('incorrect')
+    const reasons = (await db.scoreEvents.toArray()).map(e => e.reason)
+    expect(reasons.sort()).toEqual(['correct', 'retract'])
   })
 
   it('updates a closed question as its answers are marked', async () => {

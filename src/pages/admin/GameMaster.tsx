@@ -31,6 +31,7 @@ import { usePhaseOverride } from '@/hooks/usePhaseOverride'
 import {
   adjustScore,
   buildScoreEntries,
+  correctCounts,
   holdsScores,
   readShownScores,
   scoresAsOf,
@@ -475,13 +476,17 @@ export default function GameMaster() {
       db.players.where('gameId').equals(id).toArray(),
       db.teams.where('gameId').equals(id).toArray(),
     ])
-    if (!g || !holdsScores(g)) return buildScoreEntries(ps, ts)
-    const live = Object.fromEntries([...ps, ...ts].map(r => [r.id, r.score]))
+    if (!g) return []
     const events = await db.scoreEvents.where('gameId').equals(id).toArray()
+    // Ties are broken by the correct answers players and screens may see so far
+    const rank = { rankTies: g.rankTies, correct: correctCounts(shownScoreEvents(g, events)) }
+    if (!holdsScores(g)) return buildScoreEntries(ps, ts, rank)
+    const live = Object.fromEntries([...ps, ...ts].map(r => [r.id, r.score]))
     const shown = scoresAsOf(live, events, g.scoresAnnouncedAt)
     return buildScoreEntries(
       ps.map(p => ({ ...p, score: shown[p.id] })),
-      ts.map(t => ({ ...t, score: shown[t.id] }))
+      ts.map(t => ({ ...t, score: shown[t.id] })),
+      rank
     )
   }, [id])
   const scoreboard =
@@ -489,7 +494,7 @@ export default function GameMaster() {
       ? JSON.stringify(
           scoreEntries
             .slice(0, MAX_SCOREBOARD_ROWS)
-            .map(e => ({ id: e.id, name: e.name, score: e.score }))
+            .map(e => ({ id: e.id, name: e.name, score: e.score, place: e.place }))
         )
       : '[]'
   useEffect(() => {

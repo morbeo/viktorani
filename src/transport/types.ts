@@ -277,6 +277,8 @@ export interface ScoreboardRow {
   id: string
   name: string
   score: number
+  /** Place in the standings, from 1; tied rows share one. */
+  place: number
 }
 
 /** A team a joining player can pick, as listed in `LOBBY_INFO`. */

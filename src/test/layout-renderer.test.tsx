@@ -10,7 +10,7 @@ const DATA: ScreenData = {
   heading: 'Round 1',
   content: null,
   message: 'Hello room',
-  rows: [{ id: 'a', name: 'Alpha', score: 3 }],
+  rows: [{ id: 'a', name: 'Alpha', score: 3, place: 1 }],
   logEntries: [],
   timers: <p>01:00</p>,
 }

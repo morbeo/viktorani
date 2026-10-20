@@ -87,8 +87,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(25)
-    expect(db.backendDB().version).toBe(250)
+    expect(db.verno).toBe(26)
+    expect(db.backendDB().version).toBe(260)
     expect(db.backendDB().objectStoreNames.contains('managedPlayers')).toBe(true)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
     expect(await db.managedLabels.count()).toBe(0)
@@ -102,8 +102,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(25)
-    expect(db.backendDB().version).toBe(250)
+    expect(db.verno).toBe(26)
+    expect(db.backendDB().version).toBe(260)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
   })
 
@@ -307,6 +307,7 @@ describe('Dexie schema version', () => {
     expect(await db.games.get('g-old')).toMatchObject({
       answersClose: 'perQuestion',
       teamAnswering: 'anyone',
+      rankTies: 'share',
       holdScores: false,
       scoresAnnouncedAt: null,
     })
@@ -326,5 +327,12 @@ describe('Dexie schema version', () => {
     await db.open()
 
     expect(await db.games.get('g-old')).toMatchObject({ teamAnswering: 'anyone' })
+  })
+  it('lets tied scores share a place in existing games (v26)', async () => {
+    await seedRawDb(250, V1_STORES)
+
+    await db.open()
+
+    expect(await db.games.get('g-old')).toMatchObject({ rankTies: 'share' })
   })
 })

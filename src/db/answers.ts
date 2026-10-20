@@ -132,7 +132,7 @@ async function setRuling(
       : { kind: 'player' as const, id: answer.playerId }),
     gameId: game.id,
     next: (score: number) => score + delta,
-    reason: delta > 0 ? 'correct' : 'step',
+    reason: delta > 0 ? 'correct' : 'retract',
     questionId: gq.questionId,
   })
 }

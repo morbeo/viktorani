@@ -6,21 +6,16 @@ import { WIDGET_REGISTRY } from '@/widgets/registry'
 import type { ScoreboardRow } from '@/transport/types'
 import type { ScreenData } from '@/widgets/types'
 
-const row = (id: string, score: number): ScoreboardRow => ({ id, name: id, score })
+const row = (id: string, score: number, place: number): ScoreboardRow => ({
+  id,
+  name: id,
+  score,
+  place,
+})
 
 describe('topPlaces', () => {
-  it('gives equal scores the same place and skips ahead after them', () => {
-    const rows = [row('a', 9), row('b', 7), row('c', 7), row('d', 5)]
-    expect(topPlaces(rows, 10).map(r => [r.id, r.place])).toEqual([
-      ['a', 1],
-      ['b', 2],
-      ['c', 2],
-      ['d', 4],
-    ])
-  })
-
   it('keeps everyone tied for the last place shown', () => {
-    const rows = [row('a', 9), row('b', 7), row('c', 7), row('d', 5)]
+    const rows = [row('a', 9, 1), row('b', 7, 2), row('c', 7, 2), row('d', 5, 4)]
     expect(topPlaces(rows, 2).map(r => r.id)).toEqual(['a', 'b', 'c'])
     expect(topPlaces(rows, 3).map(r => r.id)).toEqual(['a', 'b', 'c'])
   })
@@ -35,7 +30,7 @@ describe('ScreenLeaderboardWidget', () => {
   const config = (patch: object = {}) => LeaderboardConfigSchema.parse(patch)
 
   it('shows the top three places by default, under its title', () => {
-    const rows = [row('Ann', 12), row('Bob', 9), row('Cy', 5), row('Di', 2)]
+    const rows = [row('Ann', 12, 1), row('Bob', 9, 2), row('Cy', 5, 3), row('Di', 2, 4)]
     render(<ScreenLeaderboardWidget data={data(rows)} config={config()} />)
     const board = screen.getByRole('region', { name: 'Leaderboard' })
     expect(within(board).getByRole('heading', { name: 'Leaderboard' })).toBeInTheDocument()
@@ -44,7 +39,7 @@ describe('ScreenLeaderboardWidget', () => {
   })
 
   it('takes its title and number of places from its settings', () => {
-    const rows = [row('Ann', 12), row('Bob', 9)]
+    const rows = [row('Ann', 12, 1), row('Bob', 9, 2)]
     render(
       <ScreenLeaderboardWidget data={data(rows)} config={config({ title: 'Top', places: 1 })} />
     )

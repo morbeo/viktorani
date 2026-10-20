@@ -1,6 +1,7 @@
 import { db } from '@/db'
 import type { Question } from '@/db'
 import type { GameEvent, ScoreboardRow } from '@/transport/types'
+import { buildScoreEntries } from '@/hooks/useScoreboard'
 import type { PlayerData, ScreenData } from '@/widgets/types'
 
 type QuestionContent = Extract<GameEvent, { type: 'QUESTION_CONTENT' }>
@@ -20,9 +21,9 @@ const FALLBACK_QUESTION: Pick<Question, 'id' | 'title' | 'description' | 'option
 }
 
 const FALLBACK_ROWS: ScoreboardRow[] = [
-  { id: 's1', name: 'The Quizzly Bears', score: 12 },
-  { id: 's2', name: 'Les Quizerables', score: 9 },
-  { id: 's3', name: 'Ann', score: 5 },
+  { id: 's1', name: 'The Quizzly Bears', score: 12, place: 1 },
+  { id: 's2', name: 'Les Quizerables', score: 9, place: 2 },
+  { id: 's3', name: 'Ann', score: 5, place: 3 },
 ]
 
 function content(q: Pick<Question, 'id' | 'title' | 'description' | 'options' | 'answer'>) {
@@ -54,9 +55,8 @@ export async function loadPreviewSample(gameId: string | null): Promise<PreviewS
     db.teams.where('gameId').equals(gameId).toArray(),
   ])
   const first = gameQuestions[0] && (await db.questions.get(gameQuestions[0].questionId))
-  const rows = [...teams, ...players.filter(p => !p.teamId)]
-    .map(e => ({ id: e.id, name: e.name, score: e.score }))
-    .sort((a, b) => b.score - a.score)
+  const rows = buildScoreEntries(players, teams)
+    .map(e => ({ id: e.id, name: e.name, score: e.score, place: e.place }))
     .slice(0, 8)
   return {
     question: content(first ?? FALLBACK_QUESTION),

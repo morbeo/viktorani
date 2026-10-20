@@ -5,6 +5,7 @@ import { JOIN_POLICY_HELP } from '@/components/gamemaster/join-policy-help'
 import type {
   AnswersClose,
   TeamAnswering,
+  RankTies,
   BuzzDeduplication,
   InputType,
   RevealTiming,
@@ -71,6 +72,11 @@ const TEAM_ANSWER_OPTIONS: Array<{ value: TeamAnswering; label: string }> = [
   { value: 'firstReply', label: 'First reply holds it' },
   { value: 'captain', label: 'Captain only' },
   { value: 'vote', label: 'Team vote' },
+]
+
+const TIE_OPTIONS: Array<{ value: RankTies; label: string }> = [
+  { value: 'share', label: 'Share the place' },
+  { value: 'mostCorrect', label: 'Most correct answers' },
 ]
 
 const REVEAL_OPTIONS: Array<{ value: RevealTiming; label: string }> = [
@@ -309,6 +315,20 @@ export function GameSettingsForm({
           disabled={disabled}
           onChange={v => onChange({ holdScores: v })}
         />
+      )}
+      {value.scoringEnabled && (
+        <Row
+          label="Tied scores"
+          help="How teams or players with the same score are placed. Share the place: they share it (1, 2, 2, 4). Most correct answers: the one with more correct answers places higher, and those still level share the place."
+        >
+          <Segmented
+            label="Tied scores"
+            options={TIE_OPTIONS}
+            value={value.rankTies}
+            disabled={disabled}
+            onChange={v => onChange({ rankTies: v })}
+          />
+        </Row>
       )}
       <Toggle
         label="Auto-start timer on question"
