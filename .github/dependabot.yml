@@ -39,8 +39,11 @@ updates:
       day: monday
       time: "08:00"
       timezone: Europe/Sofia
+    groups:
+      github-actions:
+        patterns: ["*"]
     commit-message:
-      prefix: "chore(ci)"
+      prefix: "chore(github)"
     labels:
       - dependencies
       - ci

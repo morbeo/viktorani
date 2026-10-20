@@ -1,6 +1,5 @@
-run-name: "Release ${{ inputs.bump }} by ${{ github.actor }}"
-
 name: Release
+run-name: "Release ${{ inputs.bump }} by ${{ github.actor }}"
 
 on:
   workflow_dispatch:
@@ -24,40 +23,42 @@ on:
         type: choice
         options: ["true", "false"]
 
+permissions:
+  contents: write
+
 concurrency:
   group: release
   cancel-in-progress: false
 
-permissions:
-  contents: write
-
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  GIT_CLIFF_VERSION: 2.14.2
 
 jobs:
   release:
+    name: release
     runs-on: ubuntu-latest
-
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           token: ${{ secrets.RELEASE_PAT }}
 
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: package-lock.json
+      - uses: ./.github/actions/setup
 
-      - name: Install deps
-        run: npm ci --legacy-peer-deps
+      - name: Lint
+        run: npm run lint
 
-      - name: Lint, typecheck, test
-        run: |
-          npm run lint
-          npm run typecheck
-          npm run test
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Test
+        run: npm run test
+
+      # Fail before tagging rather than in the deploy after it
+      - name: Build
+        run: npm run build
 
       - name: Configure git
         run: |
@@ -66,34 +67,41 @@ jobs:
 
       - name: Bump version
         id: bump
+        env:
+          BUMP: ${{ inputs.bump }}
         run: |
-          VERSION=$(npm version ${{ inputs.bump }} --no-git-tag-version)
+          VERSION=$(npm version "$BUMP" --no-git-tag-version)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Generate changelog
-        id: changelog
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
         run: |
-          npx git-cliff --unreleased --tag ${{ steps.bump.outputs.version }} --prepend CHANGELOG.md
-          npx git-cliff --latest --strip all > /tmp/release-notes.md
+          npx --yes "git-cliff@$GIT_CLIFF_VERSION" --unreleased --tag "$VERSION" --prepend CHANGELOG.md
+          npx --yes "git-cliff@$GIT_CLIFF_VERSION" --latest --strip all > "$RUNNER_TEMP/release-notes.md"
 
       - name: Commit, tag, push
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
         run: |
           git add package.json package-lock.json CHANGELOG.md
-          git commit -m "chore(release): ${{ steps.bump.outputs.version }}"
-          git tag -a ${{ steps.bump.outputs.version }} -m "${{ steps.bump.outputs.version }}"
-          git push origin master ${{ steps.bump.outputs.version }}
+          git commit -m "chore(release): $VERSION"
+          git tag -a "$VERSION" -m "$VERSION"
+          git push origin master "$VERSION"
 
-      - name: Create GitHub Release
-        run: |
-          gh release create ${{ steps.bump.outputs.version }} \
-            --title "${{ steps.bump.outputs.version }}" \
-            --notes-file /tmp/release-notes.md \
-            ${{ inputs.prerelease == 'true' && '--prerelease' || '' }}
+      - name: Create GitHub release
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+          VERSION: ${{ steps.bump.outputs.version }}
+          PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          gh release create "$VERSION" \
+            --title "$VERSION" \
+            --notes-file "$RUNNER_TEMP/release-notes.md" \
+            $([[ "$PRERELEASE" == "true" ]] && echo --prerelease)
 
       - name: Trigger deploy
         if: inputs.deploy == 'true'
-        run: gh workflow run deploy.yml --ref master
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+        run: gh workflow run deploy.yml --ref master

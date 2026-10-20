@@ -11,24 +11,31 @@ permissions:
 
 jobs:
   automerge:
+    name: automerge
+    # Filter here so CI runs on other PRs don't start a runner
     if: >
       github.event.workflow_run.event == 'pull_request' &&
-      github.event.workflow_run.conclusion == 'success'
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.actor.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Find matching Dependabot PR
         id: pr
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          number=$(gh pr list --repo "${{ github.repository }}" --state open \
+          number=$(gh pr list --repo "$REPO" --state open \
             --json number,headRefOid,author \
-            --jq ".[] | select(.headRefOid == \"$HEAD_SHA\" and .author.login == \"dependabot[bot]\") | .number")
+            --jq ".[] | select(.headRefOid == \"$HEAD_SHA\" and (.author.login | test(\"dependabot\"))) | .number")
           echo "number=$number" >> "$GITHUB_OUTPUT"
 
       - name: Enable auto-merge
         if: steps.pr.outputs.number != ''
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh pr merge "${{ steps.pr.outputs.number }}" --repo "${{ github.repository }}" --squash --auto
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ steps.pr.outputs.number }}
+        run: gh pr merge "$NUMBER" --repo "$REPO" --squash --auto
