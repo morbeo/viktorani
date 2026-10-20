@@ -54,7 +54,14 @@ import { PhaseControl } from '@/components/gamemaster/PhaseControl'
 import { autoPhase, effectivePhase } from '@/lib/layout-phase'
 import { updateQuestionStatus } from '@/db/games'
 import { revealQuestion, ruleQuestion } from '@/db/rulings'
-import { keepsAnswersOpen, markAnswers, markTypedAnswers, recordAnswer } from '@/db/answers'
+import {
+  keepsAnswersOpen,
+  markAnswers,
+  markTypedAnswers,
+  recordAnswer,
+  recountVotes,
+  staleVotes,
+} from '@/db/answers'
 import type { AnswerInput, SeenAnswer } from '@/db/answers'
 import type { QuestionRuling, RulingAward } from '@/db/rulings'
 import { layoutCommands, phaseCommands } from '@/components/gamemaster/layout-commands'
@@ -373,12 +380,12 @@ export function ActiveGame({
     .map(e => `${e.gameQuestionId}:${e.questionId}`)
     .join()
   const teamAnswers = useLiveQuery(async () => {
-    if (!answerKind) return []
+    if (!answerKind) return { events: [], stale: [] }
     const [ts, ps] = await Promise.all([
       db.teams.where('gameId').equals(game.id).toArray(),
       db.players.where('gameId').equals(game.id).toArray(),
     ])
-    if (ts.length === 0) return []
+    if (ts.length === 0) return { events: [], stale: [] }
     const items = answerable ? answerable.split(',').map(item => item.split(':')) : []
     const gqs = await db.gameQuestions.bulkGet(items.map(([gqId]) => gqId))
     const questionIdOf = new Map(
@@ -388,15 +395,24 @@ export function ActiveGame({
       .where('gameQuestionId')
       .anyOf([...questionIdOf.keys()])
       .toArray()
-    return ts.map(t => ({
-      teamId: t.id,
-      event: buildTeamAnswers(game.teamAnswering, t, ps, answers, questionIdOf),
-    }))
+    return {
+      events: ts.map(t => ({
+        teamId: t.id,
+        event: buildTeamAnswers(game.teamAnswering, t, ps, answers, questionIdOf),
+      })),
+      // In a team vote, votes from members who left or moved team stop counting
+      stale: game.teamAnswering === 'vote' ? staleVotes(answers, ps) : [],
+    }
   }, [game.id, game.teamAnswering, answerKind, answerable])
+  useEffect(() => {
+    for (const answerId of teamAnswers?.stale ?? []) {
+      void recountVotes(game.id, answerId, Date.now())
+    }
+  }, [teamAnswers?.stale, game.id])
   const sentTeamAnswersRef = useRef(new Map<string, string>())
   useEffect(() => {
     if (!onTeamAnswers || !teamAnswers) return
-    for (const { teamId, event } of teamAnswers) {
+    for (const { teamId, event } of teamAnswers.events) {
       const json = JSON.stringify(event)
       if (sentTeamAnswersRef.current.get(teamId) === json) continue
       sentTeamAnswersRef.current.set(teamId, json)

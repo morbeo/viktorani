@@ -242,8 +242,9 @@ export interface Game {
   /**
    * How a team's one answer is decided in a team game that takes answers on phones:
    * `anyone` (any member can change it), `firstReply` (the first member to answer holds it;
-   * only they can change it) or `captain` (only the team's captain answers; see
-   * {@link Team.captainId}).
+   * only they can change it), `captain` (only the team's captain answers; see
+   * {@link Team.captainId}) or `vote` (each member votes, and the answer with the most votes
+   * counts; see {@link Answer.votes}).
    */
   teamAnswering: TeamAnswering
   /**
@@ -443,7 +444,7 @@ export const ANSWERS_CLOSE = ['perQuestion', 'endOfRound'] as const
 export type AnswersClose = (typeof ANSWERS_CLOSE)[number]
 
 /** How a team's answer is decided: see {@link Game.teamAnswering}. */
-export const TEAM_ANSWERING = ['anyone', 'firstReply', 'captain'] as const
+export const TEAM_ANSWERING = ['anyone', 'firstReply', 'captain', 'vote'] as const
 
 /** See {@link TEAM_ANSWERING}. */
 export type TeamAnswering = (typeof TEAM_ANSWERING)[number]
@@ -679,6 +680,20 @@ export interface Answer {
   receivedAt: number
   /** `pending` until marked: automatically for a choice, by the host for typed text. */
   ruling: 'pending' | 'correct' | 'incorrect'
+  /**
+   * Each member's vote when {@link Game.teamAnswering} is `vote`: one per member, the latest
+   * they sent. The answer itself is the one with the most votes (see `tallyVotes`).
+   */
+  votes?: Vote[]
+}
+
+/** A team member's vote for the team's answer, kept on the team's {@link Answer}. */
+export interface Vote {
+  playerId: string
+  choice: number | null
+  text: string | null
+  /** Host clock (epoch ms) when it arrived. */
+  at: number
 }
 
 // ── Database ─────────────────────────────────────────────────────────────────

@@ -70,6 +70,7 @@ const TEAM_ANSWER_OPTIONS: Array<{ value: TeamAnswering; label: string }> = [
   { value: 'anyone', label: 'Anyone can change it' },
   { value: 'firstReply', label: 'First reply holds it' },
   { value: 'captain', label: 'Captain only' },
+  { value: 'vote', label: 'Team vote' },
 ]
 
 const REVEAL_OPTIONS: Array<{ value: RevealTiming; label: string }> = [
@@ -210,7 +211,7 @@ export function GameSettingsForm({
       {(value.inputType === 'choice' || value.inputType === 'text') && (
         <Row
           label="Team answers"
-          help="How a team's one answer is decided. Anyone can change it: any member can answer or change the team's answer. First reply holds it: the first member to answer holds the team's answer, and only they can change it. Captain only: only the team's captain answers; you pick captains in the team list, and otherwise it's the member who joined first."
+          help="How a team's one answer is decided. Anyone can change it: any member can answer or change the team's answer. First reply holds it: the first member to answer holds the team's answer, and only they can change it. Captain only: only the team's captain answers; you pick captains in the team list, and otherwise it's the member who joined first. Team vote: each member votes, and the answer with the most votes counts; a tie goes to the answer voted for first."
         >
           <Segmented
             label="Team answers"

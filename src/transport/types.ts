@@ -188,6 +188,8 @@ export interface TeamAnswer {
   choice: number | null
   /** The text typed, in a `text` game; else `null`. */
   text: string | null
+  /** In `vote` mode, the votes per answer, most first; else empty. */
+  votes: Array<{ choice: number | null; text: string | null; count: number }>
 }
 
 /** How the end-of-round review shows the round's answers. */

@@ -280,9 +280,11 @@ question's answer also stops players answering it.
 In a team game, each team has one answer per question. **Team answers** in the game's settings
 says how it's decided: **Anyone can change it** lets any member answer or change it, **First
 reply holds it** keeps the first member's answer (only they can change it), and **Captain
-only** lets just the team's captain answer. The captain is the member who joined first until
+only** lets just the team's captain answer, and **Team vote** lets each member vote: the answer
+with the most votes counts, and a tie goes to the answer voted for first. A member who leaves
+the team takes their vote with them. The captain is the member who joined first until
 you click the crown next to another member in the player list. Teammates' phones show the
-team's current answer and who sent it.
+team's current answer and who sent it, or the vote count in a team vote.
 
 ### Holding scores until you announce them
 

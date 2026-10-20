@@ -1,5 +1,5 @@
 import { db, MAX_ANSWER_TEXT_LENGTH } from '@/db'
-import type { Answer, Game, GameQuestion, Player, Question, Team } from '@/db'
+import type { Answer, Game, GameQuestion, Player, Question, Team, Vote } from '@/db'
 import { logEvent } from '@/db/game-log'
 import { questionPoints } from '@/db/rulings'
 import { broadcastScores, writeScore } from '@/hooks/useScoreboard'
@@ -59,6 +59,46 @@ export function textMatches(text: string, answer: string): boolean {
   return a !== '' && normaliseAnswerText(text).toLocaleLowerCase() === a.toLocaleLowerCase()
 }
 
+/** One answer's share of a team's votes, as {@link tallyVotes} counts them. */
+export interface VoteTally {
+  choice: number | null
+  /** As the first member to vote for it typed it. */
+  text: string | null
+  count: number
+  /** The first member to vote for it, and when. */
+  playerId: string
+  at: number
+}
+
+/** How votes and answers are grouped: by option, or by text ignoring case and spacing. */
+function answerKey(a: Pick<Vote, 'choice' | 'text'>): string {
+  return a.choice !== null
+    ? `c${a.choice}`
+    : `t${normaliseAnswerText(a.text ?? '').toLocaleLowerCase()}`
+}
+
+/** Whether two answers count as the same vote. */
+function sameAnswer(a: Pick<Vote, 'choice' | 'text'>, b: Pick<Vote, 'choice' | 'text'>): boolean {
+  return answerKey(a) === answerKey(b)
+}
+
+/**
+ * Count a team's votes by answer, most votes first; a tie goes to the answer voted for
+ * first. Typed answers count as the same when they match ignoring case and spacing.
+ * Pure function.
+ */
+export function tallyVotes(votes: ReadonlyArray<Vote>): VoteTally[] {
+  const tallies = new Map<string, VoteTally>()
+  for (const v of [...votes].sort((a, b) => a.at - b.at)) {
+    const key = answerKey(v)
+    const tally = tallies.get(key)
+    if (tally) tally.count++
+    else
+      tallies.set(key, { choice: v.choice, text: v.text, count: 1, playerId: v.playerId, at: v.at })
+  }
+  return [...tallies.values()].sort((a, b) => b.count - a.count || a.at - b.at)
+}
+
 /** The tables a change to an answer's ruling writes, for the transactions that make one. */
 const RULING_TABLES = [
   db.answers,
@@ -98,6 +138,83 @@ async function setRuling(
 }
 
 /**
+ * Set a team's answer from its votes: the leading one ({@link tallyVotes}), keeping the mark
+ * while it stays the same and putting it back to unmarked when it changes. With no votes
+ * left the answer is removed. Call inside a transaction over {@link RULING_TABLES}.
+ */
+async function applyVotes(
+  game: Pick<Game, 'id' | 'scoringEnabled'>,
+  gq: GameQuestion,
+  answer: Answer,
+  votes: Vote[],
+  receivedAt: number
+): Promise<void> {
+  const [top] = tallyVotes(votes)
+  if (top && sameAnswer(answer, top)) {
+    await db.answers.update(answer.id, { votes })
+    return
+  }
+  await setRuling(game, answer, 'pending', gq, await questionPoints(gq.questionId))
+  if (!top) {
+    await db.answers.delete(answer.id)
+    return
+  }
+  await db.answers.update(answer.id, {
+    playerId: top.playerId,
+    choice: top.choice,
+    text: top.text,
+    receivedAt,
+    votes,
+  })
+}
+
+/**
+ * The team answers whose votes include someone no longer on the team, so the host can
+ * {@link recountVotes} them. Pure function.
+ */
+export function staleVotes(
+  answers: ReadonlyArray<Pick<Answer, 'id' | 'teamId' | 'votes'>>,
+  players: ReadonlyArray<Pick<Player, 'id' | 'teamId' | 'presence'>>
+): string[] {
+  return answers
+    .filter(a => {
+      const teamId = a.teamId
+      return (
+        teamId &&
+        a.votes?.some(v => !players.some(p => p.id === v.playerId && isActiveMember(p, teamId)))
+      )
+    })
+    .map(a => a.id)
+}
+
+/**
+ * Drop the votes of members no longer on the team from a team answer to a question still
+ * open, in a game where teams vote, and set the answer from the votes left. Resolves to
+ * whether it changed.
+ */
+export async function recountVotes(
+  gameId: string,
+  answerId: string,
+  receivedAt: number
+): Promise<boolean> {
+  return db.transaction('rw', [db.games, ...RULING_TABLES], async () => {
+    const game = await db.games.get(gameId)
+    const answer = await db.answers.get(answerId)
+    if (game?.teamAnswering !== 'vote' || answer?.gameId !== gameId) return false
+    const { teamId, votes = [] } = answer
+    const gq = await db.gameQuestions.get(answer.gameQuestionId)
+    if (!teamId || !gq || gq.status !== 'pending' || gq.revealed) return false
+    const members = await db.players.where('teamId').equals(teamId).toArray()
+    const kept = votes.filter(v =>
+      members.some(m => m.id === v.playerId && isActiveMember(m, teamId))
+    )
+    if (kept.length === votes.length) return false
+    await applyVotes(game, gq, answer, kept, receivedAt)
+    return true
+  })
+}
+
+/**
  * Record a player's answer to the question shown (ADR 0023). The host calls this with the
  * player it mapped the connection to and its own clock, never values from the payload.
  * Accepted only for a question of the same game that is still open (`pending`) and whose
@@ -107,8 +224,11 @@ async function setRuling(
  * team's: it replaces the one any member sent before, and goes back to unmarked (taking back
  * any points it had scored). How the team decides it follows {@link Game.teamAnswering}: with
  * `firstReply` only the member who answered first may change it (anyone, once they are off
- * the team), and with `captain` only the
- * team's captain ({@link teamCaptain}) answers. Resolves to whether it was accepted.
+ * the team), with `captain` only the
+ * team's captain ({@link teamCaptain}) answers, and with `vote` the answer is a vote: the
+ * team's answer becomes the one with the most votes from members still on the team
+ * ({@link tallyVotes}), and goes back to unmarked only when that changes. Resolves to whether
+ * it was accepted.
  */
 export async function recordAnswer(
   gameId: string,
@@ -160,6 +280,34 @@ export async function recordAnswer(
     ) {
       const holder = await db.players.get(existing.playerId)
       if (holder && isActiveMember(holder, teamId)) return false
+    }
+    if (teamId && game.teamAnswering === 'vote') {
+      const members = await db.players.where('teamId').equals(teamId).toArray()
+      const counts = (v: Vote) =>
+        v.playerId !== playerId &&
+        members.some(m => m.id === v.playerId && isActiveMember(m, teamId))
+      const votes = [
+        ...(existing?.votes ?? []).filter(counts),
+        { playerId, choice, text, at: receivedAt },
+      ]
+      if (existing) {
+        await applyVotes(game, gq, existing, votes, receivedAt)
+      } else {
+        const [top] = tallyVotes(votes)
+        await db.answers.add({
+          id: crypto.randomUUID(),
+          gameId,
+          gameQuestionId,
+          playerId: top.playerId,
+          teamId,
+          choice: top.choice,
+          text: top.text,
+          receivedAt,
+          ruling: 'pending',
+          votes,
+        })
+      }
+      return true
     }
     if (existing) {
       await setRuling(game, existing, 'pending', gq, await questionPoints(gq.questionId))

@@ -4,7 +4,14 @@ import { teamAnswerView } from '@/pages/player/team-answer'
 import type { TeamAnswers } from '@/pages/player/team-answer'
 import { buildTeamAnswers } from '@/pages/admin/gamemaster-utils'
 
-const bobsAnswer = { questionId: 'q1', playerId: 'p2', playerName: 'Bob', choice: 1, text: null }
+const bobsAnswer = {
+  questionId: 'q1',
+  playerId: 'p2',
+  playerName: 'Bob',
+  choice: 1,
+  text: null,
+  votes: [],
+}
 
 function team(overrides: Partial<TeamAnswers> = {}): TeamAnswers {
   return { mode: 'anyone', captainId: null, captainName: null, answers: [], ...overrides }
@@ -53,6 +60,32 @@ describe('teamAnswerView', () => {
       note: 'You answer for your team.',
     })
   })
+
+  it("shows this phone's own vote and the team's counts in a team vote", () => {
+    const voted = team({
+      mode: 'vote',
+      answers: [
+        {
+          ...bobsAnswer,
+          votes: [
+            { choice: 1, text: null, count: 2 },
+            { choice: 0, text: null, count: 1 },
+          ],
+        },
+      ],
+    })
+    expect(teamAnswerView(voted, 'q1', 'p1', { choice: 0 })).toEqual({
+      canAnswer: true,
+      choice: 0,
+      text: null,
+      note: 'Team vote: B 2, A 1. Most votes counts.',
+    })
+    expect(teamAnswerView(team({ mode: 'vote' }), 'q1', 'p1', undefined)).toMatchObject({
+      canAnswer: true,
+      choice: null,
+      note: 'Your answer is a vote for your team.',
+    })
+  })
 })
 
 describe('buildTeamAnswers', () => {
@@ -82,7 +115,14 @@ describe('buildTeamAnswers', () => {
       captainId: 'p1',
       captainName: 'Alice',
       answers: [
-        { questionId: 'q1', playerId: 'p2', playerName: 'Bob', choice: null, text: 'Paris' },
+        {
+          questionId: 'q1',
+          playerId: 'p2',
+          playerName: 'Bob',
+          choice: null,
+          text: 'Paris',
+          votes: [],
+        },
       ],
     })
   })
@@ -97,6 +137,31 @@ describe('buildTeamAnswers', () => {
       new Map([['gq1', 'q1']])
     )
     expect(event.answers).toEqual([])
+  })
+
+  it('carries the vote counts of members still on the team in vote mode', () => {
+    const votes = [
+      { playerId: 'p1', choice: null, text: 'Rome', at: 1 },
+      { playerId: 'p2', choice: null, text: 'paris', at: 2 },
+      { playerId: 'p3', choice: null, text: 'Paris ', at: 3 },
+      { playerId: 'p4', choice: null, text: 'Rome', at: 4 },
+    ]
+    const team3 = [
+      ...players,
+      { id: 'p3', name: 'Cy', teamId: 't1', joinedAt: 3, presence: 'connected' as const },
+      { id: 'p4', name: 'Di', teamId: 't1', joinedAt: 4, presence: 'left' as const },
+    ]
+    const event = buildTeamAnswers(
+      'vote',
+      { id: 't1' },
+      team3,
+      [{ ...answer('gq1', 't1'), votes }],
+      new Map([['gq1', 'q1']])
+    )
+    expect(event.answers[0].votes).toEqual([
+      { choice: null, text: 'paris', count: 2 },
+      { choice: null, text: 'Rome', count: 1 },
+    ])
   })
 
   it('names no captain in other modes', () => {

@@ -15,7 +15,7 @@ import type {
   SerializedGameState,
   VisibilityTarget,
 } from '@/transport/types'
-import { choiceOptions, teamCaptain } from '@/db/answers'
+import { choiceOptions, tallyVotes, teamCaptain } from '@/db/answers'
 import {
   MAX_LABEL_LENGTH,
   MAX_LOBBY_TEAMS,
@@ -23,6 +23,7 @@ import {
   MAX_NAME_LENGTH,
   MAX_OPEN_QUESTIONS,
   MAX_TEAM_ANSWERS,
+  MAX_TEAM_VOTES,
   MAX_OPTIONS,
   MAX_ROUND_ANSWERS,
   MAX_TEXT_LENGTH,
@@ -154,19 +155,27 @@ export function buildRoundAnswers(
  * team's captain in `captain` mode (see {@link teamCaptain}), and the team's answers to the
  * questions still open, keyed by question id through `questionIdOf` (game question id to
  * question id). Answers to other questions or by other teams are left out, and so is a first
- * reply whose sender is no longer on the team, since it no longer holds. Pure function.
+ * reply whose sender is no longer on the team, since it no longer holds. In `vote` mode each
+ * answer carries the vote counts of members still on the team. Pure function.
  */
 export function buildTeamAnswers(
   mode: Game['teamAnswering'],
   team: Pick<Team, 'id' | 'captainId'>,
   players: ReadonlyArray<Pick<Player, 'id' | 'name' | 'teamId' | 'joinedAt' | 'presence'>>,
   answers: ReadonlyArray<
-    Pick<import('@/db').Answer, 'gameQuestionId' | 'teamId' | 'playerId' | 'choice' | 'text'>
+    Pick<
+      import('@/db').Answer,
+      'gameQuestionId' | 'teamId' | 'playerId' | 'choice' | 'text' | 'votes'
+    >
   >,
   questionIdOf: ReadonlyMap<string, string>
 ): Extract<GameEvent, { type: 'TEAM_ANSWERS' }> {
   const nameOf = (id: string) => players.find(p => p.id === id)?.name.slice(0, MAX_NAME_LENGTH)
   const captainId = mode === 'captain' ? teamCaptain(team, players) : null
+  const isOnTeam = (id: string) => {
+    const p = players.find(p => p.id === id)
+    return p?.teamId === team.id && p.presence !== 'left' && p.presence !== 'kicked'
+  }
   return {
     type: 'TEAM_ANSWERS',
     mode,
@@ -176,10 +185,7 @@ export function buildTeamAnswers(
       .flatMap(a => {
         const questionId = questionIdOf.get(a.gameQuestionId)
         // A first reply from someone now off the team no longer holds, so it isn't shown
-        const sender = players.find(p => p.id === a.playerId)
-        const holds =
-          sender?.teamId === team.id && sender.presence !== 'left' && sender.presence !== 'kicked'
-        if (mode === 'firstReply' && !holds) return []
+        if (mode === 'firstReply' && !isOnTeam(a.playerId)) return []
         return a.teamId === team.id && questionId
           ? [
               {
@@ -188,6 +194,12 @@ export function buildTeamAnswers(
                 playerName: nameOf(a.playerId) ?? '',
                 choice: a.choice,
                 text: a.text,
+                votes:
+                  mode === 'vote'
+                    ? tallyVotes((a.votes ?? []).filter(v => isOnTeam(v.playerId)))
+                        .slice(0, MAX_TEAM_VOTES)
+                        .map(({ choice, text, count }) => ({ choice, text, count }))
+                    : [],
               },
             ]
           : []

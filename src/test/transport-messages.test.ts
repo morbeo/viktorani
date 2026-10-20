@@ -28,6 +28,7 @@ import {
   MAX_ROUND_ANSWERS,
   MAX_OPEN_QUESTIONS,
   MAX_TEAM_ANSWERS,
+  MAX_TEAM_VOTES,
 } from '@/transport/messages'
 import { BUILT_IN_THEMES, resolveTheme } from '@/lib/theme'
 import type { SerializedGameState, TransportEvent } from '@/transport/types'
@@ -181,7 +182,16 @@ const FIXTURES: { [K in TransportEvent['type']]: Extract<TransportEvent, { type:
     mode: 'captain',
     captainId: 'p1',
     captainName: 'Alice',
-    answers: [{ questionId: 'q1', playerId: 'p1', playerName: 'Alice', choice: 1, text: null }],
+    answers: [
+      {
+        questionId: 'q1',
+        playerId: 'p1',
+        playerName: 'Alice',
+        choice: 1,
+        text: null,
+        votes: [{ choice: 1, text: null, count: 2 }],
+      },
+    ],
   },
   OPEN_QUESTIONS: {
     type: 'OPEN_QUESTIONS',
@@ -793,6 +803,15 @@ describe('TEAM_ANSWERS', () => {
       false
     )
     expect(parse({ answers: [{ ...answer, choice: MAX_OPTIONS }] })).toBe(false)
+  })
+
+  it('rejects too many vote counts, a zero count, or extra fields on one', () => {
+    const vote = answer.votes[0]
+    const withVotes = (votes: object[]) => parse({ answers: [{ ...answer, votes }] })
+    expect(withVotes(Array.from({ length: MAX_TEAM_VOTES }, () => vote))).toBe(true)
+    expect(withVotes(Array.from({ length: MAX_TEAM_VOTES + 1 }, () => vote))).toBe(false)
+    expect(withVotes([{ ...vote, count: 0 }])).toBe(false)
+    expect(withVotes([{ ...vote, playerId: 'p2' }])).toBe(false)
   })
 })
 

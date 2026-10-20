@@ -22,8 +22,9 @@ const describe = (a: { choice: number | null; text: string | null }) =>
  * How the answer pad for `questionId` looks on this player's phone, given the team's
  * answering mode and current answers. Outside a team game it is this phone's own answer.
  * With `captain`, only the captain answers; with `firstReply`, a teammate's first answer
- * holds. The team's answer from another member wins over this phone's, so every member sees
- * the same. Pure function.
+ * holds; with `vote`, the pad shows this phone's own vote and the note the team's counts.
+ * Otherwise the team's answer from another member wins over this phone's, so every member
+ * sees the same. Pure function.
  */
 export function teamAnswerView(
   team: TeamAnswers | null,
@@ -37,6 +38,16 @@ export function teamAnswerView(
   }
   if (!team) return { canAnswer: true, ...own, note: null }
   const current = team.answers.find(a => a.questionId === questionId)
+  if (team.mode === 'vote') {
+    const counts = current?.votes.map(v => `${describe(v)} ${v.count}`).join(', ')
+    return {
+      canAnswer: true,
+      ...own,
+      note: counts
+        ? `Team vote: ${counts}. Most votes counts.`
+        : 'Your answer is a vote for your team.',
+    }
+  }
   const byOther = current && current.playerId !== playerId ? current : undefined
   const shown = byOther ? { choice: byOther.choice, text: byOther.text } : mine ? own : current
   const answer = shown ?? { choice: null, text: null }
