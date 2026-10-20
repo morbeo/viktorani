@@ -45,6 +45,7 @@ const GAME = {
   revealTiming: 'manual',
   answersClose: 'perQuestion',
   teamAnswering: 'anyone',
+  rankTies: 'share',
   holdScores: false,
   scoresAnnouncedAt: null,
   autoStartTimerOnQuestionShow: false,

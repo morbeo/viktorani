@@ -27,6 +27,7 @@ export type GameSettings = Pick<
   | 'answersClose'
   | 'teamAnswering'
   | 'holdScores'
+  | 'rankTies'
   | 'autoStartTimerOnQuestionShow'
   | 'defaultTimerDuration'
   | 'soundEffectsMuted'
@@ -66,6 +67,7 @@ export const GAME_SETTINGS_KEYS = [
   'answersClose',
   'teamAnswering',
   'holdScores',
+  'rankTies',
   'autoStartTimerOnQuestionShow',
   'defaultTimerDuration',
   'soundEffectsMuted',
@@ -141,6 +143,7 @@ export function defaultSettings(): GameSettings {
     answersClose: 'perQuestion',
     teamAnswering: 'anyone',
     holdScores: false,
+    rankTies: 'share',
     autoStartTimerOnQuestionShow: false,
     defaultTimerDuration: 60,
     soundEffectsMuted: false,

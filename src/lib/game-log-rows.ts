@@ -81,6 +81,7 @@ const SCORE_REASONS: Record<ScoreEvent['reason'], string> = {
   step: 'adjusted',
   set: 'set',
   correct: 'correct answer',
+  retract: 'correct answer taken back',
 }
 
 function logDetails(e: GameLogEntry): string {

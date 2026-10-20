@@ -253,6 +253,11 @@ export interface Game {
    */
   holdScores: boolean
   /**
+   * How tied scores are placed in the standings: `share` (they share the place) or
+   * `mostCorrect` (more correct answers places higher; still level, they share it).
+   */
+  rankTies: RankTies
+  /**
    * When the host last announced scores (epoch ms), or `null` before the first time; with
    * {@link Game.holdScores}, players and screens see the scores as of then (the starting
    * scores when `null`). Set when holding is turned on, so nothing already shown goes back.
@@ -340,8 +345,11 @@ export interface BuzzEvent {
   decidedAt: number | null
 }
 
-/** Why a score changed: a ± step, a value typed in, or a correct answer. */
-export type ScoreChangeReason = 'step' | 'set' | 'correct'
+/**
+ * Why a score changed: a ± step, a value typed in, a correct answer, or a correct answer's
+ * points taken back when it is marked again.
+ */
+export type ScoreChangeReason = 'step' | 'set' | 'correct' | 'retract'
 
 /** One change to a player's or team's score; together they are a game's score history. */
 export interface ScoreEvent {
@@ -445,6 +453,12 @@ export type AnswersClose = (typeof ANSWERS_CLOSE)[number]
 
 /** How a team's answer is decided: see {@link Game.teamAnswering}. */
 export const TEAM_ANSWERING = ['anyone', 'firstReply', 'captain', 'vote'] as const
+
+/** How tied scores are placed in the standings: see {@link Game.rankTies}. */
+export const RANK_TIES = ['share', 'mostCorrect'] as const
+
+/** See {@link RANK_TIES}. */
+export type RankTies = (typeof RANK_TIES)[number]
 
 /** See {@link TEAM_ANSWERING}. */
 export type TeamAnswering = (typeof TEAM_ANSWERING)[number]
@@ -740,6 +754,7 @@ export interface Vote {
  *   (`null`) on existing games.
  * - 24: same stores; back-fills `Game.answersClose` (`perQuestion`) on existing games.
  * - 25: same stores; back-fills `Game.teamAnswering` (`anyone`) on existing games.
+ * - 26: same stores; back-fills `Game.rankTies` (`share`) on existing games.
  *
  * To change the schema, add a new `this.version(N + 1)` block below; keep existing blocks.
  */
@@ -1014,6 +1029,17 @@ export class ViktoraniDB extends Dexie {
           .toCollection()
           .modify((g: Partial<Game>) => {
             g.teamAnswering ??= 'anyone'
+          })
+      )
+
+    this.version(26)
+      .stores({})
+      .upgrade(tx =>
+        tx
+          .table('games')
+          .toCollection()
+          .modify((g: Partial<Game>) => {
+            g.rankTies ??= 'share'
           })
       )
   }

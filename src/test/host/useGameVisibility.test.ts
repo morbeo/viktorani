@@ -46,6 +46,7 @@ const BASE_GAME: Game = {
   revealTiming: 'manual',
   answersClose: 'perQuestion',
   teamAnswering: 'anyone',
+  rankTies: 'share',
   holdScores: false,
   scoresAnnouncedAt: null,
   autoStartTimerOnQuestionShow: false,

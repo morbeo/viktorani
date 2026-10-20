@@ -4,7 +4,7 @@ import { db } from '@/db'
 import { logEvent } from '@/db/game-log'
 import { transportManager } from '@/transport'
 import { applyScoreDelta, toScore } from '@/pages/admin/gamemaster-utils'
-import type { Game, Player, ScoreChangeReason, ScoreEvent, Team } from '@/db'
+import type { Game, Player, RankTies, ScoreChangeReason, ScoreEvent, Team } from '@/db'
 
 /** A single row in the scoreboard — either a team or an individual player. */
 export interface ScoreEntry {
@@ -16,6 +16,8 @@ export interface ScoreEntry {
   /** Present for team rows; lists each member's individual score. */
   members?: { id: string; name: string; score: number }[]
   kind: 'player' | 'team'
+  /** Place in the standings, from 1; tied rows share one (see {@link Game.rankTies}). */
+  place: number
 }
 
 /** Return value of {@link useScoreboard}. */
@@ -199,15 +201,42 @@ export async function broadcastScores(gameId: string): Promise<void> {
 }
 
 /**
- * Scoreboard rows, highest score first: one per team with its members, plus players
- * without a team, or one per player when the game has no teams.
+ * How many questions each player and team answered correctly, keyed by id, from a game's
+ * score history: correct answers scored, less those taken back. Pure function.
  */
-export function buildScoreEntries(players: Player[], teams: Team[]): ScoreEntry[] {
-  let entries: ScoreEntry[]
+export function correctCounts(
+  events: ReadonlyArray<Pick<ScoreEvent, 'targetId' | 'reason'>>
+): Record<string, number> {
+  const counts: Record<string, number> = {}
+  for (const e of events) {
+    const step = e.reason === 'correct' ? 1 : e.reason === 'retract' ? -1 : 0
+    if (step) counts[e.targetId] = (counts[e.targetId] ?? 0) + step
+  }
+  return counts
+}
+
+/** How {@link buildScoreEntries} places tied scores. */
+export interface RankOptions {
+  rankTies: RankTies
+  /** Correct answers per player and team ({@link correctCounts}), for `mostCorrect`. */
+  correct: Record<string, number>
+}
+
+/**
+ * Scoreboard rows, highest score first: one per team with its members, plus players
+ * without a team, or one per player when the game has no teams. Rows with the same score
+ * share a place, unless `rank` breaks the tie by correct answers.
+ */
+export function buildScoreEntries(
+  players: Player[],
+  teams: Team[],
+  rank: RankOptions = { rankTies: 'share', correct: {} }
+): ScoreEntry[] {
+  let entries: Omit<ScoreEntry, 'place'>[]
 
   if (teams.length > 0) {
     // Team rows with player breakdown
-    const teamEntries: ScoreEntry[] = teams.map(team => {
+    const teamEntries: Omit<ScoreEntry, 'place'>[] = teams.map(team => {
       const members = players
         .filter(p => p.teamId === team.id)
         .map(p => ({ id: p.id, name: p.name, score: p.score }))
@@ -222,7 +251,7 @@ export function buildScoreEntries(players: Player[], teams: Team[]): ScoreEntry[
     })
 
     // Solo players (no team)
-    const soloEntries: ScoreEntry[] = players
+    const soloEntries: Omit<ScoreEntry, 'place'>[] = players
       .filter(p => !p.teamId)
       .map(p => ({ id: p.id, name: p.name, score: p.score, teamId: null, kind: 'player' }))
 
@@ -237,8 +266,16 @@ export function buildScoreEntries(players: Player[], teams: Team[]): ScoreEntry[
     }))
   }
 
-  // Sort by score descending
-  return [...entries].sort((a, b) => b.score - a.score)
+  const byCorrect = rank.rankTies === 'mostCorrect'
+  const correct = (id: string) => (byCorrect ? (rank.correct[id] ?? 0) : 0)
+  const sorted = [...entries].sort((a, b) => b.score - a.score || correct(b.id) - correct(a.id))
+  const placed: ScoreEntry[] = []
+  sorted.forEach((entry, i) => {
+    const prev = placed[i - 1]
+    const tied = prev && prev.score === entry.score && correct(prev.id) === correct(entry.id)
+    placed.push({ ...entry, place: tied ? prev.place : i + 1 })
+  })
+  return placed
 }
 
 /**
@@ -276,6 +313,13 @@ export function useScoreboard(game: Game, questionId: string | null = null): Use
   const teams =
     useLiveQuery(() => db.teams.where('gameId').equals(game.id).toArray(), [game.id]) ?? []
   const difficulties = useLiveQuery(() => db.difficulties.orderBy('order').toArray(), []) ?? []
+  const correct = useLiveQuery(
+    async () =>
+      game.rankTies === 'mostCorrect'
+        ? correctCounts(await db.scoreEvents.where('gameId').equals(game.id).toArray())
+        : {},
+    [game.id, game.rankTies]
+  )
   const gameRef = useRef(game)
   const questionIdRef = useRef(questionId)
   useEffect(() => {
@@ -317,7 +361,10 @@ export function useScoreboard(game: Game, questionId: string | null = null): Use
     [update]
   )
 
-  const entries = buildScoreEntries(players, teams)
+  const entries = buildScoreEntries(players, teams, {
+    rankTies: game.rankTies,
+    correct: correct ?? {},
+  })
 
   return { entries, adjust, set, defaultIncrement }
 }

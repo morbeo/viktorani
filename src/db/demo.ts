@@ -213,6 +213,7 @@ export async function seedDemo(): Promise<void> {
     answersClose: 'perQuestion',
     teamAnswering: 'anyone',
     holdScores: false,
+    rankTies: 'share',
     scoresAnnouncedAt: null,
     autoStartTimerOnQuestionShow: false,
     defaultTimerDuration: 60,

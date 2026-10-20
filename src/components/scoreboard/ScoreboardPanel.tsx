@@ -20,6 +20,7 @@ const REASON_LABELS: Record<ScoreChangeReason, string> = {
   step: 'adjusted',
   set: 'set',
   correct: 'correct answer',
+  retract: 'correct answer taken back',
 }
 
 /** How many score changes the history shows. */
@@ -122,7 +123,7 @@ export function ScoreboardPanel({ game, questionId = null }: ScoreboardPanelProp
             </tr>
           </thead>
           <tbody>
-            {entries.flatMap((entry, rank) => {
+            {entries.flatMap(entry => {
               const isExpanded = expanded.has(entry.id)
               const hasMembers = entry.kind === 'team' && entry.members && entry.members.length > 0
 
@@ -137,10 +138,10 @@ export function ScoreboardPanel({ game, questionId = null }: ScoreboardPanelProp
                   onAdjust={delta => void handleAdjust(entry.id, entry.kind, delta)}
                   onSet={to => void handleSet(entry.id, entry.kind, entry.score, to)}
                   rank={
-                    rank === 0 ? (
+                    entry.place === 1 ? (
                       <Icon icon={Medal} size="sm" className="text-[var(--color-accent)] mx-auto" />
                     ) : (
-                      rank + 1
+                      entry.place
                     )
                   }
                   label={

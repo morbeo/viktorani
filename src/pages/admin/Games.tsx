@@ -405,6 +405,7 @@ function GameWizard({
         answersClose: state.answersClose,
         teamAnswering: state.teamAnswering,
         holdScores: state.holdScores,
+        rankTies: state.rankTies,
         scoresAnnouncedAt: null,
         autoStartTimerOnQuestionShow: state.autoStartTimerOnQuestionShow,
         defaultTimerDuration: state.defaultTimerDuration,

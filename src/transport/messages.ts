@@ -237,7 +237,9 @@ export const GameEventSchemas = {
   SCREEN_ACCEPTED: z.strictObject({ type: z.literal('SCREEN_ACCEPTED') }),
   SCOREBOARD: z.strictObject({
     type: z.literal('SCOREBOARD'),
-    rows: z.array(z.strictObject({ id, name, score: z.number() })).max(MAX_SCOREBOARD_ROWS),
+    rows: z
+      .array(z.strictObject({ id, name, score: z.number(), place: z.number().int().min(1) }))
+      .max(MAX_SCOREBOARD_ROWS),
   }),
   MESSAGE: z.strictObject({
     type: z.literal('MESSAGE'),
