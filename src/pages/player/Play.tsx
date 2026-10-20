@@ -12,6 +12,7 @@ import { MAX_NAME_LENGTH } from '@/transport/messages'
 import { LayoutRenderer } from '@/widgets/LayoutRenderer'
 import { resolveLayout } from '@/widgets/layouts'
 import { getDeviceId } from './device-id'
+import { useFocusReport } from './focus-report'
 import { OpenQuestions } from './OpenQuestions'
 import type { SentAnswer } from './OpenQuestions'
 import { teamAnswerView } from './team-answer'
@@ -48,7 +49,7 @@ async function rejoin(roomId: string, name: string) {
  * follows the host's buzzer lock, the player's score and the host's timers. Opened without
  * a session (a reload or a shared link), or after losing the host, it reconnects and rejoins
  * by device id, retrying a few times before offering a Reconnect button. Reports
- * tab switches as FOCUS_CHANGE. Follows the host's pause, and shows the final score once
+ * leaving the game (tab or app switch, window blur) as FOCUS_CHANGE. Follows the host's pause, and shows the final score once
  * the game has ended. Shows the host's latest message until the player dismisses it.
  */
 export default function Play() {
@@ -110,14 +111,11 @@ export default function Play() {
     })
   }, [reconnect])
 
-  // Tell the host when the player switches away from the tab and back
-  useEffect(() => {
-    if (!joined) return
-    const onVisibility = () =>
-      transportManager.send({ type: 'FOCUS_CHANGE', away: document.hidden })
-    document.addEventListener('visibilitychange', onVisibility)
-    return () => document.removeEventListener('visibilitychange', onVisibility)
-  }, [joined])
+  // Tell the host when the player leaves the game (another app, tab or window) and comes back
+  useFocusReport(
+    joined,
+    useCallback((away: boolean) => transportManager.send({ type: 'FOCUS_CHANGE', away }), [])
+  )
 
   function choose(questionId: string, choice: number) {
     transportManager.send({ type: 'ANSWER', questionId, choice, text: null })
