@@ -127,6 +127,7 @@ Epic: #364. Scope and dependency order are in the epic body: widget registry →
 - [x] Designer: templates, undo/redo, device previews, keyboard editing (#413)
 - [x] Phase-based automatic layout switching and the GM override (#414) — ADR 0019
 - [x] Assign layouts per surface and phase in game settings (#415) — ADR 0020
+- [x] Widget previews: canvas boxes show each widget with sample data, and palette items preview on hover or focus (#503)
 
 ## Decisions (2026-10-19)
 

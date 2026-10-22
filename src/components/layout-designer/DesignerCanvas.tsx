@@ -1,9 +1,12 @@
 import { useRef, useState } from 'react'
 import type { DragEvent, KeyboardEvent, PointerEvent } from 'react'
-import type { GridRect, LayoutBreakpoint, Widget, WidgetType } from '@/db'
+import type { GridRect, LayoutBreakpoint, LayoutTarget, Widget, WidgetType } from '@/db'
 import { GRID_COLUMNS, resolveRect } from '@/lib/layout-grid'
 import { moveRect, pixelsToCells, pointToCell, resizeRect } from '@/lib/layout-designer'
 import { WIDGET_REGISTRY } from '@/widgets/registry'
+import { canPreview } from './sample-data'
+import type { PreviewSample } from './sample-data'
+import { WidgetPreview } from './WidgetPreview'
 
 /** Height of one grid row on the canvas, in pixels; matches `auto-rows-[48px]`. */
 export const CANVAS_ROW_HEIGHT = 48
@@ -13,6 +16,10 @@ export const WIDGET_DRAG_TYPE = 'application/x-viktorani-widget'
 
 interface DesignerCanvasProps {
   widgets: Widget[]
+  /** The layout's surface, which decides how each widget's preview looks. */
+  target: LayoutTarget
+  /** Data for the widgets' previews; without it, boxes show only their names. */
+  sample?: PreviewSample
   /** Device class whose placement is shown and edited; `null` is the base grid. */
   breakpoint: LayoutBreakpoint | null
   selectedId: string | null
@@ -49,7 +56,8 @@ interface Gesture {
 }
 
 /**
- * The editing canvas: each widget as a labelled box on the 12-column grid. Drag a box to
+ * The editing canvas: each widget as a labelled box on the 12-column grid, showing a
+ * half-size preview of the widget where its surface has sample data (player and screen). Drag a box to
  * move it, drag its corner to resize it, click it to select it, and drop palette items on
  * an empty spot to add them. Positions snap to whole cells and stay on the grid; the move
  * is saved when the pointer is released.
@@ -59,6 +67,8 @@ interface Gesture {
  */
 export function DesignerCanvas({
   widgets,
+  target,
+  sample,
   breakpoint,
   selectedId,
   onSelect,
@@ -178,6 +188,7 @@ export function DesignerCanvas({
           const label = WIDGET_REGISTRY[widget.type].label
           const selected = widget.id === selectedId
           const overridden = breakpoint !== null && !!widget.breakpoints[breakpoint]
+          const preview = sample && canPreview(widget.type, target)
           return (
             <div
               key={widget.id}
@@ -189,7 +200,9 @@ export function DesignerCanvas({
               onPointerDown={e => begin(e, widget, 'move')}
               aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Shift+ArrowRight Shift+ArrowDown Control+D Delete"
               onKeyDown={e => handleKey(e, widget)}
-              className={`relative z-10 m-0.5 flex items-center justify-center rounded border-2 text-sm font-medium cursor-move touch-none ${
+              className={`relative z-10 m-0.5 flex overflow-hidden rounded border-2 text-sm font-medium cursor-move touch-none ${
+                preview ? 'items-start justify-start' : 'items-center justify-center'
+              } ${
                 selected
                   ? 'border-(--color-accent) bg-(--color-accent-subtle)'
                   : 'border-(--color-border) bg-(--color-surface)'
@@ -199,12 +212,28 @@ export function DesignerCanvas({
                 gridRow: `${rect.y + 1} / span ${rect.h}`,
               }}
             >
-              <span className="truncate px-2 text-(--color-text)">
+              {preview && (
+                <WidgetPreview
+                  type={widget.type}
+                  config={widget.config}
+                  target={target}
+                  sample={sample}
+                  className="absolute inset-0 opacity-70"
+                />
+              )}
+              <span
+                className={`relative truncate px-2 text-(--color-text) ${
+                  preview
+                    ? 'm-1 rounded border border-(--color-border) bg-(--color-surface) text-xs shadow-sm'
+                    : ''
+                }`}
+              >
                 {label}
                 {overridden && <span className="text-(--color-muted)"> · own placement</span>}
               </span>
               <span
                 aria-hidden
+                data-resize-handle
                 onPointerDown={e => begin(e, widget, 'resize')}
                 className="absolute right-0 bottom-0 h-4 w-4 cursor-se-resize rounded-tl bg-(--color-border)"
               />

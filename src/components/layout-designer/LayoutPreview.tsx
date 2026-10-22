@@ -1,7 +1,6 @@
-import { useLiveQuery } from 'dexie-react-hooks'
 import type { Layout, LayoutBreakpoint, Widget } from '@/db'
 import { LayoutRenderer } from '@/widgets/LayoutRenderer'
-import { loadPreviewSample, samplePlayerData, sampleScreenData } from './sample-data'
+import { samplePlayerData, sampleScreenData, usePreviewSample } from './sample-data'
 
 interface LayoutPreviewProps {
   layout: Layout
@@ -17,7 +16,7 @@ interface LayoutPreviewProps {
  * from the running game page, so they show the editing canvas only.
  */
 export function LayoutPreview({ layout, widgets, breakpoint, gameId }: LayoutPreviewProps) {
-  const sample = useLiveQuery(() => loadPreviewSample(gameId), [gameId])
+  const sample = usePreviewSample(gameId)
   const bundle = { layout, widgets }
   const frame = 'rounded border border-(--color-border) bg-(--color-bg) text-(--color-text)'
 

@@ -1,7 +1,9 @@
+import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
-import type { Question } from '@/db'
+import type { LayoutTarget, Question, WidgetType } from '@/db'
 import type { GameEvent, ScoreboardRow } from '@/transport/types'
 import { buildScoreEntries } from '@/hooks/useScoreboard'
+import { WIDGET_REGISTRY } from '@/widgets/registry'
 import type { PlayerData, ScreenData } from '@/widgets/types'
 
 type QuestionContent = Extract<GameEvent, { type: 'QUESTION_CONTENT' }>
@@ -62,6 +64,19 @@ export async function loadPreviewSample(gameId: string | null): Promise<PreviewS
     question: content(first ?? FALLBACK_QUESTION),
     rows: rows.length ? rows : FALLBACK_ROWS,
   }
+}
+
+/**
+ * Whether a widget of `type` can be previewed on `target`: only the player and screen
+ * surfaces have sample data, and the widget needs a component there.
+ */
+export function canPreview(type: WidgetType, target: LayoutTarget): boolean {
+  return (target === 'player' || target === 'screen') && !!WIDGET_REGISTRY[type].components[target]
+}
+
+/** {@link loadPreviewSample} for `gameId`, kept up to date; `undefined` while it loads. */
+export function usePreviewSample(gameId: string | null): PreviewSample | undefined {
+  return useLiveQuery(() => loadPreviewSample(gameId), [gameId])
 }
 
 /** What a player's phone would show with `sample`. */

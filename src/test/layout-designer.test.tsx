@@ -212,7 +212,7 @@ describe('layout designer', () => {
     const box = await screen.findByRole('button', { name: 'Question widget' })
     const canvas = screen.getByRole('application', { name: 'Layout canvas' })
     vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({ width: 1200 } as DOMRect)
-    const handle = box.querySelector('[aria-hidden]') as HTMLElement
+    const handle = box.querySelector('[data-resize-handle]') as HTMLElement
 
     fireEvent.pointerDown(handle, { button: 0, clientX: 400, clientY: 48, pointerId: 1 })
     fireEvent.pointerMove(handle, { clientX: 600, clientY: 96, pointerId: 1 })
@@ -331,6 +331,55 @@ describe('layout designer', () => {
     renderDesigner()
     await user.click(await screen.findByRole('button', { name: 'Preview' }))
     expect(await screen.findByText(/live preview isn.t available/)).toBeInTheDocument()
+  })
+
+  it('shows each widget on the canvas as a preview with sample data (#503)', async () => {
+    await db.layouts.put(LAYOUT)
+    await db.widgets.bulkPut([
+      widget('w1', { grid: { x: 0, y: 0, w: 12, h: 3 } }),
+      widget('w2', { type: 'scoreboard', order: 1, grid: { x: 0, y: 3, w: 6, h: 2 } }),
+    ])
+    renderDesigner()
+
+    const box = await screen.findByRole('button', { name: 'Question widget' })
+    await waitFor(() =>
+      expect(box.querySelector('[data-widget-preview="question"]')).not.toBeNull()
+    )
+    expect(box).toHaveTextContent(/Red Planet/)
+    const scores = screen.getByRole('button', { name: 'Scoreboard widget' })
+    expect(scores).toHaveTextContent('The Quizzly Bears')
+    // A picture only: nothing in it is reachable, and the box keeps its name
+    const preview = box.querySelector('[data-widget-preview]') as HTMLElement
+    expect(preview).toHaveAttribute('aria-hidden', 'true')
+    expect(preview).toHaveAttribute('inert')
+  })
+
+  it('keeps plain labelled boxes on the game master canvas', async () => {
+    await db.layouts.put({ ...LAYOUT, target: 'gamemaster' })
+    await db.widgets.put(widget('w1'))
+    renderDesigner()
+    const box = await screen.findByRole('button', { name: 'Question widget' })
+    expect(box.querySelector('[data-widget-preview]')).toBeNull()
+    expect(box).toHaveTextContent('Question')
+  })
+
+  it('previews a palette widget on hover and focus', async () => {
+    const user = userEvent.setup()
+    await db.layouts.put(LAYOUT)
+    renderDesigner()
+    const item = await screen.findByRole('button', { name: 'Add Leaderboard' })
+    const li = item.closest('li') as HTMLElement
+
+    await user.hover(item)
+    await waitFor(() =>
+      expect(li.querySelector('[data-widget-preview="leaderboard"]')).not.toBeNull()
+    )
+    expect(li).toHaveTextContent('The Quizzly Bears')
+    await user.unhover(item)
+    expect(li.querySelector('[data-widget-preview]')).toBeNull()
+
+    act(() => item.focus())
+    expect(li.querySelector('[data-widget-preview="leaderboard"]')).not.toBeNull()
   })
 
   it('adds a palette widget where it is dropped', async () => {
