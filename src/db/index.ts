@@ -246,7 +246,9 @@ export interface Game {
   /**
    * When players' answers close in a `choice` or `text` game: `perQuestion` when the host
    * moves on, `endOfRound` once the host closes the round's answers or leaves the round, so
-   * players can still answer the round's earlier questions.
+   * players can still answer the round's earlier questions. `wholeRound` closes like
+   * `endOfRound`, but players get every question of the round as soon as it starts, like a
+   * paper answer sheet.
    */
   answersClose: AnswersClose
   /**
@@ -461,7 +463,7 @@ export const REVEAL_TIMINGS = ['manual', 'perQuestion', 'endOfRound'] as const
 export type RevealTiming = (typeof REVEAL_TIMINGS)[number]
 
 /** When players' answers close: see {@link Game.answersClose}. */
-export const ANSWERS_CLOSE = ['perQuestion', 'endOfRound'] as const
+export const ANSWERS_CLOSE = ['perQuestion', 'endOfRound', 'wholeRound'] as const
 
 /** See {@link ANSWERS_CLOSE}. */
 export type AnswersClose = (typeof ANSWERS_CLOSE)[number]

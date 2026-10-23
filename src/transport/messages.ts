@@ -76,9 +76,9 @@ export const MAX_THEME_NAME_LENGTH = 60
 export const MAX_THEME_EVENT_LENGTH = 3_000_000
 /** Most questions a round review sends. */
 export const MAX_ROUND_ANSWERS = 200
-/** Most earlier questions an `OPEN_QUESTIONS` lists. */
+/** Most other questions an `OPEN_QUESTIONS` lists. */
 export const MAX_OPEN_QUESTIONS = 50
-/** Most answers a `TEAM_ANSWERS` lists: the open earlier questions and the one shown. */
+/** Most answers a `TEAM_ANSWERS` lists: the round's other open questions and the one shown. */
 export const MAX_TEAM_ANSWERS = MAX_OPEN_QUESTIONS + 1
 /** Most vote counts a `TEAM_ANSWERS` answer carries: the leading ones. */
 export const MAX_TEAM_VOTES = 10

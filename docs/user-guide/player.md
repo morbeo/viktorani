@@ -78,6 +78,13 @@ tap **Send**; you can send a new one until the host closes answers to the questi
 last one counts. The host marks typed answers, so spelling that's close enough can still be
 right. In a team game your answer is your team's, and a teammate can replace it.
 
+### Answer sheet
+
+Some games keep answers open until the end of the round. Then the round's other questions
+appear under **Other questions this round**, each with its number and an answer pad, and you
+can answer or change them until the host collects the round. In some games the whole round is
+there from the start, so you can answer in any order.
+
 ### Score
 
 Your score, and your team's score if you are on a team, is shown on your screen and

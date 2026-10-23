@@ -1,7 +1,13 @@
 // @vitest-pool vmForks
 import { describe, it, expect } from 'vitest'
 import type { GameQuestion, Round } from '@/db'
-import { buildNavSequence, getNavPosition, orderRounds, step } from '@/pages/admin/gamemaster-utils'
+import {
+  answerableEntries,
+  buildNavSequence,
+  getNavPosition,
+  orderRounds,
+  step,
+} from '@/pages/admin/gamemaster-utils'
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -202,5 +208,51 @@ describe('orderRounds', () => {
     const seq = buildNavSequence(gqs, orderRounds(['b', 'gone', 'a'], dbOrder))
     expect(seq.map(e => e.roundIdx)).toEqual([0, 1, 2])
     expect(seq.map(e => e.roundName)).toEqual(['First', 'Deleted round', 'Third'])
+  })
+})
+
+// ── answerableEntries ─────────────────────────────────────────────────────────
+
+describe('answerableEntries', () => {
+  // Round 1 has three questions, round 2 one
+  const seq = buildNavSequence(
+    [
+      makeGQ({ id: 'a', questionId: 'qa', order: 0 }),
+      makeGQ({ id: 'b', questionId: 'qb', order: 1 }),
+      makeGQ({ id: 'c', questionId: 'qc', order: 2 }),
+      makeGQ({ id: 'd', questionId: 'qd', roundId: 'r2', order: 3 }),
+    ],
+    [makeRound({ id: 'r1' }), makeRound({ id: 'r2', name: 'Round 2' })]
+  )
+  const ids = (entries: ReturnType<typeof answerableEntries>) => entries.map(e => e.gameQuestionId)
+
+  it('is only the question shown when answers close on moving on', () => {
+    expect(
+      ids(answerableEntries({ inputType: 'choice', answersClose: 'perQuestion' }, seq, 1))
+    ).toEqual(['b'])
+  })
+
+  it("is the round's questions shown so far when answers close at the end of the round", () => {
+    expect(
+      ids(answerableEntries({ inputType: 'text', answersClose: 'endOfRound' }, seq, 1))
+    ).toEqual(['a', 'b'])
+  })
+
+  it('is every question of the round with the whole round on phones', () => {
+    const game = { inputType: 'choice', answersClose: 'wholeRound' } as const
+    expect(ids(answerableEntries(game, seq, 0))).toEqual(['a', 'b', 'c'])
+    expect(ids(answerableEntries(game, seq, 3))).toEqual(['d'])
+  })
+
+  it('is only the question shown in a game that takes no answers on phones', () => {
+    expect(
+      ids(answerableEntries({ inputType: 'buzzer', answersClose: 'wholeRound' }, seq, 0))
+    ).toEqual(['a'])
+  })
+
+  it('is empty when nothing is shown', () => {
+    expect(answerableEntries({ inputType: 'choice', answersClose: 'wholeRound' }, seq, 9)).toEqual(
+      []
+    )
   })
 })

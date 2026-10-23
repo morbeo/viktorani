@@ -46,7 +46,7 @@ export interface PlayerSession {
   theme: ResolvedTheme | null
   /** The answers revealed in the host's end-of-round review; `null` when none is open. */
   roundAnswers: RoundAnswers | null
-  /** The round's earlier questions this player can still answer (see `OPEN_QUESTIONS`). */
+  /** The round's other questions this player can still answer (see `OPEN_QUESTIONS`). */
   openQuestions: OpenQuestion[]
   /** How the player's team decides its answers, and its current ones (see `TEAM_ANSWERS`). */
   teamAnswers: TeamAnswers | null

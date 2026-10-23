@@ -291,6 +291,13 @@ you click **Close answers** on the round sheet or leave the round. Leaving the r
 clicking **Next** into its answer review, closes them all and marks the choices. Revealing a
 question's answer also stops players answering it.
 
+To hand out the whole sheet at once, set **Close answers** to **Whole round on phones**. As
+soon as a round starts, phones list every question of the round, and players can answer them
+in any order while you read them out. Answers close the same way, with **Close answers** on
+the round sheet or by leaving the round, and that closes the questions you never showed too.
+Phones show each question's title and options only when **Show Question** and **Show Answers**
+are on for players; otherwise they show just its number, like a blank answer sheet.
+
 In a team game, each team has one answer per question. **Team answers** in the game's settings
 says how it's decided: **Anyone can change it** lets any member answer or change it, **First
 reply holds it** keeps the first member's answer (only they can change it), and **Captain

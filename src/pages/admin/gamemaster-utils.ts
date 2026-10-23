@@ -15,7 +15,7 @@ import type {
   SerializedGameState,
   VisibilityTarget,
 } from '@/transport/types'
-import { answerKind, choiceOptions, tallyVotes, teamCaptain } from '@/db/answers'
+import { answerKind, choiceOptions, keepsAnswersOpen, tallyVotes, teamCaptain } from '@/db/answers'
 import {
   MAX_LABEL_LENGTH,
   MAX_LOBBY_TEAMS,
@@ -210,7 +210,7 @@ export function buildTeamAnswers(
 }
 
 /**
- * Builds the OPEN_QUESTIONS for players from the round's earlier questions still open to
+ * Builds the OPEN_QUESTIONS for players from the round's other questions still open to
  * answers, each with its place in the round. Like `QUESTION_CONTENT`, the title needs
  * `showQuestion` and the options `showAnswers`; the correct answer and media are never sent.
  * `inputType` says whether players pick an option or type ({@link answerKind}: an open-ended
@@ -509,6 +509,24 @@ export function getNavPosition(
  */
 export function step(seq: NavEntry[], flatIndex: number, dir: 1 | -1): number {
   return Math.max(0, Math.min(seq.length - 1, flatIndex + dir))
+}
+
+/**
+ * The questions players may answer while the one at `flatIndex` is shown (ADR 0023), in
+ * order: only that one, unless the game keeps answers open until the end of the round
+ * ({@link keepsAnswersOpen}). Then it is the round's questions shown so far, or with
+ * `wholeRound` every question of the round. Empty when nothing is shown. Pure function.
+ */
+export function answerableEntries(
+  game: Pick<Game, 'inputType' | 'answersClose'>,
+  seq: NavEntry[],
+  flatIndex: number
+): NavEntry[] {
+  const current = seq[flatIndex]
+  if (!current) return []
+  if (!keepsAnswersOpen(game)) return [current]
+  const round = seq.filter(e => e.roundId === current.roundId)
+  return game.answersClose === 'wholeRound' ? round : round.filter(e => e.flatIndex <= flatIndex)
 }
 
 // ── GameQuestion status transitions ──────────────────────────────────────────
