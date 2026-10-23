@@ -491,7 +491,7 @@ export default function GameMaster() {
     for (const connId of screensRef.current) transportManager.sendTo(connId, content)
   }, [])
 
-  // The round's earlier questions still open to answers go to admitted players only
+  // The round's other questions still open to answers go to admitted players only
   const handleOpenQuestions = useCallback((event: OpenQuestionsEvent) => {
     openQuestionsRef.current = event.questions.length > 0 ? event : null
     for (const connId of connectionsRef.current.connections()) {

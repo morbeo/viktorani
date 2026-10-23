@@ -108,7 +108,7 @@ No tracking epic; standalone issues/PRs in the gamemaster area.
 - [x] Keep answers open until the end of the round, like an answer sheet
 - [x] Team answering modes: anyone, first reply, captain (#481)
 - [x] Team voting (#481)
-- [ ] Answers stay open until the host collects the round, with every question of the round on phones (ADR 0023)
+- [x] Answers stay open until the host collects the round, with every question of the round on phones (ADR 0023)
 - [x] Tied scores: share the place, or rank by most correct answers, part of #424's scope
 - [x] Spectator join, part of #424's scope
 - [x] Local-network-only join, the last of #424's scope (the player cap shipped in #432, confirm-navigation in #434, and "floor scores at zero" already holds)
@@ -129,6 +129,11 @@ Epic: #364. Scope and dependency order are in the epic body: widget registry →
 - [x] Assign layouts per surface and phase in game settings (#415) — ADR 0020
 - [x] Scoreboard window: Open scoreboard shows the game's scoreboard layout (leaderboard, game log, text, image) with live scores and the public log, choosable per game and previewed in the designer (#502)
 - [x] Widget previews: canvas boxes show each widget with sample data, and palette items preview on hover or focus (#503)
+
+## Decisions (2026-10-23)
+
+- **Whole round on phones (ADR 0023):** `Game.answersClose` gains `wholeRound`, so no new field and no Dexie version: snapshots and saved settings take it through the same `ANSWERS_CLOSE` enum. It closes like `endOfRound`, but `OPEN_QUESTIONS` lists every other question of the round from the start, under the player visibility flags and without answers or media. `answerableEntries` decides which questions players may answer, for the answer handler, `TEAM_ANSWERS`, the round sheet and closing the round, which now also closes questions the host never showed. Phones head the list **Other questions this round**.
+- **Next up:** every phase on this roadmap is done. Candidates: remote scoreboard devices (in progress), the AI tools of ADR 0021, and an automatic `scoreboard` phase (ADR 0019).
 
 ## Decisions (2026-10-19)
 

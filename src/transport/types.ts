@@ -149,9 +149,10 @@ export type GameEvent =
    */
   | { type: 'ROUND_ANSWERS'; target: VisibilityTarget; review: RoundAnswers | null }
   /**
-   * The round's earlier questions players can still answer, in a game that keeps answers
-   * open until the end of the round (see `Game.answersClose`); empty when there are none.
-   * Sent to players whenever the list changes and on admit. The question shown is not in it.
+   * The round's other questions players can still answer, in a game that keeps answers
+   * open until the end of the round (see `Game.answersClose`): the earlier ones, or with
+   * `wholeRound` the later ones too; empty when there are none. Sent to players whenever the
+   * list changes and on admit. The question shown is not in it.
    */
   | { type: 'OPEN_QUESTIONS'; questions: OpenQuestion[] }
   /**
@@ -168,7 +169,7 @@ export type GameEvent =
       answers: TeamAnswer[]
     }
 
-/** An earlier question of the round players can still answer, as sent in `OPEN_QUESTIONS`. */
+/** Another question of the round players can still answer, as sent in `OPEN_QUESTIONS`. */
 export interface OpenQuestion {
   questionId: string
   /** Position of the question in its round, from 1. */

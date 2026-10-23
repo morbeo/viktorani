@@ -65,6 +65,7 @@ const INPUT_OPTIONS: Array<{ value: InputType; label: string }> = [
 const CLOSE_OPTIONS: Array<{ value: AnswersClose; label: string }> = [
   { value: 'perQuestion', label: 'When I move on' },
   { value: 'endOfRound', label: 'At the end of the round' },
+  { value: 'wholeRound', label: 'Whole round on phones' },
 ]
 
 const TEAM_ANSWER_OPTIONS: Array<{ value: TeamAnswering; label: string }> = [
@@ -217,7 +218,7 @@ export function GameSettingsForm({
       {(value.inputType === 'choice' || value.inputType === 'text') && (
         <Row
           label="Close answers"
-          help="When players can no longer answer a question. When I move on: as soon as you show the next question. At the end of the round: players can still answer the round's earlier questions until you click Close answers on the round sheet or leave the round, like handing in an answer sheet."
+          help="When players can no longer answer a question. When I move on: as soon as you show the next question. At the end of the round: players can still answer the round's earlier questions until you click Close answers on the round sheet or leave the round, like handing in an answer sheet. Whole round on phones: the same, but phones list every question of the round as soon as it starts, so players can answer them in any order."
         >
           <Segmented
             label="Close answers"

@@ -35,6 +35,7 @@ import type { MessagePanelProps } from '@/components/gamemaster/MessagePanel'
 import { Icon } from '@/components/ui'
 import { db } from '@/db'
 import {
+  answerableEntries,
   buildOpenQuestions,
   buildTeamAnswers,
   buildQuestionContent,
@@ -100,7 +101,7 @@ export interface ActiveGameProps {
    */
   onRoundAnswers?: (players: RoundAnswersEvent, screen: RoundAnswersEvent) => void
   /**
-   * Receives the round's earlier questions players can still answer whenever they change,
+   * Receives the round's other questions players can still answer whenever they change,
    * in a game that keeps answers open until the end of the round.
    */
   onOpenQuestions?: (event: OpenQuestionsEvent) => void
@@ -247,8 +248,8 @@ export function ActiveGame({
     const lastOfRound = current && next && next.roundId !== current.roundId
     // Answers kept open until the end of the round close before its answers are revealed
     if (pos && current && lastOfRound && keepsAnswersOpen(game)) {
-      for (const e of seq.slice(0, pos.flatIndex + 1)) {
-        if (e.roundId === current.roundId) await markAnswers(game, e.gameQuestionId, 'skipped')
+      for (const e of answerableEntries(game, seq, pos.flatIndex)) {
+        await markAnswers(game, e.gameQuestionId, 'skipped')
       }
     }
     if (
@@ -322,29 +323,24 @@ export function ActiveGame({
     )
   }, [question, playerVisibility, revealed, accepts, onQuestionContent])
 
-  // The current round's questions shown so far, oldest first: players may answer any of them
-  // still open in a game that keeps answers open until the end of the round, else only the
-  // question shown
+  // The questions players may answer, oldest first: any of them still open in a game that
+  // keeps answers open until the end of the round (the round's questions shown so far, or
+  // its every question with `wholeRound`), else only the question shown
   const current = pos ? seq[pos.flatIndex] : undefined
-  const roundSoFar = useMemo(
-    () =>
-      pos && current
-        ? keepsAnswersOpen(game)
-          ? seq.slice(0, pos.flatIndex + 1).filter(e => e.roundId === current.roundId)
-          : [current]
-        : [],
-    [game, pos, seq, current]
+  const answerableNow = useMemo(
+    () => (pos ? answerableEntries(game, seq, pos.flatIndex) : []),
+    [game, pos, seq]
   )
 
-  // Send players the round's earlier questions still open to answers whenever they change
+  // Send players the round's other questions still open to answers whenever they change
   const roundStart = current ? seq.findIndex(e => e.roundId === current.roundId) : 0
-  const openEarlier = roundSoFar
+  const openOthers = answerableNow
     .filter(e => e !== current && e.questionStatus === 'pending')
     .map(e => `${e.gameQuestionId}:${e.questionId}:${e.flatIndex - roundStart + 1}`)
     .join()
   const openRows = useLiveQuery(async () => {
-    if (!openEarlier) return []
-    const items = openEarlier.split(',').map(item => {
+    if (!openOthers) return []
+    const items = openOthers.split(',').map(item => {
       const [gameQuestionId, questionId, number] = item.split(':')
       return { gameQuestionId, questionId, number: Number(number) }
     })
@@ -357,7 +353,7 @@ export function ActiveGame({
       const question = qs[i]
       return question && !gqs[i]?.revealed ? [{ number: item.number, question }] : []
     })
-  }, [openEarlier])
+  }, [openOthers])
   const openInputType =
     game.inputType === 'choice' || game.inputType === 'text' ? game.inputType : null
   const sentOpenRef = useRef(false)
@@ -375,7 +371,7 @@ export function ActiveGame({
 
   // Send each team its answering mode and its answers to the questions still open, so
   // teammates see the team's answer whenever it changes
-  const answerable = roundSoFar
+  const answerable = answerableNow
     .filter(e => e.questionStatus === 'pending')
     .map(e => `${e.gameQuestionId}:${e.questionId}`)
     .join()
@@ -447,12 +443,17 @@ export function ActiveGame({
   const reviewRound = review ? seq.find(e => e.roundId === review.roundId) : undefined
   const reviewRows = useLiveQuery(() => roundRows(review?.roundId), [roundRows, review?.roundId])
 
-  // The round whose answer sheet the host has open, and its questions shown so far: one not
-  // yet reached has no answers, and closing the round's answers must leave it open
+  // The round whose answer sheet the host has open, and its questions players could answer so
+  // far: one not yet reached has no answers, and closing the round's answers must leave it
+  // open. With `wholeRound` that is every question of the round shown.
   const [markingRoundId, setMarkingRoundId] = useState<string | null>(null)
   const markingRound = markingRoundId ? seq.find(e => e.roundId === markingRoundId) : undefined
   // From the navigation position, so it is known before the question's row has loaded
-  const shownIds = (pos ? seq.slice(0, pos.flatIndex + 1) : []).map(e => e.gameQuestionId).join()
+  const lastAnswerable = answerableNow.at(-1)?.flatIndex ?? pos?.flatIndex ?? -1
+  const shownIds = seq
+    .slice(0, lastAnswerable + 1)
+    .map(e => e.gameQuestionId)
+    .join()
   const markingRows = useLiveQuery(async () => {
     const shown = new Set(shownIds.split(','))
     return (await roundRows(markingRoundId ?? undefined)).filter(r => shown.has(r.gameQuestion.id))
@@ -609,16 +610,16 @@ export function ActiveGame({
   }, [buzzHandlerRef, handleIncomingBuzz])
 
   // Hand the parent's transport listener a handler for answers to the question shown (or,
-  // in a game that keeps answers open, any of the round's questions shown so far), in a game
+  // in a game that keeps answers open, any of the round's questions players may answer), in a game
   // that takes them; cleared on unmount and when the question changes. `recordAnswer` checks
   // the question is still open and the answer is the kind the game takes.
   useEffect(() => {
     if (!answerHandlerRef) return
-    if (!openInputType || roundSoFar.length === 0) {
+    if (!openInputType || answerableNow.length === 0) {
       answerHandlerRef.current = null
       return
     }
-    const open = new Map(roundSoFar.map(e => [e.questionId, e.gameQuestionId]))
+    const open = new Map(answerableNow.map(e => [e.questionId, e.gameQuestionId]))
     answerHandlerRef.current = async (playerId, questionId, input, receivedAt) => {
       const gameQuestionId = open.get(questionId)
       if (!gameQuestionId) return
@@ -627,7 +628,7 @@ export function ActiveGame({
     return () => {
       answerHandlerRef.current = null
     }
-  }, [answerHandlerRef, game.id, openInputType, roundSoFar])
+  }, [answerHandlerRef, game.id, openInputType, answerableNow])
 
   // Space = toggle buzzer lock
   useEffect(() => {

@@ -5,7 +5,13 @@ import { updateQuestionStatus } from '@/db/games'
 import { keepsAnswersOpen, markAnswers } from '@/db/answers'
 import { logEvent } from '@/db/game-log'
 import { transportManager } from '@/transport'
-import { buildNavSequence, getNavPosition, orderRounds, step } from '@/pages/admin/gamemaster-utils'
+import {
+  answerableEntries,
+  buildNavSequence,
+  getNavPosition,
+  orderRounds,
+  step,
+} from '@/pages/admin/gamemaster-utils'
 import type { Game, GameQuestion } from '@/db'
 import type { NavEntry, NavPosition } from '@/pages/admin/gamemaster-utils'
 
@@ -100,17 +106,15 @@ export function useNavigation(
       // Persist to DB
       // Moving on closes the question: players' choices are marked, and one nobody
       // answered is skipped. A game that keeps answers open until the end of the round
-      // closes the round's questions shown so far when the host leaves the round instead.
+      // closes the round's questions players could answer when the host leaves the round
+      // instead.
       if (dir === 1) {
         const leaving = seq[pos.flatIndex]
         const ids = !keepsAnswersOpen(game)
           ? [leaving.gameQuestionId]
           : seq[nextFlat].roundId === leaving.roundId
             ? []
-            : seq
-                .slice(0, pos.flatIndex + 1)
-                .filter(e => e.roundId === leaving.roundId)
-                .map(e => e.gameQuestionId)
+            : answerableEntries(game, seq, pos.flatIndex).map(e => e.gameQuestionId)
         for (const id of ids) {
           await markAnswers(game, id, 'skipped')
           await updateQuestionStatus(id, 'left')

@@ -64,6 +64,25 @@ ignoring case and spacing. Points come from the answer's ruling, through the sam
 `GameQuestion.status` stays as the summary the navigation and auto-advance read: `correct`
 when any answer (or the host ruling) is correct, `incorrect` when all were judged wrong.
 
+### 2a. Answers can stay open for the whole round
+
+`Game.answersClose` says when players can no longer answer, in a `choice` or `text` game:
+
+- `perQuestion`: when the host moves on, rules or closes the question's answers.
+- `endOfRound`: moving on leaves the question open. Players can still answer the round's
+  questions shown so far until the host closes the round's answers on the round sheet or
+  leaves the round, like handing in an answer sheet.
+- `wholeRound`: closes like `endOfRound`, but phones list every question of the round as
+  soon as the round starts, so players can answer them in any order while the host reads them
+  out. Leaving the round, or Close answers on the round sheet, closes them all, including any
+  the host never showed.
+
+`answerableEntries` is the one place that says which questions players may answer: the host's
+answer handler, `OPEN_QUESTIONS`, `TEAM_ANSWERS`, the round sheet and closing the round all use
+it. `OPEN_QUESTIONS` sends the round's other open questions with the visibility flags of the
+player target, and never their answers or media, so a question not yet shown leaks nothing the
+host hasn't chosen to show on phones.
+
 ### 3. Reveal timing is a game setting, separate from ruling
 
 Ruling never reveals anything to players. Revealing the correct answer is its own step, set by
@@ -124,6 +143,8 @@ Player answers are untrusted input, and the correct answer is a secret until rev
 4. `inputType` with `choice`, the `answers` table and automatic judging (done).
 5. `text` answers and host marking (done). Typed answers are marked on the question's panel,
    one by one or all matching at once, before or after the question closes.
+6. `answersClose` with `endOfRound` (done), then `wholeRound`, every question of the round on
+   phones (done).
 
 Each step ships on its own and leaves the game playable.
 

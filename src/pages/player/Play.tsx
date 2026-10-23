@@ -61,7 +61,7 @@ export default function Play() {
   useRemoteTheme(session.theme)
   const [problem, setProblem] = useState<Problem | null>(null)
   const [buzzed, setBuzzed] = useState(false)
-  // What this phone sent for each question, so earlier questions of the round keep theirs
+  // What this phone sent for each question, so the round's other questions keep theirs
   const [sent, setSent] = useState<Record<string, SentAnswer>>({})
   const startedRef = useRef(false)
   const leftRef = useRef(false)

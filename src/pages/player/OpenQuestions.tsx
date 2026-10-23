@@ -19,9 +19,10 @@ interface OpenQuestionsProps {
 }
 
 /**
- * The round's earlier questions the player can still answer, in a game that keeps answers
- * open until the end of the round: each with its number, its title when the host shows it,
- * and an answer pad, like a paper answer sheet. Hidden when there are none.
+ * The round's other questions the player can still answer, in a game that keeps answers
+ * open until the end of the round: the earlier ones, or every one with the whole round on
+ * phones. Each has its number, its title when the host shows it, and an answer pad, like a
+ * paper answer sheet. Hidden when there are none.
  */
 export function OpenQuestions({
   questions,
@@ -34,9 +35,9 @@ export function OpenQuestions({
 }: OpenQuestionsProps) {
   if (questions.length === 0) return null
   return (
-    <section aria-label="Earlier questions" className="w-full max-w-sm flex flex-col gap-4">
+    <section aria-label="Other questions" className="w-full max-w-sm flex flex-col gap-4">
       <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">
-        Still open this round
+        Other questions this round
       </h2>
       {questions.map(q => {
         const view = teamAnswerView(team, q.questionId, playerId, sent[q.questionId])

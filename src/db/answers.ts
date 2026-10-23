@@ -30,11 +30,13 @@ export function answerKind(
 
 /**
  * Whether the game keeps players' answers open until the end of the round
- * ({@link Game.answersClose}): only in a game that takes answers on phones.
+ * ({@link Game.answersClose}, `endOfRound` or `wholeRound`): only in a game that takes
+ * answers on phones.
  */
 export function keepsAnswersOpen(game: Pick<Game, 'inputType' | 'answersClose'>): boolean {
   return (
-    game.answersClose === 'endOfRound' && (game.inputType === 'choice' || game.inputType === 'text')
+    game.answersClose !== 'perQuestion' &&
+    (game.inputType === 'choice' || game.inputType === 'text')
   )
 }
 

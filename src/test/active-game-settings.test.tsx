@@ -897,3 +897,141 @@ describe('ActiveGame: answers open until the end of the round', () => {
     expect((await db.players.get('p1'))?.score).toBe(1)
   })
 })
+
+// ── Whole round on phones ─────────────────────────────────────────────────────
+
+describe('ActiveGame: whole round on phones', () => {
+  async function seedWholeRound(roundIds = ['r1']) {
+    await db.games.put(makeGame({ inputType: 'choice', answersClose: 'wholeRound', roundIds }))
+    await Promise.all([db.players.clear(), db.answers.clear(), db.scoreEvents.clear()])
+    const base = {
+      type: 'multiple_choice' as const,
+      description: '',
+      difficulty: null,
+      tags: [],
+      media: null,
+      mediaType: null,
+      createdAt: 0,
+      updatedAt: 0,
+    }
+    await db.questions.bulkAdd([
+      {
+        ...base,
+        id: 'q1',
+        title: 'Capital of France?',
+        options: ['Lyon', 'Paris', 'Nice', 'Lille'],
+        answer: 'Paris',
+      },
+      {
+        ...base,
+        id: 'q2',
+        title: 'Largest planet?',
+        options: ['Mars', 'Jupiter'],
+        answer: 'Jupiter',
+      },
+    ])
+    await db.players.add({
+      id: 'p1',
+      gameId: 'g1',
+      name: 'Alice',
+      teamId: null,
+      score: 0,
+      presence: 'connected',
+      disconnectedAt: null,
+      deviceId: 'd',
+      joinedAt: 1,
+      notes: '',
+    })
+  }
+
+  it("sends phones the round's later questions and takes answers to them", async () => {
+    await seed()
+    await seedWholeRound()
+    const answerHandlerRef: { current: AnswerHandler | null } = { current: null }
+    const onOpenQuestions = vi.fn()
+    renderActiveGame(makeGame({ inputType: 'choice', answersClose: 'wholeRound' }), {
+      answerHandlerRef,
+      onOpenQuestions,
+    })
+
+    // The first question is shown; the second is already on phones
+    await waitFor(() =>
+      expect(onOpenQuestions.mock.calls.at(-1)?.[0].questions).toEqual([
+        expect.objectContaining({
+          questionId: 'q2',
+          number: 2,
+          choices: 2,
+          title: 'Largest planet?',
+        }),
+      ])
+    )
+    await waitFor(() => expect(answerHandlerRef.current).not.toBeNull())
+    await act(() => answerHandlerRef.current!('p1', 'q2', { choice: 1 }, 1))
+    expect(await db.answers.toArray()).toEqual([
+      expect.objectContaining({ gameQuestionId: 'gq2', choice: 1, ruling: 'pending' }),
+    ])
+  })
+
+  it('never sends the correct answer of a question not yet shown', async () => {
+    await seed()
+    await seedWholeRound()
+    const onOpenQuestions = vi.fn()
+    renderActiveGame(
+      makeGame({
+        inputType: 'choice',
+        answersClose: 'wholeRound',
+        visibility: {
+          players: { showQuestion: true, showAnswers: true, showMedia: true },
+          screen: { showQuestion: true, showAnswers: true, showMedia: true },
+        },
+      }),
+      { onOpenQuestions }
+    )
+
+    await waitFor(() => expect(onOpenQuestions).toHaveBeenCalled())
+    const sent = JSON.stringify(onOpenQuestions.mock.calls)
+    expect(sent).not.toContain('"answer"')
+    expect(onOpenQuestions.mock.calls.at(-1)?.[0].questions[0].options).toEqual(['Mars', 'Jupiter'])
+  })
+
+  it('closes and marks every question of the round when the host leaves it', async () => {
+    const user = userEvent.setup()
+    await db.rounds.bulkAdd([
+      { ...ROUND, questionIds: ['q1', 'q2'] },
+      { ...ROUND, id: 'r2', name: 'Round 2', questionIds: ['q3'] },
+    ])
+    await db.gameQuestions.bulkAdd([
+      makeGameQuestion(),
+      makeGameQuestion({ id: 'gq2', questionId: 'q2', order: 1 }),
+      makeGameQuestion({ id: 'gq3', questionId: 'q3', roundId: 'r2', order: 2 }),
+    ])
+    await seedWholeRound(['r1', 'r2'])
+    const answerHandlerRef: { current: AnswerHandler | null } = { current: null }
+    const game = makeGame({
+      inputType: 'choice',
+      answersClose: 'wholeRound',
+      roundIds: ['r1', 'r2'],
+    })
+    renderActiveGame(game, { answerHandlerRef })
+
+    // Answered the second question while the first was shown
+    await waitFor(() => expect(answerHandlerRef.current).not.toBeNull())
+    await act(() => answerHandlerRef.current!('p1', 'q2', { choice: 1 }, 1))
+
+    // Moving to the second question keeps both open
+    await user.click(await screen.findByRole('button', { name: 'Next question' }))
+    await waitFor(() =>
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'SLIDE_CHANGE', index: 1 })
+      )
+    )
+    expect((await db.gameQuestions.get('gq1'))?.status).toBe('pending')
+    expect((await db.gameQuestions.get('gq2'))?.status).toBe('pending')
+
+    // Leaving the round marks the choices and closes both
+    await user.click(await screen.findByRole('button', { name: 'Next question' }))
+    await waitFor(async () => expect((await db.gameQuestions.get('gq2'))?.status).toBe('correct'))
+    expect((await db.gameQuestions.get('gq1'))?.status).not.toBe('pending')
+    expect((await db.players.get('p1'))?.score).toBe(1)
+  })
+})
