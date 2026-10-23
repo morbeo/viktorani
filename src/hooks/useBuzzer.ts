@@ -3,6 +3,7 @@ import { db } from '@/db'
 import { logEvent } from '@/db/game-log'
 import { transportManager } from '@/transport'
 import { broadcastScores, writeScore } from '@/hooks/useScoreboard'
+import { alreadyAwarded } from '@/db/rulings'
 import type { Game, BuzzEvent, GmDecision } from '@/db'
 
 /** Return value of {@link useBuzzer}. */
@@ -175,6 +176,8 @@ export function useBuzzer(
           if (decision !== 'Correct' || !g.scoringEnabled) return { scored: false }
           const player = await db.players.get(buzz.playerId)
           if (!player) return { scored: false }
+          // A panel ruling or another buzz already awarded this question (#500)
+          if (questionId && (await alreadyAwarded(g.id, questionId))) return { scored: false }
 
           // Resolve score increment from question difficulty; fall back to 1
           let increment = 1

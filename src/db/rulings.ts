@@ -35,8 +35,11 @@ export async function revealQuestion(gameId: string, gameQuestionId: string): Pr
   return true
 }
 
-/** Whether `gameId` already has a correct-answer score for `questionId`. */
-async function alreadyAwarded(gameId: string, questionId: string): Promise<boolean> {
+/**
+ * Whether `gameId` already has a correct-answer score for `questionId`, from a ruling or a
+ * buzz. A question's points are awarded once, whichever way it was ruled.
+ */
+export async function alreadyAwarded(gameId: string, questionId: string): Promise<boolean> {
   const event = await db.scoreEvents
     .where('gameId')
     .equals(gameId)

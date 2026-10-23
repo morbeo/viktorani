@@ -11,6 +11,7 @@ vi.mock('@/transport', () => ({
 import { db } from '@/db'
 import { transportManager } from '@/transport'
 import { useBuzzer } from '@/hooks/useBuzzer'
+import { ruleQuestion } from '@/db/rulings'
 import { useGameLifecycle } from '@/hooks/useGameLifecycle'
 import type { BuzzEvent, Game, Player, Question } from '@/db'
 
@@ -294,6 +295,37 @@ describe('useBuzzer scoring (#246)', () => {
 
     expect((await db.players.get('p1'))?.score).toBe(1)
     expect(mockSend.mock.calls.filter(([m]) => m.type === 'SCORE_UPDATE')).toHaveLength(1)
+  })
+
+  it('awards nothing for a correct buzz after the question was ruled correct (#500)', async () => {
+    const game = makeGame({ buzzerLocked: false })
+    await Promise.all([
+      db.games.add(game),
+      db.players.add(player),
+      db.players.add({ ...player, id: 'p2', name: 'Bob', deviceId: 'd2' }),
+      db.questions.add({ ...question, difficulty: null }),
+      db.gameQuestions.add({
+        id: 'gq1',
+        gameId: 'g1',
+        questionId: 'q1',
+        roundId: 'r1',
+        order: 0,
+        status: 'pending',
+        revealed: false,
+      }),
+    ])
+    const { result } = renderBuzzer(game)
+    await buzz(result)
+
+    // The host marks the question correct on the panel, giving the points to Bob
+    await act(() => ruleQuestion(game, 'gq1', 'correct', { kind: 'player', id: 'p2' }))
+    await act(() => result.current.adjudicate(result.current.buzzes[0].id, 'Correct'))
+
+    expect((await db.buzzEvents.get(result.current.buzzes[0].id))?.gmDecision).toBe('Correct')
+    expect((await db.players.get('p1'))?.score).toBe(0)
+    expect((await db.players.get('p2'))?.score).toBe(1)
+    const correct = await db.scoreEvents.filter(e => e.reason === 'correct').toArray()
+    expect(correct).toHaveLength(1)
   })
 
   it('ignores a second decision on an already decided buzz', async () => {
