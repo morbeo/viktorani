@@ -51,6 +51,7 @@ const FIXTURES: { [K in TransportEvent['type']]: Extract<TransportEvent, { type:
   TIMER_PAUSE: { type: 'TIMER_PAUSE', id: 't1' },
   TIMER_RESUME: { type: 'TIMER_RESUME', id: 't1' },
   TIMER_RESET: { type: 'TIMER_RESET', id: 't1', duration: 60 },
+  TIMER_DELETE: { type: 'TIMER_DELETE', id: 't1' },
   TIMER_EXPIRED: { type: 'TIMER_EXPIRED', id: 't1', label: 'Round', audio: true, visual: false },
   GAME_STATE: {
     type: 'GAME_STATE',
@@ -372,6 +373,7 @@ describe('size limits', () => {
     ['TIMER_PAUSE.id', FIXTURES.TIMER_PAUSE, 'id', MAX_ID_LENGTH],
     ['TIMER_RESUME.id', FIXTURES.TIMER_RESUME, 'id', MAX_ID_LENGTH],
     ['TIMER_RESET.id', FIXTURES.TIMER_RESET, 'id', MAX_ID_LENGTH],
+    ['TIMER_DELETE.id', FIXTURES.TIMER_DELETE, 'id', MAX_ID_LENGTH],
     ['TIMER_EXPIRED.id', FIXTURES.TIMER_EXPIRED, 'id', MAX_ID_LENGTH],
     ['TIMER_EXPIRED.label', FIXTURES.TIMER_EXPIRED, 'label', MAX_LABEL_LENGTH],
   ] as const)('%s accepts max length and rejects one more', (_name, fixture, field, max) => {

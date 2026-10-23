@@ -46,6 +46,29 @@ describe('PlayerTimers — TIMER_RESET (#285)', () => {
   })
 })
 
+describe('PlayerTimers — TIMER_DELETE (#499)', () => {
+  it('stops showing a running timer the host deleted', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1_000_000)
+    render(<PlayerTimers />)
+    emit({ type: 'TIMER_START', id: 't1', duration: 60, label: 'Q' })
+    emit({ type: 'TIMER_START', id: 't2', duration: 30, label: 'R' })
+    expect(screen.getByText('01:00')).toBeInTheDocument()
+
+    emit({ type: 'TIMER_DELETE', id: 't1' })
+    expect(screen.queryByText('01:00')).toBeNull()
+    expect(screen.getByText('00:30')).toBeInTheDocument()
+  })
+
+  it("closes the deleted timer's expiry popup", () => {
+    render(<PlayerTimers />)
+    emit({ type: 'TIMER_EXPIRED', id: 't1', label: 'Q', audio: false, visual: true })
+    expect(screen.getByText("Time's up!")).toBeInTheDocument()
+
+    emit({ type: 'TIMER_DELETE', id: 't1' })
+    expect(screen.queryByText("Time's up!")).toBeNull()
+  })
+})
+
 describe('PlayerTimers — TIMER_EXPIRED', () => {
   it('shows the popup only when the host asks for it', () => {
     render(<PlayerTimers />)

@@ -211,6 +211,8 @@ describe('useTimerList', () => {
     expect(result.current.timers.find(x => x.id === timerId)).toBeUndefined()
     const dbRecord = await db.timers.get(timerId)
     expect(dbRecord).toBeUndefined()
+    // Players and screens drop it too (#499)
+    expect(transportManager.send).toHaveBeenCalledWith({ type: 'TIMER_DELETE', id: timerId })
   })
 
   it('remaining returns full duration for a paused-never-started timer', async () => {
@@ -269,9 +271,11 @@ describe('useTimerList', () => {
     const { result } = renderHook(() => useTimerList(GAME_ID))
     await flush()
 
+    let ids: string[] = []
     await act(async () => {
-      await result.current.createTimer({ gameId: GAME_ID, label: 'A', duration: 10 })
-      await result.current.createTimer({ gameId: GAME_ID, label: 'B', duration: 20 })
+      const a = await result.current.createTimer({ gameId: GAME_ID, label: 'A', duration: 10 })
+      const b = await result.current.createTimer({ gameId: GAME_ID, label: 'B', duration: 20 })
+      ids = [a.id, b.id]
     })
 
     expect(result.current.timers).toHaveLength(2)
@@ -281,6 +285,9 @@ describe('useTimerList', () => {
     })
 
     expect(result.current.timers).toHaveLength(0)
+    for (const id of ids) {
+      expect(transportManager.send).toHaveBeenCalledWith({ type: 'TIMER_DELETE', id })
+    }
   })
 
   it('hydrates from DB on mount (simulates page reload)', async () => {

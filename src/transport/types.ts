@@ -47,6 +47,8 @@ export type GameEvent =
   | { type: 'TIMER_RESUME'; id: string }
   /** Resets the named timer to its full duration, paused. */
   | { type: 'TIMER_RESET'; id: string; duration: number }
+  /** Removes the named timer; the host deleted it. */
+  | { type: 'TIMER_DELETE'; id: string }
   /** Notifies players that a timer has reached zero. */
   /** `audio` and `visual` say whether players should beep and show the expiry popup. */
   | { type: 'TIMER_EXPIRED'; id: string; label: string; audio: boolean; visual: boolean }

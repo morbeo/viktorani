@@ -177,6 +177,7 @@ export function useTimerList(gameId: string): UseTimerListResult {
   const deleteTimer = useCallback(async (id: string) => {
     await db.timers.delete(id)
     setTimers(prev => prev.filter(t => t.id !== id))
+    transportManager.send({ type: 'TIMER_DELETE', id })
   }, [])
 
   const pauseAll = useCallback(async () => {
@@ -192,8 +193,10 @@ export function useTimerList(gameId: string): UseTimerListResult {
   }, [restartTimer])
 
   const deleteAll = useCallback(async () => {
-    await db.timers.bulkDelete(timersRef.current.map(t => t.id))
+    const ids = timersRef.current.map(t => t.id)
+    await db.timers.bulkDelete(ids)
     setTimers([])
+    for (const id of ids) transportManager.send({ type: 'TIMER_DELETE', id })
   }, [])
 
   const autoReset = useCallback(

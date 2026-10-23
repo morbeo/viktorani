@@ -189,6 +189,7 @@ export const GameEventSchemas = {
     id,
     duration: z.number().nonnegative(),
   }),
+  TIMER_DELETE: z.strictObject({ type: z.literal('TIMER_DELETE'), id }),
   TIMER_EXPIRED: z.strictObject({
     type: z.literal('TIMER_EXPIRED'),
     id,
@@ -395,6 +396,7 @@ export const TransportEventSchema = z.discriminatedUnion('type', [
   GameEventSchemas.TIMER_PAUSE,
   GameEventSchemas.TIMER_RESUME,
   GameEventSchemas.TIMER_RESET,
+  GameEventSchemas.TIMER_DELETE,
   GameEventSchemas.TIMER_EXPIRED,
   GameEventSchemas.GAME_STATE,
   GameEventSchemas.VISIBILITY,
