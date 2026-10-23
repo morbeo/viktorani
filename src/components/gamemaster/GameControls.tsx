@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pause, Play, Square, ChevronLeft, Megaphone, Monitor } from 'lucide-react'
+import { Pause, Play, Square, ChevronLeft, Megaphone, Monitor, Trophy } from 'lucide-react'
 import { Button, Icon, ControlSizePicker } from '@/components/ui'
 import { EndGameModal } from '@/components/gamemaster/EndGameModal'
 import { GameSettingsDrawer } from '@/components/gamemaster/GameSettingsDrawer'
@@ -21,7 +21,8 @@ interface GameControlsProps {
  * Toolbar strip shown at the top of the active-game view.
  *
  * - "Back to games" navigates to /admin/games (always visible).
- * - "Open screen" opens the projector view in a second window.
+ * - "Open screen" opens the projector view in a second window, "Open scoreboard" the
+ *   scoreboard display.
  * - Pause / Resume toggle (active ↔ paused).
  * - End game button opens a confirmation modal.
  * - All controls are disabled when the game has ended.
@@ -60,16 +61,19 @@ export function GameControls({ game, onGameChange, lifecycle }: GameControlsProp
   }
   const canAnnounce = !isEnded && game.holdScores && game.scoringEnabled
 
-  // A named window, so pressing again brings the same screen back instead of opening another
-  function handleOpenScreen() {
+  // A named window, so pressing again brings the same one back instead of opening another
+  function handleOpen(surface: 'screen' | 'scoreboard') {
     const { pathname, search } = window.location
-    window.open(`${pathname}${search}#/admin/game/${game.id}/screen`, `viktorani-screen-${game.id}`)
+    window.open(
+      `${pathname}${search}#/admin/game/${game.id}/${surface}`,
+      `viktorani-${surface}-${game.id}`
+    )
   }
 
   // Palette commands call the latest handlers without re-registering on every render
-  const handlersRef = useRef({ handlePauseResume, handleOpenScreen, handleAnnounce })
+  const handlersRef = useRef({ handlePauseResume, handleOpen, handleAnnounce })
   useEffect(() => {
-    handlersRef.current = { handlePauseResume, handleOpenScreen, handleAnnounce }
+    handlersRef.current = { handlePauseResume, handleOpen, handleAnnounce }
   })
   const commands = useMemo<Command[]>(
     () =>
@@ -89,7 +93,15 @@ export function GameControls({ game, onGameChange, lifecycle }: GameControlsProp
               group: 'Game',
               icon: Monitor,
               keywords: 'projector display window',
-              run: () => handlersRef.current.handleOpenScreen(),
+              run: () => handlersRef.current.handleOpen('screen'),
+            },
+            {
+              id: 'gm:scoreboard',
+              label: 'Open scoreboard',
+              group: 'Game',
+              icon: Trophy,
+              keywords: 'scores leaderboard display window',
+              run: () => handlersRef.current.handleOpen('scoreboard'),
             },
             ...(canAnnounce
               ? [
@@ -154,9 +166,13 @@ export function GameControls({ game, onGameChange, lifecycle }: GameControlsProp
           </Button>
         )}
 
-        <Button variant="secondary" size="sm" onClick={handleOpenScreen}>
+        <Button variant="secondary" size="sm" onClick={() => handleOpen('screen')}>
           <Icon icon={Monitor} size="sm" />
           Open screen
+        </Button>
+        <Button variant="secondary" size="sm" onClick={() => handleOpen('scoreboard')}>
+          <Icon icon={Trophy} size="sm" />
+          Open scoreboard
         </Button>
 
         {/* Pause / Resume */}

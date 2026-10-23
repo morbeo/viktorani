@@ -2,7 +2,7 @@ import type { ComponentType } from 'react'
 import type { LayoutTarget, WidgetType } from '@/db'
 import { WIDGET_REGISTRY } from '@/widgets/registry'
 import type { WidgetProps } from '@/widgets/types'
-import { canPreview, samplePlayerData, sampleScreenData } from './sample-data'
+import { canPreview, samplePlayerData, sampleScoreboardData, sampleScreenData } from './sample-data'
 import type { PreviewSample } from './sample-data'
 
 interface WidgetPreviewProps {
@@ -33,7 +33,12 @@ export function WidgetPreview({
   if (!parsed.success) return null
   // Registry components are untyped (see `WidgetDefinition`); here they get widget props
   const Component = def.components[target] as ComponentType<WidgetProps<unknown>>
-  const data = target === 'player' ? samplePlayerData(sample) : sampleScreenData(sample)
+  const data =
+    target === 'player'
+      ? samplePlayerData(sample)
+      : target === 'scoreboard'
+        ? sampleScoreboardData(sample)
+        : sampleScreenData(sample)
 
   return (
     <div

@@ -325,6 +325,20 @@ describe('layout designer', () => {
     expect(board).toHaveTextContent('The Quizzly Bears')
   })
 
+  it('previews a scoreboard layout with sample scores (#502)', async () => {
+    const user = userEvent.setup()
+    await db.layouts.put({ ...LAYOUT, target: 'scoreboard' })
+    await db.widgets.put(widget('w1', { type: 'leaderboard' }))
+    renderDesigner()
+
+    const box = await screen.findByRole('button', { name: 'Leaderboard widget' })
+    await waitFor(() => expect(box).toHaveTextContent('The Quizzly Bears'))
+    await user.click(screen.getByRole('button', { name: 'Preview' }))
+    const preview = await screen.findByRole('region', { name: 'Preview' })
+    const board = await within(preview).findByRole('region', { name: 'Leaderboard' })
+    expect(board).toHaveTextContent('Les Quizerables')
+  })
+
   it('says the game master surface has no live preview', async () => {
     const user = userEvent.setup()
     await db.layouts.put({ ...LAYOUT, target: 'gamemaster' })

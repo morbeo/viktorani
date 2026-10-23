@@ -4,6 +4,8 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
 import type { Game, Timer } from '@/db'
 import { ScreenView } from '@/components/screen/ScreenView'
+import { ScoreboardView } from '@/components/scoreboard/ScoreboardView'
+import { readPublicLog } from '@/db/public-log'
 import { loadGameLayouts } from '@/db/layouts'
 import { useGameTheme } from '@/hooks/useAppTheme'
 import { loadBuzzesForQuestion } from '@/hooks/useBuzzer'
@@ -58,8 +60,15 @@ function ScreenTimers({ gameId }: { gameId: string }) {
   )
 }
 
-/** The screen layout with this game's scores and timers read from the local database. */
+/** Which window the page is: the projector screen, or a scoreboard display. */
+export type LocalSurface = 'screen' | 'scoreboard'
+
+/**
+ * The screen or scoreboard layout with this game's scores, log and timers read from the
+ * local database.
+ */
 function LocalScreen({
+  surface,
   game,
   heading,
   content,
@@ -67,6 +76,7 @@ function LocalScreen({
   revealed,
   roundAnswers,
 }: {
+  surface: LocalSurface
   game: Game
   heading: string
   content: ScreenData['content']
@@ -76,6 +86,7 @@ function LocalScreen({
 }) {
   // Held scores stay at the last announcement, as on remote screens
   const entries = useLiveQuery(() => readShownScoreEntries(game.id), [game.id])
+  const logEntries = useLiveQuery(() => readPublicLog(game.id), [game.id]) ?? []
   const layouts = useLiveQuery(() => loadGameLayouts(game.id), [game.id])
   // The same phase the GM's window works out, and the GM's override from it
   const buzzes = useLiveQuery(
@@ -84,6 +95,18 @@ function LocalScreen({
   )
   const [override] = usePhaseOverride(game.id)
   const phase = effectivePhase(autoPhase(game.status, buzzes ?? [], revealed), override)
+  const rows = game.scoringEnabled ? (entries ?? []) : []
+  if (surface === 'scoreboard') {
+    return (
+      <ScoreboardView
+        layouts={layouts}
+        phase={phase}
+        assignments={game.layoutAssignments?.scoreboard}
+        gameId={game.id}
+        data={{ rows, logEntries }}
+      />
+    )
+  }
   return (
     <ScreenView
       layouts={layouts}
@@ -95,8 +118,8 @@ function LocalScreen({
         heading,
         content,
         message: null,
-        rows: game.scoringEnabled ? (entries ?? []) : [],
-        logEntries: [],
+        rows,
+        logEntries,
         timers: <ScreenTimers gameId={game.id} />,
       }}
     />
@@ -104,13 +127,13 @@ function LocalScreen({
 }
 
 /**
- * The projector view of a game, opened by the GM in a second window on the host machine.
- * Like a remote screen, it shows held scores as of the last announcement.
- * Reads everything from the local database, so it follows navigation, the `screen`
- * visibility toggles, timers, scores, stored layouts and the layout phase live without a
- * transport connection.
+ * The projector view of a game, opened by the GM in a second window on the host machine,
+ * or with `surface="scoreboard"` the scoreboard display (#502). Like a remote screen, it
+ * shows held scores as of the last announcement. Reads everything from the local database,
+ * so it follows navigation, the `screen` visibility toggles, timers, scores, the public game
+ * log, stored layouts and the layout phase live without a transport connection.
  */
-export default function Screen() {
+export default function Screen({ surface = 'screen' }: { surface?: LocalSurface }) {
   const { id = '' } = useParams<{ id: string }>()
   const game = useLiveQuery(() => db.games.get(id).then(g => g ?? null), [id])
   useGameTheme(game?.themeId)
@@ -177,6 +200,7 @@ export default function Screen() {
 
   return (
     <LocalScreen
+      surface={surface}
       game={game}
       roundAnswers={roundAnswers}
       heading={heading}

@@ -57,7 +57,8 @@ interface Gesture {
 
 /**
  * The editing canvas: each widget as a labelled box on the 12-column grid, showing a
- * half-size preview of the widget where its surface has sample data (player and screen). Drag a box to
+ * half-size preview of the widget where its surface has sample data (all but
+ * the game master's). Drag a box to
  * move it, drag its corner to resize it, click it to select it, and drop palette items on
  * an empty spot to add them. Positions snap to whole cells and stay on the grid; the move
  * is saved when the pointer is released.

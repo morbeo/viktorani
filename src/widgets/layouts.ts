@@ -52,7 +52,7 @@ function stacked(target: LayoutTarget, phase: GamePhase | null, types: WidgetTyp
  * and the timers (the controls, navigation and side panel stay fixed around it). The
  * player's is the phone view: the host's message, the question, the buzz button and the
  * timers. Once the game has ended, the question (screen) and the buzzer and timers go. The
- * scoreboard surface doesn't render through `LayoutRenderer` yet.
+ * scoreboard's is the leaderboard.
  */
 export const BUILTIN_LAYOUTS: readonly LayoutBundle[] = [
   stacked('screen', null, [

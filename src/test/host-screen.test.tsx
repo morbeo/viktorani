@@ -74,14 +74,42 @@ function question(id: string, title: string): Question {
   }
 }
 
-function renderScreen(id = 'g1') {
+function renderScreen(id = 'g1', surface: 'screen' | 'scoreboard' = 'screen') {
   return render(
-    <MemoryRouter initialEntries={[`/admin/game/${id}/screen`]}>
+    <MemoryRouter initialEntries={[`/admin/game/${id}/${surface}`]}>
       <Routes>
         <Route path="/admin/game/:id/screen" element={<Screen />} />
+        <Route path="/admin/game/:id/scoreboard" element={<Screen surface="scoreboard" />} />
       </Routes>
     </MemoryRouter>
   )
+}
+
+const ALICE = {
+  id: 'p1',
+  gameId: 'g1',
+  name: 'Alice',
+  teamId: null,
+  score: 7,
+  presence: 'connected' as const,
+  disconnectedAt: null,
+  deviceId: 'd1',
+  joinedAt: 0,
+  notes: '',
+}
+
+const BUZZ = {
+  id: 'b1',
+  gameId: 'g1',
+  questionId: 'q1',
+  playerId: 'p1',
+  playerName: 'Alice',
+  teamId: null,
+  timestamp: 1,
+  receivedAt: 1,
+  isFalseStart: false,
+  gmDecision: null,
+  decidedAt: null,
 }
 
 beforeEach(async () => {
@@ -96,6 +124,8 @@ beforeEach(async () => {
     db.layouts.clear(),
     db.widgets.clear(),
     db.buzzEvents.clear(),
+    db.scoreEvents.clear(),
+    db.gameLog.clear(),
   ])
   localStorage.clear()
   await db.games.add(GAME)
@@ -294,5 +324,66 @@ describe('Screen', () => {
 
     act(() => writePhaseOverride('g1', 'scoreboard'))
     await waitFor(() => expect(layoutId()).toBe('board'))
+  })
+})
+
+describe('Scoreboard window (#502)', () => {
+  it('shows the leaderboard, not the question', async () => {
+    await db.players.bulkAdd([ALICE, { ...ALICE, id: 'p2', name: 'Bob', score: 3 }])
+    renderScreen('g1', 'scoreboard')
+
+    const board = await screen.findByRole('region', { name: 'Leaderboard' })
+    expect(board).toHaveTextContent(/1\s*Alice\s*7/)
+    expect(board).toHaveTextContent(/2\s*Bob\s*3/)
+    expect(screen.queryByRole('heading', { name: 'Capital of France?' })).toBeNull()
+    expect(document.querySelector('[data-widget="leaderboard"]')).not.toBeNull()
+  })
+
+  it("uses the game's scoreboard layout, with the public game log", async () => {
+    await db.players.add(ALICE)
+    await db.buzzEvents.add(BUZZ)
+    await db.layouts.add({
+      id: 'sb',
+      gameId: 'g1',
+      name: 'Pub board',
+      target: 'scoreboard',
+      phase: null,
+      theme: { ...DEFAULT_LAYOUT_THEME },
+      isActive: true,
+      order: 0,
+    })
+    await db.widgets.add({
+      id: 'sb-log',
+      layoutId: 'sb',
+      type: 'game_log',
+      config: {},
+      grid: { x: 0, y: 0, w: 12, h: 1 },
+      breakpoints: {},
+      order: 0,
+    })
+    renderScreen('g1', 'scoreboard')
+
+    await waitFor(() =>
+      expect(document.querySelector('[data-layout-id]')?.getAttribute('data-layout-id')).toBe('sb')
+    )
+    expect(await screen.findByText(/Alice/)).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Leaderboard' })).toBeNull()
+  })
+
+  it('leaves scores out when scoring is off', async () => {
+    await db.games.update('g1', { scoringEnabled: false })
+    await db.players.add(ALICE)
+    renderScreen('g1', 'scoreboard')
+    await waitFor(() => expect(document.querySelector('[data-layout-id]')).not.toBeNull())
+    expect(screen.queryByText('Alice')).toBeNull()
+  })
+})
+
+describe('Screen game log', () => {
+  it('shows the public game log like remote screens', async () => {
+    await db.players.add(ALICE)
+    await db.buzzEvents.add(BUZZ)
+    renderScreen()
+    expect(await screen.findByText(/· Alice/)).toBeInTheDocument()
   })
 })
