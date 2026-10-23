@@ -662,7 +662,7 @@ describe('game flow', () => {
 describe('layouts over the transport', () => {
   const layout = (
     id: string,
-    target: 'player' | 'screen',
+    target: 'player' | 'screen' | 'scoreboard',
     widgets: WidgetType[],
     phase: GamePhase | null = null
   ) => ({
@@ -698,7 +698,7 @@ describe('layouts over the transport', () => {
     await Promise.all([db.layouts.clear(), db.widgets.clear()])
   })
 
-  const layoutsOf = (received: TransportEvent[], target: 'player' | 'screen') =>
+  const layoutsOf = (received: TransportEvent[], target: 'player' | 'screen' | 'scoreboard') =>
     received.flatMap(e =>
       e.type === 'LAYOUT' && e.target === target ? [e.layouts.map(b => b.layout.id)] : []
     )
@@ -735,6 +735,35 @@ describe('layouts over the transport', () => {
     client.send({ type: 'SCREEN_JOIN' })
     await user.click(await host.view.findByRole('button', { name: 'Approve screen 1' }, SLOW))
     await host.waitFor(() => expect(layoutsOf(received, 'screen')).toContainEqual(['tv']), SLOW)
+  }, 20_000)
+
+  it('sends an approved scoreboard device the stored scoreboard layout, not the screen one', async () => {
+    const user = userEvent.setup()
+    await seedGame()
+    await store(
+      layout('tv', 'screen', ['question']),
+      layout('board', 'scoreboard', ['leaderboard'])
+    )
+    const host = await mountSide('host', '/admin/game/g1')
+    await host.waitFor(() => expect(hub.state.host).not.toBeNull())
+
+    const { client, received } = await connectClient()
+    client.send({ type: 'SCREEN_JOIN', surface: 'scoreboard' })
+    await user.click(await host.view.findByRole('button', { name: 'Approve scoreboard 1' }, SLOW))
+    await host.waitFor(
+      () => expect(layoutsOf(received, 'scoreboard')).toContainEqual(['board']),
+      SLOW
+    )
+    expect(layoutsOf(received, 'screen')).toEqual([])
+    expect(received.map(e => e.type)).toEqual(expect.arrayContaining(['SCOREBOARD', 'LOG']))
+    expect(host.view.getByText('Scoreboard 1')).toBeInTheDocument()
+
+    // A change to the stored scoreboard layouts is resent to it
+    await store(layout('board-end', 'scoreboard', ['game_log'], 'ended'))
+    await host.waitFor(() =>
+      expect(layoutsOf(received, 'scoreboard').at(-1)?.sort()).toEqual(['board', 'board-end'])
+    )
+    expect(layoutsOf(received, 'screen')).toEqual([])
   }, 20_000)
 
   it("renders the host's player layout on the player's phone", async () => {

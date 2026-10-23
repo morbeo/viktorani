@@ -129,6 +129,7 @@ Epic: #364. Scope and dependency order are in the epic body: widget registry →
 - [x] Assign layouts per surface and phase in game settings (#415) — ADR 0020
 - [x] Scoreboard window: Open scoreboard shows the game's scoreboard layout (leaderboard, game log, text, image) with live scores and the public log, choosable per game and previewed in the designer (#502)
 - [x] Widget previews: canvas boxes show each widget with sample data, and palette items preview on hover or focus (#503)
+- [x] Remote scoreboard displays: `/scoreboard/:roomId` joins with `SCREEN_JOIN { surface: 'scoreboard' }`, waits for approval like a screen, and gets the scoreboard `LAYOUT` (not the screen's) with scores, the public log, phase and theme. The Screens panel has a scoreboard link and names scoreboard devices apart.
 
 ## Decisions (2026-10-19)
 

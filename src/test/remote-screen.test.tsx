@@ -65,6 +65,7 @@ function renderScreen(path = '/screen/ABC234') {
       <Routes>
         <Route path="/screen/:roomId" element={<RemoteScreen />} />
         <Route path="/watch/:roomId" element={<RemoteScreen watch />} />
+        <Route path="/scoreboard/:roomId" element={<RemoteScreen surface="scoreboard" />} />
       </Routes>
     </MemoryRouter>
   )
@@ -126,6 +127,20 @@ describe('reduceScreen', () => {
     expect(reduceScreen(s, { ...event, target: 'player' })).toBe(s)
   })
 
+  it('keeps the scoreboard LAYOUT on a scoreboard display and ignores the screen one', () => {
+    const event = {
+      type: 'LAYOUT' as const,
+      target: 'scoreboard' as const,
+      gameId: 'g1',
+      layouts: [],
+      assignments: {},
+    }
+    expect(reduceScreen(INITIAL_SCREEN, event)).toBe(INITIAL_SCREEN)
+    const s = reduceScreen(INITIAL_SCREEN, event, 'scoreboard')
+    expect(s.layouts).toEqual({ gameId: 'g1', layouts: [], assignments: {} })
+    expect(reduceScreen(s, { ...event, target: 'screen' }, 'scoreboard')).toBe(s)
+  })
+
   it('keeps the latest PHASE', () => {
     expect(reduceScreen(INITIAL_SCREEN, { type: 'PHASE', phase: 'reveal' }).phase).toBe('reveal')
   })
@@ -160,6 +175,61 @@ describe('RemoteScreen', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(
       "You can't watch this game: This game isn't taking spectators."
     )
+  })
+
+  it('joins as a scoreboard display, then shows the scores and log but not the question', async () => {
+    renderScreen('/scoreboard/ABC234')
+    await waitFor(() =>
+      expect(transportManager.send).toHaveBeenCalledWith({
+        type: 'SCREEN_JOIN',
+        surface: 'scoreboard',
+      })
+    )
+    emit({ type: 'JOIN_PENDING' })
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Waiting for the host to approve this scoreboard'
+    )
+    emit({ type: 'SCREEN_ACCEPTED' })
+    emit(CONTENT)
+    emit({ type: 'SCOREBOARD', rows: [{ id: 'p1', name: 'Ann', score: 7, place: 1 }] })
+    expect(screen.getByText('Ann')).toBeInTheDocument()
+    expect(screen.getByText('7')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Capital of France?' })).toBeNull()
+  })
+
+  it("shows the host's scoreboard layout on a scoreboard display", async () => {
+    renderScreen('/scoreboard/ABC234')
+    await waitFor(() => expect(transportManager.send).toHaveBeenCalled())
+    emit({ type: 'SCREEN_ACCEPTED' })
+    const bundle = (id: string, target: 'screen' | 'scoreboard') => ({
+      layout: {
+        id,
+        gameId: 'g1',
+        name: id,
+        target,
+        phase: null,
+        theme: { background: null, accent: '#00966e', fontScale: 1, logo: null },
+        isActive: true,
+        order: 0,
+      },
+      widgets: [],
+    })
+    emit({
+      type: 'LAYOUT',
+      target: 'screen',
+      gameId: 'g1',
+      layouts: [bundle('tv', 'screen')],
+      assignments: {},
+    })
+    emit({
+      type: 'LAYOUT',
+      target: 'scoreboard',
+      gameId: 'g1',
+      layouts: [bundle('board', 'scoreboard')],
+      assignments: {},
+    })
+    expect(document.querySelector('[data-layout-id="board"]')).not.toBeNull()
+    expect(document.querySelector('[data-layout-id="tv"]')).toBeNull()
   })
 
   it('shows the question and scoreboard once approved', async () => {
@@ -311,6 +381,30 @@ describe('ScreensPanel', () => {
     expect(onApprove).toHaveBeenCalledWith('c2')
     await userEvent.click(screen.getByRole('button', { name: 'Reject screen 1' }))
     expect(onReject).toHaveBeenCalledWith('c1')
+  })
+
+  it('offers a scoreboard link and names scoreboard displays apart from screens', async () => {
+    const onApprove = vi.fn()
+    const onDisconnect = vi.fn()
+    render(
+      <ScreensPanel
+        roomId="ABC234"
+        pending={['c3']}
+        connected={['c1', 'c2']}
+        scoreboards={['c2', 'c3']}
+        onApprove={onApprove}
+        onReject={vi.fn()}
+        onDisconnect={onDisconnect}
+      />
+    )
+    expect(screen.getByTitle(/#\/scoreboard\/ABC234$/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Copy scoreboard URL' })).toBeInTheDocument()
+    expect(screen.getByText('Scoreboard 1 wants to join')).toBeInTheDocument()
+    expect(screen.getByText('Screen 1')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Approve scoreboard 1' }))
+    expect(onApprove).toHaveBeenCalledWith('c3')
+    await userEvent.click(screen.getByRole('button', { name: 'Disconnect scoreboard 1' }))
+    expect(onDisconnect).toHaveBeenCalledWith('c2')
   })
 
   it('lists connected screens with a disconnect action', async () => {

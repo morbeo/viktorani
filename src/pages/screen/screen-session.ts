@@ -1,6 +1,12 @@
 import type { GamePhase } from '@/db'
 import type { ResolvedTheme } from '@/lib/theme'
-import type { LogEntry, RoundAnswers, ScoreboardRow, TransportEvent } from '@/transport/types'
+import type {
+  LogEntry,
+  RoundAnswers,
+  ScoreboardRow,
+  ScreenSurface,
+  TransportEvent,
+} from '@/transport/types'
 import { knownStatus } from '@/pages/player/player-session'
 import type { GameStatus, QuestionContent, RemoteLayouts } from '@/pages/player/player-session'
 import { isSafeMedia } from '@/pages/player/safe-media'
@@ -19,7 +25,7 @@ export interface ScreenSession {
   message: string | null
   /** The most recent public game-log entries, newest first. */
   logEntries: LogEntry[]
-  /** The host's stored layouts for screens (see `LAYOUT`); `null` uses the built-in default. */
+  /** The host's layouts for this surface (see `LAYOUT`); `null` uses the built-in default. */
   layouts: RemoteLayouts | null
   /** The phase the host picks layouts for (see `PHASE`); `null` until it says. */
   phase: GamePhase | null
@@ -50,8 +56,15 @@ function withSafeMedia(content: QuestionContent): QuestionContent {
   return { ...content, media: null, mediaType: null }
 }
 
-/** Apply one host event to a screen session. Pure function. */
-export function reduceScreen(s: ScreenSession, event: TransportEvent): ScreenSession {
+/**
+ * Apply one host event to a screen session. Pure function. `surface` is what the device
+ * shows: it keeps only the `LAYOUT` for that surface.
+ */
+export function reduceScreen(
+  s: ScreenSession,
+  event: TransportEvent,
+  surface: ScreenSurface = 'screen'
+): ScreenSession {
   switch (event.type) {
     case 'JOIN_PENDING':
       return { ...s, status: 'pending' }
@@ -74,7 +87,7 @@ export function reduceScreen(s: ScreenSession, event: TransportEvent): ScreenSes
     case 'LOG':
       return { ...s, logEntries: event.entries }
     case 'LAYOUT':
-      return event.target === 'screen'
+      return event.target === surface
         ? {
             ...s,
             layouts: {

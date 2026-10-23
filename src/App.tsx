@@ -87,6 +87,7 @@ export default function App() {
             <Route path="/play/:roomId" element={<Play />} />
             <Route path="/screen/:roomId" element={<RemoteScreen />} />
             <Route path="/watch/:roomId" element={<RemoteScreen watch />} />
+            <Route path="/scoreboard/:roomId" element={<RemoteScreen surface="scoreboard" />} />
             <Route path="*" element={<Navigate to="/admin" replace />} />
           </Routes>
         </Suspense>
