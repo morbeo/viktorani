@@ -65,6 +65,8 @@ export interface UseBuzzerResult {
  * @param onGameChange - Receives a patch (`buzzerLocked`, `updatedAt`) whenever the hook
  *   changes the lock. The caller should merge it into its current `game` state rather than
  *   replace the whole object, so concurrent updates to other fields are not reverted.
+ * @param gameQuestionId - The game question shown, so a correct buzz scores once per round the
+ *   question is played in (#501); `null` falls back to the question alone.
  *
  * @example
  * ```tsx
@@ -80,7 +82,8 @@ export interface UseBuzzerResult {
 export function useBuzzer(
   game: Game,
   questionId: string | null,
-  onGameChange?: (patch: Partial<Game>) => void
+  onGameChange?: (patch: Partial<Game>) => void,
+  gameQuestionId: string | null = null
 ): UseBuzzerResult {
   const [buzzes, setBuzzes] = useState<BuzzEvent[]>([])
   const gameRef = useRef(game)
@@ -177,7 +180,9 @@ export function useBuzzer(
           const player = await db.players.get(buzz.playerId)
           if (!player) return { scored: false }
           // A panel ruling or another buzz already awarded this question (#500)
-          if (questionId && (await alreadyAwarded(g.id, questionId))) return { scored: false }
+          if (questionId && (await alreadyAwarded(g.id, { id: gameQuestionId, questionId }))) {
+            return { scored: false }
+          }
 
           // Resolve score increment from question difficulty; fall back to 1
           let increment = 1
@@ -191,6 +196,7 @@ export function useBuzzer(
             next: (score: number) => score + increment,
             reason: 'correct' as const,
             questionId,
+            gameQuestionId,
           }
           await writeScore({ ...award, id: player.id, kind: 'player' })
 
@@ -211,7 +217,7 @@ export function useBuzzer(
         await setLocked(true)
       }
     },
-    [questionId, setLocked]
+    [questionId, gameQuestionId, setLocked]
   )
 
   // ── Clear ────────────────────────────────────────────────────────────────

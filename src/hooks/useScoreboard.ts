@@ -125,6 +125,8 @@ export interface ScoreChange {
   next: (score: number) => number
   reason: ScoreChangeReason
   questionId: string | null
+  /** The game question being played, when known; see {@link ScoreEvent.gameQuestionId}. */
+  gameQuestionId?: string | null
 }
 
 /**
@@ -133,7 +135,7 @@ export interface ScoreChange {
  * Resolves to `false` if the player or team doesn't exist or the score is unchanged.
  */
 export async function writeScore(change: ScoreChange): Promise<boolean> {
-  const { gameId, id, kind, reason, questionId } = change
+  const { gameId, id, kind, reason, questionId, gameQuestionId } = change
   const row = kind === 'player' ? await db.players.get(id) : await db.teams.get(id)
   if (!row) return false
   const to = change.next(row.score)
@@ -150,6 +152,7 @@ export async function writeScore(change: ScoreChange): Promise<boolean> {
     to,
     reason,
     questionId,
+    ...(gameQuestionId && { gameQuestionId }),
     timestamp: Date.now(),
   })
   return true

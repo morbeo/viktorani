@@ -375,6 +375,11 @@ export interface ScoreEvent {
   reason: ScoreChangeReason
   /** The question being played, or `null` when none was. */
   questionId: string | null
+  /**
+   * The game question being played, which tells a question used in two rounds apart (#501).
+   * Missing on changes made without one and on events logged before it existed.
+   */
+  gameQuestionId?: string | null
   timestamp: number
 }
 
