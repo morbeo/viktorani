@@ -402,7 +402,11 @@ describe('game flow', () => {
 
     const user = userEvent.setup()
     await user.click(host.view.getAllByRole('button', { name: 'Game settings' })[0])
-    await user.click(await host.view.findByRole('switch', { name: 'Local network only' }))
+    const localOnly = await host.view.findByRole('switch', { name: 'Local network only' })
+    await user.click(localOnly)
+    // The switch follows the host's game once the setting is saved; approving before then
+    // would check the screen against the old setting
+    await host.waitFor(() => expect(localOnly).toBeChecked(), SLOW)
     await user.click(await host.view.findByRole('button', { name: 'Approve screen 1' }, SLOW))
     await host.waitFor(() =>
       expect(received).toContainEqual({
