@@ -36,14 +36,23 @@ export async function revealQuestion(gameId: string, gameQuestionId: string): Pr
 }
 
 /**
- * Whether `gameId` already has a correct-answer score for `questionId`, from a ruling or a
- * buzz. A question's points are awarded once, whichever way it was ruled.
+ * Whether `gameId` already has a correct-answer score for the game question `gq`, from a
+ * ruling or a buzz. A question's points are awarded once per round it is played in,
+ * whichever way it was ruled (#500, #501). Events logged before they carried a game question,
+ * and checks with no game question (`id: null`), go by the question alone.
  */
-export async function alreadyAwarded(gameId: string, questionId: string): Promise<boolean> {
+export async function alreadyAwarded(
+  gameId: string,
+  gq: { id: string | null; questionId: string }
+): Promise<boolean> {
   const event = await db.scoreEvents
     .where('gameId')
     .equals(gameId)
-    .filter(e => e.reason === 'correct' && e.questionId === questionId)
+    .filter(
+      e =>
+        e.reason === 'correct' &&
+        (gq.id && e.gameQuestionId ? e.gameQuestionId === gq.id : e.questionId === gq.questionId)
+    )
     .first()
   return event !== undefined
 }
@@ -51,9 +60,9 @@ export async function alreadyAwarded(gameId: string, questionId: string): Promis
 /**
  * Rule on the question shown without a buzz (#424): set its status and, for a correct
  * ruling with scoring on, award its points to `award`. A player's points count for their
- * team too, as with a buzz. A question's points are awarded once: when this game already
- * has a correct-answer score for it (from a ruling or a buzz), ruling it correct again only
- * sets the status. Ruling again never takes points back either; the host adjusts those on
+ * team too, as with a buzz. A question's points are awarded once per round it is played
+ * in: when this game already has a correct-answer score for this game question (from a
+ * ruling or a buzz), ruling it correct again only sets the status. Ruling again never takes points back either; the host adjusts those on
  * the scoreboard. Nothing is sent to players about the answer.
  */
 export async function ruleQuestion(
@@ -76,7 +85,7 @@ export async function ruleQuestion(
         award.kind === 'team' ? await db.teams.get(award.id) : await db.players.get(award.id)
       if (row?.gameId !== game.id) return done
       if (!game.scoringEnabled) return { ...done, name: row.name }
-      if (await alreadyAwarded(game.id, gq.questionId)) return { ...done, name: row.name }
+      if (await alreadyAwarded(game.id, gq)) return { ...done, name: row.name }
 
       const points = await questionPoints(gq.questionId)
       const change = {
@@ -84,6 +93,7 @@ export async function ruleQuestion(
         next: (score: number) => score + points,
         reason: 'correct' as const,
         questionId: gq.questionId,
+        gameQuestionId: gq.id,
       }
       const scored = await writeScore({ ...change, ...award })
       const teamId = 'teamId' in row ? row.teamId : null

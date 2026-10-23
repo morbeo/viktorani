@@ -483,7 +483,7 @@ export function ActiveGame({
   }, [review, reviewRound, reviewRows, playerVisibility, screenVisibility, onRoundAnswers])
 
   const { displayBuzzes, buzzes, toggleLock, adjudicate, clearBuzzes, handleIncomingBuzz } =
-    useBuzzer(game, currentQuestionId, onGameChange)
+    useBuzzer(game, currentQuestionId, onGameChange, currentGameQuestionId)
 
   // The phase every surface's layout is picked for: from the buzzes on the question shown,
   // unless the GM holds one by hand

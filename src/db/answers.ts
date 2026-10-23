@@ -148,6 +148,7 @@ async function setRuling(
     next: (score: number) => score + delta,
     reason: delta > 0 ? 'correct' : 'retract',
     questionId: gq.questionId,
+    gameQuestionId: gq.id,
   })
 }
 

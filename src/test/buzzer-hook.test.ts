@@ -328,6 +328,36 @@ describe('useBuzzer scoring (#246)', () => {
     expect(correct).toHaveLength(1)
   })
 
+  it('scores a correct buzz on a question already won in an earlier round (#501)', async () => {
+    const game = makeGame({ buzzerLocked: false })
+    await Promise.all([
+      db.games.add(game),
+      db.players.add(player),
+      db.questions.add({ ...question, difficulty: null }),
+      db.gameQuestions.bulkAdd(
+        (['gq1', 'gq2'] as const).map((id, order) => ({
+          id,
+          gameId: 'g1',
+          questionId: 'q1',
+          roundId: `r${order + 1}`,
+          order,
+          status: 'pending' as const,
+          revealed: false,
+        }))
+      ),
+    ])
+    await act(() => ruleQuestion(game, 'gq1', 'correct', { kind: 'player', id: 'p1' }))
+
+    // The same question again in round 2
+    const { result } = renderHook(() => useBuzzer(game, 'q1', undefined, 'gq2'))
+    await buzz(result)
+    await act(() => result.current.adjudicate(result.current.buzzes[0].id, 'Correct'))
+
+    expect((await db.players.get('p1'))?.score).toBe(2)
+    const correct = await db.scoreEvents.filter(e => e.reason === 'correct').toArray()
+    expect(correct.map(e => e.gameQuestionId).sort()).toEqual(['gq1', 'gq2'])
+  })
+
   it('ignores a second decision on an already decided buzz', async () => {
     const game = makeGame({ buzzerLocked: false })
     await Promise.all([db.games.add(game), db.players.add(player), db.questions.add(question)])

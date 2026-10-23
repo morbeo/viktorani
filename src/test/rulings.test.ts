@@ -174,6 +174,27 @@ describe('ruleQuestion', () => {
     expect((await db.players.get('p1'))?.score).toBe(0)
   })
 
+  it('awards a question used in two rounds once in each (#501)', async () => {
+    await db.players.add(player())
+    await db.gameQuestions.add({
+      id: 'gq2',
+      gameId: 'g1',
+      questionId: 'q1',
+      roundId: 'r2',
+      order: 1,
+      status: 'pending',
+      revealed: false,
+    })
+    const award = { kind: 'player', id: 'p1' } as const
+    await ruleQuestion(GAME, 'gq1', 'correct', award)
+    await ruleQuestion(GAME, 'gq2', 'correct', award)
+    await ruleQuestion(GAME, 'gq2', 'correct', award)
+
+    expect((await db.players.get('p1'))?.score).toBe(6)
+    const events = await db.scoreEvents.toArray()
+    expect(events.map(e => e.gameQuestionId).sort()).toEqual(['gq1', 'gq2'])
+  })
+
   it("ignores another game's question", async () => {
     await ruleQuestion({ ...GAME, id: 'g2' }, 'gq1', 'correct')
     expect(await status()).toBe('pending')
