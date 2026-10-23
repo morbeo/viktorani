@@ -33,6 +33,7 @@ import { NewLayoutForm } from '@/components/layout-designer/NewLayoutForm'
 import type { LayoutSource } from '@/components/layout-designer/NewLayoutForm'
 import { WidgetInspector } from '@/components/layout-designer/WidgetInspector'
 import { WidgetPalette } from '@/components/layout-designer/WidgetPalette'
+import { usePreviewSample } from '@/components/layout-designer/sample-data'
 
 type Device = 'phone' | 'tablet' | 'tv'
 
@@ -71,6 +72,7 @@ const tab = (on: boolean) =>
  */
 export default function Layouts() {
   const { gameId = null } = useParams<{ gameId: string }>()
+  const sample = usePreviewSample(gameId)
   const navigate = useNavigate()
   const [{ confirmDestructive }] = useAppSettings()
   const [chosenId, setChosenId] = useState<string | null>(null)
@@ -269,7 +271,13 @@ export default function Layouts() {
               </ul>
               <NewLayoutForm sources={sources} onCreate={input => void create(input)} />
             </section>
-            {layout && <WidgetPalette target={layout.target} onAdd={type => void add(type)} />}
+            {layout && (
+              <WidgetPalette
+                target={layout.target}
+                sample={sample}
+                onAdd={type => void add(type)}
+              />
+            )}
           </aside>
 
           {/* Canvas */}
@@ -348,6 +356,8 @@ export default function Layouts() {
                   ) : (
                     <DesignerCanvas
                       widgets={widgets}
+                      target={layout.target}
+                      sample={sample}
                       breakpoint={breakpoint}
                       selectedId={selectedWidgetId}
                       onSelect={setSelectedWidgetId}
