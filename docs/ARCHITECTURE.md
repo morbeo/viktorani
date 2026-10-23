@@ -328,7 +328,7 @@ flowchart LR
     g3[BUZZER_LOCK / BUZZER_UNLOCK]
     g4[VISIBILITY / QUESTION_CONTENT]
     g5[SLIDE_CHANGE / SCORE_UPDATE]
-    g6[TIMER_START / PAUSE / RESUME<br/>RESET / EXPIRED]
+    g6[TIMER_START / PAUSE / RESUME<br/>RESET / DELETE / EXPIRED]
     g7[LAYOUT / PHASE / THEME]
   end
   subgraph PlayerEvent["Players → host (PlayerEvent)"]

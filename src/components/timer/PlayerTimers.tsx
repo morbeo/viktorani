@@ -96,6 +96,10 @@ function usePlayerTimers() {
         )
       )
     }
+    if (event.type === 'TIMER_DELETE') {
+      setTimers(prev => prev.filter(t => t.id !== event.id))
+      setExpired(prev => (prev?.id === event.id ? null : prev))
+    }
     if (event.type === 'TIMER_EXPIRED') {
       // The host says which of the timer's notifications are meant for players
       if (event.audio) playBeep()
@@ -183,6 +187,7 @@ export function PlayerTimers() {
           event.type === 'TIMER_PAUSE' ||
           event.type === 'TIMER_RESUME' ||
           event.type === 'TIMER_RESET' ||
+          event.type === 'TIMER_DELETE' ||
           event.type === 'TIMER_EXPIRED'
         ) {
           handleEvent(event as GameEvent)
