@@ -171,4 +171,115 @@ describe('TeamManagerPanel', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Delete Red Team' }))
     expect(onDeleteTeam).toHaveBeenCalledWith('t1')
   })
+
+  it('selects a team members with the keyboard', async () => {
+    const onSelectTeam = vi.fn()
+    renderPanel({ onSelectTeam })
+    screen.getByRole('button', { name: "Select Red Team's members" }).focus()
+    await userEvent.keyboard('{Enter}')
+    await userEvent.keyboard(' ')
+    expect(onSelectTeam).toHaveBeenCalledTimes(2)
+  })
+
+  it('shows the per-team and team limits', () => {
+    renderPanel({ game: { ...mockGame, maxPerTeam: 4, maxTeams: 3 } })
+    expect(screen.getByText('1 / 4 player')).toBeInTheDocument()
+    expect(screen.getByText('1 / 3')).toBeInTheDocument()
+  })
+
+  it('cancels a rename with Escape or the cancel button', async () => {
+    const onRenameTeam = vi.fn()
+    renderPanel({ onRenameTeam })
+    await userEvent.click(screen.getByRole('button', { name: 'Rename Red Team' }))
+    await userEvent.type(screen.getByLabelText('Rename Red Team'), 'X{Escape}')
+    expect(screen.queryByRole('textbox', { name: 'Rename Red Team' })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Rename Red Team' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel rename' }))
+    expect(screen.queryByRole('textbox', { name: 'Rename Red Team' })).not.toBeInTheDocument()
+    expect(onRenameTeam).not.toHaveBeenCalled()
+  })
+
+  it('saves a rename with the save button but skips an unchanged name', async () => {
+    const onRenameTeam = vi.fn()
+    renderPanel({ onRenameTeam })
+    await userEvent.click(screen.getByRole('button', { name: 'Rename Red Team' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Save name' }))
+    expect(onRenameTeam).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('button', { name: 'Rename Red Team' }))
+    await userEvent.type(screen.getByLabelText('Rename Red Team'), '!')
+    await userEvent.click(screen.getByRole('button', { name: 'Save name' }))
+    expect(onRenameTeam).toHaveBeenCalledWith('t1', 'Red Team!')
+  })
+
+  it('keeps a team when the delete confirmation is cancelled', async () => {
+    const onDeleteTeam = vi.fn()
+    renderPanel({ onDeleteTeam })
+    await userEvent.click(screen.getByRole('button', { name: 'Delete Red Team' }))
+    expect(screen.getByText(/Its 1 member will become unassigned/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(onDeleteTeam).not.toHaveBeenCalled()
+  })
+
+  it('creates a team with the chosen colour and icon, then resets the form', async () => {
+    const onCreateTeam = vi.fn().mockResolvedValue(undefined)
+    renderPanel({ onCreateTeam })
+    await userEvent.click(screen.getByRole('button', { name: 'Select colour #e67e22' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Pick team icon' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Swords' }))
+    await userEvent.type(screen.getByLabelText('New team name'), '  Owls  ')
+    await userEvent.click(screen.getByRole('button', { name: 'Create team' }))
+    expect(onCreateTeam).toHaveBeenCalledWith('Owls', '#e67e22', 'Swords')
+    expect(screen.getByLabelText('New team name')).toHaveValue('')
+    expect(screen.getByRole('button', { name: 'Select colour #e74c3c' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
+  })
+
+  it('creates a team on Enter and ignores a blank name', async () => {
+    const onCreateTeam = vi.fn().mockResolvedValue(undefined)
+    renderPanel({ onCreateTeam })
+    await userEvent.type(screen.getByLabelText('New team name'), '   {Enter}')
+    expect(onCreateTeam).not.toHaveBeenCalled()
+    await userEvent.type(screen.getByLabelText('New team name'), 'Owls{Enter}')
+    expect(onCreateTeam).toHaveBeenCalledWith('Owls', '#e74c3c', 'Shield')
+  })
+
+  it('shows the error when creating a team fails', async () => {
+    const onCreateTeam = vi.fn().mockRejectedValue(new Error('Name taken'))
+    renderPanel({ onCreateTeam })
+    await userEvent.type(screen.getByLabelText('New team name'), 'Owls{Enter}')
+    expect(await screen.findByText('Name taken')).toBeInTheDocument()
+    expect(screen.getByLabelText('New team name')).toHaveValue('Owls')
+  })
+
+  it('falls back to a generic error for non-Error rejections', async () => {
+    const onCreateTeam = vi.fn().mockRejectedValue('nope')
+    renderPanel({ onCreateTeam })
+    await userEvent.type(screen.getByLabelText('New team name'), 'Owls{Enter}')
+    expect(await screen.findByText('Failed to create team')).toBeInTheDocument()
+  })
+
+  it('hides the create form at the team limit', () => {
+    renderPanel({ game: { ...mockGame, maxTeams: 1 } })
+    expect(screen.getByText('Team limit reached (1)')).toBeInTheDocument()
+    expect(screen.queryByLabelText('New team name')).not.toBeInTheDocument()
+  })
+
+  it('imports teams from the management page', async () => {
+    const onImportFromManaged = vi.fn().mockResolvedValue(undefined)
+    renderPanel({ onImportFromManaged })
+    await userEvent.click(screen.getByRole('button', { name: /Import/ }))
+    expect(onImportFromManaged).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
+    [new Error('No teams to import'), 'No teams to import'],
+    ['nope', 'Import failed'],
+  ])('shows the import error (%s)', async (reason, message) => {
+    const onImportFromManaged = vi.fn().mockRejectedValue(reason)
+    renderPanel({ onImportFromManaged })
+    await userEvent.click(screen.getByRole('button', { name: /Import/ }))
+    expect(await screen.findByText(message)).toBeInTheDocument()
+  })
 })
