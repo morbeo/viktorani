@@ -18,8 +18,9 @@ to run script, load arbitrary content or exhaust a phone's memory.
 
 ## Decision
 
-- **One `LAYOUT` event per surface kind.** It names the target (`player` or `screen`), the
-  game, and a list of layouts with their widgets.
+- **One `LAYOUT` event per surface kind.** It names the target (`player`, `screen`, or
+  `scoreboard` for a scoreboard display on another device), the game, and a list of layouts
+  with their widgets.
 - **Each phase's pick, not just the current one.** The host sends, for every game phase and
   for "all phases", the layout `resolveLayout` would pick, without duplicates
   (`layoutsForPhases`). The surface resolves among them for its own phase, which gives the

@@ -95,6 +95,9 @@ The app uses `HashRouter` so it works on GitHub Pages without server rewrites
 | `/admin/layouts/:gameId`           | Layouts             | Host    |
 | `/join`, `/join/:roomId`           | Join                | Players |
 | `/play/:roomId`                    | Play                | Players |
+| `/screen/:roomId`                  | RemoteScreen        | Devices |
+| `/scoreboard/:roomId`              | RemoteScreen        | Devices |
+| `/watch/:roomId`                   | RemoteScreen        | Players |
 
 ## Source tree
 
@@ -105,7 +108,7 @@ src/
 │   ├── admin/               host pages + GameMaster helpers
 │   │                        (gamemaster-utils.ts, player-connections.ts)
 │   ├── player/              Join, Play
-│   └── screen/              RemoteScreen for display devices
+│   └── screen/              RemoteScreen for screen and scoreboard devices
 ├── components/
 │   ├── ui/                  Button, Input, Modal, Toast, Icon, control size…
 │   ├── gamemaster/          GameControls, RosterPanel, TeamManagerPanel, GameSettingsDrawer
@@ -259,8 +262,10 @@ erDiagram
   renders a layout with the surface's live data, and `resolveLayout` picks the layout for a
   target, game and phase, falling back to a built-in default
   ([ADR 0017](adr/0017-layout-renderer-data-flow.md)). The projector screen, the game
-  master's play column and the player's view render through it. Remote players and screens
-  get the host's stored layouts in a `LAYOUT` event
+  master's play column and the player's view render through it. Remote players, screens and
+  scoreboard displays (`/scoreboard/:roomId`, approved like a screen after
+  `SCREEN_JOIN { surface: 'scoreboard' }`) get the host's stored layouts for their surface in
+  a `LAYOUT` event
   ([ADR 0018](adr/0018-layout-transport-event.md)) and the current phase in a `PHASE` event;
   the phase follows the game's state unless the GM holds one by hand
   ([ADR 0019](adr/0019-layout-phase-switching.md)). A game can choose its layout per surface

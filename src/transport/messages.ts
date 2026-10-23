@@ -254,7 +254,7 @@ export const GameEventSchemas = {
   LAYOUT: z
     .strictObject({
       type: z.literal('LAYOUT'),
-      target: z.enum(['player', 'screen']),
+      target: z.enum(['player', 'screen', 'scoreboard']),
       gameId: id,
       layouts: z.array(layoutPayload).max(MAX_LAYOUTS),
       assignments: z.partialRecord(z.enum(['all', ...GAME_PHASES]), id),
@@ -383,6 +383,7 @@ export const PlayerEventSchemas = {
   SCREEN_JOIN: z.strictObject({
     type: z.literal('SCREEN_JOIN'),
     watch: z.literal(true).optional(),
+    surface: z.literal('scoreboard').optional(),
   }),
 }
 

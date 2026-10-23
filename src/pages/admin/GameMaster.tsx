@@ -158,6 +158,9 @@ export default function GameMaster() {
   const [connectedScreens, setConnectedScreens] = useState<string[]>([])
   // Spectators get what screens get, so they are in `screensRef` too, but aren't listed
   const spectatorsRef = useRef(new Set<string>())
+  // Screens, pending or approved, that show the scoreboard surface and get its layouts
+  const scoreboardsRef = useRef(new Set<string>())
+  const [scoreboards, setScoreboards] = useState<string[]>([])
   // Each connection's route, looked up once, for local-network-only games
   const routesRef = useRef(new Map<string, Promise<ConnectionRoute>>())
   const [watching, setWatching] = useState(0)
@@ -174,6 +177,7 @@ export default function GameMaster() {
   // The LAYOUT each kind of remote surface gets; `null` until the stored layouts have loaded
   const playerLayoutRef = useRef<LayoutEvent | null>(null)
   const screenLayoutRef = useRef<LayoutEvent | null>(null)
+  const scoreboardLayoutRef = useRef<LayoutEvent | null>(null)
   // The phase remote surfaces pick layouts for; `null` until it is known
   const phaseRef = useRef<GamePhase | null>(null)
   // The THEME players and screens get; `null` until the host's themes have loaded
@@ -261,6 +265,22 @@ export default function GameMaster() {
     setConnectedScreens(realScreens())
   }, [realScreens])
 
+  /** Records whether a screen shows the scoreboard surface (`false` also forgets it). */
+  const markScoreboard = useCallback((connId: string, scoreboard: boolean) => {
+    const set = scoreboardsRef.current
+    if (set.has(connId) === scoreboard) return
+    if (scoreboard) set.add(connId)
+    else set.delete(connId)
+    setScoreboards([...set])
+  }, [])
+
+  /** The `LAYOUT` a screen gets: the scoreboard's for scoreboard displays. */
+  const layoutFor = useCallback(
+    (connId: string) =>
+      scoreboardsRef.current.has(connId) ? scoreboardLayoutRef.current : screenLayoutRef.current,
+    []
+  )
+
   const addConnectedScreen = useCallback(
     (connId: string) => {
       screensRef.current.add(connId)
@@ -275,13 +295,14 @@ export default function GameMaster() {
    */
   const removeConnectedScreen = useCallback(
     (connId: string) => {
+      markScoreboard(connId, false)
       const removed = screensRef.current.delete(connId)
       const spectator = spectatorsRef.current.delete(connId)
       if (spectator) setWatching(spectatorsRef.current.size)
       else if (removed) listScreens()
       return removed && !spectator
     },
-    [listScreens]
+    [listScreens, markScoreboard]
   )
 
   // Send a newly admitted screen or spectator what the screens currently show
@@ -302,23 +323,27 @@ export default function GameMaster() {
     return true
   }, [])
 
-  const sendScreenState = useCallback((connId: string) => {
-    transportManager.sendTo(connId, { type: 'SCREEN_ACCEPTED' })
-    if (screenContentRef.current) transportManager.sendTo(connId, screenContentRef.current)
-    if (screenRoundAnswersRef.current)
-      transportManager.sendTo(connId, screenRoundAnswersRef.current)
-    transportManager.sendTo(connId, { type: 'SCOREBOARD', rows: scoreboardRef.current })
-    transportManager.sendTo(connId, { type: 'LOG', entries: logRef.current })
-    if (screenLayoutRef.current) transportManager.sendTo(connId, screenLayoutRef.current)
-    if (phaseRef.current)
-      transportManager.sendTo(connId, { type: 'PHASE', phase: phaseRef.current })
-    if (themeRef.current) transportManager.sendTo(connId, themeRef.current)
-    const g = gameRef.current
-    if (g) void sendRunningTimers(connId, g.id)
-    if (g?.status === 'paused') {
-      transportManager.sendTo(connId, { type: 'GAME_STATUS', status: 'paused' })
-    }
-  }, [])
+  const sendScreenState = useCallback(
+    (connId: string) => {
+      transportManager.sendTo(connId, { type: 'SCREEN_ACCEPTED' })
+      if (screenContentRef.current) transportManager.sendTo(connId, screenContentRef.current)
+      if (screenRoundAnswersRef.current)
+        transportManager.sendTo(connId, screenRoundAnswersRef.current)
+      transportManager.sendTo(connId, { type: 'SCOREBOARD', rows: scoreboardRef.current })
+      transportManager.sendTo(connId, { type: 'LOG', entries: logRef.current })
+      const layout = layoutFor(connId)
+      if (layout) transportManager.sendTo(connId, layout)
+      if (phaseRef.current)
+        transportManager.sendTo(connId, { type: 'PHASE', phase: phaseRef.current })
+      if (themeRef.current) transportManager.sendTo(connId, themeRef.current)
+      const g = gameRef.current
+      if (g) void sendRunningTimers(connId, g.id)
+      if (g?.status === 'paused') {
+        transportManager.sendTo(connId, { type: 'GAME_STATUS', status: 'paused' })
+      }
+    },
+    [layoutFor]
+  )
 
   // Load game + existing players + teams on mount
   useEffect(() => {
@@ -559,6 +584,7 @@ export default function GameMaster() {
   // Compared as JSON, so other game changes don't rebuild and resend the layouts
   const playerAssignments = JSON.stringify(game?.layoutAssignments?.player ?? {})
   const screenAssignments = JSON.stringify(game?.layoutAssignments?.screen ?? {})
+  const scoreboardAssignments = JSON.stringify(game?.layoutAssignments?.scoreboard ?? {})
   const playerLayout = useMemo(
     () =>
       id && storedLayouts
@@ -573,6 +599,13 @@ export default function GameMaster() {
         : null,
     [id, storedLayouts, screenAssignments]
   )
+  const scoreboardLayout = useMemo(
+    () =>
+      id && storedLayouts
+        ? buildLayoutEvent(storedLayouts, 'scoreboard', id, JSON.parse(scoreboardAssignments))
+        : null,
+    [id, storedLayouts, scoreboardAssignments]
+  )
   useEffect(() => {
     playerLayoutRef.current = playerLayout
     if (!playerLayout) return
@@ -583,8 +616,17 @@ export default function GameMaster() {
   useEffect(() => {
     screenLayoutRef.current = screenLayout
     if (!screenLayout) return
-    for (const connId of screensRef.current) transportManager.sendTo(connId, screenLayout)
+    for (const connId of screensRef.current) {
+      if (!scoreboardsRef.current.has(connId)) transportManager.sendTo(connId, screenLayout)
+    }
   }, [screenLayout])
+  useEffect(() => {
+    scoreboardLayoutRef.current = scoreboardLayout
+    if (!scoreboardLayout) return
+    for (const connId of screensRef.current) {
+      if (scoreboardsRef.current.has(connId)) transportManager.sendTo(connId, scoreboardLayout)
+    }
+  }, [scoreboardLayout])
 
   // The game's theme, resolved here and sent to admitted players and approved screens
   // whenever it changes: a new game theme, or an edit to the theme or the app theme
@@ -708,9 +750,14 @@ export default function GameMaster() {
           })
           return
         }
+        const scoreboard = event.surface === 'scoreboard'
+        markScoreboard(from, scoreboard)
         updatePendingScreens(prev => [...prev, from])
         transportManager.sendTo(from, { type: 'JOIN_PENDING' })
-        addToast('A screen is waiting for approval', { variant: 'info', durationMs: 4000 })
+        addToast(`A ${scoreboard ? 'scoreboard' : 'screen'} is waiting for approval`, {
+          variant: 'info',
+          durationMs: 4000,
+        })
         return
       }
 
@@ -781,7 +828,15 @@ export default function GameMaster() {
         }
       }
     },
-    [addToast, enqueueJoin, handleJoin, updatePendingScreens, sendScreenState, offLocalNetwork]
+    [
+      addToast,
+      enqueueJoin,
+      handleJoin,
+      updatePendingScreens,
+      sendScreenState,
+      offLocalNetwork,
+      markScoreboard,
+    ]
   )
 
   // Turning spectators off sends everyone watching away
@@ -822,6 +877,7 @@ export default function GameMaster() {
       updatePendingJoins(prev => prev.filter(p => p.connId !== connId))
       updatePendingScreens(prev => prev.filter(c => c !== connId))
       const gameId = gameRef.current?.id
+      // Also forgets a pending scoreboard
       if (removeConnectedScreen(connId) && gameId) logEvent(gameId, 'screen_disconnected')
       joinersRef.current.delete(connId)
       const playerId = connectionsRef.current.unbindConnection(connId)
@@ -906,12 +962,13 @@ export default function GameMaster() {
       const g = gameRef.current
       if (g && pendingScreensRef.current.includes(connId)) logEvent(g.id, 'screen_rejected')
       updatePendingScreens(prev => prev.filter(c => c !== connId))
+      markScoreboard(connId, false)
       transportManager.sendTo(connId, {
         type: 'JOIN_REJECTED',
         reason: 'The host declined the screen',
       })
     },
-    [updatePendingScreens]
+    [updatePendingScreens, markScoreboard]
   )
 
   const handleSendMessage = useCallback(
@@ -1095,6 +1152,7 @@ export default function GameMaster() {
     roomId: game?.roomId ?? null,
     pending: pendingScreens,
     connected: connectedScreens,
+    scoreboards,
     watching,
     onApprove: handleApproveScreen,
     onReject: handleRejectScreen,

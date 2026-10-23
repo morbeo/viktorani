@@ -220,7 +220,10 @@ export interface RoundAnswerItem {
 }
 
 /** Surfaces on other devices that get their layout over the transport. */
-export type RemoteLayoutTarget = 'player' | 'screen'
+export type RemoteLayoutTarget = 'player' | 'screen' | 'scoreboard'
+
+/** What an approved screen device shows: the projector screen or the scoreboard. */
+export type ScreenSurface = 'screen' | 'scoreboard'
 
 /** One layout and its widgets, as sent in `LAYOUT`. */
 export interface LayoutPayload {
@@ -330,8 +333,10 @@ export type PlayerEvent =
   /**
    * A projector screen asks to follow the game. Needs GM approval, like a player JOIN. With
    * `watch`, a spectator asks instead: let in without approval when the game allows them.
+   * With `surface: 'scoreboard'`, the device shows the scoreboard surface and gets its
+   * layouts; spectators always get the screen's.
    */
-  | { type: 'SCREEN_JOIN'; watch?: true }
+  | { type: 'SCREEN_JOIN'; watch?: true; surface?: 'scoreboard' }
 
 /** Union of all events that flow through the transport layer. */
 export type TransportEvent = GameEvent | PlayerEvent

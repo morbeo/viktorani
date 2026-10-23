@@ -7,6 +7,8 @@ export interface ScreensPanelProps {
   pending: string[]
   /** Connection ids of approved, connected screens, oldest first. */
   connected: string[]
+  /** Connection ids, pending or connected, of screens that show the scoreboard. */
+  scoreboards?: string[]
   /** How many spectators are watching (see `Game.allowSpectators`). */
   watching?: number
   onApprove: (connId: string) => void
@@ -14,23 +16,9 @@ export interface ScreensPanelProps {
   onDisconnect: (connId: string) => void
 }
 
-/**
- * The link for projector screens on other devices, the screens waiting for approval, the
- * screens currently connected, and how many spectators are watching.
- */
-export function ScreensPanel({
-  roomId,
-  pending,
-  connected,
-  watching = 0,
-  onApprove,
-  onReject,
-  onDisconnect,
-}: ScreensPanelProps) {
+/** A device link with a copy button. */
+function LinkRow({ url, label }: { url: string; label: string }) {
   const [copied, setCopied] = useState(false)
-  if (!roomId) return null
-
-  const url = `${window.location.origin}${window.location.pathname}#/screen/${roomId}`
 
   function handleCopy() {
     void navigator.clipboard.writeText(url).then(() => {
@@ -38,6 +26,47 @@ export function ScreensPanel({
       setTimeout(() => setCopied(false), 2000)
     })
   }
+
+  return (
+    <div className="px-4 py-2 flex items-center gap-2">
+      <span className="flex-1 min-w-0 truncate text-xs mono text-muted" title={url}>
+        {url}
+      </span>
+      <Button size="sm" variant="ghost" onClick={handleCopy} aria-label={`Copy ${label} URL`}>
+        {copied ? 'Copied' : 'Copy'}
+      </Button>
+    </div>
+  )
+}
+
+/** Names each device "Screen n" or "Scoreboard n", numbered within its kind. */
+function deviceNames(connIds: string[], scoreboards: string[]): string[] {
+  const counts = { Screen: 0, Scoreboard: 0 }
+  return connIds.map(connId => {
+    const kind = scoreboards.includes(connId) ? 'Scoreboard' : 'Screen'
+    return `${kind} ${++counts[kind]}`
+  })
+}
+
+/**
+ * The links for projector screens and scoreboard displays on other devices, the devices
+ * waiting for approval, the ones currently connected, and how many spectators are watching.
+ */
+export function ScreensPanel({
+  roomId,
+  pending,
+  connected,
+  scoreboards = [],
+  watching = 0,
+  onApprove,
+  onReject,
+  onDisconnect,
+}: ScreensPanelProps) {
+  if (!roomId) return null
+
+  const base = `${window.location.origin}${window.location.pathname}#`
+  const pendingNames = deviceNames(pending, scoreboards)
+  const connectedNames = deviceNames(connected, scoreboards)
 
   return (
     <div
@@ -49,24 +78,20 @@ export function ScreensPanel({
       <div className="px-4 py-3 border-b text-xs font-semibold uppercase tracking-wider border-border text-muted">
         Screens
       </div>
-      <div className="px-4 py-2 flex items-center gap-2">
-        <span className="flex-1 min-w-0 truncate text-xs mono text-muted" title={url}>
-          {url}
-        </span>
-        <Button size="sm" variant="ghost" onClick={handleCopy} aria-label="Copy screen URL">
-          {copied ? 'Copied' : 'Copy'}
-        </Button>
-      </div>
+      <LinkRow url={`${base}/screen/${roomId}`} label="screen" />
+      <LinkRow url={`${base}/scoreboard/${roomId}`} label="scoreboard" />
       {pending.length > 0 && (
         <ul className="flex flex-col">
           {pending.map((connId, i) => (
             <li key={connId} className="px-4 py-2 flex items-center gap-2">
-              <span className="flex-1 min-w-0 truncate text-sm">Screen {i + 1} wants to join</span>
+              <span className="flex-1 min-w-0 truncate text-sm">
+                {pendingNames[i]} wants to join
+              </span>
               <Button
                 size="sm"
                 variant="primary"
                 onClick={() => onApprove(connId)}
-                aria-label={`Approve screen ${i + 1}`}
+                aria-label={`Approve ${pendingNames[i].toLowerCase()}`}
               >
                 Approve
               </Button>
@@ -74,7 +99,7 @@ export function ScreensPanel({
                 size="sm"
                 variant="ghost"
                 onClick={() => onReject(connId)}
-                aria-label={`Reject screen ${i + 1}`}
+                aria-label={`Reject ${pendingNames[i].toLowerCase()}`}
               >
                 Reject
               </Button>
@@ -86,12 +111,12 @@ export function ScreensPanel({
         <ul className="flex flex-col border-t border-border">
           {connected.map((connId, i) => (
             <li key={connId} className="px-4 py-2 flex items-center gap-2">
-              <span className="flex-1 min-w-0 truncate text-sm">Screen {i + 1}</span>
+              <span className="flex-1 min-w-0 truncate text-sm">{connectedNames[i]}</span>
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={() => onDisconnect(connId)}
-                aria-label={`Disconnect screen ${i + 1}`}
+                aria-label={`Disconnect ${connectedNames[i].toLowerCase()}`}
               >
                 Disconnect
               </Button>
