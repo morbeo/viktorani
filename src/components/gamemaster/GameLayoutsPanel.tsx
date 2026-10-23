@@ -9,8 +9,8 @@ import { PHASE_LABELS, TARGET_LABELS } from '@/components/layout-designer/labels
 import { choiceLabel, layoutChoices } from '@/lib/layout-assignments'
 import { resolveLayout } from '@/widgets/layouts'
 
-/** Surfaces whose layout the host can choose; the scoreboard page has none yet. */
-const SURFACES: LayoutTarget[] = ['screen', 'player', 'gamemaster']
+/** Surfaces whose layout the host can choose. */
+const SURFACES: LayoutTarget[] = ['screen', 'player', 'gamemaster', 'scoreboard']
 
 const SLOT_LABELS: Record<LayoutSlot, string> = { all: 'All phases', ...PHASE_LABELS }
 

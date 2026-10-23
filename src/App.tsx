@@ -73,6 +73,7 @@ export default function App() {
             <Route path="/admin/games" element={<Games />} />
             <Route path="/admin/game/:id" element={<GameMaster />} />
             <Route path="/admin/game/:id/screen" element={<Screen />} />
+            <Route path="/admin/game/:id/scoreboard" element={<Screen surface="scoreboard" />} />
             <Route path="/admin/layouts" element={<Layouts />} />
             <Route path="/admin/layouts/:gameId" element={<Layouts />} />
             <Route path="/admin/players-teams" element={<PlayersTeams />} />

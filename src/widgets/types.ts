@@ -140,12 +140,20 @@ export interface PlayerData {
   } | null
 }
 
-/** Live data per surface. The scoreboard surface isn't rendered from a layout yet. */
+/** What a scoreboard display knows about the game, as handed to its widgets. */
+export interface ScoreboardData {
+  /** Ranked names and scores; empty when scoring is off. */
+  rows: ScoreboardRow[]
+  /** Recent public game events, newest first. */
+  logEntries: LogEntry[]
+}
+
+/** Live data per surface. */
 export interface SurfaceData {
   gamemaster: GamemasterData
   player: PlayerData
   screen: ScreenData
-  scoreboard: never
+  scoreboard: ScoreboardData
 }
 
 /** Props the `LayoutRenderer` gives every widget component. */

@@ -4,7 +4,7 @@ import type { LayoutTarget, Question, WidgetType } from '@/db'
 import type { GameEvent, ScoreboardRow } from '@/transport/types'
 import { buildScoreEntries } from '@/hooks/useScoreboard'
 import { WIDGET_REGISTRY } from '@/widgets/registry'
-import type { PlayerData, ScreenData } from '@/widgets/types'
+import type { PlayerData, ScoreboardData, ScreenData } from '@/widgets/types'
 
 type QuestionContent = Extract<GameEvent, { type: 'QUESTION_CONTENT' }>
 
@@ -67,11 +67,11 @@ export async function loadPreviewSample(gameId: string | null): Promise<PreviewS
 }
 
 /**
- * Whether a widget of `type` can be previewed on `target`: only the player and screen
- * surfaces have sample data, and the widget needs a component there.
+ * Whether a widget of `type` can be previewed on `target`: every surface but the game
+ * master's has sample data, and the widget needs a component there.
  */
 export function canPreview(type: WidgetType, target: LayoutTarget): boolean {
-  return (target === 'player' || target === 'screen') && !!WIDGET_REGISTRY[type].components[target]
+  return target !== 'gamemaster' && !!WIDGET_REGISTRY[type].components[target]
 }
 
 /** {@link loadPreviewSample} for `gameId`, kept up to date; `undefined` while it loads. */
@@ -103,4 +103,10 @@ export function sampleScreenData(sample: PreviewSample): ScreenData {
     ],
     timers: null,
   }
+}
+
+/** What a scoreboard display would show with `sample`. */
+export function sampleScoreboardData(sample: PreviewSample): ScoreboardData {
+  const { rows, logEntries } = sampleScreenData(sample)
+  return { rows, logEntries }
 }

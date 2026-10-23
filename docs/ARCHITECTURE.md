@@ -80,19 +80,21 @@ to `db`, then the writer sends the matching transport event so players stay in s
 The app uses `HashRouter` so it works on GitHub Pages without server rewrites
 ([ADR 0004](adr/0004-hash-router.md)).
 
-| Route                              | Page           | Who     |
-| ---------------------------------- | -------------- | ------- |
-| `/admin`                           | Dashboard      | Host    |
-| `/admin/questions`                 | Questions      | Host    |
-| `/admin/games`                     | Games (wizard) | Host    |
-| `/admin/game/:id`                  | GameMaster     | Host    |
-| `/admin/players-teams`             | PlayersTeams   | Host    |
-| `/admin/notes`, `/admin/notes/:id` | Notes          | Host    |
-| `/admin/settings/:category`        | Settings       | Host    |
-| `/admin/layouts`                   | Layouts        | Host    |
-| `/admin/layouts/:gameId`           | Layouts        | Host    |
-| `/join`, `/join/:roomId`           | Join           | Players |
-| `/play/:roomId`                    | Play           | Players |
+| Route                              | Page                | Who     |
+| ---------------------------------- | ------------------- | ------- |
+| `/admin`                           | Dashboard           | Host    |
+| `/admin/questions`                 | Questions           | Host    |
+| `/admin/games`                     | Games (wizard)      | Host    |
+| `/admin/game/:id`                  | GameMaster          | Host    |
+| `/admin/game/:id/screen`           | Screen              | Host    |
+| `/admin/game/:id/scoreboard`       | Screen (scoreboard) | Host    |
+| `/admin/players-teams`             | PlayersTeams        | Host    |
+| `/admin/notes`, `/admin/notes/:id` | Notes               | Host    |
+| `/admin/settings/:category`        | Settings            | Host    |
+| `/admin/layouts`                   | Layouts             | Host    |
+| `/admin/layouts/:gameId`           | Layouts             | Host    |
+| `/join`, `/join/:roomId`           | Join                | Players |
+| `/play/:roomId`                    | Play                | Players |
 
 ## Source tree
 
@@ -116,6 +118,7 @@ src/
 │   ├── players-teams/       managed roster: lists, forms, QR, labels
 │   ├── layout-designer/     Layouts page: canvas, widget palette, inspector
 │   ├── screen/              ScreenView and screen widgets
+│   ├── scoreboard/          ScoreboardView and scoreboard widgets
 │   └── settings/            Settings categories: appearance, tags, difficulties, data
 ├── widgets/                 widget registry, built-in layouts, LayoutRenderer
 ├── hooks/                   useBuzzer, useTimer, useNavigation, useScoreboard, …

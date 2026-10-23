@@ -121,12 +121,13 @@ Epic: #364. Scope and dependency order are in the epic body: widget registry →
 
 - [x] Widget registry and extract current views into widgets (#408) — registry built in #417; QR, `round_info`, `announcement`, and screen-side `question`/`answers`/`media` extracted in #417/#418. The `progress` widget followed once the designer existed: the track is now its own `ProgressTrack`, shared by `NavHeader` and the game master's widget.
 - [x] Layout model v2 — responsive grid, phases, Dexie migration (#409) — #439
-- [x] `LayoutRenderer` and default layouts for all surfaces (#410) — the projector screen in #440, the game master's play column and the player view in this change. The scoreboard surface keeps its fixed view until it gets a page of its own.
+- [x] `LayoutRenderer` and default layouts for all surfaces (#410) — the projector screen in #440, the game master's play column and the player view in this change. The scoreboard surface got its page in #502.
 - [x] `LAYOUT` transport event, validation, resend on admit/phase change (#411). Each phase's layout is sent up front, so a phase change needs no resend (ADR 0018).
 - [x] Designer: canvas, palette, drag/resize, inspector (#412) — `/admin/layouts` (templates) and `/admin/layouts/:gameId`
 - [x] Designer: templates, undo/redo, device previews, keyboard editing (#413)
 - [x] Phase-based automatic layout switching and the GM override (#414) — ADR 0019
 - [x] Assign layouts per surface and phase in game settings (#415) — ADR 0020
+- [x] Scoreboard window: Open scoreboard shows the game's scoreboard layout (leaderboard, game log, text, image) with live scores and the public log, choosable per game and previewed in the designer (#502)
 - [x] Widget previews: canvas boxes show each widget with sample data, and palette items preview on hover or focus (#503)
 
 ## Decisions (2026-10-19)

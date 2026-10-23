@@ -28,20 +28,15 @@ import { hostNow } from '@/hooks/useBuzzer'
 import { runningTimerEvents } from '@/hooks/useTimer'
 import { useGameLifecycle } from '@/hooks/useGameLifecycle'
 import { usePhaseOverride } from '@/hooks/usePhaseOverride'
-import {
-  adjustScore,
-  readShownScoreEntries,
-  readShownScores,
-  shownScoreEvents,
-} from '@/hooks/useScoreboard'
-import { buildLogRows, toPublicLogEntries } from '@/lib/game-log-rows'
+import { adjustScore, readShownScoreEntries, readShownScores } from '@/hooks/useScoreboard'
+import { readPublicLog } from '@/db/public-log'
 import { PlayerConnections, messageRecipients, resolveJoin } from '@/pages/admin/player-connections'
 import { buildLayoutEvent, type LayoutEvent } from '@/pages/admin/remote-layouts'
 import { buildThemeEvent } from '@/pages/admin/remote-theme'
 import type { ThemeEvent } from '@/pages/admin/remote-theme'
 import type { JoinResult, MessageTarget, PendingJoin } from '@/pages/admin/player-connections'
 import type { Game, GamePhase, Player, Team } from '@/db'
-import { MAX_LOG_ENTRIES, MAX_SCOREBOARD_ROWS } from '@/transport/messages'
+import { MAX_SCOREBOARD_ROWS } from '@/transport/messages'
 import type {
   LogEntry,
   ScoreboardRow,
@@ -548,22 +543,8 @@ export default function GameMaster() {
   }, [scoreboard])
 
   // Public feed of the game log, sent to screens only (see PUBLIC_LOG_KINDS)
-  const logGameRows = useLiveQuery(async () => {
-    if (!id) return []
-    const [g, log, buzzes, scores, ps, ts] = await Promise.all([
-      db.games.get(id),
-      db.gameLog.where('gameId').equals(id).toArray(),
-      db.buzzEvents.where('gameId').equals(id).toArray(),
-      db.scoreEvents.where('gameId').equals(id).toArray(),
-      db.players.where('gameId').equals(id).toArray(),
-      db.teams.where('gameId').equals(id).toArray(),
-    ])
-    const names = new Map<string, string>()
-    for (const p of ps) names.set(p.id, p.name)
-    for (const t of ts) names.set(t.id, t.name)
-    return buildLogRows(log, buzzes, shownScoreEvents(g, scores), names)
-  }, [id])
-  const logFeed = JSON.stringify(toPublicLogEntries(logGameRows ?? [], MAX_LOG_ENTRIES))
+  const publicLog = useLiveQuery(() => (id ? readPublicLog(id) : []), [id])
+  const logFeed = JSON.stringify(publicLog ?? [])
   useEffect(() => {
     const entries = JSON.parse(logFeed) as LogEntry[]
     logRef.current = entries

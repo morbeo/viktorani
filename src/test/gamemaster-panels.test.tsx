@@ -177,6 +177,18 @@ describe('GameControls', () => {
     )
     vi.unstubAllGlobals()
   })
+
+  it('opens the scoreboard in a named window (#502)', async () => {
+    const openSpy = vi.fn()
+    vi.stubGlobal('open', openSpy)
+    render(<GameControls game={mockGame} onGameChange={vi.fn()} lifecycle={mockLifecycle} />)
+    await userEvent.click(screen.getByText('Open scoreboard'))
+    expect(openSpy).toHaveBeenCalledWith(
+      expect.stringContaining('/admin/game/g1/scoreboard'),
+      'viktorani-scoreboard-g1'
+    )
+    vi.unstubAllGlobals()
+  })
 })
 
 describe('RosterPanel', () => {
