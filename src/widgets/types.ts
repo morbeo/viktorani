@@ -1,7 +1,6 @@
 import type { ComponentType, ReactNode } from 'react'
 import type { SeenAnswer } from '@/db/answers'
 import type { QuestionRuling, RulingAward } from '@/db/rulings'
-import type { z } from 'zod'
 import type {
   BuzzEvent,
   Game,
@@ -11,10 +10,9 @@ import type {
   Player,
   Question,
   Team,
-  WidgetType,
 } from '@/db'
 import type { GameEvent, LogEntry, ScoreboardRow } from '@/transport/types'
-import type { GridSize } from '@/lib/layout-grid'
+import type { WidgetSpec } from './specs'
 import type { NavEntry, NavPosition } from '@/pages/admin/gamemaster-utils'
 import type { UseTimerListResult } from '@/hooks/useTimer'
 
@@ -22,7 +20,7 @@ import type { UseTimerListResult } from '@/hooks/useTimer'
 export type WidgetTarget = LayoutTarget
 
 /**
- * Everything the registry knows about one {@link WidgetType}.
+ * Everything the registry knows about one {@link WidgetType}: its {@link WidgetSpec} and its components.
  *
  * @remarks
  * `components` has one entry per target the widget is allowed on. Real ones are adapters
@@ -31,14 +29,7 @@ export type WidgetTarget = LayoutTarget
  * designer (#412) needs them. Props are untyped here (`ComponentType<any>`) because each
  * target's adapters take a different data contract; `LayoutRenderer` supplies the right one.
  */
-export interface WidgetDefinition<TConfig = Record<string, unknown>> {
-  type: WidgetType
-  label: string
-  allowedTargets: readonly WidgetTarget[]
-  /** Size a newly placed widget gets on the 12-column grid. */
-  preferredSize: GridSize
-  configSchema: z.ZodType<TConfig>
-  defaultConfig: TConfig
+export interface WidgetDefinition<TConfig = Record<string, unknown>> extends WidgetSpec<TConfig> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   components: Partial<Record<WidgetTarget, ComponentType<any>>>
 }

@@ -1,7 +1,5 @@
-import { z } from 'zod'
 import type { ComponentType } from 'react'
 import type { WidgetType } from '@/db'
-import { GRID_COLUMNS, type GridSize } from '@/lib/layout-grid'
 import {
   GamemasterBuzzOrderWidget,
   GamemasterBuzzerWidget,
@@ -36,14 +34,10 @@ import {
   ScoreboardLeaderboardWidget,
   ScoreboardLogWidget,
 } from '@/components/scoreboard/scoreboard-widgets'
-import { ImageConfigSchema, TextConfigSchema } from './content-config'
 import { ImageWidget, TextWidget } from './content-widgets'
-import { LeaderboardConfigSchema } from './leaderboard'
 import { WidgetPlaceholder } from './placeholder'
+import { WIDGET_SPECS } from './specs'
 import type { WidgetDefinition, WidgetTarget } from './types'
-
-const FULL: GridSize = { w: GRID_COLUMNS, h: 1 }
-const HALF: GridSize = { w: GRID_COLUMNS / 2, h: 1 }
 
 function placeholderFor(label: string): ComponentType {
   function Placeholder() {
@@ -54,108 +48,88 @@ function placeholderFor(label: string): ComponentType {
 }
 
 /**
- * One registry entry. Targets in `overrides` get their real widget adapter; the rest get a
- * placeholder until the designer (#412) needs them. The default config is what
- * `configSchema` makes of `{}`, so every setting needs a default.
+ * One registry entry: the type's {@link WIDGET_SPECS} entry plus a component per allowed
+ * target. Targets in `overrides` get their real widget adapter; the rest get a placeholder.
  */
 function widget(
   type: WidgetType,
-  label: string,
-  allowedTargets: readonly WidgetTarget[],
-  preferredSize: GridSize,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  overrides: Partial<Record<WidgetTarget, ComponentType<any>>> = {},
-  configSchema: z.ZodType<Record<string, unknown>> = z.strictObject({})
+  overrides: Partial<Record<WidgetTarget, ComponentType<any>>> = {}
 ): WidgetDefinition {
-  const Placeholder = placeholderFor(label)
+  const spec = WIDGET_SPECS[type]
+  const Placeholder = placeholderFor(spec.label)
   const components: WidgetDefinition['components'] = {}
-  for (const target of allowedTargets) components[target] = overrides[target] ?? Placeholder
-  return {
-    type,
-    label,
-    allowedTargets,
-    preferredSize,
-    configSchema,
-    defaultConfig: configSchema.parse({}),
-    components,
-  }
+  for (const target of spec.allowedTargets) components[target] = overrides[target] ?? Placeholder
+  return { ...spec, components }
 }
 
 /** Every {@link WidgetType}, with its metadata and a component (real or placeholder) per target. */
 export const WIDGET_REGISTRY: Record<WidgetType, WidgetDefinition> = {
-  buzzer: widget('buzzer', 'Buzzer', ['gamemaster', 'player'], HALF, {
+  buzzer: widget('buzzer', {
     gamemaster: GamemasterBuzzerWidget,
     player: PlayerBuzzerWidget,
   }),
-  question: widget('question', 'Question', ['gamemaster', 'player', 'screen'], FULL, {
+  question: widget('question', {
     gamemaster: GamemasterQuestionWidget,
     player: PlayerQuestionWidget,
     screen: ScreenQuestionWidget,
   }),
-  answers: widget('answers', 'Answers', ['gamemaster', 'player', 'screen'], FULL, {
+  answers: widget('answers', {
     screen: ScreenAnswersWidget,
   }),
-  media: widget('media', 'Media', ['gamemaster', 'player', 'screen'], FULL, {
+  media: widget('media', {
     screen: ScreenMediaWidget,
   }),
-  timer: widget('timer', 'Timer', ['gamemaster', 'player', 'screen'], HALF, {
+  timer: widget('timer', {
     gamemaster: GamemasterTimerWidget,
     player: PlayerTimerWidget,
     screen: ScreenTimersWidget,
   }),
-  buzz_order: widget('buzz_order', 'Buzz order', ['gamemaster'], HALF, {
+  buzz_order: widget('buzz_order', {
     gamemaster: GamemasterBuzzOrderWidget,
   }),
-  scoreboard: widget('scoreboard', 'Scoreboard', ['gamemaster', 'screen'], HALF, {
+  scoreboard: widget('scoreboard', {
     gamemaster: GamemasterScoreboardWidget,
     screen: ScreenScoresWidget,
   }),
-  leaderboard: widget(
-    'leaderboard',
-    'Leaderboard',
-    ['screen', 'scoreboard'],
-    HALF,
-    { screen: ScreenLeaderboardWidget, scoreboard: ScoreboardLeaderboardWidget },
-    LeaderboardConfigSchema
-  ),
-  player_list: widget('player_list', 'Player list', ['gamemaster'], HALF, {
+  leaderboard: widget('leaderboard', {
+    screen: ScreenLeaderboardWidget,
+    scoreboard: ScoreboardLeaderboardWidget,
+  }),
+  player_list: widget('player_list', {
     gamemaster: GamemasterPlayerListWidget,
   }),
-  round_info: widget('round_info', 'Round info', ['gamemaster', 'screen'], FULL, {
+  round_info: widget('round_info', {
     gamemaster: GamemasterRoundInfoWidget,
     screen: ScreenHeadingWidget,
   }),
-  text: widget(
-    'text',
-    'Text',
-    ['gamemaster', 'player', 'screen', 'scoreboard'],
-    HALF,
-    { gamemaster: TextWidget, player: TextWidget, screen: TextWidget, scoreboard: TextWidget },
-    TextConfigSchema
-  ),
-  qr_code: widget('qr_code', 'QR code', ['gamemaster'], HALF, {
+  text: widget('text', {
+    gamemaster: TextWidget,
+    player: TextWidget,
+    screen: TextWidget,
+    scoreboard: TextWidget,
+  }),
+  qr_code: widget('qr_code', {
     gamemaster: GamemasterQrCodeWidget,
   }),
-  announcement: widget('announcement', 'Announcement', ['gamemaster', 'player', 'screen'], FULL, {
+  announcement: widget('announcement', {
     player: PlayerAnnouncementWidget,
     screen: ScreenAnnouncementWidget,
   }),
-  image: widget(
-    'image',
-    'Image',
-    ['gamemaster', 'player', 'screen', 'scoreboard'],
-    HALF,
-    { gamemaster: ImageWidget, player: ImageWidget, screen: ImageWidget, scoreboard: ImageWidget },
-    ImageConfigSchema
-  ),
-  game_controls: widget('game_controls', 'Game controls', ['gamemaster'], FULL, {
+  image: widget('image', {
+    gamemaster: ImageWidget,
+    player: ImageWidget,
+    screen: ImageWidget,
+    scoreboard: ImageWidget,
+  }),
+  game_controls: widget('game_controls', {
     gamemaster: GamemasterGameControlsWidget,
   }),
   // Players and screens get no navigation data, so only the game master can show progress
-  progress: widget('progress', 'Progress', ['gamemaster'], FULL, {
+  progress: widget('progress', {
     gamemaster: GamemasterProgressWidget,
   }),
-  game_log: widget('game_log', 'Game log', ['gamemaster', 'screen', 'scoreboard'], HALF, {
+  game_log: widget('game_log', {
     gamemaster: GamemasterLogWidget,
     screen: ScreenLogWidget,
     scoreboard: ScoreboardLogWidget,
