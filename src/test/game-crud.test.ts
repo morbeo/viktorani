@@ -1,7 +1,7 @@
 // @vitest-pool vmForks
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
-vi.mock('@/transport', () => ({
+vi.mock('@/transport/room-id', () => ({
   generateRoomId: () => 'ROOM2',
 }))
 

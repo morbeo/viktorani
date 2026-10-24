@@ -11,7 +11,7 @@ import {
 import type { GameSettings } from '@/components/game-settings/game-settings'
 import { AppSettingsSchema } from '@/lib/app-settings'
 import { BUILT_IN_THEME_IDS } from '@/lib/theme'
-import { generateRoomId } from '@/transport'
+import { generateRoomId } from '@/transport/room-id'
 import { IdInput, PageInput, ToolError, defineTool, definedOnly, notFound, page } from '../tool'
 import type { McpContext } from '../tool'
 
