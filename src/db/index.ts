@@ -244,6 +244,11 @@ export interface Game {
    */
   revealTiming: RevealTiming
   /**
+   * Show the `scoreboard` phase between rounds (ADR 0019): Next on a round's last question
+   * holds it, after the end-of-round review when there is one, and the next Next moves on.
+   */
+  scoreboardBetweenRounds: boolean
+  /**
    * When players' answers close in a `choice` or `text` game: `perQuestion` when the host
    * moves on, `endOfRound` once the host closes the round's answers or leaves the round, so
    * players can still answer the round's earlier questions. `wholeRound` closes like
@@ -774,6 +779,7 @@ export interface Vote {
  * - 26: same stores; back-fills `Game.rankTies` (`share`) on existing games.
  * - 27: same stores; back-fills `Game.allowSpectators` (`false`) on existing games.
  * - 28: same stores; back-fills `Game.localNetworkOnly` (`false`) on existing games.
+ * - 29: same stores; back-fills `Game.scoreboardBetweenRounds` (`false`) on existing games.
  *
  * To change the schema, add a new `this.version(N + 1)` block below; keep existing blocks.
  */
@@ -1081,6 +1087,17 @@ export class ViktoraniDB extends Dexie {
           .toCollection()
           .modify((g: Partial<Game>) => {
             g.localNetworkOnly ??= false
+          })
+      )
+
+    this.version(29)
+      .stores({})
+      .upgrade(tx =>
+        tx
+          .table('games')
+          .toCollection()
+          .modify((g: Partial<Game>) => {
+            g.scoreboardBetweenRounds ??= false
           })
       )
   }

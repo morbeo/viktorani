@@ -33,6 +33,7 @@ const BASE_GAME: Game = {
   requireApproval: false,
   allowSpectators: false,
   localNetworkOnly: false,
+  scoreboardBetweenRounds: false,
   allowPlayerTeams: true,
   roundIds: ['r1', 'r2'],
   currentRoundIdx: 0,

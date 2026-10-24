@@ -242,10 +242,27 @@ export function ActiveGame({
   const [review, setReview] = useRoundReview(game.id)
   const [continueAfterReview, setContinueAfterReview] = useState(false)
   const reviewedRoundsRef = useRef(new Set<string>())
+  // The scoreboard between rounds (ADR 0019): Next on a round's last question holds the
+  // scoreboard phase, after the review when there is one, and Next again moves on
+  const scoreboardStep = Boolean(game.scoreboardBetweenRounds && onPhaseOverride)
+  const holdingScoreboard = scoreboardStep && phaseOverride === 'scoreboard'
+  const finishRound = useCallback(async () => {
+    if (scoreboardStep) {
+      onPhaseOverride?.('scoreboard')
+      return
+    }
+    await goNext()
+  }, [scoreboardStep, onPhaseOverride, goNext])
   const leaveRound = useCallback(async () => {
     const current = pos ? seq[pos.flatIndex] : undefined
     const next = pos ? seq[pos.flatIndex + 1] : undefined
     const lastOfRound = current && next && next.roundId !== current.roundId
+    // Leaving the scoreboard: the round's answers were closed and reviewed on the way in
+    if (lastOfRound && holdingScoreboard) {
+      onPhaseOverride?.(null)
+      await goNext()
+      return
+    }
     // Answers kept open until the end of the round close before its answers are revealed
     if (pos && current && lastOfRound && keepsAnswersOpen(game)) {
       for (const e of answerableEntries(game, seq, pos.flatIndex)) {
@@ -262,8 +279,9 @@ export function ActiveGame({
       setContinueAfterReview(true)
       return
     }
-    await goNext()
-  }, [game, pos, seq, goNext, setReview])
+    if (lastOfRound) await finishRound()
+    else await goNext()
+  }, [game, pos, seq, goNext, finishRound, holdingScoreboard, onPhaseOverride, setReview])
   const closeReview = useCallback(() => {
     if (review) reviewedRoundsRef.current.add(review.roundId)
     setReview(null)
@@ -271,8 +289,8 @@ export function ActiveGame({
   }, [review, setReview])
   const continueFromReview = useCallback(() => {
     closeReview()
-    void goNext()
-  }, [closeReview, goNext])
+    void finishRound()
+  }, [closeReview, finishRound])
 
   // Confirm before leaving a question with no ruling, when the setting is on
   const [confirmingNav, setConfirmingNav] = useState(false)
@@ -281,12 +299,19 @@ export function ActiveGame({
     const current = pos ? seq[pos.flatIndex] : undefined
     const next = pos ? seq[pos.flatIndex + 1] : undefined
     const keptOpen = keepsAnswersOpen(game) && next?.roundId === current?.roundId
-    if (game.confirmUnruledNavigation && current?.questionStatus === 'pending' && !keptOpen) {
+    // Already asked on the way to the scoreboard
+    const leavingScoreboard = holdingScoreboard && next && next.roundId !== current?.roundId
+    if (
+      game.confirmUnruledNavigation &&
+      current?.questionStatus === 'pending' &&
+      !keptOpen &&
+      !leavingScoreboard
+    ) {
       setConfirmingNav(true)
       return
     }
     void leaveRound()
-  }, [game, pos, seq, leaveRound])
+  }, [game, pos, seq, holdingScoreboard, leaveRound])
 
   // Current question ID derived from nav position
   const currentQuestionId = pos ? (seq[pos.flatIndex]?.questionId ?? null) : null

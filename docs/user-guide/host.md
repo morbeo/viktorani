@@ -156,7 +156,11 @@ Its **Layouts** section chooses what the projector screen, players' phones and y
 column show, for all phases or one phase at a time. **Automatic** names the layout used
 without a choice. Above the play column, **Layouts for** holds a phase by hand, such as the
 scoreboard between rounds; the command palette (Ctrl/⌘+K) has the same, plus **Show layout
-on screen** and **Show layout on phones** for the phase the game is in.
+on screen** and **Show layout on phones** for the phase the game is in. To show the
+scoreboard between rounds without picking it, turn on **Scoreboard between rounds** under
+**Round flow** in the game settings: **Next** on a round's last question switches every
+surface to its scoreboard layout (after the answer review, when answers show at the end of
+the round), and **Next** again starts the next round.
 
 ---
 

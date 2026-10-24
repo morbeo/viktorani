@@ -44,6 +44,7 @@ const GAME: Game = {
   requireApproval: false,
   allowSpectators: false,
   localNetworkOnly: false,
+  scoreboardBetweenRounds: false,
   allowPlayerTeams: true,
   roundIds: [],
   currentRoundIdx: 0,

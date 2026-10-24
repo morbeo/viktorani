@@ -134,7 +134,8 @@ Epic: #364. Scope and dependency order are in the epic body: widget registry →
 ## Decisions (2026-10-23)
 
 - **Whole round on phones (ADR 0023):** `Game.answersClose` gains `wholeRound`, so no new field and no Dexie version: snapshots and saved settings take it through the same `ANSWERS_CLOSE` enum. It closes like `endOfRound`, but `OPEN_QUESTIONS` lists every other question of the round from the start, under the player visibility flags and without answers or media. `answerableEntries` decides which questions players may answer, for the answer handler, `TEAM_ANSWERS`, the round sheet and closing the round, which now also closes questions the host never showed. Phones head the list **Other questions this round**.
-- **Next up:** every phase on this roadmap is done. Candidates: remote scoreboard devices (in progress), the AI tools of ADR 0021, and an automatic `scoreboard` phase (ADR 0019).
+- [x] Scoreboard between rounds: `Game.scoreboardBetweenRounds` (Dexie v29) makes Next on a round's last question hold the `scoreboard` phase, after the end-of-round review when there is one; Next again moves into the next round (ADR 0019, #515)
+- **Next up:** every phase on this roadmap is done. Candidate: the AI tools of ADR 0021.
 
 ## Decisions (2026-10-19)
 

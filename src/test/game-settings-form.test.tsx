@@ -143,6 +143,13 @@ describe('GameSettingsForm', () => {
     expect(screen.queryByRole('button', { name: `No limit for ${label}` })).toBeNull()
   })
 
+  it('turns on the scoreboard between rounds', async () => {
+    const onChange = vi.fn()
+    render(<Harness mode="live" onChange={onChange} />)
+    await userEvent.click(screen.getByRole('switch', { name: 'Scoreboard between rounds' }))
+    expect(onChange).toHaveBeenLastCalledWith({ scoreboardBetweenRounds: true })
+  })
+
   it('changes the buzz display with the segmented control', async () => {
     const onChange = vi.fn()
     render(<Harness mode="live" onChange={onChange} />)

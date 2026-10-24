@@ -70,6 +70,7 @@ const GameSettingsSchema = z.object({
   requireApproval: z.boolean().catch(BUILT_IN_GAME.requireApproval),
   allowSpectators: z.boolean().catch(BUILT_IN_GAME.allowSpectators),
   localNetworkOnly: z.boolean().catch(BUILT_IN_GAME.localNetworkOnly),
+  scoreboardBetweenRounds: z.boolean().catch(BUILT_IN_GAME.scoreboardBetweenRounds),
   inputType: z.enum(INPUT_TYPES).catch(BUILT_IN_GAME.inputType),
   autoLockOnFirstCorrect: z.boolean().catch(BUILT_IN_GAME.autoLockOnFirstCorrect),
   allowFalseStarts: z.boolean().catch(BUILT_IN_GAME.allowFalseStarts),
