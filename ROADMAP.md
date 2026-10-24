@@ -131,6 +131,21 @@ Epic: #364. Scope and dependency order are in the epic body: widget registry →
 - [x] Widget previews: canvas boxes show each widget with sample data, and palette items preview on hover or focus (#503)
 - [x] Remote scoreboard displays: `/scoreboard/:roomId` joins with `SCREEN_JOIN { surface: 'scoreboard' }`, waits for approval like a screen, and gets the scoreboard `LAYOUT` (not the screen's) with scores, the public log, phase and theme. The Screens panel has a scoreboard link and names scoreboard devices apart.
 
+## Phase 8: AI tools (in progress)
+
+Epic: #517. Design in ADR 0021. Step 1 is an MCP server that edits a backup file; step 2 is live tools on the game master through WebMCP, off by default.
+
+- [ ] Replace import with a removal preview (#518): **Replace from JSON** in Settings → Data lists what the file lacks and removes it only after the host confirms
+- [ ] `src/mcp/` authoring tool layer (#519)
+- [ ] `viktorani-mcp` stdio server, `npm run mcp` and release asset (#520)
+- [ ] Host guide: using an assistant (#521)
+- [ ] Settings → AI tools and in-app confirmations (#522)
+- [ ] WebMCP live tools on the game master (#523)
+
+## Decisions (2026-10-24)
+
+- **MCP step 1 (ADR 0021):** deletions reach the app through a replace import with a removal preview; the server keeps changes in memory until the assistant calls `save` (same file or a new path); it ships as a single `viktorani-mcp.js` attached to each release and runs from a clone with `npm run mcp`, with no npm package; and it edits difficulties, tags, questions, rounds, games, layouts (with widgets) and themes, but not notes.
+
 ## Decisions (2026-10-23)
 
 - **Whole round on phones (ADR 0023):** `Game.answersClose` gains `wholeRound`, so no new field and no Dexie version: snapshots and saved settings take it through the same `ANSWERS_CLOSE` enum. It closes like `endOfRound`, but `OPEN_QUESTIONS` lists every other question of the round from the start, under the player visibility flags and without answers or media. `answerableEntries` decides which questions players may answer, for the answer handler, `TEAM_ANSWERS`, the round sheet and closing the round, which now also closes questions the host never showed. Phones head the list **Other questions this round**.
