@@ -1,7 +1,7 @@
 # ADR 0021 — MCP support
 
 **Date:** 2026-10-16
-**Status:** Proposed
+**Status:** Accepted (2026-10-24)
 **Deciders:** Vladimir Kirov
 
 ---
@@ -56,8 +56,11 @@ Build MCP support in three steps, sharing one tool layer.
   Dexie on `fake-indexeddb`, runs authoring tools against it, and writes the snapshot back, so
   every write goes through the same code and migrations as the app. Tools: list and search
   questions; create, update and delete questions, tags and difficulties; build rounds; create a
-  game from rounds; import questions in the existing JSON format; validate a snapshot.
-  Resources expose the question bank and games read-only.
+  game from rounds; create and edit layouts (with their widgets) and themes; import questions
+  in the existing JSON format; validate a snapshot. Changes stay in memory until the assistant
+  calls `save`, which writes to the loaded file or a new path. Resources expose the question
+  bank, games, layouts and themes read-only. It ships as one `viktorani-mcp.js` attached to
+  each GitHub release, and runs from a clone with `npm run mcp`; it is not published to npm.
 - **Step 2 — live tools via WebMCP (option 2).** The GameMaster page registers live tools only
   when `navigator.modelContext` exists and the host turned on **Settings → AI tools**. Tools:
   read game state, scoreboard and log; next/previous question; lock and unlock the buzzer; rule
@@ -83,8 +86,9 @@ Safety rules for every tool:
 
 - Authoring works with any MCP client today, offline, without touching the deployed app.
 - The handoff for authoring is a file: the host imports it. `importDatabase` upserts by id, so
-  importing edits made by the server is safe for existing rows but never deletes; deletions
-  need either a "replace" import mode or a merge report. That is a prerequisite for step 1.
+  importing edits made by the server is safe for existing rows but never deletes. Deletions
+  arrive through a **replace** import: Settings → Data lists what the file lacks and removes it
+  only after the host confirms (#518).
 - Live control depends on WebMCP maturing. Until then, an assistant can only prepare a game.
 - The server and the app must agree on the snapshot version; the server refuses versions it
   doesn't know, as `importDatabase` does.
@@ -92,6 +96,15 @@ Safety rules for every tool:
   layer must stay free of React so it can run in Node.
 - New ADRs will be needed if option 3 is adopted (CSP and pairing) or if tools move into a
   separate package.
+
+---
+
+## Decisions (2026-10-24)
+
+Accepted with these answers to the open questions: replace import with a removal preview
+(not a merge report); explicit `save` rather than autosave; a release asset and `npm run mcp`
+rather than an npm package; and step 1 covers layouts and themes as well as the question bank,
+rounds and games. Notes stay out. Work is tracked in epic #517.
 
 ---
 

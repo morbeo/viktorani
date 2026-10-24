@@ -458,6 +458,11 @@ buttons, control size, sound, timer and game defaults, presets, general settings
 **Import JSON** restores them. Backups leave out game logs; download a game's log from its
 **Log** tab instead.
 
+Import only adds and updates: anything you have that the file doesn't is kept. To make your
+data match the file exactly, use **Replace from JSON**. It first lists what will be removed
+(for example "3 questions: …, 1 game: …") and does nothing until you click **Replace data**.
+Removing a game also removes its players, teams, scores and log.
+
 To try things out, **Settings → Data → Load demo data** (or "Load demo data" in the command
 palette, Ctrl/⌘+K) adds sample questions, rounds, teams and a ready-to-run game named
 **Demo Night**. Loading it twice adds nothing.

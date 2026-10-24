@@ -1,3 +1,4 @@
+import type { Table } from 'dexie'
 import type { z } from 'zod'
 import { db } from '@/db'
 import type {
@@ -110,22 +111,90 @@ function formatIssues(error: z.ZodError): string {
     .join('; ')
 }
 
+/** A backup file after validation: every collection present, legacy fields stripped. */
+export type ParsedSnapshot = z.output<typeof SnapshotSchema>
+
 /**
- * Restore a previously exported snapshot into the local database.
+ * How {@link applySnapshot} treats rows that are in the database but not in the file.
+ * `merge` keeps them; `replace` deletes them, so the database ends up matching the file.
+ */
+export type ImportMode = 'merge' | 'replace'
+
+/** The collections a snapshot carries, in the order they are written. */
+const SNAPSHOT_TABLES = [
+  'difficulties',
+  'tags',
+  'questions',
+  'rounds',
+  'games',
+  'gameQuestions',
+  'notes',
+  'layouts',
+  'widgets',
+  'themes',
+] as const
+
+type SnapshotTable = (typeof SNAPSHOT_TABLES)[number]
+
+/** The Dexie table behind a collection name, read off `db` so test spies on it apply. */
+function table(name: SnapshotTable | (typeof PLAY_TABLES)[number]): Table<{ id: string }, string> {
+  return db[name] as unknown as Table<{ id: string }, string>
+}
+
+/** Play data that belongs to a game and is not in snapshots. A replace drops it with the game. */
+const PLAY_TABLES = [
+  'teams',
+  'players',
+  'buzzEvents',
+  'answers',
+  'scoreEvents',
+  'gameLog',
+  'timers',
+] as const
+
+/** What a replace import would remove from one collection. */
+export interface RemovalGroup {
+  /** The collection, e.g. `questions`. */
+  table: SnapshotTable
+  /** How many rows would be removed. */
+  count: number
+  /** Names or titles of the removed rows, for collections the host recognises by name. */
+  names: string[]
+}
+
+/** Collections listed by name in a removal preview; the rest only count. */
+const NAMED_TABLES: Partial<Record<SnapshotTable, 'name' | 'title'>> = {
+  difficulties: 'name',
+  tags: 'name',
+  questions: 'title',
+  rounds: 'name',
+  games: 'name',
+  notes: 'name',
+  layouts: 'name',
+  themes: 'name',
+}
+
+/**
+ * Read and validate a backup file without writing anything.
  *
  * @remarks
- * The whole file is validated before anything is written; all collections are
- * then written with `bulkPut` in a single transaction, so an invalid file or a
- * failed write leaves the database untouched. Existing records with matching IDs
- * are overwritten. Accepts both v1 (with categories) and v2 snapshots —
- * `categories` and legacy `categoryId` fields are stripped transparently.
+ * Accepts both v1 (with categories) and v2 snapshots: `categories` and legacy
+ * `categoryId` fields are stripped.
  *
  * @param file - A `.json` file previously produced by {@link exportDatabase}.
  * @throws If the file is too large, not valid JSON, has an unsupported snapshot
  *   version, or contains malformed records.
  */
-export async function importDatabase(file: File): Promise<void> {
-  const raw = await readJsonFile(file)
+export async function readSnapshot(file: File): Promise<ParsedSnapshot> {
+  return parseSnapshot(await readJsonFile(file))
+}
+
+/**
+ * Validate an already-parsed backup object.
+ *
+ * @throws If the version is unsupported or any record is malformed.
+ */
+export function parseSnapshot(raw: unknown): ParsedSnapshot {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
     throw new Error('Invalid backup file: expected a JSON object')
   }
@@ -137,36 +206,95 @@ export async function importDatabase(file: File): Promise<void> {
 
   const parsed = SnapshotSchema.safeParse(raw)
   if (!parsed.success) throw new Error(`Invalid backup file: ${formatIssues(parsed.error)}`)
-  const snapshot = parsed.data
+  return parsed.data
+}
 
-  await db.transaction(
-    'rw',
-    [
-      db.difficulties,
-      db.tags,
-      db.questions,
-      db.rounds,
-      db.games,
-      db.gameQuestions,
-      db.notes,
-      db.layouts,
-      db.widgets,
-      db.themes,
-    ],
-    async () => {
-      if (snapshot.difficulties.length) await db.difficulties.bulkPut(snapshot.difficulties)
-      if (snapshot.tags.length) await db.tags.bulkPut(snapshot.tags)
-      if (snapshot.questions.length) await db.questions.bulkPut(snapshot.questions)
-      if (snapshot.rounds.length) await db.rounds.bulkPut(snapshot.rounds)
-      if (snapshot.games.length) await db.games.bulkPut(snapshot.games)
-      if (snapshot.gameQuestions.length) await db.gameQuestions.bulkPut(snapshot.gameQuestions)
-      if (snapshot.notes.length) await db.notes.bulkPut(snapshot.notes)
-      if (snapshot.layouts.length) await db.layouts.bulkPut(snapshot.layouts)
-      if (snapshot.widgets.length) await db.widgets.bulkPut(snapshot.widgets)
-      if (snapshot.themes.length) await db.themes.bulkPut(snapshot.themes)
+/** Ids in each snapshot collection that the database has and the file doesn't. */
+async function missingIds(snapshot: ParsedSnapshot): Promise<Record<SnapshotTable, string[]>> {
+  const result = {} as Record<SnapshotTable, string[]>
+  for (const t of SNAPSHOT_TABLES) {
+    const keep = new Set(snapshot[t].map(row => row.id))
+    const ids = await table(t).toCollection().primaryKeys()
+    result[t] = ids.filter(id => !keep.has(id))
+  }
+  return result
+}
+
+/**
+ * List what a `replace` import of `snapshot` would remove, without writing anything.
+ *
+ * @remarks
+ * Only collections that lose rows are returned. Removing a game also removes its play
+ * data (players, teams, buzzes, answers, scores, log and timers), which is not listed.
+ */
+export async function previewReplace(snapshot: ParsedSnapshot): Promise<RemovalGroup[]> {
+  const missing = await missingIds(snapshot)
+  const groups: RemovalGroup[] = []
+  for (const t of SNAPSHOT_TABLES) {
+    const ids = missing[t]
+    if (!ids.length) continue
+    const field = NAMED_TABLES[t]
+    const rows = (field ? await table(t).bulkGet(ids) : []) as (
+      Record<string, unknown> | undefined
+    )[]
+    const names = field ? rows.map(row => String(row?.[field] ?? '')) : []
+    groups.push({ table: t, count: ids.length, names })
+  }
+  return groups
+}
+
+/**
+ * Write a validated snapshot to the local database.
+ *
+ * @remarks
+ * Everything runs in one transaction, so a failed write leaves the database untouched.
+ * Rows with matching ids are overwritten. In `replace` mode, rows the file doesn't have
+ * are deleted first, along with the play data of every removed game; built-in themes
+ * live in code and are unaffected. App settings in the file replace the current ones in
+ * either mode.
+ *
+ * @param snapshot - Output of {@link readSnapshot} or {@link parseSnapshot}.
+ * @param mode - `merge` (default) keeps rows missing from the file; `replace` deletes them.
+ */
+export async function applySnapshot(
+  snapshot: ParsedSnapshot,
+  mode: ImportMode = 'merge'
+): Promise<void> {
+  const tables = mode === 'replace' ? [...SNAPSHOT_TABLES, ...PLAY_TABLES] : SNAPSHOT_TABLES
+  await db.transaction('rw', tables.map(table), async () => {
+    if (mode === 'replace') {
+      const missing = await missingIds(snapshot)
+      if (missing.games.length) {
+        for (const t of PLAY_TABLES) {
+          await table(t).where('gameId').anyOf(missing.games).delete()
+        }
+      }
+      for (const t of SNAPSHOT_TABLES) {
+        if (missing[t].length) await table(t).bulkDelete(missing[t])
+      }
     }
-  )
+    for (const t of SNAPSHOT_TABLES) {
+      if (snapshot[t].length) await table(t).bulkPut(snapshot[t])
+    }
+  })
   if (snapshot.settings) setSettings(snapshot.settings)
+}
+
+/**
+ * Restore a previously exported snapshot into the local database.
+ *
+ * @remarks
+ * The whole file is validated before anything is written, then written by
+ * {@link applySnapshot}, so an invalid file or a failed write leaves the database
+ * untouched. Accepts both v1 (with categories) and v2 snapshots.
+ *
+ * @param file - A `.json` file previously produced by {@link exportDatabase}.
+ * @param mode - `merge` (default) keeps rows missing from the file; `replace` deletes them.
+ * @throws If the file is too large, not valid JSON, has an unsupported snapshot
+ *   version, or contains malformed records.
+ */
+export async function importDatabase(file: File, mode: ImportMode = 'merge'): Promise<void> {
+  await applySnapshot(await readSnapshot(file), mode)
 }
 
 // ── Questions import/export ───────────────────────────────────────────────────

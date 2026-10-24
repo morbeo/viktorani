@@ -414,7 +414,9 @@ flowchart TD
 flowchart LR
   DB[(IndexedDB)] -- exportDatabase --> JSON[viktorani-backup-DATE.json]
   JSON -- importDatabase --> Z{zod snapshot schema}
-  Z -- valid --> TX[one Dexie transaction<br/>upserts by id]
+  Z -- valid, merge --> TX[one Dexie transaction<br/>upserts by id]
+  Z -- valid, replace --> P[previewReplace<br/>host confirms]
+  P --> TXR[one Dexie transaction<br/>deletes rows not in the file,<br/>then upserts]
   Z -- invalid --> Err[error, nothing written]
 ```
 
@@ -423,6 +425,9 @@ the questions each game plays (`gameQuestions`), notes, layouts, the host's them
 settings; live per-game rows such as players and
 buzzes are not included. Import upserts rows by id,
 so existing data with other ids is kept, and a failed write rolls back the whole import.
+A replace import (`applySnapshot(snapshot, 'replace')`) also deletes rows the file lacks, and
+the play data of removed games; `previewReplace` lists those rows first so Settings → Data can
+ask before writing. This is how deletions made outside the app (ADR 0021's MCP server) arrive.
 `db/snapshot-schema.ts` accepts older backup versions and fills in defaults for fields added
 later, so old backups keep working. Question-only import/export and note files use the same
 module. `db/demo.ts` seeds a demo game; `lib/load-demo.ts` loads it on demand from Settings → Data,
