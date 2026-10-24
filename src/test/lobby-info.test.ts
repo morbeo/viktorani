@@ -10,6 +10,7 @@ const GAME = {
   maxPerTeam: 0,
   allowSpectators: false,
   localNetworkOnly: false,
+  scoreboardBetweenRounds: false,
 } as Game
 
 function team(id: string): Team {

@@ -40,7 +40,22 @@ The game master also needs to show a phase by hand, such as the scoreboard betwe
 ## Consequences
 
 - No new layout data travels when the phase changes: one small event per change.
-- `scoreboard` layouts only show when the GM chooses them. A trigger can be added later
-  without changing the event.
+- `scoreboard` layouts only show when the GM chooses them, or between rounds (below).
 - The override doesn't follow the GM to another machine; a fresh host window on the same
   machine keeps it.
+
+---
+
+## Addendum (2026-10-24): scoreboard between rounds (#515)
+
+- **A game setting, `Game.scoreboardBetweenRounds`** (off by default, Dexie v29), gives
+  `scoreboard` a trigger. With it on, Next on a round's last question (not the last round's)
+  holds the `scoreboard` phase instead of moving on. With answers revealed at the end of the
+  round, the review comes first and its Continue holds the scoreboard. Next again clears the
+  hold and starts the next round, without closing or reviewing the round again.
+- **It reuses the GM's override** rather than a new phase source, so the projector window,
+  screens, phones and scoreboard devices follow it with no new event, and the GM can still
+  change or clear it by hand. `autoPhase` is unchanged.
+- **The hold is the round boundary's own state**: on a round's last question, a held
+  `scoreboard` means the next Next moves on, even after a reload. Going back with Previous
+  keeps the hold until the GM sets layouts back to automatic.

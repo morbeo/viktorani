@@ -137,6 +137,7 @@ const GAME: Game = {
   requireApproval: false,
   allowSpectators: false,
   localNetworkOnly: false,
+  scoreboardBetweenRounds: false,
   allowPlayerTeams: true,
   roundIds: ['r1'],
   currentRoundIdx: 0,

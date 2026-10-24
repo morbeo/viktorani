@@ -3,11 +3,12 @@
 // confirm-before-navigate on an unruled question, and auto-starting a timer
 // when a question is shown. Every other child panel is mocked out so these
 // tests only exercise navigation + the timer auto-start effect.
+import { useState } from 'react'
 import type { ComponentProps } from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { Answer, Game, GameQuestion, Round, Timer } from '@/db'
+import type { Answer, Game, GamePhase, GameQuestion, Round, Timer } from '@/db'
 import type { CreateTimerOptions } from '@/hooks/useTimer'
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
@@ -137,6 +138,7 @@ function makeGame(overrides: Partial<Game> = {}): Game {
     requireApproval: false,
     allowSpectators: false,
     localNetworkOnly: false,
+    scoreboardBetweenRounds: false,
     allowPlayerTeams: true,
     roundIds: ['r1'],
     currentRoundIdx: 0,
@@ -189,7 +191,14 @@ function makeGameQuestion(overrides: Partial<GameQuestion> = {}): GameQuestion {
 }
 
 function renderActiveGame(game: Game, extra: Partial<ComponentProps<typeof ActiveGame>> = {}) {
-  return render(
+  return render(renderActiveGameElement(game, extra))
+}
+
+function renderActiveGameElement(
+  game: Game,
+  extra: Partial<ComponentProps<typeof ActiveGame>> = {}
+) {
+  return (
     <ActiveGame
       game={game}
       onGameChange={vi.fn()}
@@ -618,6 +627,112 @@ describe('ActiveGame: end-of-round review', () => {
       expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({ type: 'SLIDE_CHANGE' }))
     )
     expect(screen.queryByText('Round answers · Round 1')).toBeNull()
+  })
+})
+
+// ── Scoreboard between rounds ─────────────────────────────────────────────────
+
+describe('ActiveGame: scoreboard between rounds', () => {
+  async function seedTwoRounds() {
+    await db.rounds.bulkAdd([
+      { ...ROUND, questionIds: ['q1'] },
+      { ...ROUND, id: 'r2', name: 'Round 2', questionIds: ['q2'] },
+    ])
+    await db.gameQuestions.bulkAdd([
+      makeGameQuestion({ status: 'correct' }),
+      makeGameQuestion({ id: 'gq2', questionId: 'q2', roundId: 'r2', order: 1 }),
+    ])
+  }
+
+  // Holds the GM's phase override like GameMaster does, with the other props kept stable
+  function Host({ game, onPhase }: { game: Game; onPhase: (phase: GamePhase) => void }) {
+    const [props] = useState(() => renderActiveGameElement(game).props)
+    const [override, setOverride] = useState<GamePhase | null>(null)
+    return (
+      <ActiveGame
+        {...props}
+        phaseOverride={override}
+        onPhaseOverride={setOverride}
+        onPhase={onPhase}
+      />
+    )
+  }
+
+  const slideChanges = () =>
+    mockSend.mock.calls.filter(([m]) => (m as { type: string }).type === 'SLIDE_CHANGE').length
+
+  it("holds the scoreboard on Next at a round's end, and moves on with Next again", async () => {
+    const user = userEvent.setup()
+    localStorage.clear()
+    await seedTwoRounds()
+    const onPhase = vi.fn()
+    render(
+      <Host
+        game={makeGame({ scoreboardBetweenRounds: true, roundIds: ['r1', 'r2'] })}
+        onPhase={onPhase}
+      />
+    )
+
+    await user.click(await screen.findByRole('button', { name: 'Next question' }))
+    await waitFor(() => expect(onPhase).toHaveBeenLastCalledWith('scoreboard'))
+    expect(slideChanges()).toBe(0)
+
+    await user.click(screen.getByRole('button', { name: 'Next question' }))
+    await waitFor(() => expect(slideChanges()).toBe(1))
+    expect(onPhase).toHaveBeenLastCalledWith('question')
+  })
+
+  it('shows the scoreboard after the end-of-round review', async () => {
+    const user = userEvent.setup()
+    localStorage.clear()
+    await seedTwoRounds()
+    const onPhase = vi.fn()
+    render(
+      <Host
+        game={makeGame({
+          scoreboardBetweenRounds: true,
+          revealTiming: 'endOfRound',
+          roundIds: ['r1', 'r2'],
+        })}
+        onPhase={onPhase}
+      />
+    )
+
+    await user.click(await screen.findByRole('button', { name: 'Next question' }))
+    expect(await screen.findByText('Round answers · Round 1')).toBeInTheDocument()
+    expect(onPhase).not.toHaveBeenCalledWith('scoreboard')
+
+    await user.click(screen.getByRole('button', { name: 'Continue' }))
+    await waitFor(() => expect(onPhase).toHaveBeenLastCalledWith('scoreboard'))
+    expect(slideChanges()).toBe(0)
+
+    await user.click(screen.getByRole('button', { name: 'Next question' }))
+    await waitFor(() => expect(slideChanges()).toBe(1))
+    expect(screen.queryByText('Round answers · Round 1')).toBeNull()
+  })
+
+  it('moves straight on when the setting is off', async () => {
+    const user = userEvent.setup()
+    localStorage.clear()
+    await seedTwoRounds()
+    const onPhase = vi.fn()
+    render(<Host game={makeGame({ roundIds: ['r1', 'r2'] })} onPhase={onPhase} />)
+
+    await user.click(await screen.findByRole('button', { name: 'Next question' }))
+    await waitFor(() => expect(slideChanges()).toBe(1))
+    expect(onPhase).not.toHaveBeenCalledWith('scoreboard')
+  })
+
+  it('moves within a round without the scoreboard', async () => {
+    const user = userEvent.setup()
+    localStorage.clear()
+    await seed({ status: 'correct' })
+    const onPhase = vi.fn()
+    render(<Host game={makeGame({ scoreboardBetweenRounds: true })} onPhase={onPhase} />)
+
+    await user.click(await screen.findByRole('button', { name: 'Next question' }))
+    await waitFor(() => expect(slideChanges()).toBe(1))
+    expect(onPhase).not.toHaveBeenCalledWith('scoreboard')
   })
 })
 

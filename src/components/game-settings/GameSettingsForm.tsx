@@ -322,6 +322,13 @@ export function GameSettingsForm({
           onChange={v => onChange({ revealTiming: v })}
         />
       </Row>
+      <Toggle
+        label="Scoreboard between rounds"
+        help="Next on a round's last question shows the scoreboard layouts on every screen, after the answer review when there is one. Next again starts the next round."
+        checked={value.scoreboardBetweenRounds}
+        disabled={disabled}
+        onChange={v => onChange({ scoreboardBetweenRounds: v })}
+      />
       {value.scoringEnabled && (
         <Toggle
           label="Hold scores until announced"

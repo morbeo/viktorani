@@ -29,6 +29,7 @@ const mockGame: Game = {
   requireApproval: false,
   allowSpectators: false,
   localNetworkOnly: false,
+  scoreboardBetweenRounds: false,
   allowPlayerTeams: false,
   scoringEnabled: true,
   inputType: 'buzzer',

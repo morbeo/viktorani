@@ -195,6 +195,7 @@ export async function seedDemo(): Promise<void> {
     requireApproval: false,
     allowSpectators: false,
     localNetworkOnly: false,
+    scoreboardBetweenRounds: false,
     allowPlayerTeams: true,
     roundIds: rounds.map(r => r.id),
     currentRoundIdx: 0,

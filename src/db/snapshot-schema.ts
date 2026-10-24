@@ -119,6 +119,7 @@ export const GameSchema = z
     requireApproval: z.boolean().default(false),
     allowSpectators: z.boolean().default(false),
     localNetworkOnly: z.boolean().default(false),
+    scoreboardBetweenRounds: z.boolean().default(false),
     allowPlayerTeams: z.boolean().default(true),
     roundIds: z.array(z.string()),
     currentRoundIdx: z.number(),

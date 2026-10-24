@@ -87,8 +87,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(28)
-    expect(db.backendDB().version).toBe(280)
+    expect(db.verno).toBe(29)
+    expect(db.backendDB().version).toBe(290)
     expect(db.backendDB().objectStoreNames.contains('managedPlayers')).toBe(true)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
     expect(await db.managedLabels.count()).toBe(0)
@@ -102,8 +102,8 @@ describe('Dexie schema version', () => {
 
     await expect(db.open()).resolves.toBe(db)
 
-    expect(db.verno).toBe(28)
-    expect(db.backendDB().version).toBe(280)
+    expect(db.verno).toBe(29)
+    expect(db.backendDB().version).toBe(290)
     expect(await db.games.get('g-old')).toMatchObject({ name: 'Old game' })
   })
 
@@ -118,6 +118,7 @@ describe('Dexie schema version', () => {
       requireApproval: false,
       allowSpectators: false,
       localNetworkOnly: false,
+      scoreboardBetweenRounds: false,
       allowPlayerTeams: true,
     })
   })
@@ -350,5 +351,12 @@ describe('Dexie schema version', () => {
     await db.open()
 
     expect(await db.games.get('g-old')).toMatchObject({ localNetworkOnly: false })
+  })
+  it('leaves existing games without the scoreboard between rounds (v29)', async () => {
+    await seedRawDb(280, V1_STORES)
+
+    await db.open()
+
+    expect(await db.games.get('g-old')).toMatchObject({ scoreboardBetweenRounds: false })
   })
 })
