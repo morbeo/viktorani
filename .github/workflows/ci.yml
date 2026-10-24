@@ -67,5 +67,10 @@ jobs:
       - name: Check bundle size
         run: npm run check:size
 
+      - name: Build MCP server
+        run: |
+          npm run build:mcp
+          node dist-mcp/viktorani-mcp.js --version
+
       - name: API docs
         run: npm run docs

@@ -459,6 +459,13 @@ the app's helpers where they exist (`deleteGame`, `deleteQuestions`, the layout 
 or layout). Nothing is written to disk until `save`. The layer imports no React: widget rules
 come from `widgets/specs.ts`, which the React registry builds on.
 
+`mcp/server.ts` registers the tools and four read-only resources (`viktorani://questions`,
+`games`, `layouts`, `themes`) on an MCP SDK server; a refused request comes back as a tool
+error the assistant can read. `mcp/cli.ts` is the Node entry: it loads `fake-indexeddb` before
+Dexie, reads the backup named on the command line and serves over stdio, writing files
+atomically. `vite.mcp.config.ts` bundles it into the single `dist-mcp/viktorani-mcp.js`, apart
+from the PWA build, and `tsconfig.mcp.json` type-checks it with Node's types.
+
 ## Testing
 
 - **Vitest** with jsdom and `fake-indexeddb`; each suite starts with `// @vitest-pool vmForks`

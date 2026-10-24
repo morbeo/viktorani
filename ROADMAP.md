@@ -137,7 +137,7 @@ Epic: #517. Design in ADR 0021. Step 1 is an MCP server that edits a backup file
 
 - [x] Replace import with a removal preview (#518): **Replace from JSON** in Settings → Data lists what the file lacks and removes it only after the host confirms
 - [x] `src/mcp/` authoring tool layer (#519): 44 tools over a backup held in memory; widget rules moved to the React-free `widgets/specs.ts`
-- [ ] `viktorani-mcp` stdio server, `npm run mcp` and release asset (#520)
+- [x] `viktorani-mcp` stdio server, `npm run mcp` and release asset (#520): one Node file built by `npm run build:mcp`, attached to each release by the Release workflow
 - [ ] Host guide: using an assistant (#521)
 - [ ] Settings → AI tools and in-app confirmations (#522)
 - [ ] WebMCP live tools on the game master (#523)
