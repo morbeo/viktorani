@@ -55,14 +55,12 @@ export interface DatabaseSnapshot {
 }
 
 /**
- * Serialise the question bank and game definitions to a JSON file download.
+ * The database as a v2 snapshot, the format {@link exportDatabase} downloads.
  *
- * @remarks
- * Triggers a browser file-save dialog. The downloaded file can be imported
- * on another device via {@link importDatabase}.
+ * @param settings - App settings to include; omitted when `undefined`.
  */
-export async function exportDatabase(): Promise<void> {
-  const snapshot: DatabaseSnapshot = {
+export async function snapshotDatabase(settings?: AppSettings): Promise<DatabaseSnapshot> {
+  return {
     version: 2,
     exportedAt: Date.now(),
     difficulties: await db.difficulties.toArray(),
@@ -75,8 +73,19 @@ export async function exportDatabase(): Promise<void> {
     layouts: await db.layouts.toArray(),
     widgets: await db.widgets.toArray(),
     themes: await db.themes.toArray(),
-    settings: getSettings(),
+    ...(settings && { settings }),
   }
+}
+
+/**
+ * Serialise the question bank and game definitions to a JSON file download.
+ *
+ * @remarks
+ * Triggers a browser file-save dialog. The downloaded file can be imported
+ * on another device via {@link importDatabase}.
+ */
+export async function exportDatabase(): Promise<void> {
+  const snapshot = await snapshotDatabase(getSettings())
 
   const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
@@ -330,7 +339,14 @@ export interface ImportResult {
 export async function importQuestions(file: File): Promise<ImportResult> {
   const raw = await readJsonFile(file)
   if (!Array.isArray(raw)) throw new Error('Invalid JSON: Expected a JSON array')
+  return importQuestionRows(raw)
+}
 
+/**
+ * Import rows in the question-file format of {@link importQuestions}, already parsed.
+ * Invalid rows are skipped and reported; valid ones are upserted by id in one transaction.
+ */
+export async function importQuestionRows(raw: unknown[]): Promise<ImportResult> {
   const result: ImportResult = { imported: 0, skipped: 0, errors: [] }
   const now = Date.now()
   const questions: Question[] = []

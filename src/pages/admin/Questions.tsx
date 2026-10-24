@@ -19,6 +19,7 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { db } from '@/db'
 import { useAppSettings } from '@/hooks/useAppSettings'
+import { deleteQuestions } from '@/db/questions'
 import { exportQuestions, importQuestions, downloadExampleQuestions } from '@/db/snapshot'
 import type { ImportResult } from '@/db/snapshot'
 import type { Question, QuestionType, DifficultyLevel, Tag, Round } from '@/db'
@@ -609,20 +610,7 @@ export default function Questions() {
   }
 
   async function handleDelete(ids: string[]) {
-    // Remove the questions and every reference to them (rounds, games) together
-    await db.transaction('rw', [db.questions, db.rounds, db.gameQuestions], async () => {
-      await db.questions.bulkDelete(ids)
-      const rs = await db.rounds.toArray()
-      for (const r of rs) {
-        if (ids.some(id => r.questionIds.includes(id))) {
-          await db.rounds.update(r.id, {
-            questionIds: r.questionIds.filter(id => !ids.includes(id)),
-          })
-        }
-      }
-      // gameQuestions has no questionId index. Buzz history for these questions is kept.
-      await db.gameQuestions.filter(gq => ids.includes(gq.questionId)).delete()
-    })
+    await deleteQuestions(ids)
     setSelected(new Set())
     setDeletingIds(null)
     load()
