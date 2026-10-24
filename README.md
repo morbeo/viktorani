@@ -138,7 +138,8 @@ managedPlayers, managedTeams, managedLabels.
 any device to restore or share your question bank. It holds difficulties, tags,
 questions, rounds, games, gameQuestions, notes, layouts, widgets and app settings. Live-game data (teams,
 players, buzzEvents, scoreEvents, gameLog, timers) and the managed players, teams and labels
-are not included.
+are not included. **Import JSON** adds and updates rows; **Replace from JSON** also removes
+anything the file doesn't have, after showing what will go.
 
 ---
 
