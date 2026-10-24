@@ -16,6 +16,7 @@ No backend — runs entirely in the browser.
 - [Project structure](#project-structure)
 - [Multiplayer](#multiplayer)
 - [Data storage](#data-storage)
+- [AI assistant (MCP)](#ai-assistant-mcp)
 - [CI/CD](#cicd)
 - [Favicon & icons](#favicon--icons)
 - [Contributing](#contributing)
@@ -58,12 +59,14 @@ To try it with sample data, run `npm run demo` instead. It opens the admin panel
 | `npm run docs`          | Generate API docs → `docs/api/` (gitignored)   |
 | `npm run check:size`    | Check built bundle sizes against limits        |
 | `npm run lint`          | ESLint across all `*.ts` / `*.tsx` files       |
-| `npm run typecheck`     | Type-check app and test files (both tsconfigs) |
+| `npm run typecheck`     | Type-check app, test and MCP server files      |
 | `npm run test`          | Run unit tests once via Vitest                 |
 | `npm run test:watch`    | Run tests in watch mode                        |
 | `npm run test:coverage` | Run tests with V8 coverage report              |
 | `npm run preview`       | Serve the production build locally             |
 | `npm run pack`          | Build release tarball via `scripts/pack.sh`    |
+| `npm run build:mcp`     | Build the MCP server → `dist-mcp/`             |
+| `npm run mcp`           | Build and run the MCP server (stdio)           |
 
 ---
 
@@ -99,7 +102,8 @@ src/
 │   ├── player/           # Join, Play
 │   └── screen/           # Remote display screens
 ├── components/           # Feature UI (gamemaster, host, buzzer, timer, layout-designer, ...) + ui/ primitives
-├── widgets/              # Layout widget registry, built-in layouts, LayoutRenderer
+├── widgets/              # Widget specs and registry, built-in layouts, LayoutRenderer
+├── mcp/                  # AI authoring tools and the viktorani-mcp server (ADR 0021)
 ├── hooks/                # useTransport, useBuzzer, useTimer, useScoreboard, useGameLifecycle, ...
 ├── lib/                  # App settings store, layout helpers, formatting, rate limiting
 ├── db/                   # Dexie schema (index.ts), game/roster helpers, snapshot export/import, demo data
@@ -140,6 +144,45 @@ questions, rounds, games, gameQuestions, notes, layouts, widgets and app setting
 players, buzzEvents, scoreEvents, gameLog, timers) and the managed players, teams and labels
 are not included. **Import JSON** adds and updates rows; **Replace from JSON** also removes
 anything the file doesn't have, after showing what will go.
+
+---
+
+## AI assistant (MCP)
+
+`viktorani-mcp` is an [MCP](https://modelcontextprotocol.io) server that lets an AI assistant
+edit a backup file: write and search questions, manage tags and difficulties, build rounds
+and games, design layouts and edit themes (ADR 0021). It runs on your computer over stdio
+and never touches the deployed app.
+
+1. Export a backup from **Settings → Data → Export JSON**.
+2. Point your assistant at the server with that file. Download `viktorani-mcp.js` from the
+   [latest release](https://github.com/morbeo/viktorani/releases/latest) (needs Node 20 or
+   later), or run it from a clone with `npm run mcp -- path/to/backup.json`.
+3. Ask for what you want. Nothing is written until the assistant calls `save`.
+4. Import the saved file in **Settings → Data**: **Import JSON** adds and updates; use
+   **Replace from JSON** when the assistant deleted something.
+
+Claude Desktop (`claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "viktorani": {
+      "command": "node",
+      "args": ["/path/to/viktorani-mcp.js", "/path/to/backup.json"]
+    }
+  }
+}
+```
+
+Claude Code:
+
+```bash
+claude mcp add viktorani -- node /path/to/viktorani-mcp.js /path/to/backup.json
+```
+
+Run `node viktorani-mcp.js --help` for the options. Without a file it starts empty, and
+`save` takes a path.
 
 ---
 

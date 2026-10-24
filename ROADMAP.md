@@ -136,9 +136,9 @@ Epic: #364. Scope and dependency order are in the epic body: widget registry →
 Epic: #517. Design in ADR 0021. Step 1 is an MCP server that edits a backup file; step 2 is live tools on the game master through WebMCP, off by default.
 
 - [x] Replace import with a removal preview (#518): **Replace from JSON** in Settings → Data lists what the file lacks and removes it only after the host confirms
-- [ ] `src/mcp/` authoring tool layer (#519)
-- [ ] `viktorani-mcp` stdio server, `npm run mcp` and release asset (#520)
-- [ ] Host guide: using an assistant (#521)
+- [x] `src/mcp/` authoring tool layer (#519): 44 tools over a backup held in memory; widget rules moved to the React-free `widgets/specs.ts`
+- [x] `viktorani-mcp` stdio server, `npm run mcp` and release asset (#520): one Node file built by `npm run build:mcp`, attached to each release by the Release workflow
+- [x] Host guide: using an assistant (#521)
 - [ ] Settings → AI tools and in-app confirmations (#522)
 - [ ] WebMCP live tools on the game master (#523)
 

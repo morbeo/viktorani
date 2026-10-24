@@ -17,6 +17,7 @@ the code is organised and how data moves through it. The reasons behind each cho
 - [Game lifecycle](#game-lifecycle)
 - [Game master page](#game-master-page)
 - [Backups and import](#backups-and-import)
+- [MCP tools](#mcp-tools)
 - [Testing](#testing)
 - [Known rough edges](#known-rough-edges)
 
@@ -123,7 +124,9 @@ src/
 │   ├── screen/              ScreenView and screen widgets
 │   ├── scoreboard/          ScoreboardView and scoreboard widgets
 │   └── settings/            Settings categories: appearance, tags, difficulties, data
-├── widgets/                 widget registry, built-in layouts, LayoutRenderer
+├── widgets/                 widget specs (React-free) and registry, built-in layouts,
+│                            LayoutRenderer
+├── mcp/                     AI authoring tools over a backup (ADR 0021), React-free
 ├── hooks/                   useBuzzer, useTimer, useNavigation, useScoreboard, …
 ├── lib/                     app-settings.ts (versioned preferences store), format.ts,
 │                            layout helpers, rate-limit.ts
@@ -432,6 +435,36 @@ ask before writing. This is how deletions made outside the app (ADR 0021's MCP s
 later, so old backups keep working. Question-only import/export and note files use the same
 module. `db/demo.ts` seeds a demo game; `lib/load-demo.ts` loads it on demand from Settings → Data,
 the command palette ("Load demo data") and the debug page.
+
+## MCP tools
+
+ADR 0021 lets an AI assistant author a backup file. `src/mcp/` holds the tools: each is a plain
+object (`McpTool`: name, description, kind, Zod input, `run`) in `mcp/tools/`, and
+`AUTHORING_TOOLS` lists them all. `callTool` validates the input, runs the tool and marks the
+session unsaved after a `write` or `delete`. Tools reach the disk only through the
+`FileAccess` they are given, so tests pass an in-memory one.
+
+```mermaid
+flowchart LR
+  F[backup.json] -- load_backup --> DB[(Dexie in memory)]
+  DB -- tools: questions, rounds, games,<br/>layouts, themes --> DB
+  DB -- save --> F2[backup.json]
+  F2 -- Replace from JSON --> App[(the host's app)]
+```
+
+`load_backup` validates with `parseSnapshot` and writes with `applySnapshot`, the app's own
+import path, and keeps the file's app settings aside to write back unchanged. Writes go through
+the app's helpers where they exist (`deleteGame`, `deleteQuestions`, the layout editor,
+`saveTheme`), and refuse what the app refuses (deleting a tag in use, editing a built-in theme
+or layout). Nothing is written to disk until `save`. The layer imports no React: widget rules
+come from `widgets/specs.ts`, which the React registry builds on.
+
+`mcp/server.ts` registers the tools and four read-only resources (`viktorani://questions`,
+`games`, `layouts`, `themes`) on an MCP SDK server; a refused request comes back as a tool
+error the assistant can read. `mcp/cli.ts` is the Node entry: it loads `fake-indexeddb` before
+Dexie, reads the backup named on the command line and serves over stdio, writing files
+atomically. `vite.mcp.config.ts` bundles it into the single `dist-mcp/viktorani-mcp.js`, apart
+from the PWA build, and `tsconfig.mcp.json` type-checks it with Node's types.
 
 ## Testing
 

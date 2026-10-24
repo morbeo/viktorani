@@ -8,7 +8,7 @@ import type {
   LayoutTarget,
   Round,
 } from './index'
-import { generateRoomId } from '@/transport'
+import { generateRoomId } from '@/transport/room-id'
 
 /**
  * Game create / clone / delete. Each runs in a single transaction so a failure

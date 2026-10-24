@@ -18,6 +18,7 @@ Everything you need to run a trivia night with Viktorani.
 5. [Timer usage](#5-timer-usage)
 6. [Ending the game](#6-ending-the-game)
 7. [Designing layouts](#7-designing-layouts)
+8. [Using an AI assistant](#8-using-an-ai-assistant)
 
 ---
 
@@ -504,3 +505,65 @@ leave the field. Two widgets show what you set rather than game data, on any sur
 On the projector screen, **Leaderboard** shows the top places large, for between rounds or the
 end of the game. Its settings choose the title and how many places to show; teams on equal
 scores share a place.
+
+---
+
+## 8. Using an AI assistant
+
+An AI assistant such as Claude can prepare a night for you: write questions, sort them into
+rounds, build the game, and set up its layouts and theme. It works on a backup file on your
+computer through the `viktorani-mcp` server, never on the app itself, so you check the result
+before it reaches your question bank. It can't run a live game yet.
+
+### Setting it up
+
+1. Install [Node](https://nodejs.org) 20 or later, and download `viktorani-mcp.js` from the
+   [latest release](https://github.com/morbeo/viktorani/releases/latest).
+2. In Viktorani, **Settings → Data → Export JSON** saves a backup. Put it somewhere easy to
+   find, such as `Documents/trivia.json`.
+3. Add the server to your assistant with the path to that file. For Claude Desktop, add this to
+   its config file (Settings → Developer → Edit config), then restart it:
+
+   ```json
+   {
+     "mcpServers": {
+       "viktorani": {
+         "command": "node",
+         "args": ["/path/to/viktorani-mcp.js", "/path/to/Documents/trivia.json"]
+       }
+     }
+   }
+   ```
+
+   With Claude Code, run
+   `claude mcp add viktorani -- node /path/to/viktorani-mcp.js /path/to/trivia.json`.
+
+### Asking for things
+
+Talk to it as you would to a co-host. For example:
+
+- "Write 10 multiple-choice questions about 90s films, tag them Film, medium difficulty."
+- "Make three rounds of eight from the questions not in any round yet, mixing the tags."
+- "Create a game called Friday Quiz with those rounds, typed answers, answers revealed at the
+  end of each round."
+- "Copy the default projector layout for Friday Quiz and add a text box with the house rules."
+- "Make a theme in our pub's green and gold and use it for Friday Quiz."
+- "Delete the questions tagged Test."
+
+It keeps changes to itself until you say "save". Ask it to save to a new file, such as
+`trivia-friday.json`, if you want to keep the original as it was.
+
+### Bringing the changes in
+
+In **Settings → Data**, pick the saved file:
+
+- **Import JSON** adds the new questions, rounds and games and updates the ones that changed.
+  Anything the assistant deleted stays in your app.
+- **Replace from JSON** makes your data match the file, deletions included. It lists what will
+  be removed first, and nothing changes until you click **Replace data**. Use it when you
+  asked for deletions, and check the list: anything you added in the app since you exported
+  the backup is on it too.
+
+The assistant follows the same rules as the app: it can't delete a tag or difficulty that
+questions still use, change a built-in theme or layout (it copies them instead), or change the
+rounds of a game that has been played.
