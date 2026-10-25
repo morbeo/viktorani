@@ -31,3 +31,6 @@ Thumbs.db
 # Scripts and stuff
 archives/
 deploy/
+
+# MCP server build
+dist-mcp/

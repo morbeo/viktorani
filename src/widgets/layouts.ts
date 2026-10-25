@@ -2,7 +2,7 @@ import { GAME_PHASES } from '@/db'
 import type { GamePhase, Layout, LayoutAssignments, LayoutTarget, Widget, WidgetType } from '@/db'
 import { LayoutSchema, WidgetSchema } from '@/db/snapshot-schema'
 import { DEFAULT_LAYOUT_THEME, GRID_COLUMNS } from '@/lib/layout-grid'
-import { WIDGET_REGISTRY } from './registry'
+import { WIDGET_SPECS } from './specs'
 
 /** A layout together with its widgets, as stored or as built in. */
 export interface LayoutBundle {
@@ -34,7 +34,7 @@ function stacked(target: LayoutTarget, phase: GamePhase | null, types: WidgetTyp
       id: `${id}:${type}`,
       layoutId: id,
       type,
-      config: WIDGET_REGISTRY[type].defaultConfig,
+      config: WIDGET_SPECS[type].defaultConfig,
       grid: { x: 0, y: i, w: GRID_COLUMNS, h: 1 },
       breakpoints: {},
       order: i,
@@ -83,7 +83,7 @@ export function isRenderable(bundle: LayoutBundle, target: LayoutTarget): boolea
   if (!LayoutSchema.safeParse(layout).success || layout.target !== target) return false
   return widgets.every(w => {
     if (!WidgetSchema.safeParse(w).success || w.layoutId !== layout.id) return false
-    const def = WIDGET_REGISTRY[w.type]
+    const def = WIDGET_SPECS[w.type]
     return def.allowedTargets.includes(target) && def.configSchema.safeParse(w.config).success
   })
 }

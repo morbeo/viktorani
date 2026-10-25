@@ -73,6 +73,10 @@ jobs:
           VERSION=$(npm version "$BUMP" --no-git-tag-version)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
+      # After the bump, so the server reports the release's version
+      - name: Build MCP server
+        run: npm run build:mcp
+
       - name: Generate changelog
         env:
           VERSION: ${{ steps.bump.outputs.version }}
@@ -98,7 +102,8 @@ jobs:
           gh release create "$VERSION" \
             --title "$VERSION" \
             --notes-file "$RUNNER_TEMP/release-notes.md" \
-            $([[ "$PRERELEASE" == "true" ]] && echo --prerelease)
+            $([[ "$PRERELEASE" == "true" ]] && echo --prerelease) \
+            dist-mcp/viktorani-mcp.js
 
       - name: Trigger deploy
         if: inputs.deploy == 'true'

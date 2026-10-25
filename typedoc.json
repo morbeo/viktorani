@@ -9,7 +9,10 @@
     "src/lib/app-settings.ts",
     "src/lib/theme.ts",
     "src/lib/round-review.ts",
+    "src/lib/layout-grid.ts",
     "src/widgets/layouts.ts",
+    "src/widgets/specs.ts",
+    "src/mcp",
     "src/components/game-settings/game-settings.ts"
   ],
   "exclude": [

@@ -1,3 +1,4 @@
 dist
+dist-mcp
 node_modules
 .release-please-manifest.json
