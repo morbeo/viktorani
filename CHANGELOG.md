@@ -1,5 +1,41 @@
 # Changelog
 
+## v0.2.0 - 2026-10-25
+
+### Bug Fixes
+
+- Tell players and screens when a timer is deleted (#505) ([57070c0](../../commit/57070c0909e516461cda7ff964d4400f0cb458d4))
+- Award a question's points once when a buzz follows a ruling (#507) ([907e17e](../../commit/907e17eb449b04e4b45cb48ded02b88b8ccdd2dd))
+- Wait for the local-network-only setting before approving a screen (#508) ([01350d3](../../commit/01350d364f260f5082677c9030da85e84ce8fbc8))
+- Score a question again when it is replayed in a later round (#509) ([6d637e0](../../commit/6d637e01bbbcdda858d808aa8b75f3981d2dcdcd))
+
+### Chores
+
+- Standardize workflows and fix dependabot auto-merge (#492) ([4415899](../../commit/44158992600452bbc4a17499b719b313db78a5ba))
+- Bump lucide-react (#494) ([bf8b06d](../../commit/bf8b06d944bab5c9ee143667ff695a93b9d9bc8d))
+- Bump fake-indexeddb (#493) ([b57561e](../../commit/b57561e77b53ab8c15f8187b58f9edeb5098a318))
+- Bump markdown-it from 14.3.2 to 14.3.3 (#511) ([9a01375](../../commit/9a01375422c3279e8c1ba011f7214025834d2e19))
+- Bump undici from 7.30.0 to 7.30.1 (#526) ([f0b6b9f](../../commit/f0b6b9f81ec66480fb8d3d1ec88936da23645ed3))
+- Bump serialize-javascript from 7.0.5 to 7.1.4 (#527) ([8355340](../../commit/8355340d1c6c38578390d3c66fcb2c3972849c89))
+
+### Features
+
+- Deploy after auto-merging production dependency updates (#495) ([101d66f](../../commit/101d66f9e709b905fc5fbd3e66ce2927904171de))
+- Limit a game to devices on the local network (#496) ([efcde0d](../../commit/efcde0dc18a1ebb3bd67cc3aa872274c5bd2c9bf))
+- Flag players who leave the game screen (#497) ([5886540](../../commit/5886540e3cf98c4c1773538a3ee3ff688629267b))
+- Let players type answers to open-ended questions (#498) ([ccffbe5](../../commit/ccffbe5dad8d3b947146c98c5d039b33734c6f24))
+- Show widget previews in the layout designer (#504) ([ab66bc1](../../commit/ab66bc1b4c9539487df5a9a9d3be516554ed5702))
+- Open a scoreboard window for the scoreboard surface (#510) ([244430e](../../commit/244430e060af98b03b2b538f9fe0a1dc7495a1f3))
+- Show the scoreboard surface on remote devices (#513) ([a5e45b6](../../commit/a5e45b6fe08ba7c42b290cece82f21db04bb327f))
+- Put every question of the round on phones (#514) ([d8e4aef](../../commit/d8e4aef2bc1eb2d9670e784d44f2338b24217cc1))
+- Show the scoreboard between rounds (#516) ([e870fb7](../../commit/e870fb777440850a3e20812a389b5d8acd0d190f))
+- Replace import with a removal preview (#524) ([bf33309](../../commit/bf3330918a82104e72898c62151df6c513e224dc))
+- Viktorani-mcp authoring server (#525) ([70b5004](../../commit/70b50043dd60329eef92127598fad76d2cd7f9d2))
+
+### test
+
+- Cover least-tested settings, roster and game log code (#506) ([b8eb457](../../commit/b8eb4570f484b3ad0685cacdec499ced025ec0e8))
+
 ## v0.1.0 - 2026-10-20
 
 ### Bug Fixes
