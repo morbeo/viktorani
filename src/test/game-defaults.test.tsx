@@ -1,9 +1,10 @@
 // @vitest-pool vmForks
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { ReactNode } from 'react'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import Games from '@/pages/admin/Games'
+import { db } from '@/db'
 import { getSettings, setSettings } from '@/lib/app-settings'
 
 vi.mock('@/components/AdminLayout', () => ({
@@ -28,5 +29,7 @@ describe('new-game wizard', () => {
       'aria-checked',
       'false'
     )
+    // Let the page's own load finish, so it doesn't set state after the test environment is gone
+    await act(() => Promise.all([db.games.toArray(), db.rounds.toArray()]))
   })
 })

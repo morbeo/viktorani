@@ -70,6 +70,8 @@ import type { QuestionRuling, RulingAward } from '@/db/rulings'
 import { layoutCommands, phaseCommands } from '@/components/gamemaster/layout-commands'
 import type { GameEvent } from '@/transport/types'
 import { SCOPE_TIMER_LABELS } from '@/components/timer/timer-options'
+import { useWebMcpTools } from '@/hooks/useAiTools'
+import { buildPlayTools } from '@/pages/admin/live-tools'
 
 export interface ActiveGameProps {
   game: Game
@@ -294,8 +296,9 @@ export function ActiveGame({
 
   // Confirm before leaving a question with no ruling, when the setting is on
   const [confirmingNav, setConfirmingNav] = useState(false)
-  // A question left open on purpose, until the end of its round, needs no confirmation
-  const confirmedGoNext = useCallback(() => {
+  // A question left open on purpose, until the end of its round, needs no confirmation.
+  // Returns whether it moved on rather than asking.
+  const confirmedGoNext = useCallback((): boolean => {
     const current = pos ? seq[pos.flatIndex] : undefined
     const next = pos ? seq[pos.flatIndex + 1] : undefined
     const keptOpen = keepsAnswersOpen(game) && next?.roundId === current?.roundId
@@ -308,9 +311,10 @@ export function ActiveGame({
       !leavingScoreboard
     ) {
       setConfirmingNav(true)
-      return
+      return false
     }
     void leaveRound()
+    return true
   }, [game, pos, seq, holdingScoreboard, leaveRound])
 
   // Current question ID derived from nav position
@@ -759,6 +763,51 @@ export function ActiveGame({
     onGameChange,
   ])
   useRegisterCommands('active-game', commands)
+
+  // The assistant's play tools (ADR 0021): the same handlers as the controls above
+  const playTools = () =>
+    buildPlayTools({
+      question: () =>
+        pos && current && question && gameQuestion
+          ? {
+              round: current.roundName,
+              number: pos.flatIndex + 1,
+              total: seq.length,
+              title: question.title,
+              description: question.description,
+              type: question.type,
+              options: question.options,
+              answer: question.answer,
+              status: gameQuestion.status,
+              revealed: gameQuestion.revealed,
+            }
+          : null,
+      buzzes: () =>
+        displayBuzzes.map(b => ({
+          id: b.id,
+          player: b.playerName,
+          falseStart: b.isFalseStart,
+          decision: b.gmDecision,
+        })),
+      timers: () => timers,
+      players: () => players,
+      teams: () => teams,
+      takesAnswers: () => game.inputType === 'choice' || game.inputType === 'text',
+      next: async () => confirmedGoNext(),
+      previous: goPrev,
+      setBuzzerLocked: async locked => {
+        if (game.buzzerLocked !== locked) await toggleLock()
+      },
+      ruleBuzz: handleAdjudicate,
+      rule: handleRule,
+      markAnswers: handleMark,
+      reveal: handleReveal,
+      timer: (id, action) => {
+        const run = { start: startTimer, pause: pauseTimer, resume: resumeTimer }
+        return action === 'restart' ? timerHook.restartTimer(id) : run[action](id)
+      },
+    })
+  useWebMcpTools(playTools, game.status !== 'ended' && pos !== null)
 
   if (isEmpty) {
     return (
