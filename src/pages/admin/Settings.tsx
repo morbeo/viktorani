@@ -9,6 +9,7 @@ import DataSettings from '@/components/settings/DataSettings'
 import SoundSettings from '@/components/settings/SoundSettings'
 import TimerSettings from '@/components/settings/TimerSettings'
 import GameDefaultsSettings from '@/components/settings/GameDefaultsSettings'
+import AiToolsSettings from '@/components/settings/AiToolsSettings'
 import { SETTINGS_CATEGORIES } from '@/components/settings/categories'
 import type { SettingsCategoryId } from '@/components/settings/categories'
 
@@ -29,6 +30,7 @@ const ELEMENTS: Record<SettingsCategoryId, React.ReactElement> = {
   timers: <TimerSettings />,
   'game-defaults': <GameDefaultsSettings />,
   library: <LibrarySettings />,
+  'ai-tools': <AiToolsSettings />,
   data: <DataSettings />,
 }
 

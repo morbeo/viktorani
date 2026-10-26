@@ -106,6 +106,19 @@ Accepted with these answers to the open questions: replace import with a removal
 rather than an npm package; and step 1 covers layouts and themes as well as the question bank,
 rounds and games. Notes stay out. Work is tracked in epic #517.
 
+## Decisions (2026-10-26)
+
+Step 2: the live tools cover the full list above plus ending the game and kicking a player;
+only those two wait for the host's click, while rulings, scores, timers and messages happen at
+once and show in the game log. No origin trial token: WebMCP needs Chrome's
+`#enable-webmcp-testing` flag for now. The authoring tools stay in `viktorani-mcp`; the app
+registers live tools only. WebMCP's current draft uses `document.modelContext` and
+`registerTool(tool, { signal })` with no `unregisterTool`; the app accepts both drafts.
+
+A browser assistant that can click the page could also click **Allow**, and player names reach
+the assistant as text it may take for instructions. Neither can be closed by the app; the host
+guide says so, and the tools stay off until the host turns them on.
+
 ---
 
 ## Plan

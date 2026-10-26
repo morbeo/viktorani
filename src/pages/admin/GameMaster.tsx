@@ -45,6 +45,9 @@ import type {
   TransportEvent,
 } from '@/transport/types'
 import { Lobby } from '@/components/gamemaster/Lobby'
+import { AiToolsStatus } from '@/components/gamemaster/AiToolsStatus'
+import { useWebMcpTools } from '@/hooks/useAiTools'
+import { buildGameTools } from '@/pages/admin/live-tools'
 import { ActiveGame } from '@/components/gamemaster/ActiveGame'
 import type {
   AnswerHandler,
@@ -1129,6 +1132,28 @@ export default function GameMaster() {
   }, [])
 
   // Start the game
+  // The live tools an assistant gets through WebMCP when the host turned them on (ADR 0021)
+  const gameTools = () =>
+    buildGameTools({
+      game: () => game,
+      players: () => players,
+      teams: () => teams,
+      log: () => (game ? readPublicLog(game.id) : Promise.resolve([])),
+      adjustScore: handleAdjustScore,
+      sendMessage: handleSendMessage,
+      pause: async () => {
+        if (game) applyGamePatch(await lifecycle.pauseGame(game))
+      },
+      resume: async () => {
+        if (game) applyGamePatch(await lifecycle.resumeGame(game))
+      },
+      end: async () => {
+        if (game) applyGamePatch(await lifecycle.endGame(game))
+      },
+      kick: handleKick,
+    })
+  const aiToolsActive = useWebMcpTools(gameTools, game !== null)
+
   async function handleStart() {
     if (!game) return
     setStarting(true)
@@ -1198,6 +1223,7 @@ export default function GameMaster() {
       <AdminLayout>
         <ControlSizeContext.Provider value={{ size: controlSize, setSize: setControlSize }}>
           {transportBanner}
+          <AiToolsStatus active={aiToolsActive} />
           <Lobby
             game={game}
             players={players}
@@ -1235,6 +1261,7 @@ export default function GameMaster() {
     <AdminLayout>
       <ControlSizeContext.Provider value={{ size: controlSize, setSize: setControlSize }}>
         {transportBanner}
+        <AiToolsStatus active={aiToolsActive} />
         <ActiveGame
           game={game}
           onGameChange={applyGamePatch}

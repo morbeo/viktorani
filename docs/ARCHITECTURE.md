@@ -466,6 +466,23 @@ Dexie, reads the backup named on the command line and serves over stdio, writing
 atomically. `vite.mcp.config.ts` bundles it into the single `dist-mcp/viktorani-mcp.js`, apart
 from the PWA build, and `tsconfig.mcp.json` type-checks it with Node's types.
 
+### Live tools (WebMCP)
+
+The game master also offers tools to an assistant in the browser (ADR 0021, step 2).
+`lib/ai-tools.ts` holds the per-device switch (its own local storage key, outside
+`AppSettings`, so backups never carry it), WebMCP detection (`document.modelContext`, then
+`navigator.modelContext`) and the host's confirmations. `pages/admin/live-tools.ts` builds the
+tools over plain interfaces: `buildGameTools` (game state, log, scores, messages, pause, resume,
+end, kick) from `GameMaster`, and `buildPlayTools` (the question, navigation, buzzer, rulings,
+marking, reveal, timers) from `ActiveGame`. Each calls the same handler as a GM control.
+
+`useWebMcpTools` registers a set while the switch is on, WebMCP exists and the view is open.
+It registers once and has each call run the tool from the latest render, so tools see current
+state. Taking the tools off aborts their registration and denies any confirmation still
+waiting. End and kick call `requestConfirmation`, which only `AiToolsStatus`'s **Allow** button
+answers. All live tools share one `RateLimiter`; reads aren't limited. Tool output names
+players by host-assigned id and name only, never device or peer ids.
+
 ## Testing
 
 - **Vitest** with jsdom and `fake-indexeddb`; each suite starts with `// @vitest-pool vmForks`
