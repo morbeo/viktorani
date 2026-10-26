@@ -513,7 +513,8 @@ scores share a place.
 An AI assistant such as Claude can prepare a night for you: write questions, sort them into
 rounds, build the game, and set up its layouts and theme. It works on a backup file on your
 computer through the `viktorani-mcp` server, never on the app itself, so you check the result
-before it reaches your question bank. It can't run a live game yet.
+before it reaches your question bank. An assistant in your browser can also help run a game:
+see [Help during a game](#help-during-a-game).
 
 ### Setting it up
 
@@ -567,3 +568,23 @@ In **Settings → Data**, pick the saved file:
 The assistant follows the same rules as the app: it can't delete a tag or difficulty that
 questions still use, change a built-in theme or layout (it copies them instead), or change the
 rounds of a game that has been played.
+
+### Help during a game
+
+An assistant built into your browser can work the game master for you: read the question and
+its buzzes, rule on them, move between questions, change scores, run timers and message players.
+It uses WebMCP, which only Chrome has so far, behind a test switch.
+
+1. In Chrome, open `chrome://flags/#enable-webmcp-testing`, turn it on and restart Chrome.
+2. In Viktorani, turn on **Settings → AI tools** on this device. It is off by default, set on
+   each device separately, and not carried by backups.
+3. Open the game. **AI tools active** shows in the corner while the assistant can use it.
+
+Ending the game and kicking a player wait for you: a dialog in the game master shows what the
+assistant asked for, and nothing happens until you click **Allow**. Everything else happens at
+once and shows in the game log, so you can undo it from the usual controls. The assistant sees
+what you see, including answers and player names, but never players' device or connection ids.
+
+Player names and messages come from players. A name written as an instruction to an assistant
+could mislead it, so keep an eye on what it does, and turn AI tools off when you don't need
+them.
