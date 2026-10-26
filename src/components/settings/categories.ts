@@ -6,6 +6,7 @@ export const SETTINGS_CATEGORIES = [
   { id: 'timers', label: 'Timers' },
   { id: 'game-defaults', label: 'Game defaults' },
   { id: 'library', label: 'Library' },
+  { id: 'ai-tools', label: 'AI tools' },
   { id: 'data', label: 'Data' },
 ] as const
 
