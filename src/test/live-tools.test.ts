@@ -1,9 +1,14 @@
 // The game master's live tools (#523), over fake game master handlers.
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { answerConfirmation, denyAllConfirmations, readConfirmations } from '@/lib/ai-tools'
+import {
+  AI_TOOL_LIMIT,
+  answerConfirmation,
+  denyAllConfirmations,
+  readConfirmations,
+} from '@/lib/ai-tools'
 import type { WebMcpTool } from '@/lib/ai-tools'
 import { RateLimiter } from '@/lib/rate-limit'
-import { buildGameTools, buildPlayTools, LIVE_TOOL_LIMIT } from '@/pages/admin/live-tools'
+import { buildGameTools, buildPlayTools } from '@/pages/admin/live-tools'
 import type { LiveGameApi, LivePlayApi, LiveQuestion } from '@/pages/admin/live-tools'
 import type { Game, Player, Team, Timer } from '@/db'
 
@@ -68,7 +73,7 @@ function playApi(over: Partial<LivePlayApi> = {}): LivePlayApi {
   }
 }
 
-const fresh = () => new RateLimiter(LIVE_TOOL_LIMIT, 10_000)
+const fresh = () => new RateLimiter(AI_TOOL_LIMIT, 10_000)
 
 function call(tools: WebMcpTool[], name: string, args: Record<string, unknown> = {}) {
   const tool = tools.find(t => t.name === name)
@@ -97,6 +102,8 @@ describe('game tools', () => {
       type: 'object',
       required: ['player', 'points'],
     })
+    // Fields with a default are optional for the assistant
+    expect(tools.find(t => t.name === 'send_message')!.inputSchema.required).toEqual(['text'])
   })
 
   it('adjust a score by player name and refuse an unknown player', async () => {
