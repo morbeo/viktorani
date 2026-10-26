@@ -6,7 +6,19 @@
  * travels in a backup: importing one can't turn AI tools on for another device.
  */
 
+import { RateLimiter } from '@/lib/rate-limit'
+
 const KEY = 'viktorani:ai-tools'
+
+/** At most this many changes an assistant makes within {@link AI_TOOL_WINDOW_MS}. */
+export const AI_TOOL_LIMIT = 20
+export const AI_TOOL_WINDOW_MS = 10_000
+
+/**
+ * The limit every AI tool set shares (live and authoring), so an assistant can't go faster by
+ * mixing them. Reads aren't counted.
+ */
+export const aiToolLimiter = new RateLimiter(AI_TOOL_LIMIT, AI_TOOL_WINDOW_MS)
 
 const listeners = new Set<() => void>()
 

@@ -511,10 +511,10 @@ scores share a place.
 ## 8. Using an AI assistant
 
 An AI assistant such as Claude can prepare a night for you: write questions, sort them into
-rounds, build the game, and set up its layouts and theme. It works on a backup file on your
-computer through the `viktorani-mcp` server, never on the app itself, so you check the result
-before it reaches your question bank. An assistant in your browser can also help run a game:
-see [Help during a game](#help-during-a-game).
+rounds, build the game, and set up its layouts and theme. Through the `viktorani-mcp` server it
+works on a backup file on your computer, so you check the result before it reaches your
+question bank. An assistant in your browser can instead work in the app itself, and help run a
+game: see [Help during a game](#help-during-a-game) and [Editing in the app](#editing-in-the-app).
 
 ### Setting it up
 
@@ -588,3 +588,11 @@ what you see, including answers and player names, but never players' device or c
 Player names and messages come from players. A name written as an instruction to an assistant
 could mislead it, so keep an eye on what it does, and turn AI tools off when you don't need
 them.
+
+### Editing in the app
+
+With **Settings → AI tools** on, the same browser assistant can also do everything the
+`viktorani-mcp` server does, straight on your question bank, games, layouts and themes, from
+any admin page but the game master. There is no file to save or import: changes appear at
+once. Deleting anything waits for you to click **Allow**, and the dialog names what will go.
+It uses this device's game defaults and theme.

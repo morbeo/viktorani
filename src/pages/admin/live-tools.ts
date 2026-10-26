@@ -1,7 +1,7 @@
 import { z } from 'zod'
-import { requestConfirmation } from '@/lib/ai-tools'
+import { aiToolLimiter, requestConfirmation } from '@/lib/ai-tools'
 import type { WebMcpTool } from '@/lib/ai-tools'
-import { RateLimiter } from '@/lib/rate-limit'
+import type { RateLimiter } from '@/lib/rate-limit'
 import type { Game, GmDecision, Player, Team, Timer } from '@/db'
 import type { QuestionRuling, RulingAward } from '@/db/rulings'
 import { MAX_MESSAGE_LENGTH } from '@/transport/messages'
@@ -14,13 +14,6 @@ import type { MessageTarget } from '@/pages/admin/player-connections'
  * here returns a player's device id or a connection's peer id: players are named by their
  * host-assigned id and name only.
  */
-
-/** At most this many actions an assistant takes within {@link LIVE_TOOL_WINDOW_MS}. */
-export const LIVE_TOOL_LIMIT = 20
-export const LIVE_TOOL_WINDOW_MS = 10_000
-
-/** The limit every live tool set shares, so an assistant can't go faster by mixing them. */
-export const liveToolLimiter = new RateLimiter(LIVE_TOOL_LIMIT, LIVE_TOOL_WINDOW_MS)
 
 /** A refused request the assistant can correct, such as an unknown player. */
 export class LiveToolError extends Error {
@@ -47,7 +40,7 @@ function toWebMcp<S extends z.ZodObject>(def: LiveTool<S>, limiter: RateLimiter)
   return {
     name: def.name,
     description: def.description,
-    inputSchema: z.toJSONSchema(def.input) as Record<string, unknown>,
+    inputSchema: z.toJSONSchema(def.input, { io: 'input' }) as Record<string, unknown>,
     annotations: { readOnlyHint: Boolean(def.read) },
     async execute(raw) {
       if (!def.read && !limiter.allow('assistant')) {
@@ -138,7 +131,7 @@ export function describeGame(game: Game, players: readonly Player[], teams: read
 }
 
 /** The tools for the open game, from the lobby to the end. */
-export function buildGameTools(api: LiveGameApi, limiter = liveToolLimiter): WebMcpTool[] {
+export function buildGameTools(api: LiveGameApi, limiter = aiToolLimiter): WebMcpTool[] {
   function liveGame(): Game {
     const game = api.game()
     if (!game) throw new LiveToolError('No game is open.')
@@ -339,7 +332,7 @@ const DECISIONS: Record<string, GmDecision> = {
 const TIMER_DONE = { start: 'Started', pause: 'Paused', resume: 'Resumed', restart: 'Restarted' }
 
 /** The tools for playing questions while the game runs. */
-export function buildPlayTools(api: LivePlayApi, limiter = liveToolLimiter): WebMcpTool[] {
+export function buildPlayTools(api: LivePlayApi, limiter = aiToolLimiter): WebMcpTool[] {
   function shown(): LiveQuestion {
     const q = api.question()
     if (!q) throw new LiveToolError('No question is shown.')

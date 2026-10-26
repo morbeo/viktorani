@@ -11,6 +11,7 @@
     "src/lib/round-review.ts",
     "src/lib/layout-grid.ts",
     "src/lib/ai-tools.ts",
+    "src/lib/rate-limit.ts",
     "src/widgets/layouts.ts",
     "src/widgets/specs.ts",
     "src/mcp",
