@@ -483,6 +483,14 @@ waiting. End and kick call `requestConfirmation`, which only `AiToolsStatus`'s *
 answers. All live tools share one `RateLimiter`; reads aren't limited. Tool output names
 players by host-assigned id and name only, never device or peer ids.
 
+The admin pages other than the game master also offer the authoring tools (#532).
+`AuthoringTools`, mounted once in the router, calls `useAuthoringTools`, which imports
+`mcp/webmcp.ts` only once AI tools are on. It wraps every authoring tool but the file ones
+(`load_backup`, `save`, `validate_backup`, `summary`) and runs them through `callTool` on the
+app's database, with this device's `AppSettings` as the session settings, saving them back if a
+tool changed them. A `delete` tool asks `requestConfirmation` first, naming the rows it removes.
+Writes count against the same limiter as the live tools.
+
 ## Testing
 
 - **Vitest** with jsdom and `fake-indexeddb`; each suite starts with `// @vitest-pool vmForks`

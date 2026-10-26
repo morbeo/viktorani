@@ -4,6 +4,7 @@ import { db, seedDefaults } from '@/db'
 import { ToastProvider } from '@/components/ui'
 import { CommandPaletteHost } from '@/components/command-palette/CommandPaletteHost'
 import { AppTheme } from '@/components/AppTheme'
+import { AuthoringTools } from '@/components/AuthoringTools'
 
 // Pages — Admin (lazy-loaded per route)
 const Dashboard = lazy(() => import('@/pages/admin/Dashboard'))
@@ -92,6 +93,7 @@ export default function App() {
           </Routes>
         </Suspense>
         <CommandPaletteHost />
+        <AuthoringTools />
       </HashRouter>
     </ToastProvider>
   )

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import {
   denyAllConfirmations,
   modelContext,
@@ -57,4 +57,26 @@ export function useWebMcpTools(build: () => readonly WebMcpTool[], open: boolean
   }, [active, mc])
 
   return active
+}
+
+/**
+ * Register the authoring tools (#532) while `open` is true, AI tools are on and WebMCP exists.
+ * The tool layer is loaded on first use, so it stays out of the main bundle. Returns whether
+ * the tools are registered.
+ */
+export function useAuthoringTools(open: boolean): boolean {
+  const [enabled] = useAiTools()
+  const wanted = open && enabled && modelContext() !== null
+  const [tools, setTools] = useState<readonly WebMcpTool[] | null>(null)
+  useEffect(() => {
+    if (!wanted || tools) return
+    let current = true
+    void import('@/mcp/webmcp').then(m => {
+      if (current) setTools(m.buildAuthoringTools())
+    })
+    return () => {
+      current = false
+    }
+  }, [wanted, tools])
+  return useWebMcpTools(() => tools ?? [], wanted && tools !== null)
 }

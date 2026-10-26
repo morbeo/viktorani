@@ -14,13 +14,14 @@ export default function AiToolsSettings() {
       <div className="flex flex-col gap-1">
         <label className="flex items-center gap-2 text-sm text-text">
           <input type="checkbox" checked={enabled} onChange={e => setEnabled(e.target.checked)} />
-          Let an AI assistant help run games on this device
+          Let an AI assistant in this browser use Viktorani on this device
         </label>
         <p className="text-xs text-muted">
-          While a game is open in the game master, an assistant in this browser can read the game,
-          move between questions, rule on answers, change scores, run timers and message players.
-          Ending the game or kicking a player waits for your click. Off by default, and set on each
-          device: backups don&apos;t carry it.
+          An assistant in this browser can write questions and build rounds, games, layouts and
+          themes on the admin pages, and help run a game from the game master: rule on answers,
+          change scores, run timers and message players. Deleting, ending the game and kicking a
+          player wait for your click. Off by default, and set on each device: backups don&apos;t
+          carry it.
         </p>
       </div>
 
@@ -33,8 +34,7 @@ export default function AiToolsSettings() {
       </p>
 
       <p className="text-xs text-muted">
-        To write questions or build games with an assistant, use the viktorani-mcp server instead.
-        See{' '}
+        For an assistant outside the browser, use the viktorani-mcp server on a backup file. See{' '}
         <a href={GUIDE} target="_blank" rel="noreferrer" className="underline">
           Using an AI assistant
         </a>{' '}

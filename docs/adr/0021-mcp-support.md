@@ -111,8 +111,10 @@ rounds and games. Notes stay out. Work is tracked in epic #517.
 Step 2: the live tools cover the full list above plus ending the game and kicking a player;
 only those two wait for the host's click, while rulings, scores, timers and messages happen at
 once and show in the game log. No origin trial token: WebMCP needs Chrome's
-`#enable-webmcp-testing` flag for now. The authoring tools stay in `viktorani-mcp`; the app
-registers live tools only. WebMCP's current draft uses `document.modelContext` and
+`#enable-webmcp-testing` flag for now. The app also offers the authoring tools through WebMCP
+on the admin pages other than the game master (#532), on its own data rather than a backup
+file: the file tools are left out, settings come from the device, and every delete waits for
+the host's click. `viktorani-mcp` stays for assistants outside the browser. WebMCP's current draft uses `document.modelContext` and
 `registerTool(tool, { signal })` with no `unregisterTool`; the app accepts both drafts.
 
 A browser assistant that can click the page could also click **Allow**, and player names reach
