@@ -101,4 +101,46 @@ describe('RosterBulkActionBar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Clear selection' }))
     expect(p.onDone).toHaveBeenCalledTimes(1)
   })
+
+  it('keeps the dialog open and says so when an assignment fails', async () => {
+    const p = renderBar(['p1', 'p2'])
+    p.onAssignPlayer.mockImplementation((id: string) =>
+      id === 'p2' ? Promise.reject(new Error('db closed')) : Promise.resolve()
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Assign team to selected players' }))
+    fireEvent.click(screen.getByRole('button', { name: /Owls/ }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Could not update 1 of 2 players. Try again.'
+    )
+    expect(p.onAssignPlayer).toHaveBeenCalledTimes(2)
+    expect(p.onDone).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: /Owls/ })).toBeEnabled()
+
+    // Trying again once the store recovers closes the dialog
+    p.onAssignPlayer.mockResolvedValue(undefined)
+    fireEvent.click(screen.getByRole('button', { name: /Owls/ }))
+    await waitFor(() => expect(p.onDone).toHaveBeenCalled())
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('says so when every score change fails, and clears the notice on reopen', async () => {
+    const p = renderBar(['p1', 'p2'])
+    p.onAdjustScore.mockRejectedValue(new Error('db closed'))
+    fireEvent.click(screen.getByRole('button', { name: 'Adjust score for selected players' }))
+    fireEvent.click(screen.getByRole('button', { name: '+ 1' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Could not update the selected players. Try again.'
+    )
+    expect(p.onDone).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Adjust score for selected players' }))
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('names the points field by its label', () => {
+    renderBar(['p1'])
+    fireEvent.click(screen.getByRole('button', { name: 'Adjust score for selected players' }))
+    expect(screen.getByRole('spinbutton', { name: 'Points' })).toBeInTheDocument()
+  })
 })
