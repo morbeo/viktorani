@@ -115,7 +115,7 @@ No tracking epic; standalone issues/PRs in the gamemaster area.
 - [x] Typed answers to open-ended questions in pick-an-option games
 - [x] Per-question/round/game timers: shortcut presets in the new-timer dialog, and the auto-started question timer is reused instead of stacked (#421)
 
-## Phase 7: Screen layout designer (in progress)
+## Phase 7: Screen layout designer
 
 Epic: #364. Scope and dependency order are in the epic body: widget registry → layout model v2 → `LayoutRenderer` → `LAYOUT` transport event → designer UI (canvas, then templates/polish) → phase-based switching → per-game assignment. #374 (game log widget) and #377 (host message panel) are related but separate issues, both already merged.
 
@@ -143,11 +143,19 @@ Epic: #517. Design in ADR 0021. Step 1 is an MCP server that edits a backup file
 - [x] WebMCP live tools on the game master (#523) — #531
 - [x] Authoring tools in the app through WebMCP (#532) — #533
 
-## Phase 9: Studio mode (in progress)
+## Phase 9: Studio mode
 
 Design in ADR 0025. Planned with the first screen management work and deferred until layouts and phases existed.
 
-- [ ] Studio mode: the screens keep the layout on air while the game moves on; the GM previews the next one and takes it with **Cut** or **Fade**. Phones and the GM column follow the game, and only the layout waits (content stays live) (#536)
+- [x] Studio mode: the screens keep the layout on air while the game moves on; the GM previews the next one and takes it with **Cut** or **Fade**. Phones and the GM column follow the game, and only the layout waits (content stays live) (#536) — #537
+
+## Phase 10: Hardening
+
+Follow-ups the coverage work in #506 found.
+
+- [x] Roster bulk actions report a failed team or score change instead of leaving an unhandled rejection; every selected player is tried and the dialog stays open to try again (#538)
+- [x] A labelled `Input`, `Textarea` or `Select` without an `id` gets a generated one, so its label names it (#539)
+- [x] The game-flow local-network-only test no longer flakes: it waits for the saved setting before approving the screen (#508)
 
 ## Decisions (2026-11-02)
 

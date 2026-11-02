@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import type { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes } from 'react'
 import { useControlSizeStep } from './controlSize'
 import { X, Network, CircleDot, CircleOff } from 'lucide-react'
@@ -138,7 +139,10 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   help?: string
 }
 
-export function Input({ label, help, id, className = '', style, ...props }: InputProps) {
+export function Input({ label, help, id: givenId, className = '', style, ...props }: InputProps) {
+  // Without an id the label names nothing, so the field gets a generated one
+  const autoId = useId()
+  const id = givenId ?? autoId
   return (
     <div className="flex flex-col gap-1">
       {label && (
@@ -170,7 +174,10 @@ interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement
   label?: string
 }
 
-export function Textarea({ label, id, className = '', style, ...props }: TextareaProps) {
+export function Textarea({ label, id: givenId, className = '', style, ...props }: TextareaProps) {
+  // Without an id the label names nothing, so the field gets a generated one
+  const autoId = useId()
+  const id = givenId ?? autoId
   return (
     <div className="flex flex-col gap-1">
       {label && (
@@ -201,7 +208,17 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   options: { value: string; label: string }[]
 }
 
-export function Select({ label, id, options, className = '', style, ...props }: SelectProps) {
+export function Select({
+  label,
+  id: givenId,
+  options,
+  className = '',
+  style,
+  ...props
+}: SelectProps) {
+  // Without an id the label names nothing, so the field gets a generated one
+  const autoId = useId()
+  const id = givenId ?? autoId
   return (
     <div className="flex flex-col gap-1">
       {label && (

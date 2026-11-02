@@ -28,34 +28,56 @@ export function RosterBulkActionBar({
   const [action, setAction] = useState<Action>(null)
   const [busy, setBusy] = useState(false)
   const [delta, setDelta] = useState(1)
+  /** How many players the last bulk update failed for. */
+  const [failed, setFailed] = useState(0)
 
   const count = selectedIds.size
 
-  async function handleAssignTeam(teamId: string | null) {
+  /**
+   * Runs `update` for every selected player. Every update is tried even when one fails; on
+   * success the dialog closes and the selection clears, on failure the dialog stays open
+   * with a notice so the host can try again.
+   */
+  async function applyToSelected(update: (id: string) => Promise<void>) {
     setBusy(true)
-    try {
-      await Promise.all([...selectedIds].map(id => onAssignPlayer(id, teamId)))
-    } finally {
-      setBusy(false)
-      setAction(null)
-      onDone()
+    setFailed(0)
+    const results = await Promise.allSettled([...selectedIds].map(update))
+    const failures = results.filter(r => r.status === 'rejected').length
+    setBusy(false)
+    if (failures > 0) {
+      setFailed(failures)
+      return
     }
+    closeDialog()
+    onDone()
   }
 
-  async function handleAdjustScore(sign: 1 | -1) {
-    setBusy(true)
-    try {
-      await Promise.all([...selectedIds].map(id => onAdjustScore(id, sign * delta)))
-    } finally {
-      setBusy(false)
-      setAction(null)
-      onDone()
-    }
+  function openDialog(next: Action) {
+    setFailed(0)
+    setAction(next)
   }
+
+  function closeDialog() {
+    setFailed(0)
+    setAction(null)
+  }
+
+  const handleAssignTeam = (teamId: string | null) =>
+    applyToSelected(id => onAssignPlayer(id, teamId))
+
+  const handleAdjustScore = (sign: 1 | -1) => applyToSelected(id => onAdjustScore(id, sign * delta))
+
+  const failureNotice = failed > 0 && (
+    <p role="alert" className="text-xs text-negative">
+      {failed === count
+        ? 'Could not update the selected players. Try again.'
+        : `Could not update ${failed} of ${count} players. Try again.`}
+    </p>
+  )
 
   function handleKickConfirm() {
     for (const id of selectedIds) onKick(id)
-    setAction(null)
+    closeDialog()
     onDone()
   }
 
@@ -69,21 +91,21 @@ export function RosterBulkActionBar({
         <span className="text-xs font-medium mr-1 text-text">{count} selected</span>
         <div className="flex-1" />
         <button
-          onClick={() => setAction('assign-team')}
+          onClick={() => openDialog('assign-team')}
           className="text-xs px-2.5 py-1.5 rounded border transition-colors hover:bg-black/5 border-border text-text"
           aria-label="Assign team to selected players"
         >
           Assign team
         </button>
         <button
-          onClick={() => setAction('adjust-score')}
+          onClick={() => openDialog('adjust-score')}
           className="text-xs px-2.5 py-1.5 rounded border transition-colors hover:bg-black/5 border-border text-text"
           aria-label="Adjust score for selected players"
         >
           Adjust score
         </button>
         <button
-          onClick={() => (confirmDestructive ? setAction('kick') : handleKickConfirm())}
+          onClick={() => (confirmDestructive ? openDialog('kick') : handleKickConfirm())}
           className="text-xs px-2.5 py-1.5 rounded border transition-colors hover:bg-black/5 border-negative text-negative"
           aria-label="Kick selected players"
         >
@@ -100,7 +122,7 @@ export function RosterBulkActionBar({
 
       <Modal
         open={action === 'assign-team'}
-        onClose={() => setAction(null)}
+        onClose={closeDialog}
         title="Assign team"
         maxWidth="320px"
       >
@@ -126,12 +148,13 @@ export function RosterBulkActionBar({
               {team.name}
             </button>
           ))}
+          {failureNotice}
         </div>
       </Modal>
 
       <Modal
         open={action === 'adjust-score'}
-        onClose={() => setAction(null)}
+        onClose={closeDialog}
         title="Adjust score"
         maxWidth="280px"
       >
@@ -146,6 +169,7 @@ export function RosterBulkActionBar({
             onChange={e => setDelta(Number(e.target.value) || 0)}
             min={0}
           />
+          {failureNotice}
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => void handleAdjustScore(-1)} disabled={busy}>
               − {delta}
@@ -157,18 +181,13 @@ export function RosterBulkActionBar({
         </div>
       </Modal>
 
-      <Modal
-        open={action === 'kick'}
-        onClose={() => setAction(null)}
-        title="Kick players?"
-        maxWidth="320px"
-      >
+      <Modal open={action === 'kick'} onClose={closeDialog} title="Kick players?" maxWidth="320px">
         <div className="flex flex-col gap-3">
           <p className="text-sm text-text">
             Kicking {count} player{count !== 1 ? 's' : ''}. They can rejoin if the game allows it.
           </p>
           <div className="flex justify-end gap-2 pt-1">
-            <Button variant="ghost" onClick={() => setAction(null)}>
+            <Button variant="ghost" onClick={closeDialog}>
               Cancel
             </Button>
             <Button variant="danger" onClick={handleKickConfirm}>
