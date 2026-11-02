@@ -115,6 +115,24 @@ describe('Input', () => {
     expect(input.tagName).toBe('INPUT')
   })
 
+  it('names the input by its label when no id is given', () => {
+    render(
+      <>
+        <Input label="First" />
+        <Input label="Second" />
+      </>
+    )
+    const first = screen.getByLabelText('First')
+    const second = screen.getByLabelText('Second')
+    expect(first.tagName).toBe('INPUT')
+    expect(first.id).not.toBe(second.id)
+  })
+
+  it('keeps an id that is passed', () => {
+    render(<Input label="Name" id="name" />)
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveAttribute('id', 'name')
+  })
+
   it('calls onChange when typed into', () => {
     const onChange = vi.fn()
     render(<Input onChange={onChange} />)
@@ -131,6 +149,11 @@ describe('Input', () => {
 // ── Textarea ──────────────────────────────────────────────────────────────────
 
 describe('Textarea', () => {
+  it('names the textarea by its label when no id is given', () => {
+    render(<Textarea label="Notes" />)
+    expect(screen.getByRole('textbox', { name: 'Notes' }).tagName).toBe('TEXTAREA')
+  })
+
   it('renders with label', () => {
     render(<Textarea label="Description" id="desc" />)
     expect(screen.getByText('Description')).toBeInTheDocument()
@@ -147,6 +170,11 @@ describe('Textarea', () => {
 // ── Select ────────────────────────────────────────────────────────────────────
 
 describe('Select', () => {
+  it('names the select by its label when no id is given', () => {
+    render(<Select label="Colour" options={[{ value: 'red', label: 'Red' }]} />)
+    expect(screen.getByRole('combobox', { name: 'Colour' })).toBeInTheDocument()
+  })
+
   const options = [
     { value: 'a', label: 'Option A' },
     { value: 'b', label: 'Option B' },
