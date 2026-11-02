@@ -1,5 +1,7 @@
 import type { GamePhase, LayoutAssignments } from '@/db'
 import { useAppTheme } from '@/hooks/useAppTheme'
+import type { StudioTransition } from '@/lib/studio'
+import { PhaseTransition } from '@/components/screen/PhaseTransition'
 import { LayoutRenderer } from '@/widgets/LayoutRenderer'
 import { resolveLayout, type LayoutBundle } from '@/widgets/layouts'
 import type { ScoreboardData } from '@/widgets/types'
@@ -10,6 +12,8 @@ interface ScoreboardViewProps {
   layouts?: readonly LayoutBundle[]
   gameId?: string | null
   phase?: GamePhase | null
+  /** How the phase reached this surface: a studio-mode fade fades the layout in (ADR 0025). */
+  transition?: StudioTransition
   /** The layouts the host chose for the scoreboard, per phase. */
   assignments?: LayoutAssignments
 }
@@ -23,21 +27,24 @@ export function ScoreboardView({
   layouts = [],
   gameId = null,
   phase = null,
+  transition = 'cut',
   assignments,
 }: ScoreboardViewProps) {
   const bundle = resolveLayout(layouts, { target: 'scoreboard', gameId, phase, assignments })
   // A layout's own logo replaces the theme's wordmark
   const { logo } = useAppTheme()
   return (
-    <LayoutRenderer
-      as="main"
-      bundle={bundle}
-      target="scoreboard"
-      data={data}
-      breakpoint="tv"
-      logo={logo.wordmark}
-      className="min-h-screen px-12 pb-10 text-center bg-bg text-text"
-      cellClassName="mt-10 flex flex-col items-center gap-10"
-    />
+    <PhaseTransition phase={phase} transition={transition}>
+      <LayoutRenderer
+        as="main"
+        bundle={bundle}
+        target="scoreboard"
+        data={data}
+        breakpoint="tv"
+        logo={logo.wordmark}
+        className="min-h-screen px-12 pb-10 text-center bg-bg text-text"
+        cellClassName="mt-10 flex flex-col items-center gap-10"
+      />
+    </PhaseTransition>
   )
 }

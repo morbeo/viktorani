@@ -53,6 +53,8 @@ import { useRegisterCommands } from '@/components/command-palette/commands'
 import type { Command } from '@/components/command-palette/commands'
 import type { Game, GamePhase, GmDecision, Player, Team } from '@/db'
 import { PhaseControl } from '@/components/gamemaster/PhaseControl'
+import { StudioPanel } from '@/components/gamemaster/StudioPanel'
+import type { StudioState } from '@/lib/studio'
 import { autoPhase, effectivePhase } from '@/lib/layout-phase'
 import { updateQuestionStatus } from '@/db/games'
 import { revealQuestion, ruleQuestion } from '@/db/rulings'
@@ -67,7 +69,11 @@ import {
 import { answerKind } from '@/db/answers'
 import type { AnswerInput, SeenAnswer } from '@/db/answers'
 import type { QuestionRuling, RulingAward } from '@/db/rulings'
-import { layoutCommands, phaseCommands } from '@/components/gamemaster/layout-commands'
+import {
+  layoutCommands,
+  phaseCommands,
+  studioCommands,
+} from '@/components/gamemaster/layout-commands'
 import type { GameEvent } from '@/transport/types'
 import { SCOPE_TIMER_LABELS } from '@/components/timer/timer-options'
 import { useWebMcpTools } from '@/hooks/useAiTools'
@@ -121,6 +127,9 @@ export interface ActiveGameProps {
   onPhaseOverride?: (phase: GamePhase | null) => void
   /** Receives the phase layouts are picked for whenever it changes. */
   onPhase?: (phase: GamePhase) => void
+  /** Studio mode for the screens (ADR 0025), or `null` when off. */
+  studio?: StudioState | null
+  onStudio?: (state: StudioState | null) => void
 }
 
 export type BuzzHandler = ReturnType<typeof useBuzzer>['handleIncomingBuzz']
@@ -223,6 +232,8 @@ export function ActiveGame({
   phaseOverride = null,
   onPhaseOverride,
   onPhase,
+  studio = null,
+  onStudio,
 }: ActiveGameProps) {
   const [showBoundary, setShowBoundary] = useState(false)
   // Narrow screens show either the play column or the side panel; wide screens show both
@@ -705,6 +716,7 @@ export function ActiveGame({
     if (game.status === 'ended') return [showScoreboard]
     return [
       ...(onPhaseOverride ? phaseCommands(onPhaseOverride) : []),
+      ...(onStudio ? studioCommands(phase, studio, onStudio) : []),
       ...layoutCommands({ game, phase, layouts, onGameChange }),
       {
         id: 'gm:next',
@@ -757,6 +769,8 @@ export function ActiveGame({
     resumeTimer,
     selectTab,
     onPhaseOverride,
+    onStudio,
+    studio,
     game,
     phase,
     layouts,
@@ -916,8 +930,17 @@ export function ActiveGame({
         >
           <div className="max-w-3xl mx-auto">
             {onPhaseOverride && !isEnded && (
-              <div className="flex justify-end pt-3">
+              <div className="flex flex-col items-end gap-2 pt-3">
                 <PhaseControl auto={auto} override={phaseOverride} onOverride={onPhaseOverride} />
+                {onStudio && (
+                  <StudioPanel
+                    game={game}
+                    layouts={layouts}
+                    live={phase}
+                    studio={studio}
+                    onStudio={onStudio}
+                  />
+                )}
               </div>
             )}
             <LayoutRenderer

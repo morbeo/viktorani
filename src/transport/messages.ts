@@ -263,6 +263,7 @@ export const GameEventSchemas = {
   PHASE: z.strictObject({
     type: z.literal('PHASE'),
     phase: z.enum(GAME_PHASES),
+    transition: z.enum(['cut', 'fade']).optional(),
   }),
   THEME: z
     .strictObject({ type: z.literal('THEME'), theme: themePayload })

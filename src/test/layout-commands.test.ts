@@ -2,7 +2,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { db } from '@/db'
 import type { Game, Layout } from '@/db'
-import { layoutCommands, phaseCommands } from '@/components/gamemaster/layout-commands'
+import {
+  layoutCommands,
+  phaseCommands,
+  studioCommands,
+} from '@/components/gamemaster/layout-commands'
 import { DEFAULT_LAYOUT_THEME } from '@/lib/layout-grid'
 
 const layout = (id: string, gameId: string | null): Layout => ({
@@ -19,6 +23,36 @@ const layout = (id: string, gameId: string | null): Layout => ({
 beforeEach(async () => {
   await db.games.clear()
   await db.games.put({ id: 'g1', name: 'Quiz', createdAt: 0, updatedAt: 0 } as Game)
+})
+
+describe('studioCommands', () => {
+  it('turns studio mode on from the phase on air', () => {
+    const onStudio = vi.fn()
+    const commands = studioCommands('question', null, onStudio)
+    expect(commands.map(c => c.label)).toEqual(['Studio mode: on'])
+    commands[0].run()
+    expect(onStudio).toHaveBeenCalledWith({ program: 'question', transition: 'cut' })
+  })
+
+  it('offers a cut and a fade only when the next layout differs', () => {
+    const onStudio = vi.fn()
+    const held = { program: 'scoreboard', transition: 'cut' } as const
+    expect(studioCommands('scoreboard', held, onStudio).map(c => c.label)).toEqual([
+      'Studio mode: off',
+    ])
+    const commands = studioCommands('question', held, onStudio)
+    expect(commands.map(c => c.label)).toEqual([
+      'Studio: cut to Question',
+      'Studio: fade to Question',
+      'Studio mode: off',
+    ])
+    commands.forEach(c => c.run())
+    expect(onStudio.mock.calls).toEqual([
+      [{ program: 'question', transition: 'cut' }],
+      [{ program: 'question', transition: 'fade' }],
+      [null],
+    ])
+  })
 })
 
 describe('phaseCommands', () => {

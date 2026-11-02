@@ -700,6 +700,12 @@ describe('PHASE', () => {
     expect(accepts({ type: 'PHASE', phase: null })).toBe(false)
     expect(accepts({ type: 'PHASE' })).toBe(false)
   })
+
+  it('takes a studio-mode transition, and nothing else', () => {
+    expect(accepts({ type: 'PHASE', phase: 'reveal', transition: 'fade' })).toBe(true)
+    expect(accepts({ type: 'PHASE', phase: 'reveal', transition: 'cut' })).toBe(true)
+    expect(accepts({ type: 'PHASE', phase: 'reveal', transition: 'wipe' })).toBe(false)
+  })
 })
 
 describe('THEME', () => {

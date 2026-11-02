@@ -28,6 +28,8 @@ import { hostNow } from '@/hooks/useBuzzer'
 import { runningTimerEvents } from '@/hooks/useTimer'
 import { useGameLifecycle } from '@/hooks/useGameLifecycle'
 import { usePhaseOverride } from '@/hooks/usePhaseOverride'
+import { useStudio } from '@/hooks/useStudio'
+import { programPhase, readStudio, screenTransition } from '@/lib/studio'
 import { adjustScore, readShownScoreEntries, readShownScores } from '@/hooks/useScoreboard'
 import { readPublicLog } from '@/db/public-log'
 import { PlayerConnections, messageRecipients, resolveJoin } from '@/pages/admin/player-connections'
@@ -183,6 +185,8 @@ export default function GameMaster() {
   const scoreboardLayoutRef = useRef<LayoutEvent | null>(null)
   // The phase remote surfaces pick layouts for; `null` until it is known
   const phaseRef = useRef<GamePhase | null>(null)
+  // What screens, spectators and scoreboard devices show: in studio mode, the GM's last take
+  const screenPhaseRef = useRef<GamePhase | null>(null)
   // The THEME players and screens get; `null` until the host's themes have loaded
   const themeRef = useRef<ThemeEvent | null>(null)
 
@@ -336,8 +340,8 @@ export default function GameMaster() {
       transportManager.sendTo(connId, { type: 'LOG', entries: logRef.current })
       const layout = layoutFor(connId)
       if (layout) transportManager.sendTo(connId, layout)
-      if (phaseRef.current)
-        transportManager.sendTo(connId, { type: 'PHASE', phase: phaseRef.current })
+      if (screenPhaseRef.current)
+        transportManager.sendTo(connId, { type: 'PHASE', phase: screenPhaseRef.current })
       if (themeRef.current) transportManager.sendTo(connId, themeRef.current)
       const g = gameRef.current
       if (g) void sendRunningTimers(connId, g.id)
@@ -646,14 +650,36 @@ export default function GameMaster() {
   // The layout phase, sent to admitted players and approved screens when it changes. The
   // running game reports it (it knows the buzzes); before the start it is the lobby.
   const [phaseOverride, setPhaseOverride] = usePhaseOverride(id ?? null)
-  const handlePhase = useCallback((phase: GamePhase) => {
-    if (phaseRef.current === phase) return
-    phaseRef.current = phase
-    const event = { type: 'PHASE', phase } as const
-    for (const connId of connectionsRef.current.connections())
-      transportManager.sendTo(connId, event)
+  // Screens get their own phase: the game's, or in studio mode the GM's last take (ADR 0025)
+  const [studio, setStudio] = useStudio(id ?? null)
+  const sendScreenPhase = useCallback(() => {
+    const live = phaseRef.current
+    if (!live || !id) return
+    const state = readStudio(id)
+    const phase = programPhase(live, state)
+    if (screenPhaseRef.current === phase) return
+    screenPhaseRef.current = phase
+    // Only a fade take carries a transition, so other changes look as they always have
+    const event =
+      screenTransition(phase, state) === 'fade'
+        ? ({ type: 'PHASE', phase, transition: 'fade' } as const)
+        : ({ type: 'PHASE', phase } as const)
     for (const connId of screensRef.current) transportManager.sendTo(connId, event)
-  }, [])
+  }, [id])
+  const handlePhase = useCallback(
+    (phase: GamePhase) => {
+      if (phaseRef.current === phase) return
+      phaseRef.current = phase
+      const event = { type: 'PHASE', phase } as const
+      for (const connId of connectionsRef.current.connections())
+        transportManager.sendTo(connId, event)
+      sendScreenPhase()
+    },
+    [sendScreenPhase]
+  )
+  useEffect(() => {
+    sendScreenPhase()
+  }, [studio, sendScreenPhase])
   const inLobby = game?.status === 'waiting'
   useEffect(() => {
     if (inLobby) handlePhase('lobby')
@@ -1290,6 +1316,8 @@ export default function GameMaster() {
           layouts={storedLayouts}
           phaseOverride={phaseOverride}
           onPhaseOverride={setPhaseOverride}
+          studio={studio}
+          onStudio={setStudio}
           onPhase={handlePhase}
         />
       </ControlSizeContext.Provider>

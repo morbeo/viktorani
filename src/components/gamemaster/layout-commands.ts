@@ -1,10 +1,12 @@
-import { LayoutTemplate } from 'lucide-react'
+import { Clapperboard, LayoutTemplate } from 'lucide-react'
 import { GAME_PHASES } from '@/db'
 import type { Game, GamePhase } from '@/db'
 import { setLayoutAssignment } from '@/db/games'
 import type { Command } from '@/components/command-palette/commands'
 import { PHASE_LABELS } from '@/components/layout-designer/labels'
 import { choiceLabel, layoutChoices } from '@/lib/layout-assignments'
+import { programPhase } from '@/lib/studio'
+import type { StudioState } from '@/lib/studio'
 import type { LayoutBundle } from '@/widgets/layouts'
 
 /** Phases the GM can hold by hand while the game runs. */
@@ -35,6 +37,49 @@ export function phaseCommands(onOverride: (phase: GamePhase | null) => void): Co
       keywords: 'phase layout show',
       run: () => onOverride(p),
     })),
+  ]
+}
+
+/**
+ * Palette commands for studio mode (ADR 0025): turn it on or off, and while it's on, cut or
+ * fade the next layout onto the screens when it differs from the one on air.
+ */
+export function studioCommands(
+  live: GamePhase,
+  studio: StudioState | null,
+  onStudio: (state: StudioState | null) => void
+): Command[] {
+  const base = { group: 'Layout', icon: Clapperboard }
+  if (!studio) {
+    return [
+      {
+        ...base,
+        id: 'gm:studio:on',
+        label: 'Studio mode: on',
+        keywords: 'studio preview program',
+        run: () => onStudio({ program: live, transition: 'cut' }),
+      },
+    ]
+  }
+  const takes: Command[] =
+    programPhase(live, studio) === live
+      ? []
+      : (['cut', 'fade'] as const).map(transition => ({
+          ...base,
+          id: `gm:studio:${transition}`,
+          label: `Studio: ${transition} to ${PHASE_LABELS[live]}`,
+          keywords: 'studio take transition',
+          run: () => onStudio({ program: live, transition }),
+        }))
+  return [
+    ...takes,
+    {
+      ...base,
+      id: 'gm:studio:off',
+      label: 'Studio mode: off',
+      keywords: 'studio preview program',
+      run: () => onStudio(null),
+    },
   ]
 }
 

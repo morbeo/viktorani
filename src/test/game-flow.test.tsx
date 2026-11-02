@@ -823,6 +823,58 @@ describe('layout phase over the transport', () => {
     await host.waitFor(() => expect(phasesOf(received).at(-1)).toBe('buzzed'))
     expect(localStorage.getItem('viktorani:layout-phase:g1')).toBeNull()
   }, 20_000)
+
+  it('keeps screens on the taken layout in studio mode, while phones follow the game', async () => {
+    const user = userEvent.setup()
+    await seedGame()
+    const { db } = await import('@/db')
+    await db.buzzEvents.clear()
+    localStorage.removeItem('viktorani:layout-phase:g1')
+    localStorage.removeItem('viktorani:studio:g1')
+    const host = await mountSide('host', '/admin/game/g1')
+    await host.waitFor(() => expect(hub.state.host).not.toBeNull())
+
+    const phone = await connectClient()
+    phone.client.send({ ...JOIN, playerName: 'Kit', deviceId: 'device-kit' } as TransportEvent)
+    await host.waitFor(() => expect(phasesOf(phone.received)).toContain('question'), SLOW)
+    const tv = await connectClient()
+    tv.client.send({ type: 'SCREEN_JOIN' })
+    await user.click(await host.view.findByRole('button', { name: 'Approve screen 1' }, SLOW))
+    await host.waitFor(() => expect(phasesOf(tv.received)).toEqual(['question']), SLOW)
+
+    await user.click(host.view.getByRole('switch', { name: 'Studio mode' }))
+    expect(JSON.parse(localStorage.getItem('viktorani:studio:g1') ?? 'null')).toEqual({
+      program: 'question',
+      transition: 'cut',
+    })
+    phone.client.send({ type: 'BUZZ', timestamp: Date.now() })
+    await host.waitFor(() => expect(phasesOf(phone.received).at(-1)).toBe('buzzed'), SLOW)
+    // The screen stays on the question until the GM takes the buzz
+    expect(phasesOf(tv.received)).toEqual(['question'])
+    expect(host.view.getByText(/Next:/)).toHaveTextContent('Next: Buzzed')
+
+    await user.click(host.view.getByRole('button', { name: 'Fade' }))
+    await host.waitFor(() =>
+      expect(tv.received.filter(e => e.type === 'PHASE').at(-1)).toEqual({
+        type: 'PHASE',
+        phase: 'buzzed',
+        transition: 'fade',
+      })
+    )
+
+    // Hold the scoreboard, then leave studio mode: the screens cut back to the game
+    await user.selectOptions(await host.view.findByLabelText('Layouts for'), 'scoreboard')
+    await host.waitFor(() => expect(phasesOf(phone.received).at(-1)).toBe('scoreboard'))
+    expect(phasesOf(tv.received).at(-1)).toBe('buzzed')
+    await user.click(host.view.getByRole('switch', { name: 'Studio mode' }))
+    await host.waitFor(() =>
+      expect(tv.received.filter(e => e.type === 'PHASE').at(-1)).toEqual({
+        type: 'PHASE',
+        phase: 'scoreboard',
+      })
+    )
+    localStorage.removeItem('viktorani:layout-phase:g1')
+  }, 20_000)
 })
 
 describe('theme over the transport', () => {

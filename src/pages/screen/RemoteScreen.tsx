@@ -113,6 +113,7 @@ export default function RemoteScreen({
         gameId={session.layouts?.gameId}
         assignments={session.layouts?.assignments}
         phase={remotePhase(session.phase, session.gameStatus)}
+        transition={session.transition}
         data={{ rows: session.rows, logEntries: session.logEntries }}
       />
     )
@@ -171,6 +172,7 @@ export default function RemoteScreen({
       gameId={session.layouts?.gameId}
       assignments={session.layouts?.assignments}
       phase={remotePhase(session.phase, session.gameStatus)}
+      transition={session.transition}
       roundAnswers={session.roundAnswers}
       data={{
         heading: session.gameStatus === 'paused' ? 'Paused' : null,

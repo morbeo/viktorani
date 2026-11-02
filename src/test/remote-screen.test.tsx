@@ -145,6 +145,16 @@ describe('reduceScreen', () => {
     expect(reduceScreen(INITIAL_SCREEN, { type: 'PHASE', phase: 'reveal' }).phase).toBe('reveal')
   })
 
+  it("keeps a PHASE's studio transition, and cuts when it has none", () => {
+    const faded = reduceScreen(INITIAL_SCREEN, {
+      type: 'PHASE',
+      phase: 'scoreboard',
+      transition: 'fade',
+    })
+    expect(faded.transition).toBe('fade')
+    expect(reduceScreen(faded, { type: 'PHASE', phase: 'reveal' }).transition).toBe('cut')
+  })
+
   it('keeps the latest THEME', () => {
     const theme = resolveTheme({ app: BUILT_IN_THEMES[2], surface: 'screen' })
     expect(reduceScreen(INITIAL_SCREEN, { type: 'THEME', theme }).theme).toBe(theme)
@@ -293,8 +303,10 @@ describe('RemoteScreen', () => {
     expect(document.querySelector('[data-layout-id="tv"]')).not.toBeNull()
     emit({ type: 'PHASE', phase: 'ended' })
     expect(document.querySelector('[data-layout-id="end"]')).not.toBeNull()
-    emit({ type: 'PHASE', phase: 'question' })
+    emit({ type: 'PHASE', phase: 'question', transition: 'fade' })
     expect(document.querySelector('[data-layout-id="tv"]')).not.toBeNull()
+    // A studio-mode fade take fades the layout in
+    expect(document.querySelector('[data-transition="fade"]')).not.toBeNull()
     emit({ type: 'GAME_STATUS', status: 'ended' })
     expect(document.querySelector('[data-layout-id="end"]')).not.toBeNull()
   })

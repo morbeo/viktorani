@@ -29,6 +29,8 @@ export interface ScreenSession {
   layouts: RemoteLayouts | null
   /** The phase the host picks layouts for (see `PHASE`); `null` until it says. */
   phase: GamePhase | null
+  /** How the latest phase arrived: a studio-mode fade take, or a cut (ADR 0025). */
+  transition: 'cut' | 'fade'
   /** The host's theme (see `THEME`); `null` keeps this device's own until it arrives. */
   theme: ResolvedTheme | null
   /** The answers revealed in the host's end-of-round review; `null` when none is open. */
@@ -45,6 +47,7 @@ export const INITIAL_SCREEN: ScreenSession = {
   logEntries: [],
   layouts: null,
   phase: null,
+  transition: 'cut',
   theme: null,
   roundAnswers: null,
 }
@@ -98,7 +101,7 @@ export function reduceScreen(
           }
         : s
     case 'PHASE':
-      return { ...s, phase: event.phase }
+      return { ...s, phase: event.phase, transition: event.transition ?? 'cut' }
     case 'THEME':
       return { ...s, theme: event.theme }
     case 'ROUND_ANSWERS':

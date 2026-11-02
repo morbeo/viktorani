@@ -6,6 +6,7 @@ import { db } from '@/db'
 import type { Game, GamePhase, Question } from '@/db'
 import { DEFAULT_LAYOUT_THEME } from '@/lib/layout-grid'
 import { writePhaseOverride } from '@/lib/layout-phase'
+import { writeStudio } from '@/lib/studio'
 import Screen from '@/pages/admin/Screen'
 
 vi.mock('@/transport', () => ({ transportManager: { send: vi.fn() } }))
@@ -325,6 +326,20 @@ describe('Screen', () => {
 
     act(() => writePhaseOverride('g1', 'scoreboard'))
     await waitFor(() => expect(layoutId()).toBe('board'))
+
+    // Studio mode (ADR 0025) keeps the layout on air until the GM takes the next one
+    const transition = () =>
+      document.querySelector('[data-transition]')?.getAttribute('data-transition')
+    act(() => writeStudio('g1', { program: 'scoreboard', transition: 'cut' }))
+    act(() => writePhaseOverride('g1', null))
+    await act(() => new Promise(r => setTimeout(r, 50)))
+    expect(layoutId()).toBe('board')
+    expect(transition()).toBe('cut')
+    act(() => writeStudio('g1', { program: 'buzzed', transition: 'fade' }))
+    await waitFor(() => expect(layoutId()).toBe('buzzed'))
+    expect(transition()).toBe('fade')
+    act(() => writeStudio('g1', null))
+    expect(transition()).toBe('cut')
   })
 })
 

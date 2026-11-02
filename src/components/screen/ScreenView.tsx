@@ -1,5 +1,7 @@
 import type { GamePhase, LayoutAssignments } from '@/db'
 import { useAppTheme } from '@/hooks/useAppTheme'
+import type { StudioTransition } from '@/lib/studio'
+import { PhaseTransition } from '@/components/screen/PhaseTransition'
 import { LayoutRenderer } from '@/widgets/LayoutRenderer'
 import { resolveLayout, type LayoutBundle } from '@/widgets/layouts'
 import type { ScreenData } from '@/widgets/types'
@@ -12,6 +14,8 @@ interface ScreenViewProps {
   layouts?: readonly LayoutBundle[]
   gameId?: string | null
   phase?: GamePhase | null
+  /** How the phase reached this surface: a studio-mode fade fades the layout in (ADR 0025). */
+  transition?: StudioTransition
   /** The layouts the host chose for the screen, per phase. */
   assignments?: LayoutAssignments
   /** The end-of-round review's revealed answers, shown instead of the layout while open. */
@@ -31,6 +35,7 @@ export function ScreenView({
   layouts = [],
   gameId = null,
   phase = null,
+  transition = 'cut',
   assignments,
   roundAnswers = null,
 }: ScreenViewProps) {
@@ -39,21 +44,25 @@ export function ScreenView({
   const { logo } = useAppTheme()
   if (roundAnswers) {
     return (
-      <main className="min-h-screen px-12 py-10 flex flex-col items-center bg-bg text-text">
-        <RoundAnswersView review={roundAnswers} size="tv" />
-      </main>
+      <PhaseTransition phase={phase} transition={transition}>
+        <main className="min-h-screen px-12 py-10 flex flex-col items-center bg-bg text-text">
+          <RoundAnswersView review={roundAnswers} size="tv" />
+        </main>
+      </PhaseTransition>
     )
   }
   return (
-    <LayoutRenderer
-      as="main"
-      bundle={bundle}
-      target="screen"
-      data={data}
-      breakpoint="tv"
-      logo={logo.wordmark}
-      className="min-h-screen px-12 pb-10 text-center bg-bg text-text"
-      cellClassName="mt-10 flex flex-col items-center gap-10"
-    />
+    <PhaseTransition phase={phase} transition={transition}>
+      <LayoutRenderer
+        as="main"
+        bundle={bundle}
+        target="screen"
+        data={data}
+        breakpoint="tv"
+        logo={logo.wordmark}
+        className="min-h-screen px-12 pb-10 text-center bg-bg text-text"
+        cellClassName="mt-10 flex flex-col items-center gap-10"
+      />
+    </PhaseTransition>
   )
 }

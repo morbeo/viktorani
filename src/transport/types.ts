@@ -134,8 +134,10 @@ export type GameEvent =
   /**
    * The phase layouts are picked for: worked out from the game's state, or chosen by the
    * GM. Sent to players and screens whenever it changes, on admit and on screen approval.
+   * In studio mode (ADR 0025) screens get the phase the GM took, and `transition: 'fade'`
+   * when it was a fade take; without it the screen cuts.
    */
-  | { type: 'PHASE'; phase: GamePhase }
+  | { type: 'PHASE'; phase: GamePhase; transition?: 'cut' | 'fade' }
   /**
    * The game's theme, resolved on the host (ADR 0022): both palettes, so each device picks
    * light or dark itself, and no mode. Sent to players on admit, to screens on approval,

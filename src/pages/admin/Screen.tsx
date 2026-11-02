@@ -10,6 +10,8 @@ import { loadGameLayouts } from '@/db/layouts'
 import { useGameTheme } from '@/hooks/useAppTheme'
 import { loadBuzzesForQuestion } from '@/hooks/useBuzzer'
 import { usePhaseOverride } from '@/hooks/usePhaseOverride'
+import { useStudio } from '@/hooks/useStudio'
+import { programPhase, screenTransition } from '@/lib/studio'
 import { readShownScoreEntries } from '@/hooks/useScoreboard'
 import { autoPhase, effectivePhase } from '@/lib/layout-phase'
 import { formatTime } from '@/hooks/useTimer'
@@ -94,13 +96,20 @@ function LocalScreen({
     [game.id, questionId]
   )
   const [override] = usePhaseOverride(game.id)
-  const phase = effectivePhase(autoPhase(game.status, buzzes ?? [], revealed), override)
+  // In studio mode, the phase the GM last took rather than the game's (ADR 0025)
+  const [studio] = useStudio(game.id)
+  const phase = programPhase(
+    effectivePhase(autoPhase(game.status, buzzes ?? [], revealed), override),
+    studio
+  )
+  const transition = screenTransition(phase, studio)
   const rows = game.scoringEnabled ? (entries ?? []) : []
   if (surface === 'scoreboard') {
     return (
       <ScoreboardView
         layouts={layouts}
         phase={phase}
+        transition={transition}
         assignments={game.layoutAssignments?.scoreboard}
         gameId={game.id}
         data={{ rows, logEntries }}
@@ -111,6 +120,7 @@ function LocalScreen({
     <ScreenView
       layouts={layouts}
       phase={phase}
+      transition={transition}
       assignments={game.layoutAssignments?.screen}
       gameId={game.id}
       roundAnswers={roundAnswers}
