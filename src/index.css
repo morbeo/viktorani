@@ -22,6 +22,17 @@
   --font-display: 'Playfair Display', Georgia, serif;
   --font-body: 'Lora', Georgia, serif;
   --font-mono: 'DM Mono', ui-monospace, monospace;
+
+  /* Studio mode's fade take on the screens (ADR 0025). */
+  --animate-fade-in: fade-in 0.6s ease-out;
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
 }
 
 /* Dark palette: an explicit choice, or the device setting under "system". */

@@ -131,7 +131,7 @@ Epic: #364. Scope and dependency order are in the epic body: widget registry →
 - [x] Widget previews: canvas boxes show each widget with sample data, and palette items preview on hover or focus (#503)
 - [x] Remote scoreboard displays: `/scoreboard/:roomId` joins with `SCREEN_JOIN { surface: 'scoreboard' }`, waits for approval like a screen, and gets the scoreboard `LAYOUT` (not the screen's) with scores, the public log, phase and theme. The Screens panel has a scoreboard link and names scoreboard devices apart.
 
-## Phase 8: AI tools (in progress)
+## Phase 8: AI tools
 
 Epic: #517. Design in ADR 0021. Step 1 is an MCP server that edits a backup file; step 2 is live tools on the game master through WebMCP, off by default.
 
@@ -139,8 +139,19 @@ Epic: #517. Design in ADR 0021. Step 1 is an MCP server that edits a backup file
 - [x] `src/mcp/` authoring tool layer (#519): 44 tools over a backup held in memory; widget rules moved to the React-free `widgets/specs.ts`
 - [x] `viktorani-mcp` stdio server, `npm run mcp` and release asset (#520): one Node file built by `npm run build:mcp`, attached to each release by the Release workflow
 - [x] Host guide: using an assistant (#521)
-- [ ] Settings → AI tools and in-app confirmations (#522)
-- [ ] WebMCP live tools on the game master (#523)
+- [x] Settings → AI tools and in-app confirmations (#522) — #531
+- [x] WebMCP live tools on the game master (#523) — #531
+- [x] Authoring tools in the app through WebMCP (#532) — #533
+
+## Phase 9: Studio mode (in progress)
+
+Design in ADR 0025. Planned with the first screen management work and deferred until layouts and phases existed.
+
+- [ ] Studio mode: the screens keep the layout on air while the game moves on; the GM previews the next one and takes it with **Cut** or **Fade**. Phones and the GM column follow the game, and only the layout waits (content stays live) (#536)
+
+## Decisions (2026-11-02)
+
+- **Studio mode (ADR 0025):** kept per game in local storage like the phase override, no Dexie version. Only the screen surfaces (projector window, remote screens, spectators, scoreboard devices) hold the program phase; the lobby and the end bypass it. `PHASE` gains an optional `transition`, sent only on a fade take, so other phase changes are unchanged on the wire.
 
 ## Decisions (2026-10-24)
 

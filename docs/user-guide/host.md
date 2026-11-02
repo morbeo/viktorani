@@ -163,6 +163,18 @@ scoreboard between rounds without picking it, turn on **Scoreboard between round
 surface to its scoreboard layout (after the answer review, when answers show at the end of
 the round), and **Next** again starts the next round.
 
+**Studio mode**, under **Layouts for**, keeps the screens on the layout they show while the
+game moves on, so you choose when they change. The projector window, remote screens,
+spectators and scoreboard devices stay put; your play column and players' phones follow the
+game as usual. Two small monitors show what is **On screen** and what comes **Next**, each
+with its phase and layout name. **Cut** puts the next layout on the screens at once, and
+**Fade** fades it in. Turning studio mode on keeps what's on screen; turning it off cuts the
+screens back to the game. Starting and ending the game change the screens straight away,
+and only the layout waits for a take: the question, scores and timers inside it stay live.
+The command palette has **Studio mode: on/off** and, when there's something to take,
+**Studio: cut to …** and **Studio: fade to …**. Like **Layouts for**, studio mode is kept
+per game on this machine.
+
 ---
 
 ## 3. Running a game
