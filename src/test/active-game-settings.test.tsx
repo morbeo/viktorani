@@ -1010,6 +1010,12 @@ describe('ActiveGame: answers open until the end of the round', () => {
 
     await waitFor(async () => expect((await db.gameQuestions.get('gq1'))?.status).toBe('correct'))
     expect((await db.players.get('p1'))?.score).toBe(1)
+    // Let the move finish before the test ends, or its state update lands after teardown
+    await waitFor(() =>
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'SLIDE_CHANGE', index: 1 })
+      )
+    )
   })
 })
 
@@ -1148,5 +1154,11 @@ describe('ActiveGame: whole round on phones', () => {
     await waitFor(async () => expect((await db.gameQuestions.get('gq2'))?.status).toBe('correct'))
     expect((await db.gameQuestions.get('gq1'))?.status).not.toBe('pending')
     expect((await db.players.get('p1'))?.score).toBe(1)
+    // Let the move finish before the test ends, or its state update lands after teardown
+    await waitFor(() =>
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'SLIDE_CHANGE', index: 2 })
+      )
+    )
   })
 })
