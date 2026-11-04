@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.3.0 - 2026-11-04
+
+### Bug Fixes
+
+- Phase 10 hardening, roster bulk failures and unlabelled inputs (#540) ([8349d7f](../../commit/8349d7f12347664692aae458d0e32693b199a726))
+
+### Chores
+
+- Bump fast-uri from 3.1.8 to 3.1.9 (#528) ([3366dce](../../commit/3366dce679dde0e0e2eb425ed04585c83583bf68))
+- Bump the dev-dependencies group with 2 updates (#529) ([4a550cc](../../commit/4a550cc53be981e5e7179b2d9c644085554d8719))
+- Bump the production-dependencies group with 2 updates (#530) ([f6c90ca](../../commit/f6c90ca654589e615d608d4ce6ba826463439b8b))
+- Bump the dev-dependencies group with 3 updates (#534) ([dfa9326](../../commit/dfa932605ded2af81cfe1b3f20201bca70521fd4))
+- Bump the production-dependencies group with 2 updates (#535) ([cae8f3a](../../commit/cae8f3a84869c90297c6710da9d52c8c8019ca10))
+
+### Features
+
+- Live AI tools through WebMCP (#531) ([206cdf5](../../commit/206cdf52ecedb4e7545a0537e6021e94bf6201bf))
+- Authoring tools in the app through WebMCP (#533) ([aa1164f](../../commit/aa1164f9a76077ecafa525ba386e7df4e6ed96bd))
+- Studio mode for the screens, with cut and fade (#537) ([d8bc2d0](../../commit/d8bc2d0a8fba0fe4e9f3133475613b12f881b6b1))
+
 ## v0.2.0 - 2026-10-25
 
 ### Bug Fixes
