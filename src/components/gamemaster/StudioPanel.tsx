@@ -1,9 +1,17 @@
 import type { Game, GamePhase } from '@/db'
-import { Button } from '@/components/ui'
+import { Button, Select } from '@/components/ui'
 import { PHASE_LABELS } from '@/components/layout-designer/labels'
 import { sampleScreenData, usePreviewSample } from '@/components/layout-designer/sample-data'
-import { programPhase } from '@/lib/studio'
-import type { StudioState, StudioTransition } from '@/lib/studio'
+import {
+  DEFAULT_PICK,
+  SPEED_LABELS,
+  STUDIO_MOVES,
+  STUDIO_SPEEDS,
+  TRANSITION_LABELS,
+  programPhase,
+  take,
+} from '@/lib/studio'
+import type { StudioMove, StudioSpeed, StudioState } from '@/lib/studio'
 import { LayoutRenderer } from '@/widgets/LayoutRenderer'
 import { resolveLayout, type LayoutBundle } from '@/widgets/layouts'
 
@@ -61,9 +69,14 @@ function Monitor({
   )
 }
 
+const moveOptions = STUDIO_MOVES.map(value => ({ value, label: TRANSITION_LABELS[value] }))
+const speedOptions = STUDIO_SPEEDS.map(value => ({ value, label: SPEED_LABELS[value] }))
+
 /**
  * Studio mode (ADR 0025): the screens keep the layout on air while the game moves on, and
- * the GM takes the next one with a cut or a fade. Phones and this window follow the game.
+ * the GM takes the next one with a cut, or with **Take**, which plays the transition and
+ * speed picked beside it. The pick is kept with studio mode. Phones and this window follow
+ * the game.
  */
 export function StudioPanel({ game, layouts, live, studio, onStudio }: StudioPanelProps) {
   const on = studio !== null
@@ -75,7 +88,9 @@ export function StudioPanel({ game, layouts, live, studio, onStudio }: StudioPan
       phase,
       assignments: game.layoutAssignments?.screen,
     })
-  const take = (transition: StudioTransition) => onStudio({ program: live, transition })
+  const pick = studio?.pick ?? DEFAULT_PICK
+  const choose = (next: Partial<typeof pick>) =>
+    studio && onStudio({ ...studio, pick: { ...pick, ...next } })
   const same = program === live
 
   return (
@@ -103,11 +118,30 @@ export function StudioPanel({ game, layouts, live, studio, onStudio }: StudioPan
           <Monitor label="On screen" phase={program} bundle={layoutFor(program)} gameId={game.id} />
           <Monitor label="Next" phase={live} bundle={layoutFor(live)} gameId={game.id} />
           <div className="flex flex-col gap-2">
-            <Button size="sm" onClick={() => take('cut')} disabled={same}>
+            <Button size="sm" onClick={() => onStudio(take(live, studio, 'cut'))} disabled={same}>
               Cut
             </Button>
-            <Button size="sm" variant="primary" onClick={() => take('fade')} disabled={same}>
-              Fade
+            <Select
+              label="Transition"
+              value={pick.transition}
+              options={moveOptions}
+              onChange={e => choose({ transition: e.target.value as StudioMove })}
+              className="py-1 text-xs"
+            />
+            <Select
+              label="Speed"
+              value={pick.speed}
+              options={speedOptions}
+              onChange={e => choose({ speed: e.target.value as StudioSpeed })}
+              className="py-1 text-xs"
+            />
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => onStudio(take(live, studio, pick.transition, pick.speed))}
+              disabled={same}
+            >
+              Take
             </Button>
           </div>
         </div>

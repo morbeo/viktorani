@@ -1,6 +1,6 @@
 import type { GamePhase, LayoutAssignments } from '@/db'
 import { useAppTheme } from '@/hooks/useAppTheme'
-import type { StudioTransition } from '@/lib/studio'
+import type { StudioSpeed, StudioTransition } from '@/lib/studio'
 import { PhaseTransition } from '@/components/screen/PhaseTransition'
 import { LayoutRenderer } from '@/widgets/LayoutRenderer'
 import { resolveLayout, type LayoutBundle } from '@/widgets/layouts'
@@ -12,8 +12,10 @@ interface ScoreboardViewProps {
   layouts?: readonly LayoutBundle[]
   gameId?: string | null
   phase?: GamePhase | null
-  /** How the phase reached this surface: a studio-mode fade fades the layout in (ADR 0025). */
+  /** How the phase reached this surface: a studio-mode take's transition (ADR 0025). */
   transition?: StudioTransition
+  /** How fast that transition plays. */
+  speed?: StudioSpeed
   /** The layouts the host chose for the scoreboard, per phase. */
   assignments?: LayoutAssignments
 }
@@ -28,13 +30,14 @@ export function ScoreboardView({
   gameId = null,
   phase = null,
   transition = 'cut',
+  speed = 'normal',
   assignments,
 }: ScoreboardViewProps) {
   const bundle = resolveLayout(layouts, { target: 'scoreboard', gameId, phase, assignments })
   // A layout's own logo replaces the theme's wordmark
   const { logo } = useAppTheme()
   return (
-    <PhaseTransition phase={phase} transition={transition}>
+    <PhaseTransition phase={phase} transition={transition} speed={speed}>
       <LayoutRenderer
         as="main"
         bundle={bundle}

@@ -3,8 +3,10 @@ import {
   parseStudio,
   programPhase,
   readStudio,
+  screenSpeed,
   screenTransition,
   subscribeStudio,
+  take,
   writeStudio,
 } from '@/lib/studio'
 
@@ -34,6 +36,7 @@ describe('screenTransition', () => {
     expect(screenTransition('lobby', fade)).toBe('cut')
     expect(screenTransition('reveal', { ...fade, transition: 'cut' })).toBe('cut')
     expect(screenTransition('reveal', null)).toBe('cut')
+    expect(screenTransition('reveal', { program: 'reveal', transition: 'zoom' })).toBe('zoom')
   })
 })
 
@@ -55,7 +58,63 @@ describe('studio storage', () => {
   it('ignores stored values it does not understand', () => {
     expect(parseStudio('not json')).toBeNull()
     expect(parseStudio(JSON.stringify({ program: 'nope' }))).toBeNull()
-    expect(parseStudio(JSON.stringify({ program: 'reveal', transition: 'wipe' }))).toEqual({
+    expect(parseStudio(JSON.stringify({ program: 'reveal', transition: 'spin' }))).toEqual({
+      program: 'reveal',
+      transition: 'cut',
+    })
+    expect(
+      parseStudio(
+        JSON.stringify({
+          program: 'reveal',
+          transition: 'wipe',
+          speed: 'warp',
+          pick: { transition: 'cut', speed: 'slow' },
+        })
+      )
+    ).toStrictEqual({ program: 'reveal', transition: 'wipe' })
+  })
+
+  it('keeps the speed of the take and the pick', () => {
+    const state = {
+      program: 'reveal',
+      transition: 'dip',
+      speed: 'slow',
+      pick: { transition: 'zoom', speed: 'short' },
+    } as const
+    expect(parseStudio(JSON.stringify(state))).toEqual(state)
+    expect(
+      parseStudio(JSON.stringify({ ...state, pick: { transition: 'slide', speed: 'nope' } }))?.pick
+    ).toEqual({ transition: 'slide', speed: 'normal' })
+  })
+})
+
+describe('screenSpeed', () => {
+  it("plays the take's speed only for the phase it put on air, and only when animated", () => {
+    const slow = { program: 'reveal', transition: 'slide', speed: 'slow' } as const
+    expect(screenSpeed('reveal', slow)).toBe('slow')
+    expect(screenSpeed('reveal', { program: 'reveal', transition: 'fade' })).toBe('normal')
+    expect(screenSpeed('lobby', slow)).toBe('normal')
+    expect(screenSpeed('reveal', { ...slow, transition: 'cut' })).toBe('normal')
+    expect(screenSpeed('reveal', null)).toBe('normal')
+  })
+})
+
+describe('take', () => {
+  it('puts the live phase on air, keeping the pick and dropping a normal or cut speed', () => {
+    const pick = { transition: 'wipe', speed: 'slow' } as const
+    const studio = { program: 'question', transition: 'cut', pick } as const
+    expect(take('reveal', studio, 'wipe', 'slow')).toEqual({
+      program: 'reveal',
+      transition: 'wipe',
+      speed: 'slow',
+      pick,
+    })
+    expect(take('reveal', studio, 'fade')).toStrictEqual({
+      program: 'reveal',
+      transition: 'fade',
+      pick,
+    })
+    expect(take('reveal', null, 'cut', 'slow')).toStrictEqual({
       program: 'reveal',
       transition: 'cut',
     })

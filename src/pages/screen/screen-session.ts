@@ -1,5 +1,6 @@
 import type { GamePhase } from '@/db'
 import type { ResolvedTheme } from '@/lib/theme'
+import type { StudioSpeed, StudioTransition } from '@/lib/studio'
 import type {
   LogEntry,
   RoundAnswers,
@@ -29,8 +30,10 @@ export interface ScreenSession {
   layouts: RemoteLayouts | null
   /** The phase the host picks layouts for (see `PHASE`); `null` until it says. */
   phase: GamePhase | null
-  /** How the latest phase arrived: a studio-mode fade take, or a cut (ADR 0025). */
-  transition: 'cut' | 'fade'
+  /** How the latest phase arrived: a studio-mode take's transition, or a cut (ADR 0025). */
+  transition: StudioTransition
+  /** How fast that transition plays. */
+  speed: StudioSpeed
   /** The host's theme (see `THEME`); `null` keeps this device's own until it arrives. */
   theme: ResolvedTheme | null
   /** The answers revealed in the host's end-of-round review; `null` when none is open. */
@@ -48,6 +51,7 @@ export const INITIAL_SCREEN: ScreenSession = {
   layouts: null,
   phase: null,
   transition: 'cut',
+  speed: 'normal',
   theme: null,
   roundAnswers: null,
 }
@@ -101,7 +105,12 @@ export function reduceScreen(
           }
         : s
     case 'PHASE':
-      return { ...s, phase: event.phase, transition: event.transition ?? 'cut' }
+      return {
+        ...s,
+        phase: event.phase,
+        transition: event.transition ?? 'cut',
+        speed: event.speed ?? 'normal',
+      }
     case 'THEME':
       return { ...s, theme: event.theme }
     case 'ROUND_ANSWERS':

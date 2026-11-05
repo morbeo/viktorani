@@ -5,7 +5,13 @@ import { setLayoutAssignment } from '@/db/games'
 import type { Command } from '@/components/command-palette/commands'
 import { PHASE_LABELS } from '@/components/layout-designer/labels'
 import { choiceLabel, layoutChoices } from '@/lib/layout-assignments'
-import { programPhase } from '@/lib/studio'
+import {
+  DEFAULT_PICK,
+  STUDIO_TRANSITIONS,
+  TRANSITION_LABELS,
+  programPhase,
+  take,
+} from '@/lib/studio'
 import type { StudioState } from '@/lib/studio'
 import type { LayoutBundle } from '@/widgets/layouts'
 
@@ -57,19 +63,20 @@ export function studioCommands(
         id: 'gm:studio:on',
         label: 'Studio mode: on',
         keywords: 'studio preview program',
-        run: () => onStudio({ program: live, transition: 'cut' }),
+        run: () => onStudio(take(live, null, 'cut')),
       },
     ]
   }
   const takes: Command[] =
     programPhase(live, studio) === live
       ? []
-      : (['cut', 'fade'] as const).map(transition => ({
+      : STUDIO_TRANSITIONS.map(transition => ({
           ...base,
           id: `gm:studio:${transition}`,
-          label: `Studio: ${transition} to ${PHASE_LABELS[live]}`,
+          label: `Studio: ${TRANSITION_LABELS[transition].toLowerCase()} to ${PHASE_LABELS[live]}`,
           keywords: 'studio take transition',
-          run: () => onStudio({ program: live, transition }),
+          // At the speed picked in the studio panel
+          run: () => onStudio(take(live, studio, transition, (studio.pick ?? DEFAULT_PICK).speed)),
         }))
   return [
     ...takes,

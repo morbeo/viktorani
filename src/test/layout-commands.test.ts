@@ -34,7 +34,7 @@ describe('studioCommands', () => {
     expect(onStudio).toHaveBeenCalledWith({ program: 'question', transition: 'cut' })
   })
 
-  it('offers a cut and a fade only when the next layout differs', () => {
+  it('offers a take with each transition only when the next layout differs', () => {
     const onStudio = vi.fn()
     const held = { program: 'scoreboard', transition: 'cut' } as const
     expect(studioCommands('scoreboard', held, onStudio).map(c => c.label)).toEqual([
@@ -44,14 +44,36 @@ describe('studioCommands', () => {
     expect(commands.map(c => c.label)).toEqual([
       'Studio: cut to Question',
       'Studio: fade to Question',
+      'Studio: dip to black to Question',
+      'Studio: slide to Question',
+      'Studio: zoom to Question',
+      'Studio: wipe to Question',
       'Studio mode: off',
     ])
     commands.forEach(c => c.run())
     expect(onStudio.mock.calls).toEqual([
       [{ program: 'question', transition: 'cut' }],
       [{ program: 'question', transition: 'fade' }],
+      [{ program: 'question', transition: 'dip' }],
+      [{ program: 'question', transition: 'slide' }],
+      [{ program: 'question', transition: 'zoom' }],
+      [{ program: 'question', transition: 'wipe' }],
       [null],
     ])
+  })
+
+  it('takes at the speed picked in the studio panel, keeping the pick', () => {
+    const onStudio = vi.fn()
+    const pick = { transition: 'zoom', speed: 'slow' } as const
+    const held = { program: 'scoreboard', transition: 'cut', pick } as const
+    const slide = studioCommands('question', held, onStudio).find(c => c.id === 'gm:studio:slide')
+    slide?.run()
+    expect(onStudio).toHaveBeenCalledWith({
+      program: 'question',
+      transition: 'slide',
+      speed: 'slow',
+      pick,
+    })
   })
 })
 
