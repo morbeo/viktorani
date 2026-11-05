@@ -1,7 +1,7 @@
 # ADR 0025 — Studio mode: preview the next layout, then cut or take
 
 **Date:** 2026-11-02
-**Status:** Proposed
+**Status:** Accepted (2026-11-05)
 **Deciders:** Vladimir Kirov
 
 ---
