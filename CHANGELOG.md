@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.4.0 - 2026-11-05
+
+### Chores
+
+- Accept adr 0025 studio mode (#543) ([9b51ef4](../../commit/9b51ef41d5205d86e06e482b471531cacabf7ff4))
+
+### Features
+
+- Dip, slide, zoom and wipe studio takes with a speed (#542) ([b5200e1](../../commit/b5200e19fff721af078bfaa13c0dd06bf73a8943))
+
 ## v0.3.0 - 2026-11-04
 
 ### Bug Fixes
