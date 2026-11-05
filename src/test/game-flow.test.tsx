@@ -853,7 +853,7 @@ describe('layout phase over the transport', () => {
     expect(phasesOf(tv.received)).toEqual(['question'])
     expect(host.view.getByText(/Next:/)).toHaveTextContent('Next: Buzzed')
 
-    await user.click(host.view.getByRole('button', { name: 'Fade' }))
+    await user.click(host.view.getByRole('button', { name: 'Take' }))
     await host.waitFor(() =>
       expect(tv.received.filter(e => e.type === 'PHASE').at(-1)).toEqual({
         type: 'PHASE',
@@ -862,10 +862,25 @@ describe('layout phase over the transport', () => {
       })
     )
 
+    // A slow wipe carries its speed; the GM's pick stays for the next take
+    await user.selectOptions(host.view.getByLabelText('Transition'), 'wipe')
+    await user.selectOptions(host.view.getByLabelText('Speed'), 'slow')
+    await user.selectOptions(await host.view.findByLabelText('Layouts for'), 'reveal')
+    await host.waitFor(() => expect(phasesOf(phone.received).at(-1)).toBe('reveal'))
+    await user.click(host.view.getByRole('button', { name: 'Take' }))
+    await host.waitFor(() =>
+      expect(tv.received.filter(e => e.type === 'PHASE').at(-1)).toEqual({
+        type: 'PHASE',
+        phase: 'reveal',
+        transition: 'wipe',
+        speed: 'slow',
+      })
+    )
+
     // Hold the scoreboard, then leave studio mode: the screens cut back to the game
     await user.selectOptions(await host.view.findByLabelText('Layouts for'), 'scoreboard')
     await host.waitFor(() => expect(phasesOf(phone.received).at(-1)).toBe('scoreboard'))
-    expect(phasesOf(tv.received).at(-1)).toBe('buzzed')
+    expect(phasesOf(tv.received).at(-1)).toBe('reveal')
     await user.click(host.view.getByRole('switch', { name: 'Studio mode' }))
     await host.waitFor(() =>
       expect(tv.received.filter(e => e.type === 'PHASE').at(-1)).toEqual({

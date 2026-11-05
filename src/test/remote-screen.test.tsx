@@ -152,7 +152,17 @@ describe('reduceScreen', () => {
       transition: 'fade',
     })
     expect(faded.transition).toBe('fade')
-    expect(reduceScreen(faded, { type: 'PHASE', phase: 'reveal' }).transition).toBe('cut')
+    expect(faded.speed).toBe('normal')
+    const cut = reduceScreen(faded, { type: 'PHASE', phase: 'reveal' })
+    expect(cut.transition).toBe('cut')
+    const slow = reduceScreen(cut, {
+      type: 'PHASE',
+      phase: 'buzzed',
+      transition: 'dip',
+      speed: 'slow',
+    })
+    expect([slow.transition, slow.speed]).toEqual(['dip', 'slow'])
+    expect(reduceScreen(slow, { type: 'PHASE', phase: 'reveal' }).speed).toBe('normal')
   })
 
   it('keeps the latest THEME', () => {

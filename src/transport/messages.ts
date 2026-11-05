@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { STUDIO_SPEEDS, STUDIO_TRANSITIONS } from '@/lib/studio'
 import {
   GAME_PHASES,
   ICON_STROKES,
@@ -263,7 +264,9 @@ export const GameEventSchemas = {
   PHASE: z.strictObject({
     type: z.literal('PHASE'),
     phase: z.enum(GAME_PHASES),
-    transition: z.enum(['cut', 'fade']).optional(),
+    // A transition or speed from a newer host cuts, or plays at the normal speed, here
+    transition: z.enum(STUDIO_TRANSITIONS).catch('cut').optional(),
+    speed: z.enum(STUDIO_SPEEDS).catch('normal').optional(),
   }),
   THEME: z
     .strictObject({ type: z.literal('THEME'), theme: themePayload })

@@ -272,7 +272,7 @@ erDiagram
   ([ADR 0018](adr/0018-layout-transport-event.md)) and the current phase in a `PHASE` event;
   the phase follows the game's state unless the GM holds one by hand
   ([ADR 0019](adr/0019-layout-phase-switching.md)). In studio mode the screen surfaces keep
-  the phase the GM last took, with a cut or a fade, while the GM and phones follow the game
+  the phase the GM last took, with a cut or an animated transition, while the GM and phones follow the game
   ([ADR 0025](adr/0025-studio-mode.md)). A game can choose its layout per surface
   and phase (`Game.layoutAssignments`), which wins over the automatic pick
   ([ADR 0020](adr/0020-layout-assignments.md)). Layouts are made in the designer at

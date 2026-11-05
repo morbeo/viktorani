@@ -29,7 +29,7 @@ import { runningTimerEvents } from '@/hooks/useTimer'
 import { useGameLifecycle } from '@/hooks/useGameLifecycle'
 import { usePhaseOverride } from '@/hooks/usePhaseOverride'
 import { useStudio } from '@/hooks/useStudio'
-import { programPhase, readStudio, screenTransition } from '@/lib/studio'
+import { programPhase, readStudio, screenSpeed, screenTransition } from '@/lib/studio'
 import { adjustScore, readShownScoreEntries, readShownScores } from '@/hooks/useScoreboard'
 import { readPublicLog } from '@/db/public-log'
 import { PlayerConnections, messageRecipients, resolveJoin } from '@/pages/admin/player-connections'
@@ -659,11 +659,13 @@ export default function GameMaster() {
     const phase = programPhase(live, state)
     if (screenPhaseRef.current === phase) return
     screenPhaseRef.current = phase
-    // Only a fade take carries a transition, so other changes look as they always have
-    const event =
-      screenTransition(phase, state) === 'fade'
-        ? ({ type: 'PHASE', phase, transition: 'fade' } as const)
-        : ({ type: 'PHASE', phase } as const)
+    // Only an animated take carries a transition, and only a speed other than normal is
+    // sent, so other changes look as they always have
+    const transition = screenTransition(phase, state)
+    const speed = screenSpeed(phase, state)
+    const event: Extract<TransportEvent, { type: 'PHASE' }> = { type: 'PHASE', phase }
+    if (transition !== 'cut') event.transition = transition
+    if (speed !== 'normal') event.speed = speed
     for (const connId of screensRef.current) transportManager.sendTo(connId, event)
   }, [id])
   const handlePhase = useCallback(

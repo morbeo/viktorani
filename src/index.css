@@ -23,14 +23,54 @@
   --font-body: 'Lora', Georgia, serif;
   --font-mono: 'DM Mono', ui-monospace, monospace;
 
-  /* Studio mode's fade take on the screens (ADR 0025). */
-  --animate-fade-in: fade-in 0.6s ease-out;
+  /* Studio mode's animated takes on the screens (ADR 0025). The take's speed sets
+     --studio-duration on the wrapper. */
+  --animate-fade-in: fade-in var(--studio-duration, 0.6s) ease-out;
   @keyframes fade-in {
     from {
       opacity: 0;
     }
     to {
       opacity: 1;
+    }
+  }
+  /* A black cover over the new layout that clears, so it comes up from black */
+  --animate-dip-clear: dip-clear var(--studio-duration, 0.6s) ease-in both;
+  @keyframes dip-clear {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+  --animate-slide-in: slide-in var(--studio-duration, 0.6s) ease-out;
+  @keyframes slide-in {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+  --animate-zoom-in: zoom-in var(--studio-duration, 0.6s) ease-out;
+  @keyframes zoom-in {
+    from {
+      opacity: 0;
+      transform: scale(0.85);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  --animate-wipe-in: wipe-in var(--studio-duration, 0.6s) ease-in-out;
+  @keyframes wipe-in {
+    from {
+      clip-path: inset(0 0 0 100%);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
     }
   }
 }

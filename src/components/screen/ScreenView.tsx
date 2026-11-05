@@ -1,6 +1,6 @@
 import type { GamePhase, LayoutAssignments } from '@/db'
 import { useAppTheme } from '@/hooks/useAppTheme'
-import type { StudioTransition } from '@/lib/studio'
+import type { StudioSpeed, StudioTransition } from '@/lib/studio'
 import { PhaseTransition } from '@/components/screen/PhaseTransition'
 import { LayoutRenderer } from '@/widgets/LayoutRenderer'
 import { resolveLayout, type LayoutBundle } from '@/widgets/layouts'
@@ -14,8 +14,10 @@ interface ScreenViewProps {
   layouts?: readonly LayoutBundle[]
   gameId?: string | null
   phase?: GamePhase | null
-  /** How the phase reached this surface: a studio-mode fade fades the layout in (ADR 0025). */
+  /** How the phase reached this surface: a studio-mode take's transition (ADR 0025). */
   transition?: StudioTransition
+  /** How fast that transition plays. */
+  speed?: StudioSpeed
   /** The layouts the host chose for the screen, per phase. */
   assignments?: LayoutAssignments
   /** The end-of-round review's revealed answers, shown instead of the layout while open. */
@@ -36,6 +38,7 @@ export function ScreenView({
   gameId = null,
   phase = null,
   transition = 'cut',
+  speed = 'normal',
   assignments,
   roundAnswers = null,
 }: ScreenViewProps) {
@@ -44,7 +47,7 @@ export function ScreenView({
   const { logo } = useAppTheme()
   if (roundAnswers) {
     return (
-      <PhaseTransition phase={phase} transition={transition}>
+      <PhaseTransition phase={phase} transition={transition} speed={speed}>
         <main className="min-h-screen px-12 py-10 flex flex-col items-center bg-bg text-text">
           <RoundAnswersView review={roundAnswers} size="tv" />
         </main>
@@ -52,7 +55,7 @@ export function ScreenView({
     )
   }
   return (
-    <PhaseTransition phase={phase} transition={transition}>
+    <PhaseTransition phase={phase} transition={transition} speed={speed}>
       <LayoutRenderer
         as="main"
         bundle={bundle}

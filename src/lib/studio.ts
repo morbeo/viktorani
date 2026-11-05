@@ -4,12 +4,51 @@ import type { GamePhase } from '@/db'
 /**
  * Studio mode (ADR 0025): the screen surfaces (projector, remote screens, spectators and
  * scoreboard devices) keep the phase the GM last took, while the game master's window and
- * the phones follow the game. The GM previews the next layout and takes it with a cut or a
- * fade.
+ * the phones follow the game. The GM previews the next layout and takes it with a cut or
+ * one of the animated transitions.
  */
 
-/** How a take reaches the screens: at once, or fading in. */
-export type StudioTransition = 'cut' | 'fade'
+/**
+ * How a take reaches the screens: `cut` at once; `fade` fades the layout in, `dip` comes up
+ * from black, `slide` pushes in from the right, `zoom` grows into place and `wipe` is
+ * revealed from the right edge.
+ */
+export const STUDIO_TRANSITIONS = ['cut', 'fade', 'dip', 'slide', 'zoom', 'wipe'] as const
+export type StudioTransition = (typeof STUDIO_TRANSITIONS)[number]
+
+/** The animated transitions, the ones the GM picks for a take. */
+export type StudioMove = Exclude<StudioTransition, 'cut'>
+export const STUDIO_MOVES: readonly StudioMove[] = ['fade', 'dip', 'slide', 'zoom', 'wipe']
+
+/** What the GM sees each transition called. */
+export const TRANSITION_LABELS: Record<StudioTransition, string> = {
+  cut: 'Cut',
+  fade: 'Fade',
+  dip: 'Dip to black',
+  slide: 'Slide',
+  zoom: 'Zoom',
+  wipe: 'Wipe',
+}
+
+/** How long an animated transition runs. */
+export const STUDIO_SPEEDS = ['short', 'normal', 'slow'] as const
+export type StudioSpeed = (typeof STUDIO_SPEEDS)[number]
+
+/** What the GM sees each speed called. */
+export const SPEED_LABELS: Record<StudioSpeed, string> = {
+  short: 'Short',
+  normal: 'Normal',
+  slow: 'Slow',
+}
+
+/** The transition and speed the GM has picked for the next take. */
+export interface StudioPick {
+  transition: StudioMove
+  speed: StudioSpeed
+}
+
+/** The pick before the GM chooses one: a normal fade, as before there was a choice. */
+export const DEFAULT_PICK: StudioPick = { transition: 'fade', speed: 'normal' }
 
 /** Studio mode for a game: the phase on the screens and how it got there. */
 export interface StudioState {
@@ -17,6 +56,15 @@ export interface StudioState {
   program: GamePhase
   /** How the latest take was made. */
   transition: StudioTransition
+  /** How fast the latest take ran; absent is `normal`. */
+  speed?: StudioSpeed
+  /** What the panel's Take button plays next; absent is {@link DEFAULT_PICK}. */
+  pick?: StudioPick
+}
+
+/** `value` when it is one of `options`, otherwise `undefined`. */
+function oneOf<T extends string>(options: readonly T[], value: unknown): T | undefined {
+  return options.find(o => o === value)
 }
 
 const studioKey = (gameId: string) => `viktorani:studio:${gameId}`
@@ -25,10 +73,20 @@ const studioKey = (gameId: string) => `viktorani:studio:${gameId}`
 export function parseStudio(raw: string | null): StudioState | null {
   if (!raw) return null
   try {
-    const value = JSON.parse(raw) as Partial<StudioState>
-    const program = GAME_PHASES.find(p => p === value.program)
+    const value = JSON.parse(raw) as Record<string, unknown>
+    const program = oneOf(GAME_PHASES, value.program)
     if (!program) return null
-    return { program, transition: value.transition === 'fade' ? 'fade' : 'cut' }
+    const state: StudioState = {
+      program,
+      transition: oneOf(STUDIO_TRANSITIONS, value.transition) ?? 'cut',
+    }
+    const speed = oneOf(STUDIO_SPEEDS, value.speed)
+    if (speed) state.speed = speed
+    const pick = value.pick as Record<string, unknown> | null | undefined
+    const move = oneOf(STUDIO_MOVES, pick?.transition)
+    if (move)
+      state.pick = { transition: move, speed: oneOf(STUDIO_SPEEDS, pick?.speed) ?? 'normal' }
+    return state
   } catch {
     return null
   }
@@ -86,10 +144,34 @@ export function programPhase(live: GamePhase, studio: StudioState | null): GameP
   return studio.program
 }
 
+/** Whether `phase` is on the screens because of the latest take. */
+const fromTake = (phase: GamePhase, studio: StudioState | null): studio is StudioState =>
+  studio !== null && studio.program === phase
+
 /**
- * The transition a screen applies when it shows `phase`: `fade` only when that phase came
- * from a fade take, so a phase change outside a take still cuts.
+ * The transition a screen applies when it shows `phase`: the take's own only when that
+ * phase came from it, so a phase change outside a take still cuts.
  */
 export function screenTransition(phase: GamePhase, studio: StudioState | null): StudioTransition {
-  return studio && studio.program === phase && studio.transition === 'fade' ? 'fade' : 'cut'
+  return fromTake(phase, studio) ? studio.transition : 'cut'
+}
+
+/** How fast a screen plays the transition to `phase` (see {@link screenTransition}). */
+export function screenSpeed(phase: GamePhase, studio: StudioState | null): StudioSpeed {
+  return fromTake(phase, studio) && studio.transition !== 'cut'
+    ? (studio.speed ?? 'normal')
+    : 'normal'
+}
+
+/** A take of the `live` phase with `transition`, keeping the GM's pick. */
+export function take(
+  live: GamePhase,
+  studio: StudioState | null,
+  transition: StudioTransition,
+  speed: StudioSpeed = 'normal'
+): StudioState {
+  const state: StudioState = { program: live, transition }
+  if (transition !== 'cut' && speed !== 'normal') state.speed = speed
+  if (studio?.pick) state.pick = studio.pick
+  return state
 }

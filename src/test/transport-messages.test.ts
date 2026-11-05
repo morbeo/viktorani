@@ -31,6 +31,7 @@ import {
   MAX_TEAM_VOTES,
 } from '@/transport/messages'
 import { BUILT_IN_THEMES, resolveTheme } from '@/lib/theme'
+import { STUDIO_SPEEDS, STUDIO_TRANSITIONS } from '@/lib/studio'
 import type { SerializedGameState, TransportEvent } from '@/transport/types'
 import { serialiseGameState } from '@/pages/admin/gamemaster-utils'
 import { MAX_ANSWER_TEXT_LENGTH } from '@/db'
@@ -701,10 +702,23 @@ describe('PHASE', () => {
     expect(accepts({ type: 'PHASE' })).toBe(false)
   })
 
-  it('takes a studio-mode transition, and nothing else', () => {
-    expect(accepts({ type: 'PHASE', phase: 'reveal', transition: 'fade' })).toBe(true)
-    expect(accepts({ type: 'PHASE', phase: 'reveal', transition: 'cut' })).toBe(true)
-    expect(accepts({ type: 'PHASE', phase: 'reveal', transition: 'wipe' })).toBe(false)
+  it.each(STUDIO_TRANSITIONS)('takes the studio-mode transition %s', transition => {
+    expect(accepts({ type: 'PHASE', phase: 'reveal', transition })).toBe(true)
+  })
+
+  it('takes a studio-mode speed', () => {
+    for (const speed of STUDIO_SPEEDS)
+      expect(accepts({ type: 'PHASE', phase: 'reveal', transition: 'slide', speed })).toBe(true)
+  })
+
+  it('cuts at the normal speed for a transition or speed it does not know', () => {
+    const parsed = TransportEventSchema.parse({
+      type: 'PHASE',
+      phase: 'reveal',
+      transition: 'spin',
+      speed: 'ludicrous',
+    })
+    expect(parsed).toEqual({ type: 'PHASE', phase: 'reveal', transition: 'cut', speed: 'normal' })
   })
 })
 

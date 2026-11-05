@@ -27,8 +27,11 @@ describe('StudioPanel', () => {
     const onStudio = renderPanel({ program: 'scoreboard', transition: 'cut' })
     expect(screen.getByText(/On screen:/)).toHaveTextContent('On screen: Scoreboard')
     expect(screen.getByText(/Next:/)).toHaveTextContent('Next: Question')
+    // Before the GM picks, Take plays a normal fade
+    expect(screen.getByLabelText('Transition')).toHaveValue('fade')
+    expect(screen.getByLabelText('Speed')).toHaveValue('normal')
     await userEvent.click(screen.getByRole('button', { name: 'Cut' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Fade' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Take' }))
     expect(onStudio.mock.calls).toEqual([
       [{ program: 'question', transition: 'cut' }],
       [{ program: 'question', transition: 'fade' }],
@@ -37,9 +40,38 @@ describe('StudioPanel', () => {
     expect(onStudio).toHaveBeenLastCalledWith(null)
   })
 
+  it('keeps the picked transition and speed with studio mode', async () => {
+    const studio = { program: 'scoreboard', transition: 'cut' } as const
+    const onStudio = renderPanel(studio)
+    await userEvent.selectOptions(screen.getByLabelText('Transition'), 'dip')
+    expect(onStudio).toHaveBeenLastCalledWith({
+      ...studio,
+      pick: { transition: 'dip', speed: 'normal' },
+    })
+    await userEvent.selectOptions(screen.getByLabelText('Speed'), 'slow')
+    expect(onStudio).toHaveBeenLastCalledWith({
+      ...studio,
+      pick: { transition: 'fade', speed: 'slow' },
+    })
+  })
+
+  it('takes with the picked transition and speed', async () => {
+    const pick = { transition: 'slide', speed: 'short' } as const
+    const onStudio = renderPanel({ program: 'scoreboard', transition: 'cut', pick })
+    expect(screen.getByLabelText('Transition')).toHaveValue('slide')
+    expect(screen.getByLabelText('Speed')).toHaveValue('short')
+    await userEvent.click(screen.getByRole('button', { name: 'Take' }))
+    expect(onStudio).toHaveBeenCalledWith({
+      program: 'question',
+      transition: 'slide',
+      speed: 'short',
+      pick,
+    })
+  })
+
   it('has nothing to take when the next layout is the one on screen', () => {
     renderPanel({ program: 'scoreboard', transition: 'fade' }, 'scoreboard')
     expect(screen.getByRole('button', { name: 'Cut' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'Fade' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Take' })).toBeDisabled()
   })
 })

@@ -168,11 +168,15 @@ game moves on, so you choose when they change. The projector window, remote scre
 spectators and scoreboard devices stay put; your play column and players' phones follow the
 game as usual. Two small monitors show what is **On screen** and what comes **Next**, each
 with its phase and layout name. **Cut** puts the next layout on the screens at once, and
-**Fade** fades it in. Turning studio mode on keeps what's on screen; turning it off cuts the
+**Take** brings it in with the transition and speed picked beside it: **Fade** fades it in,
+**Dip to black** brings it up from black, **Slide** pushes it in from the right, **Zoom**
+grows it into place and **Wipe** reveals it from the right edge, each **Short**, **Normal**
+or **Slow**. The pick stays until you change it. Viewers whose device asks for reduced
+motion always get a cut. Turning studio mode on keeps what's on screen; turning it off cuts the
 screens back to the game. Starting and ending the game change the screens straight away,
 and only the layout waits for a take: the question, scores and timers inside it stay live.
 The command palette has **Studio mode: on/off** and, when there's something to take,
-**Studio: cut to …** and **Studio: fade to …**. Like **Layouts for**, studio mode is kept
+a **Studio: … to …** take for each transition, at the picked speed. Like **Layouts for**, studio mode is kept
 per game on this machine.
 
 ---

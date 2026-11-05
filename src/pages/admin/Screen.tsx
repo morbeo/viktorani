@@ -11,7 +11,7 @@ import { useGameTheme } from '@/hooks/useAppTheme'
 import { loadBuzzesForQuestion } from '@/hooks/useBuzzer'
 import { usePhaseOverride } from '@/hooks/usePhaseOverride'
 import { useStudio } from '@/hooks/useStudio'
-import { programPhase, screenTransition } from '@/lib/studio'
+import { programPhase, screenSpeed, screenTransition } from '@/lib/studio'
 import { readShownScoreEntries } from '@/hooks/useScoreboard'
 import { autoPhase, effectivePhase } from '@/lib/layout-phase'
 import { formatTime } from '@/hooks/useTimer'
@@ -103,6 +103,7 @@ function LocalScreen({
     studio
   )
   const transition = screenTransition(phase, studio)
+  const speed = screenSpeed(phase, studio)
   const rows = game.scoringEnabled ? (entries ?? []) : []
   if (surface === 'scoreboard') {
     return (
@@ -110,6 +111,7 @@ function LocalScreen({
         layouts={layouts}
         phase={phase}
         transition={transition}
+        speed={speed}
         assignments={game.layoutAssignments?.scoreboard}
         gameId={game.id}
         data={{ rows, logEntries }}
@@ -121,6 +123,7 @@ function LocalScreen({
       layouts={layouts}
       phase={phase}
       transition={transition}
+      speed={speed}
       assignments={game.layoutAssignments?.screen}
       gameId={game.id}
       roundAnswers={roundAnswers}

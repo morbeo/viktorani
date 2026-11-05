@@ -9,6 +9,7 @@ import type {
   Widget,
 } from '@/db'
 import type { ResolvedTheme } from '@/lib/theme'
+import type { StudioSpeed, StudioTransition } from '@/lib/studio'
 
 // ── Shared event types ────────────────────────────────────────────────────────
 
@@ -134,10 +135,10 @@ export type GameEvent =
   /**
    * The phase layouts are picked for: worked out from the game's state, or chosen by the
    * GM. Sent to players and screens whenever it changes, on admit and on screen approval.
-   * In studio mode (ADR 0025) screens get the phase the GM took, and `transition: 'fade'`
-   * when it was a fade take; without it the screen cuts.
+   * In studio mode (ADR 0025) screens get the phase the GM took, with the take's
+   * `transition` and `speed` when it was animated; without them the screen cuts.
    */
-  | { type: 'PHASE'; phase: GamePhase; transition?: 'cut' | 'fade' }
+  | { type: 'PHASE'; phase: GamePhase; transition?: StudioTransition; speed?: StudioSpeed }
   /**
    * The game's theme, resolved on the host (ADR 0022): both palettes, so each device picks
    * light or dark itself, and no mode. Sent to players on admit, to screens on approval,
