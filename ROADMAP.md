@@ -157,6 +157,16 @@ Follow-ups the coverage work in #506 found.
 - [x] A labelled `Input`, `Textarea` or `Select` without an `id` gets a generated one, so its label names it (#539)
 - [x] The game-flow local-network-only test no longer flakes: it waits for the saved setting before approving the screen (#508)
 
+## Phase 11: Studio transitions
+
+Design in the ADR 0025 addendum.
+
+- [x] More studio-mode takes: **Dip to black**, **Slide**, **Zoom** and **Wipe** next to **Fade**, each at a **Short**, **Normal** or **Slow** speed, picked beside **Take**; **Cut** stays one tap. A transition or speed a screen doesn't know cuts instead of being rejected (#541)
+
+## Decisions (2026-11-05)
+
+- **Studio transitions (ADR 0025 addendum):** `PHASE.transition` takes `dip`, `slide`, `zoom` and `wipe`, and a new optional `speed` is sent only when it isn't normal. Unknown values parse to a cut at normal speed. The GM's pick is kept in the studio state. Slide and wipe come in from the right only.
+
 ## Decisions (2026-11-02)
 
 - **Studio mode (ADR 0025):** kept per game in local storage like the phase override, no Dexie version. Only the screen surfaces (projector window, remote screens, spectators, scoreboard devices) hold the program phase; the lobby and the end bypass it. `PHASE` gains an optional `transition`, sent only on a fade take, so other phase changes are unchanged on the wire.

@@ -1,4 +1,4 @@
-# ADR 0025 — Studio mode: preview the next layout, then cut or fade
+# ADR 0025 — Studio mode: preview the next layout, then cut or take
 
 **Date:** 2026-11-02
 **Status:** Proposed
@@ -65,3 +65,26 @@ work and deferred until layouts and phases existed.
 | A `Game` field for studio mode              | A Dexie version for an operator preference the override already models.     |
 | A new `TRANSITION` event before `PHASE`     | Two events per take that can arrive split; an optional field is simpler.    |
 | Crossfade the old and new layouts           | Two live layouts on a TV at once; a fade-in reads the same and costs less.  |
+
+---
+
+## Addendum (2026-11-05): more transitions and a speed
+
+- **Four more transitions.** `transition` is now one of `cut`, `fade`, `dip` (the new
+  layout comes up from black under a cover that clears), `slide` (pushes in from the
+  right), `zoom` (grows from 85% while fading in) and `wipe` (revealed from the right edge,
+  with `clip-path`). Slide and wipe have one fixed direction; a direction could be added
+  later as another optional field.
+- **A speed.** `PHASE` gains an optional `speed: 'short' | 'normal' | 'slow'` (0.3 s, 0.6 s,
+  1.2 s), sent only when it isn't `normal`, so a normal fade is still byte-for-byte what it
+  was. The screen sets `--studio-duration`, which every transition's animation reads.
+- **Cut, plus Take with a picker.** The panel keeps **Cut** as one tap and adds a
+  **Transition** and **Speed** picker beside **Take**. The pick is kept in the studio state
+  (`pick`), defaulting to a normal fade, so it survives reloads with studio mode.
+- **Unknown values cut.** The schema now turns a `transition` or `speed` it doesn't know
+  into `cut` or `normal` instead of rejecting the event, so a screen on this build or later
+  keeps up with a host that adds more. Screens built before this addendum still reject the
+  new values, and keep their last layout until the next cut, as before.
+- **Still a fade-in, not a mix.** Every transition animates only the incoming layout; the
+  old one is gone at the take, as with the fade. A true dip out and back in would need the
+  old layout held on screen for half the transition.
