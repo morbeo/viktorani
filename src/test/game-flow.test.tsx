@@ -909,3 +909,371 @@ describe('theme over the transport', () => {
     expect(event.theme.dark.onAccent).toMatch(/^#[0-9a-f]{6}$/i)
   }, 20_000)
 })
+
+describe('lobby over the transport', () => {
+  /** A waiting game of its own, since the database is shared between tests. */
+  async function seedLobby(patch: Partial<Game> = {}) {
+    await seedGame()
+    const { db } = await import('@/db')
+    await db.games.put({ ...GAME, id: 'g2', status: 'waiting', ...patch })
+    await db.gameQuestions.put({
+      id: 'gq2',
+      gameId: 'g2',
+      questionId: 'q1',
+      roundId: 'r1',
+      order: 0,
+      status: 'pending',
+      revealed: false,
+    })
+    await db.teams.where('gameId').equals('g2').delete()
+    await db.players.where('gameId').equals('g2').delete()
+    return db
+  }
+
+  async function mountLobby() {
+    const host = await mountSide('host', '/admin/game/g2')
+    await host.waitFor(() => expect(hub.state.host).not.toBeNull())
+    await host.view.findByText('Lobby · waiting for players')
+    return host
+  }
+
+  const joinAs = (name: string) =>
+    ({ ...JOIN, playerName: name, deviceId: `device-${name.toLowerCase()}` }) as TransportEvent
+
+  it('starts the game once a player joins, and tells the players', async () => {
+    const user = userEvent.setup()
+    const db = await seedLobby()
+    const host = await mountLobby()
+
+    const start = host.view.getByRole('button', { name: 'Start game' })
+    expect(start).toBeDisabled()
+    expect(host.view.getByText('No players connected yet')).toBeInTheDocument()
+
+    const { client, received } = await connectClient()
+    client.send(joinAs('Ivy'))
+    await host.waitFor(() => expect(received.map(e => e.type)).toContain('JOIN_ACCEPTED'), SLOW)
+    await host.waitFor(() => expect(start).toBeEnabled())
+    expect(host.view.getByText('1 player connected')).toBeInTheDocument()
+
+    await user.click(start)
+    await host.waitFor(() =>
+      expect(received).toContainEqual({ type: 'GAME_STATUS', status: 'active' })
+    )
+    expect((await db.games.get('g2'))?.status).toBe('active')
+    await host.waitFor(async () => {
+      const kinds = (await db.gameLog.where('gameId').equals('g2').toArray()).map(e => e.kind)
+      expect(kinds).toContain('game_started')
+    })
+    expect(host.view.queryByText('Lobby · waiting for players')).toBeNull()
+  }, 20_000)
+
+  it('starts with no players in solo mode', async () => {
+    const user = userEvent.setup()
+    const db = await seedLobby()
+    const host = await mountLobby()
+
+    const start = host.view.getByRole('button', { name: 'Start game' })
+    expect(start).toBeDisabled()
+    await user.click(host.view.getByRole('switch'))
+    expect(host.view.getByText('Solo mode — 0 players connected')).toBeInTheDocument()
+    await user.click(start)
+    await host.waitFor(async () => expect((await db.games.get('g2'))?.status).toBe('active'))
+  }, 20_000)
+
+  it('admits a waiting player the host approves, and turns away one the host rejects', async () => {
+    const user = userEvent.setup()
+    await seedLobby({ requireApproval: true })
+    const host = await mountLobby()
+
+    const jo = await connectClient()
+    jo.client.send(joinAs('Jo'))
+    const kim = await connectClient()
+    kim.client.send(joinAs('Kim'))
+    await host.waitFor(() => expect(jo.received.map(e => e.type)).toContain('JOIN_PENDING'))
+    await host.waitFor(() => expect(kim.received.map(e => e.type)).toContain('JOIN_PENDING'))
+
+    await user.click(await host.view.findByRole('button', { name: 'Approve Jo' }))
+    await host.waitFor(() => expect(jo.received.map(e => e.type)).toContain('JOIN_ACCEPTED'), SLOW)
+
+    await user.click(host.view.getByRole('button', { name: 'Reject Kim' }))
+    await host.waitFor(() =>
+      expect(kim.received).toContainEqual({
+        type: 'JOIN_REJECTED',
+        reason: 'The host declined your request',
+      })
+    )
+    expect(kim.received.map(e => e.type)).not.toContain('JOIN_ACCEPTED')
+    expect(host.view.queryByRole('button', { name: 'Approve Kim' })).toBeNull()
+  }, 20_000)
+
+  it('rejects an approved join that the game no longer has room for', async () => {
+    const user = userEvent.setup()
+    await seedLobby({ requireApproval: true, maxPlayers: 1 })
+    const host = await mountLobby()
+
+    const lee = await connectClient()
+    lee.client.send(joinAs('Lee'))
+    const max = await connectClient()
+    max.client.send(joinAs('Max'))
+    await user.click(await host.view.findByRole('button', { name: 'Approve Lee' }))
+    await host.waitFor(() => expect(lee.received.map(e => e.type)).toContain('JOIN_ACCEPTED'), SLOW)
+
+    // Max waited while Lee took the last place
+    await user.click(host.view.getByRole('button', { name: 'Approve Max' }))
+    await host.waitFor(() => expect(max.received.map(e => e.type)).toContain('JOIN_REJECTED'), SLOW)
+    expect(max.received.map(e => e.type)).not.toContain('JOIN_ACCEPTED')
+    expect(await host.view.findByText(/Max could not join/)).toBeInTheDocument()
+  }, 20_000)
+
+  it('kicks a player from the roster and tells the others', async () => {
+    const user = userEvent.setup()
+    const db = await seedLobby()
+    const host = await mountLobby()
+
+    const ned = await connectClient()
+    ned.client.send(joinAs('Ned'))
+    const oli = await connectClient()
+    oli.client.send(joinAs('Oli'))
+    await host.waitFor(() => expect(ned.received.map(e => e.type)).toContain('JOIN_ACCEPTED'), SLOW)
+    await host.waitFor(() => expect(oli.received.map(e => e.type)).toContain('JOIN_ACCEPTED'), SLOW)
+
+    const statesBefore = oli.received.filter(e => e.type === 'GAME_STATE').length
+    await user.click(await host.view.findByRole('button', { name: 'Kick Ned' }))
+    await host.waitFor(async () => {
+      const ned = await db.players.where('deviceId').equals('device-ned').first()
+      expect(ned?.presence).toBe('kicked')
+    })
+    await host.waitFor(() =>
+      expect(oli.received.filter(e => e.type === 'GAME_STATE').length).toBeGreaterThan(statesBefore)
+    )
+  }, 20_000)
+
+  it('marks a player whose connection drops as disconnected', async () => {
+    const db = await seedLobby()
+    const host = await mountLobby()
+
+    const { client, received } = await connectClient()
+    client.send(joinAs('Pam'))
+    await host.waitFor(() => expect(received.map(e => e.type)).toContain('JOIN_ACCEPTED'), SLOW)
+    client.disconnect()
+
+    await host.waitFor(async () => {
+      const pam = await db.players.where('deviceId').equals('device-pam').first()
+      expect(pam?.presence).toBe('disconnected')
+      expect(pam?.disconnectedAt).toEqual(expect.any(Number))
+    })
+    await host.waitFor(async () => {
+      const kinds = (await db.gameLog.where('gameId').equals('g2').toArray()).map(e => e.kind)
+      expect(kinds).toContain('player_disconnected')
+    })
+  }, 20_000)
+
+  it('creates, renames and deletes a team, keeping its members in the game', async () => {
+    const user = userEvent.setup()
+    const db = await seedLobby()
+    const host = await mountLobby()
+
+    await user.type(host.view.getAllByRole('textbox', { name: 'New team name' })[0], 'Owls')
+    await user.click(host.view.getByRole('button', { name: 'Create team' }))
+    await host.waitFor(async () =>
+      expect((await db.teams.where('gameId').equals('g2').toArray()).map(t => t.name)).toEqual([
+        'Owls',
+      ])
+    )
+    const owls = (await db.teams.where('gameId').equals('g2').first())!
+
+    // A host-added player on the new team
+    await user.click(host.view.getByRole('button', { name: 'Add player' }))
+    await user.type(host.view.getByRole('textbox', { name: 'New player name' }), 'Quinn')
+    await user.selectOptions(
+      host.view.getByRole('combobox', { name: "New player's team" }),
+      owls.id
+    )
+    await user.click(host.view.getByRole('button', { name: 'Add' }))
+    await host.waitFor(async () => {
+      const quinn = await db.players.where('gameId').equals('g2').first()
+      expect(quinn).toMatchObject({ name: 'Quinn', teamId: owls.id })
+    })
+
+    await user.click(host.view.getByRole('button', { name: 'Rename Owls' }))
+    const rename = host.view.getByRole('textbox', { name: 'Rename Owls' })
+    await user.clear(rename)
+    await user.type(rename, 'Night Owls{Enter}')
+    await host.waitFor(async () => expect((await db.teams.get(owls.id))?.name).toBe('Night Owls'))
+
+    await user.click(await host.view.findByRole('button', { name: 'Delete Night Owls' }))
+    // The confirmation has no dialog role, so find it by its text
+    const prompt = await host.view.findByText(/^Deleting Night Owls/)
+    await user.click(within(prompt.parentElement!).getByRole('button', { name: 'Delete' }))
+    await host.waitFor(async () => expect(await db.teams.get(owls.id)).toBeUndefined())
+    const quinn = await db.players.where('gameId').equals('g2').first()
+    expect(quinn).toMatchObject({ name: 'Quinn', teamId: null })
+  }, 20_000)
+
+  it('imports managed teams and players once, skipping archived ones', async () => {
+    const user = userEvent.setup()
+    const db = await seedLobby()
+    const managed = { labelIds: [], totalScore: 0, gameLog: [] }
+    await db.managedTeams.bulkPut([
+      {
+        ...managed,
+        id: 'mt-1',
+        name: 'Foxes',
+        color: '#f00',
+        icon: 'Zap',
+        playerIds: ['mp-1'],
+        archivedAt: null,
+      },
+      {
+        ...managed,
+        id: 'mt-2',
+        name: 'Old',
+        color: '#000',
+        icon: 'Zap',
+        playerIds: [],
+        archivedAt: new Date(),
+      },
+    ])
+    await db.managedPlayers.bulkPut([
+      { ...managed, id: 'mp-1', name: 'Rae', teamIds: ['mt-1'], archivedAt: null },
+      { ...managed, id: 'mp-2', name: 'Sol', teamIds: [], archivedAt: null },
+    ])
+    const host = await mountLobby()
+
+    const importButton = host.view.getByRole('button', { name: 'Import' })
+    await user.click(importButton)
+    await host.waitFor(async () =>
+      expect(await db.players.where('gameId').equals('g2').count()).toBe(2)
+    )
+    const teams = await db.teams.where('gameId').equals('g2').toArray()
+    expect(teams.map(t => t.name)).toEqual(['Foxes'])
+    const rae = await db.players
+      .where('gameId')
+      .equals('g2')
+      .filter(p => p.name === 'Rae')
+      .first()
+    expect(rae?.teamId).toBe(teams[0].id)
+
+    // Importing again adds no duplicates
+    await host.waitFor(() => expect(importButton).toBeEnabled())
+    await user.click(importButton)
+    await host.waitFor(() => expect(importButton).toBeEnabled())
+    expect(await db.teams.where('gameId').equals('g2').count()).toBe(1)
+    expect(await db.players.where('gameId').equals('g2').count()).toBe(2)
+    await db.managedTeams.clear()
+    await db.managedPlayers.clear()
+  }, 20_000)
+
+  it('approves, rejects and disconnects screens', async () => {
+    const user = userEvent.setup()
+    await seedLobby()
+    const host = await mountLobby()
+
+    const first = await connectClient()
+    first.client.send({ type: 'SCREEN_JOIN' })
+    await host.waitFor(() => expect(first.received.map(e => e.type)).toContain('JOIN_PENDING'))
+    await user.click(await host.view.findByRole('button', { name: 'Approve screen 1' }))
+    await host.waitFor(() => expect(first.received.map(e => e.type)).toContain('SCREEN_ACCEPTED'))
+
+    const second = await connectClient()
+    second.client.send({ type: 'SCREEN_JOIN' })
+    await user.click(await host.view.findByRole('button', { name: 'Reject screen 1' }))
+    await host.waitFor(() =>
+      expect(second.received).toContainEqual({
+        type: 'JOIN_REJECTED',
+        reason: 'The host declined the screen',
+      })
+    )
+
+    await user.click(host.view.getByRole('button', { name: 'Disconnect screen 1' }))
+    await host.waitFor(() => expect(first.client.status).toBe('disconnected'))
+    expect(host.view.queryByRole('button', { name: 'Disconnect screen 1' })).toBeNull()
+  }, 20_000)
+})
+
+describe("the assistant's tools in the game master", () => {
+  type Tool = { name: string; execute(args: Record<string, unknown>): Promise<string> }
+  const tools = new Map<string, Tool>()
+
+  afterEach(() => {
+    tools.clear()
+    localStorage.removeItem('viktorani:ai-tools')
+    Object.defineProperty(document, 'modelContext', { value: undefined, configurable: true })
+  })
+
+  /** Switch the tools on and offer a WebMCP entry point that records what is registered. */
+  async function offerWebMcp() {
+    const { writeAiToolsEnabled } = await import('@/lib/ai-tools')
+    writeAiToolsEnabled(true)
+    const mc = {
+      registerTool: (tool: Tool, options?: { signal?: AbortSignal }) => {
+        tools.set(tool.name, tool)
+        options?.signal?.addEventListener('abort', () => tools.delete(tool.name))
+      },
+    }
+    Object.defineProperty(document, 'modelContext', { value: mc, configurable: true })
+  }
+
+  const run = (name: string, args: Record<string, unknown> = {}) => {
+    const tool = tools.get(name)
+    if (!tool) throw new Error(`${name} is not registered`)
+    return tool.execute(args)
+  }
+
+  it('runs the game through the live and play tools', async () => {
+    const user = userEvent.setup()
+    await seedGame()
+    const { db } = await import('@/db')
+    await db.games.put({ ...GAME, id: 'g3' })
+    await db.gameQuestions.put({
+      id: 'gq3',
+      gameId: 'g3',
+      questionId: 'q1',
+      roundId: 'r1',
+      order: 0,
+      status: 'pending',
+      revealed: false,
+    })
+    await offerWebMcp()
+    const host = await mountSide('host', '/admin/game/g3')
+    await host.waitFor(() => expect(hub.state.host).not.toBeNull())
+    await host.waitFor(() => expect(tools.has('get_question')).toBe(true), SLOW)
+
+    const { client, received } = await connectClient()
+    client.send({ ...JOIN, playerName: 'Uma', deviceId: 'device-uma' } as TransportEvent)
+    await host.waitFor(() => expect(received.map(e => e.type)).toContain('JOIN_ACCEPTED'), SLOW)
+
+    expect(await run('get_game')).toContain('Uma')
+    expect(await run('get_question')).toContain('Capital of France?')
+
+    await run('adjust_score', { player: 'Uma', points: 3 })
+    const uma = await db.players.where('deviceId').equals('device-uma').first()
+    expect(uma?.score).toBe(3)
+
+    expect(await run('send_message', { to: 'everyone', text: 'Two minutes' })).toBe(
+      'Sent to 1 device.'
+    )
+    await host.waitFor(() =>
+      expect(received).toContainEqual({ type: 'MESSAGE', text: 'Two minutes' })
+    )
+
+    await run('set_buzzer', { locked: true })
+    await host.waitFor(async () => expect((await db.games.get('g3'))?.buzzerLocked).toBe(true))
+
+    expect(await run('pause_game')).toBe('Paused.')
+    await host.waitFor(async () => expect((await db.games.get('g3'))?.status).toBe('paused'))
+    expect(await run('resume_game')).toBe('Resumed.')
+    await host.waitFor(async () => expect((await db.games.get('g3'))?.status).toBe('active'))
+
+    // Kicking waits for the host's Allow
+    const kicked = run('kick_player', { player: 'Uma' })
+    await user.click(await host.view.findByRole('button', { name: 'Allow' }))
+    expect(await kicked).toBe('Kicked Uma.')
+    expect((await db.players.get(uma!.id))?.presence).toBe('kicked')
+
+    const ended = run('end_game')
+    await user.click(await host.view.findByRole('button', { name: 'Allow' }))
+    expect(await ended).toBe('The game has ended.')
+    expect((await db.games.get('g3'))?.status).toBe('ended')
+  }, 20_000)
+})
